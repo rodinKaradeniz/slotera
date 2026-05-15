@@ -1,0 +1,38 @@
+[
+  {
+    "id": "n-1",
+    "icon": "check",
+    "tone": "accent",
+    "title": "New booking confirmed",
+    "detail": "Sofia Marin · Decision Sprint · Today 14:00",
+    "age": "10m",
+    "unread": true
+  },
+  {
+    "id": "n-2",
+    "icon": "card",
+    "tone": "warning",
+    "title": "Payment pending",
+    "detail": "Helena Kreutzer · Founder Workshop · €180",
+    "age": "1h",
+    "unread": true
+  },
+  {
+    "id": "n-3",
+    "icon": "clock",
+    "tone": "info",
+    "title": "Session starts soon",
+    "detail": "Strategy Deep Dive · Mila Ozawa · in 2h 14m",
+    "age": "now",
+    "unread": false
+  },
+  {
+    "id": "n-4",
+    "icon": "refresh",
+    "tone": "info",
+    "title": "Client requested reschedule",
+    "detail": "Tariq Hassan · Discovery Call · Thursday",
+    "age": "3h",
+    "unread": false
+  }
+]

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "ses-001",
+    "serviceId": "svc-deepdive",
+    "startISO": "2026-05-17T08:30:00.000Z",
+    "endISO": "2026-05-17T10:00:00.000Z",
+    "capacity": 1,
+    "bookedCount": 1,
+    "status": "scheduled",
+    "locationType": "online",
+    "location": "Zoom",
+    "recurring": "one-off"
+  },
+  {
+    "id": "ses-002",
+    "serviceId": "svc-sprint",
+    "startISO": "2026-05-17T12:00:00.000Z",
+    "endISO": "2026-05-17T13:00:00.000Z",
+    "capacity": 1,
+    "bookedCount": 1,
+    "status": "scheduled",
+    "locationType": "online",
+    "location": "Zoom",
+    "recurring": "one-off"
+  },
+  {
+    "id": "ses-003",
+    "serviceId": "svc-discovery",
+    "startISO": "2026-05-17T15:30:00.000Z",
+    "endISO": "2026-05-17T16:00:00.000Z",
+    "capacity": 1,
+    "bookedCount": 0,
+    "status": "scheduled",
+    "locationType": "online",
+    "location": "Zoom",
+    "recurring": "one-off"
+  },
+  {
+    "id": "ses-004",
+    "serviceId": "svc-workshop",
+    "startISO": "2026-05-19T15:00:00.000Z",
+    "endISO": "2026-05-19T17:00:00.000Z",
+    "capacity": 6,
+    "bookedCount": 4,
+    "status": "scheduled",
+    "locationType": "physical",
+    "location": "Berlin · Mitte studio",
+    "recurring": "one-off"
+  },
+  {
+    "id": "ses-005",
+    "serviceId": "svc-deepdive",
+    "startISO": "2026-05-20T09:00:00.000Z",
+    "endISO": "2026-05-20T10:30:00.000Z",
+    "capacity": 1,
+    "bookedCount": 1,
+    "status": "scheduled",
+    "locationType": "online",
+    "location": "Zoom",
+    "recurring": "weekly"
+  },
+  {
+    "id": "ses-006",
+    "serviceId": "svc-sprint",
+    "startISO": "2026-05-21T12:00:00.000Z",
+    "endISO": "2026-05-21T13:00:00.000Z",
+    "capacity": 1,
+    "bookedCount": 0,
+    "status": "scheduled",
+    "locationType": "online",
+    "location": "Zoom",
+    "recurring": "one-off"
+  },
+  {
+    "id": "ses-007",
+    "serviceId": "svc-discovery",
+    "startISO": "2026-05-22T14:00:00.000Z",
+    "endISO": "2026-05-22T14:30:00.000Z",
+    "capacity": 1,
+    "bookedCount": 1,
+    "status": "scheduled",
+    "locationType": "online",
+    "location": "Zoom",
+    "recurring": "one-off"
+  },
+  {
+    "id": "ses-008",
+    "serviceId": "svc-workshop",
+    "startISO": "2026-05-26T15:00:00.000Z",
+    "endISO": "2026-05-26T17:00:00.000Z",
+    "capacity": 6,
+    "bookedCount": 2,
+    "status": "scheduled",
+    "locationType": "physical",
+    "location": "Berlin · Mitte studio",
+    "recurring": "one-off"
+  },
+  {
+    "id": "ses-009",
+    "serviceId": "svc-deepdive",
+    "startISO": "2026-05-12T08:00:00.000Z",
+    "endISO": "2026-05-12T09:30:00.000Z",
+    "capacity": 1,
+    "bookedCount": 1,
+    "status": "done",
+    "locationType": "online",
+    "location": "Zoom",
+    "recurring": "one-off"
+  },
+  {
+    "id": "ses-010",
+    "serviceId": "svc-sprint",
+    "startISO": "2026-05-13T12:00:00.000Z",
+    "endISO": "2026-05-13T13:00:00.000Z",
+    "capacity": 1,
+    "bookedCount": 1,
+    "status": "done",
+    "locationType": "online",
+    "location": "Zoom",
+    "recurring": "one-off"
+  }
+]

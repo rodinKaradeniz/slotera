@@ -1,0 +1,51 @@
+{
+  "business": {
+    "name": "Hartmann Strategy",
+    "displayName": "Dr. Lena Hartmann",
+    "bio": "Strategy advisor for early-stage founders. Berlin-based, working with teams across Europe and the US.",
+    "email": "lena@hartmannstrategy.com",
+    "phone": "+49 30 12345678",
+    "address": "Mitte, Berlin · 10115",
+    "bookingPageUrl": "slotera.app/lena"
+  },
+  "branding": {
+    "accent": "#3D5A3D",
+    "fontFamily": "serif"
+  },
+  "payments": {
+    "processors": [
+      { "id": "stripe", "label": "Stripe", "detail": "Live · acct_1NJ•••rT", "status": "connected" },
+      { "id": "paypal", "label": "PayPal", "detail": "Not connected", "status": "disconnected" },
+      { "id": "sepa",   "label": "SEPA",   "detail": "Bank transfer instructions on confirmation", "status": "connected" }
+    ],
+    "taxRate": 19,
+    "vatNumber": "DE318123456"
+  },
+  "calendar": {
+    "connections": [
+      { "id": "google",  "label": "Google Calendar",  "detail": "lena@hartmannstrategy.com",  "status": "connected" },
+      { "id": "apple",   "label": "Apple Calendar",   "detail": "Not connected",              "status": "disconnected" },
+      { "id": "outlook", "label": "Outlook",          "detail": "Not connected",              "status": "disconnected" }
+    ],
+    "workingHours": [
+      { "day": "Mon", "enabled": true,  "start": "09:00", "end": "18:00" },
+      { "day": "Tue", "enabled": true,  "start": "09:00", "end": "18:00" },
+      { "day": "Wed", "enabled": true,  "start": "09:00", "end": "18:00" },
+      { "day": "Thu", "enabled": true,  "start": "09:00", "end": "18:00" },
+      { "day": "Fri", "enabled": true,  "start": "09:00", "end": "15:00" },
+      { "day": "Sat", "enabled": false, "start": "10:00", "end": "14:00" },
+      { "day": "Sun", "enabled": false, "start": "10:00", "end": "14:00" }
+    ],
+    "defaultMeetingProvider": "zoom"
+  },
+  "emails": {
+    "notifyAdmin": { "newBooking": true, "cancellation": true, "reschedule": true },
+    "notifyClients": { "confirmation": true, "reminder": true, "followUp": false },
+    "fromAddress": "lena@hartmannstrategy.com"
+  },
+  "account": {
+    "email": "lena@hartmannstrategy.com",
+    "twoFactorEnabled": false,
+    "workspaceName": "Hartmann Strategy"
+  }
+}

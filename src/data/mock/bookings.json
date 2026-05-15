@@ -1,0 +1,115 @@
+[
+  {
+    "id": "bkg-1001",
+    "sessionId": "ses-001",
+    "clientId": "cli-001",
+    "status": "confirmed",
+    "paymentStatus": "paid",
+    "amountCents": 38000,
+    "currency": "EUR",
+    "notes": "Wants to focus on Series A narrative.",
+    "createdAtISO": "2026-05-12T09:00:00.000Z"
+  },
+  {
+    "id": "bkg-1002",
+    "sessionId": "ses-002",
+    "clientId": "cli-005",
+    "status": "confirmed",
+    "paymentStatus": "paid",
+    "amountCents": 24000,
+    "currency": "EUR",
+    "createdAtISO": "2026-05-13T09:00:00.000Z"
+  },
+  {
+    "id": "bkg-1003",
+    "sessionId": "ses-005",
+    "clientId": "cli-002",
+    "status": "confirmed",
+    "paymentStatus": "paid",
+    "amountCents": 38000,
+    "currency": "EUR",
+    "createdAtISO": "2026-05-09T09:00:00.000Z"
+  },
+  {
+    "id": "bkg-1004",
+    "sessionId": "ses-004",
+    "clientId": "cli-007",
+    "status": "pending",
+    "paymentStatus": "pending",
+    "amountCents": 18000,
+    "currency": "EUR",
+    "notes": "Awaiting bank transfer confirmation.",
+    "createdAtISO": "2026-05-14T09:00:00.000Z"
+  },
+  {
+    "id": "bkg-1005",
+    "sessionId": "ses-004",
+    "clientId": "cli-003",
+    "status": "pending",
+    "paymentStatus": "pending",
+    "amountCents": 18000,
+    "currency": "EUR",
+    "createdAtISO": "2026-05-14T11:00:00.000Z"
+  },
+  {
+    "id": "bkg-1006",
+    "sessionId": "ses-007",
+    "clientId": "cli-006",
+    "status": "pending",
+    "paymentStatus": "free",
+    "amountCents": 0,
+    "currency": "EUR",
+    "createdAtISO": "2026-05-15T09:00:00.000Z"
+  },
+  {
+    "id": "bkg-1007",
+    "sessionId": "ses-009",
+    "clientId": "cli-001",
+    "status": "completed",
+    "paymentStatus": "paid",
+    "amountCents": 38000,
+    "currency": "EUR",
+    "createdAtISO": "2026-05-04T09:00:00.000Z"
+  },
+  {
+    "id": "bkg-1008",
+    "sessionId": "ses-010",
+    "clientId": "cli-005",
+    "status": "completed",
+    "paymentStatus": "paid",
+    "amountCents": 24000,
+    "currency": "EUR",
+    "createdAtISO": "2026-05-05T09:00:00.000Z"
+  },
+  {
+    "id": "bkg-1009",
+    "sessionId": "ses-009",
+    "clientId": "cli-008",
+    "status": "completed",
+    "paymentStatus": "paid",
+    "amountCents": 38000,
+    "currency": "EUR",
+    "createdAtISO": "2026-04-29T09:00:00.000Z"
+  },
+  {
+    "id": "bkg-1010",
+    "sessionId": "ses-010",
+    "clientId": "cli-007",
+    "status": "cancelled",
+    "paymentStatus": "refunded",
+    "amountCents": 24000,
+    "currency": "EUR",
+    "notes": "Client travel conflict.",
+    "createdAtISO": "2026-05-02T09:00:00.000Z"
+  },
+  {
+    "id": "bkg-1011",
+    "sessionId": "ses-001",
+    "clientId": "cli-004",
+    "status": "cancelled",
+    "paymentStatus": "refunded",
+    "amountCents": 38000,
+    "currency": "EUR",
+    "createdAtISO": "2026-05-11T09:00:00.000Z"
+  }
+]
