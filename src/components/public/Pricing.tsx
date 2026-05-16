@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { SegGroup } from "@/components/ui/SegGroup";
+import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
 
 const TIERS = [
@@ -56,12 +57,11 @@ export function Pricing() {
   const [cycle, setCycle] = React.useState<"monthly" | "yearly">("yearly");
   return (
     <Section id="pricing">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10">
-        <div>
-          <div className="eyebrow mb-3">Pricing</div>
-          <h2 className="h-1 max-w-2xl">Straightforward pricing. Cancel anytime.</h2>
-        </div>
-        <div className="flex items-center gap-3">
+      <SectionHeader
+        eyebrow="Pricing"
+        title="Straightforward pricing. Cancel anytime."
+        maxTitleWidth="44rem"
+        right={
           <SegGroup
             value={cycle}
             onChange={(v) => setCycle(v)}
@@ -70,8 +70,8 @@ export function Pricing() {
               { value: "yearly", label: "Yearly · −20%" },
             ]}
           />
-        </div>
-      </div>
+        }
+      />
       <div className="grid md:grid-cols-3 gap-4">
         {TIERS.map((t) => (
           <Card
@@ -80,7 +80,7 @@ export function Pricing() {
             className="flex flex-col"
           >
             <div className="flex items-center justify-between">
-              <h3 className="h-3">{t.name}</h3>
+              <h3 className="text-h3">{t.name}</h3>
               {t.highlight && <Pill tone="accent">Most popular</Pill>}
             </div>
             <div className="mt-4 flex items-baseline gap-1">

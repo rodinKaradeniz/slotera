@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { AccordionItem } from "@/components/ui/Accordion";
+import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
 
 const ITEMS = [
@@ -27,8 +28,7 @@ export function FAQ() {
   const [open, setOpen] = React.useState<number | null>(0);
   return (
     <Section>
-      <div className="eyebrow mb-3">FAQ</div>
-      <h2 className="h-1 mb-8">Common questions.</h2>
+      <SectionHeader eyebrow="FAQ" title="Common questions." maxTitleWidth="44rem" />
       <div className="flex flex-col gap-3 max-w-3xl">
         {ITEMS.map((it, i) => (
           <AccordionItem

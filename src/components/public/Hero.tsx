@@ -9,7 +9,7 @@ export function Hero() {
     <Section className="pt-12 pb-16 sm:pt-20 sm:pb-24">
       <div className="max-w-3xl">
         <div className="eyebrow mb-5">For consultants, coaches & instructors</div>
-        <h1 className="h-display text-ink">
+        <h1 className="text-display text-ink">
           Paid bookings, without the calendar chaos.
         </h1>
         <p className="text-body-lg mt-6 max-w-2xl">

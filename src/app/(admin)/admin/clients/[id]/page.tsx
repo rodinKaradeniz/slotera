@@ -12,6 +12,7 @@ import { CardHead } from "@/components/shared/CardHead";
 import { DetailLine } from "@/components/shared/DetailLine";
 import { Stat } from "@/components/shared/Stat";
 import { LoadingRows } from "@/components/shared/LoadingRows";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getClient, updateClient } from "@/services/clients.service";
 import { listBookingsByClient } from "@/services/bookings.service";
@@ -71,7 +72,7 @@ export default function ClientDetailPage() {
         { label: client?.name ?? "Detail" },
       ]}
     >
-      <div className="max-w-[1200px] mx-auto">
+      <PageContainer>
         {!client ? (
           <LoadingRows count={3} />
         ) : (
@@ -79,26 +80,21 @@ export default function ClientDetailPage() {
             <button
               type="button"
               onClick={() => router.push("/admin/clients")}
-              className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1"
+              className="text-small text-ink-3 hover:text-ink mb-6 inline-flex items-center gap-1"
             >
               ← All clients
             </button>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-6">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10">
+              <div className="flex items-center gap-5">
                 <Avatar name={client.name} size={64} />
-                <div>
-                  <h1
-                    className="font-serif text-ink"
-                    style={{ fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 380 }}
-                  >
-                    {client.name}
-                  </h1>
-                  <div className="text-small mt-1">
+                <div className="flex flex-col">
+                  <h1 className="text-h1 text-ink">{client.name}</h1>
+                  <div className="text-small mt-2">
                     {client.role ? `${client.role} · ` : ""}
                     {client.company ?? client.email}
                   </div>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2 mt-3">
                     <StatusBadge kind="client" status={client.tag} />
                     <span className="text-micro">
                       Since {fmtDate(new Date(client.joinedISO))}
@@ -143,7 +139,7 @@ export default function ClientDetailPage() {
               </div>
             </Card>
 
-            <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4 items-start">
+            <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
               <Card padded={false}>
                 <CardHead title="Booking history" />
                 {bookings.length === 0 ? (
@@ -179,7 +175,7 @@ export default function ClientDetailPage() {
                 )}
               </Card>
 
-              <div className="flex flex-col gap-4 lg:sticky lg:top-24">
+              <div className="flex flex-col gap-6 lg:sticky lg:top-24">
                 <Card padded={false}>
                   <CardHead title="Contact" />
                   <div className="p-2">
@@ -205,7 +201,7 @@ export default function ClientDetailPage() {
 
                 <Card padded>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="h-3" style={{ fontSize: 16 }}>Notes</h3>
+                    <h3 className="text-h3 text-ink" style={{ fontSize: 16 }}>Notes</h3>
                     {!notesEditing ? (
                       <Button
                         variant="ghost"
@@ -251,7 +247,7 @@ export default function ClientDetailPage() {
             </div>
           </>
         )}
-      </div>
+      </PageContainer>
     </AdminShell>
   );
 }

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Field } from "@/components/ui/Field";
@@ -42,13 +43,13 @@ export function SettingsView() {
   }, []);
 
   return (
-    <div className="max-w-[1200px] mx-auto">
+    <PageContainer>
       <PageHeader
         eyebrow="Workspace"
         title="Settings"
         sub="Configure your booking workflow."
       />
-      <div className="grid lg:grid-cols-[220px_1fr] gap-6 items-start">
+      <div className="grid lg:grid-cols-[220px_1fr] gap-8 items-start">
         <nav className="flex flex-col gap-1 lg:sticky lg:top-24">
           {NAV.map((n) => {
             const active = section === n.id;
@@ -74,7 +75,7 @@ export function SettingsView() {
         {!data ? (
           <LoadingRows count={2} />
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
             {section === "business" && <BusinessPanel data={data} onChange={setData} />}
             {section === "branding" && <BrandingPanel data={data} onChange={setData} />}
             {section === "payments" && <PaymentsPanel data={data} />}
@@ -84,7 +85,7 @@ export function SettingsView() {
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }
 
@@ -107,7 +108,7 @@ function PanelCard({
   return (
     <Card padded>
       <div className="mb-4">
-        <h2 className="h-3" style={{ fontSize: 18 }}>{title}</h2>
+        <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>{title}</h2>
         {hint && <p className="text-small mt-1">{hint}</p>}
       </div>
       {children}
@@ -219,7 +220,7 @@ function PaymentsPanel({ data }: { data: SettingsData }) {
     <>
       <Card padded>
         <div className="mb-4">
-          <h2 className="h-3" style={{ fontSize: 18 }}>Payment processors</h2>
+          <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>Payment processors</h2>
           <p className="text-small mt-1">Connect at least one processor to accept paid bookings.</p>
         </div>
         <div className="flex flex-col">
@@ -249,7 +250,7 @@ function PaymentsPanel({ data }: { data: SettingsData }) {
         </div>
       </Card>
       <Card padded>
-        <h3 className="h-3 mb-4" style={{ fontSize: 16 }}>Tax</h3>
+        <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 16 }}>Tax</h3>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Tax rate (%)">
             <Input value={String(data.payments.taxRate)} readOnly />
@@ -277,7 +278,7 @@ function CalendarPanel({ data, onChange }: PanelProps) {
     <>
       <Card padded>
         <div className="mb-4">
-          <h2 className="h-3" style={{ fontSize: 18 }}>Calendar connections</h2>
+          <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>Calendar connections</h2>
           <p className="text-small mt-1">Two-way sync prevents double-booking.</p>
         </div>
         {data.calendar.connections.map((c) => (

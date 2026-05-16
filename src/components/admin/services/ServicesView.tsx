@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -23,7 +24,7 @@ export function ServicesView() {
   const refresh = () => setReload((k) => k + 1);
 
   return (
-    <div className="max-w-[1200px] mx-auto">
+    <PageContainer>
       <PageHeader
         eyebrow="Catalog"
         title="Services"
@@ -43,7 +44,7 @@ export function ServicesView() {
       {!services ? (
         <LoadingRows count={4} />
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {services.map((s) => (
             <ServiceCard
               key={s.id}
@@ -71,6 +72,6 @@ export function ServicesView() {
           </Card>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

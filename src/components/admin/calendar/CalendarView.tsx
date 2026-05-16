@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { WeekGrid } from "./WeekGrid";
 import { DetailPanel } from "./DetailPanel";
 import { listSessions } from "@/services/sessions.service";
@@ -62,17 +63,12 @@ export function CalendarView() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-6">
-        <div>
-          <div className="eyebrow mb-2">Calendar</div>
-          <h1
-            className="font-serif text-ink"
-            style={{ fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 380 }}
-          >
-            {fmtDate(anchor)}
-          </h1>
-          <p className="text-small mt-1">
+    <PageContainer width="wide">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10">
+        <div className="flex flex-col">
+          <div className="eyebrow mb-3">Calendar</div>
+          <h1 className="text-h1 text-ink">{fmtDate(anchor)}</h1>
+          <p className="text-small mt-2">
             {todayEvents.length} sessions · {spotsOpen} spots open
           </p>
         </div>
@@ -117,7 +113,7 @@ export function CalendarView() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_360px] gap-4 items-start">
+      <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
         <WeekGrid
           anchor={anchor}
           events={visibleEvents}
@@ -141,6 +137,6 @@ export function CalendarView() {
           />
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

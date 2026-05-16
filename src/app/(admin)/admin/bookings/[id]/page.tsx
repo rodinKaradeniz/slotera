@@ -11,6 +11,7 @@ import { CardHead } from "@/components/shared/CardHead";
 import { DetailLine } from "@/components/shared/DetailLine";
 import { Stat } from "@/components/shared/Stat";
 import { LoadingRows } from "@/components/shared/LoadingRows";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getBooking } from "@/services/bookings.service";
 import { getSession } from "@/services/sessions.service";
@@ -65,31 +66,22 @@ export default function BookingDetailPage() {
         { label: booking ? booking.id : "Detail" },
       ]}
     >
-      <div className="max-w-[1200px] mx-auto">
+      <PageContainer>
         {!booking ? (
           <LoadingRows count={3} />
         ) : (
           <>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-6">
-              <div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10">
+              <div className="flex flex-col">
                 <button
                   type="button"
                   onClick={() => router.push("/admin/bookings")}
-                  className="text-small text-ink-3 hover:text-ink mb-3 inline-flex items-center gap-1"
+                  className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1 self-start"
                 >
                   ← All bookings
                 </button>
-                <h1
-                  className="font-serif text-ink"
-                  style={{
-                    fontSize: "clamp(28px, 3vw, 40px)",
-                    fontWeight: 380,
-                    letterSpacing: "-0.015em",
-                  }}
-                >
-                  {service?.name ?? "Booking"}
-                </h1>
-                <div className="flex gap-2 mt-3">
+                <h1 className="text-h1 text-ink">{service?.name ?? "Booking"}</h1>
+                <div className="flex gap-2 mt-4">
                   <StatusBadge kind="booking" status={booking.status} />
                   <StatusBadge kind="payment" status={booking.paymentStatus} />
                 </div>
@@ -115,17 +107,14 @@ export default function BookingDetailPage() {
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4 items-start">
-              <div className="flex flex-col gap-4">
+            <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
+              <div className="flex flex-col gap-6">
                 <Card padded={false}>
                   <CardHead title="Session" />
                   <div className="p-5">
                     {session ? (
                       <>
-                        <div
-                          className="font-serif text-ink"
-                          style={{ fontSize: 28, fontWeight: 380 }}
-                        >
+                        <div className="text-h3 text-ink" style={{ fontSize: 26 }}>
                           {fmtDate(new Date(session.startISO))}
                         </div>
                         <div className="text-[15px] text-ink-2 mt-1">
@@ -186,7 +175,7 @@ export default function BookingDetailPage() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-4 lg:sticky lg:top-24">
+              <div className="flex flex-col gap-6 lg:sticky lg:top-24">
                 {client && (
                   <Card padded>
                     <div className="flex items-center gap-3">
@@ -227,7 +216,7 @@ export default function BookingDetailPage() {
             </div>
           </>
         )}
-      </div>
+      </PageContainer>
     </AdminShell>
   );
 }

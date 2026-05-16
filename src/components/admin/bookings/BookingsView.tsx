@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -92,7 +93,7 @@ export function BookingsView() {
   );
 
   return (
-    <div className="max-w-[1200px] mx-auto">
+    <PageContainer>
       <PageHeader
         eyebrow="Operations"
         title="Bookings"
@@ -118,7 +119,7 @@ export function BookingsView() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="flex-1 min-w-[220px]">
           <Input
             icon="search"
@@ -160,6 +161,6 @@ export function BookingsView() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

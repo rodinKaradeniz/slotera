@@ -61,7 +61,7 @@ export function DrawerShell({
             {eyebrow && (
               <div className="eyebrow mb-1.5">{eyebrow}</div>
             )}
-            <h2 className="h-3 text-ink truncate">{title}</h2>
+            <h2 className="text-h3 text-ink truncate">{title}</h2>
           </div>
           <button
             type="button"

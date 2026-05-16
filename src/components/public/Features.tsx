@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
 
 const FEATURES: { icon: IconName; title: string; body: string }[] = [
@@ -39,17 +40,18 @@ const FEATURES: { icon: IconName; title: string; body: string }[] = [
 export function Features() {
   return (
     <Section id="features">
-      <div className="eyebrow mb-3">Features</div>
-      <h2 className="h-1 max-w-2xl">
-        Everything a solo operator needs. Nothing they don&apos;t.
-      </h2>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
+      <SectionHeader
+        eyebrow="Features"
+        title="Everything a solo operator needs. Nothing they don't."
+        maxTitleWidth="44rem"
+      />
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {FEATURES.map((f) => (
           <Card key={f.title}>
             <span className="inline-flex w-10 h-10 rounded-md bg-accent-soft text-accent items-center justify-center">
               <Icon name={f.icon} size={20} />
             </span>
-            <h3 className="h-3 mt-4">{f.title}</h3>
+            <h3 className="text-h3 mt-4">{f.title}</h3>
             <p className="text-body mt-2 text-ink-3">{f.body}</p>
           </Card>
         ))}

@@ -16,7 +16,7 @@ export default function FailurePage() {
           <div className="mx-auto w-16 h-16 rounded-full bg-[#F2DDD8] text-danger flex items-center justify-center mb-5">
             <Icon name="x" size={28} strokeWidth={2.5} />
           </div>
-          <h1 className="h-2">Payment declined.</h1>
+          <h1 className="text-h2 text-ink">Payment declined.</h1>
           <p className="text-body mt-2 text-ink-3">
             We couldn&apos;t process that card. You can try another card or pick a
             different payment method.

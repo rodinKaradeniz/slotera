@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -38,7 +39,7 @@ export function ClientsView() {
   });
 
   return (
-    <div className="max-w-[1200px] mx-auto">
+    <PageContainer>
       <PageHeader
         eyebrow="Directory"
         title="Clients"
@@ -51,7 +52,7 @@ export function ClientsView() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="flex-1 min-w-[220px]">
           <Input
             icon="search"
@@ -69,7 +70,7 @@ export function ClientsView() {
       {!clients ? (
         <LoadingRows count={5} />
       ) : layout === "grid" ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((c) => (
             <ClientCard key={c.id} client={c} />
           ))}
@@ -99,7 +100,7 @@ export function ClientsView() {
           ))}
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

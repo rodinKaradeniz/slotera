@@ -37,10 +37,7 @@
   --r-md: 6px;
   --r-lg: 10px;
 
-  /* shadows */
-  --shadow-1: 0 1px 0 rgba(31,31,26,0.04), 0 1px 2px rgba(31,31,26,0.04);
-  --shadow-2: 0 1px 0 rgba(31,31,26,0.05), 0 8px 24px -8px rgba(31,31,26,0.08);
-  --shadow-3: 0 1px 0 rgba(31,31,26,0.06), 0 24px 60px -20px rgba(31,31,26,0.18);
+  /* shadow values live in @theme below so Tailwind generates utilities */
 }
 
 /* expose tokens to Tailwind v4 utilities */
@@ -71,13 +68,21 @@
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
 
-  --shadow-1: var(--shadow-1);
-  --shadow-2: var(--shadow-2);
-  --shadow-3: var(--shadow-3);
-
   --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-serif: var(--font-fraunces), 'Cormorant Garamond', Georgia, serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Custom box-shadow tokens. `--shadow-card/pop/overlay` are the semantic
+   names; the numeric aliases keep `shadow-1`/`shadow-2`/`shadow-3` utilities
+   available for components written before the rename. */
+@theme {
+  --shadow-card:    0 1px 0 rgba(31,31,26,0.04), 0 1px 2px rgba(31,31,26,0.04);
+  --shadow-pop:     0 1px 0 rgba(31,31,26,0.05), 0 8px 24px -8px rgba(31,31,26,0.08);
+  --shadow-overlay: 0 1px 0 rgba(31,31,26,0.06), 0 24px 60px -20px rgba(31,31,26,0.18);
+  --shadow-1: 0 1px 0 rgba(31,31,26,0.04), 0 1px 2px rgba(31,31,26,0.04);
+  --shadow-2: 0 1px 0 rgba(31,31,26,0.05), 0 8px 24px -8px rgba(31,31,26,0.08);
+  --shadow-3: 0 1px 0 rgba(31,31,26,0.06), 0 24px 60px -20px rgba(31,31,26,0.18);
 }
 
 * { box-sizing: border-box; }
@@ -98,15 +103,20 @@ a { color: inherit; }
 
 ::selection { background: var(--accent); color: #fff; }
 
-/* ── type scale (utility classes) ───────────────────────────── */
+/* ── type scale (utility classes) ───────────────────────────────────────────
+   Names intentionally avoid `.h-{n}` because Tailwind v4 already generates
+   `.h-1`/`.h-2`/`.h-3` as height utilities (height: 0.25rem / 0.5rem / 0.75rem),
+   which would collapse heading boxes and cause the title text to overflow into
+   the next element. `.text-display`/`.text-h1`/`.text-h2`/`.text-h3` are safe.
+   ─────────────────────────────────────────────────────────────────────────── */
 @layer utilities {
-  .h-display { font-family: var(--font-serif); font-weight: 360; font-size: clamp(40px, 5vw, 72px); line-height: 0.98; letter-spacing: -0.02em; }
-  .h-1 { font-family: var(--font-serif); font-weight: 360; font-size: 44px; line-height: 1.04; letter-spacing: -0.02em; }
-  .h-2 { font-family: var(--font-serif); font-weight: 380; font-size: 32px; line-height: 1.1; letter-spacing: -0.015em; }
-  .h-3 { font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.2; letter-spacing: -0.01em; }
+  .text-display { font-family: var(--font-serif); font-weight: 360; font-size: clamp(40px, 5vw, 72px); line-height: 0.98; letter-spacing: -0.02em; }
+  .text-h1 { font-family: var(--font-serif); font-weight: 360; font-size: clamp(34px, 3.5vw, 44px); line-height: 1.06; letter-spacing: -0.02em; }
+  .text-h2 { font-family: var(--font-serif); font-weight: 380; font-size: clamp(26px, 2.6vw, 32px); line-height: 1.1; letter-spacing: -0.015em; }
+  .text-h3 { font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
   .eyebrow { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
   .text-body  { font-size: 15px; line-height: 1.55; color: var(--ink-2); }
-  .text-body-lg { font-size: 17px; line-height: 1.5; color: var(--ink-2); }
+  .text-body-lg { font-size: 17px; line-height: 1.55; color: var(--ink-2); }
   .text-small { font-size: 13px; line-height: 1.5; color: var(--ink-3); }
   .text-micro { font-size: 11.5px; line-height: 1.4; color: var(--ink-3); letter-spacing: 0.02em; }
 }

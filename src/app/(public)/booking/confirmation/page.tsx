@@ -46,7 +46,7 @@ export default function ConfirmationPage() {
           <div className="mx-auto w-16 h-16 rounded-full bg-accent-soft text-accent flex items-center justify-center mb-5">
             <Icon name="check" size={28} strokeWidth={2.5} />
           </div>
-          <h1 className="h-2">Your booking is confirmed.</h1>
+          <h1 className="text-h2 text-ink">Your booking is confirmed.</h1>
           <p className="text-body mt-2 text-ink-3">
             We&apos;ve sent a confirmation email
             {data?.draft.customer.email ? ` to ${data.draft.customer.email}` : ""}.

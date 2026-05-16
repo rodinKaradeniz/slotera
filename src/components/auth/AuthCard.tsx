@@ -11,13 +11,13 @@ type Props = {
 
 export function AuthCard({ eyebrow, title, subtitle, children, footer }: Props) {
   return (
-    <Card padded className="shadow-2">
-      {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
-      <h1 className="h-2 text-ink">{title}</h1>
-      {subtitle && <p className="text-body mt-2 text-ink-3">{subtitle}</p>}
-      <div className="mt-6">{children}</div>
+    <Card padded className="shadow-pop">
+      {eyebrow && <div className="eyebrow mb-3">{eyebrow}</div>}
+      <h1 className="text-h2 text-ink">{title}</h1>
+      {subtitle && <p className="text-body mt-3 text-ink-3">{subtitle}</p>}
+      <div className="mt-8">{children}</div>
       {footer && (
-        <div className="mt-6 pt-4 border-t border-line-soft text-small text-center">
+        <div className="mt-6 pt-5 border-t border-line-soft text-small text-center">
           {footer}
         </div>
       )}

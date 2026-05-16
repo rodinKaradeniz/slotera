@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
+import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
 
 const STEPS = [
@@ -23,15 +24,16 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <Section>
-      <div className="eyebrow mb-3">How it works</div>
-      <h2 className="h-1 max-w-2xl">
-        Go from inbox tag-team to a real booking flow in an afternoon.
-      </h2>
-      <div className="grid sm:grid-cols-3 gap-4 mt-10">
+      <SectionHeader
+        eyebrow="How it works"
+        title="Go from inbox tag-team to a real booking flow in an afternoon."
+        maxTitleWidth="44rem"
+      />
+      <div className="grid sm:grid-cols-3 gap-4">
         {STEPS.map((s) => (
           <Card key={s.n}>
             <div className="font-mono text-[12px] text-accent">{s.n}</div>
-            <h3 className="h-3 mt-3">{s.title}</h3>
+            <h3 className="text-h3 mt-3">{s.title}</h3>
             <p className="text-body mt-2 text-ink-3">{s.body}</p>
           </Card>
         ))}

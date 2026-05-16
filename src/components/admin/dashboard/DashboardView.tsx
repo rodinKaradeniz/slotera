@@ -11,6 +11,7 @@ import { WeekStrip } from "./WeekStrip";
 import { currentSession } from "@/services/auth.service";
 import { getDashboard } from "@/services/dashboard.service";
 import { LoadingRows } from "@/components/shared/LoadingRows";
+import { PageContainer } from "@/components/shared/PageContainer";
 import type { DashboardData } from "@/types/dashboard";
 
 export function DashboardView() {
@@ -25,20 +26,20 @@ export function DashboardView() {
   const next = data?.todaySchedule.find((t) => t.status === "next");
 
   return (
-    <div className="max-w-[1200px] mx-auto">
+    <PageContainer>
       <Greeting operatorName={operatorName || "Lena"} />
 
       {!data ? (
         <LoadingRows count={3} />
       ) : (
-        <>
-          <div className="grid lg:grid-cols-2 gap-4 mb-4">
+        <div className="flex flex-col gap-6">
+          <div className="grid lg:grid-cols-2 gap-6">
             <NextSessionCard item={next} />
             <PendingActions items={data.pendingActions} />
           </div>
 
-          <div className="grid lg:grid-cols-[1fr_1.4fr] gap-4 mb-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid lg:grid-cols-[1fr_1.4fr] gap-6">
+            <div className="grid grid-cols-2 gap-6">
               {data.kpis.map((k) => (
                 <KpiTile key={k.id} kpi={k} />
               ))}
@@ -46,12 +47,12 @@ export function DashboardView() {
             <TrendChart data={data.trend30d} />
           </div>
 
-          <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
+          <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6">
             <RecentBookings items={data.recentBookings} />
             <WeekStrip days={data.weekStrip} />
           </div>
-        </>
+        </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

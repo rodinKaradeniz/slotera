@@ -30,21 +30,11 @@ export function Greeting({ operatorName = "Lena" }: Props) {
   const firstName = operatorName.split(" ")[0];
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
+    <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between mb-10">
       <div>
-        <div className="eyebrow mb-2">{dateStr}</div>
-        <h1
-          className="font-serif text-ink"
-          style={{
-            fontSize: "clamp(32px, 4vw, 44px)",
-            fontWeight: 380,
-            letterSpacing: "-0.02em",
-            lineHeight: 1.05,
-          }}
-        >
-          Welcome back, {firstName}.
-        </h1>
-        <div className="mt-3">
+        <div className="eyebrow mb-3">{dateStr}</div>
+        <h1 className="text-h1 text-ink">Welcome back, {firstName}.</h1>
+        <div className="mt-4">
           <Pill tone="success" icon="dot">Online · Berlin</Pill>
         </div>
       </div>

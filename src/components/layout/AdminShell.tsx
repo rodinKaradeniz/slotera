@@ -55,7 +55,7 @@ export function AdminShell({ crumbs, topbarRight, children }: Props) {
           crumbs={crumbs}
           right={topbarRight}
         />
-        <main className="flex-1 px-6 py-8 fade-in">{children}</main>
+        <main className="flex-1 px-6 py-10 lg:py-12 fade-in">{children}</main>
       </div>
     </div>
   );

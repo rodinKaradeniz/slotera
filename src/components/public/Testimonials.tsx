@@ -2,6 +2,7 @@ import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
+import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
 
 const QUOTES = [
@@ -28,11 +29,12 @@ const QUOTES = [
 export function Testimonials() {
   return (
     <Section>
-      <div className="eyebrow mb-3">Testimonials</div>
-      <h2 className="h-1 max-w-2xl">
-        Operators we&apos;ve quietly freed up an afternoon a week.
-      </h2>
-      <div className="grid md:grid-cols-3 gap-4 mt-10">
+      <SectionHeader
+        eyebrow="Testimonials"
+        title="Operators we've quietly freed up an afternoon a week."
+        maxTitleWidth="44rem"
+      />
+      <div className="grid md:grid-cols-3 gap-4">
         {QUOTES.map((q) => (
           <Card key={q.name}>
             <div className="flex gap-0.5 mb-4 text-warning">

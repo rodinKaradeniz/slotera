@@ -24,7 +24,7 @@ export function EmptyState({
           <Icon name={icon} size={26} />
         </div>
         <div className="max-w-md">
-          <h2 className="h-3 text-ink">{title}</h2>
+          <h2 className="text-h3 text-ink">{title}</h2>
           {body && <p className="text-body mt-2 text-ink-3">{body}</p>}
         </div>
         {actions && <div className="flex flex-wrap justify-center gap-2">{actions}</div>}

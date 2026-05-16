@@ -90,9 +90,9 @@ export default function OnboardingPage() {
       </div>
 
       <Card padded>
-        <div className="eyebrow mb-2">Welcome, {operatorName.split(" ")[0]}</div>
-        <h1 className="h-2">Let&apos;s get your workspace ready.</h1>
-        <p className="text-body mt-2 text-ink-3">
+        <div className="eyebrow mb-3">Welcome, {operatorName.split(" ")[0]}</div>
+        <h1 className="text-h2 text-ink">Let&apos;s get your workspace ready.</h1>
+        <p className="text-body mt-3 text-ink-3">
           Three quick steps and you&apos;ll be live. You can return to this checklist anytime.
         </p>
 
