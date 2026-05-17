@@ -41,7 +41,7 @@ export function StepDetails({ customer, onChange }: Props) {
             onChange={(e) => update({ email: e.target.value })}
           />
         </Field>
-        <Field label="Phone" optional>
+        <Field label="Phone">
           <Input
             type="tel"
             icon="phone"
@@ -49,7 +49,7 @@ export function StepDetails({ customer, onChange }: Props) {
             onChange={(e) => update({ phone: e.target.value })}
           />
         </Field>
-        <Field label="Company" optional className="sm:col-span-2">
+        <Field label="Company" className="sm:col-span-2">
           <Input
             value={customer.company}
             onChange={(e) => update({ company: e.target.value })}
@@ -57,7 +57,6 @@ export function StepDetails({ customer, onChange }: Props) {
         </Field>
         <Field
           label="Anything you'd like to share before the call?"
-          optional
           className="sm:col-span-2"
         >
           <Textarea

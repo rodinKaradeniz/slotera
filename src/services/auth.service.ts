@@ -63,7 +63,12 @@ export async function register(input: {
   };
   const session: Session = { token: makeToken(), operator };
   writeSession(session);
-  writeOnboarding({ service: false, availability: false, share: false });
+  writeOnboarding({
+    service: false,
+    availability: false,
+    payments: false,
+    share: false,
+  });
   return session;
 }
 
@@ -94,6 +99,7 @@ export function getOnboarding(): OnboardingState {
   if (
     stored.service === false &&
     stored.availability === false &&
+    stored.payments === false &&
     stored.share === false
   ) {
     return SEED_ONBOARDING;

@@ -1,12 +1,9 @@
 "use client";
 
-import { AdminShell } from "@/components/layout/AdminShell";
+import { useSetCrumbs } from "@/components/layout/PageMeta";
 import { ClientsView } from "@/components/admin/clients/ClientsView";
 
 export default function ClientsPage() {
-  return (
-    <AdminShell crumbs={[{ label: "Clients" }]}>
-      <ClientsView />
-    </AdminShell>
-  );
+  useSetCrumbs([{ label: "Clients" }]);
+  return <ClientsView />;
 }

@@ -3,7 +3,9 @@
 import * as React from "react";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar, type Crumb } from "./AdminTopbar";
+import { CommandPalette } from "@/components/admin/search/CommandPalette";
 import { currentSession } from "@/services/auth.service";
+import { usePageMeta } from "./PageMeta";
 import type { Operator } from "@/types/auth";
 
 const COLLAPSED_KEY = "slotera.sidebar.collapsed";
@@ -17,6 +19,9 @@ type Props = {
 export function AdminShell({ crumbs, topbarRight, children }: Props) {
   const [collapsed, setCollapsed] = React.useState(true);
   const [operator, setOperator] = React.useState<Operator | null>(null);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
+  const meta = usePageMeta();
+  const effectiveCrumbs = crumbs ?? meta.crumbs;
 
   React.useEffect(() => {
     try {
@@ -27,6 +32,19 @@ export function AdminShell({ crumbs, topbarRight, children }: Props) {
     }
     const s = currentSession();
     setOperator(s?.operator ?? null);
+  }, []);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isShortcut =
+        (e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey);
+      if (isShortcut) {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const toggle = () => {
@@ -52,11 +70,16 @@ export function AdminShell({ crumbs, topbarRight, children }: Props) {
         <AdminTopbar
           collapsed={collapsed}
           onToggleSidebar={toggle}
-          crumbs={crumbs}
+          onOpenPalette={() => setPaletteOpen(true)}
+          crumbs={effectiveCrumbs}
           right={topbarRight}
         />
-        <main className="flex-1 px-6 py-10 lg:py-12 fade-in">{children}</main>
+        <main className="flex-1 px-6 py-10 lg:py-12">{children}</main>
       </div>
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+      />
     </div>
   );
 }

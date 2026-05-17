@@ -20,10 +20,13 @@ import type { Service } from "@/types/service";
 import type { Recurring, SessionItem, SessionStatus } from "@/types/session";
 import type { LocationType } from "@/types/common";
 
+export type SessionDrawerMode = "view" | "edit";
+
 export type SessionDrawerProps = {
   open: boolean;
   onClose: () => void;
   initial?: SessionItem | null;
+  mode?: SessionDrawerMode;
   onSaved?: (s: SessionItem) => void;
   onCancelled?: (s: SessionItem) => void;
 };
@@ -82,14 +85,21 @@ export function SessionDrawer({
   open,
   onClose,
   initial,
+  mode: modeProp = "edit",
   onSaved,
   onCancelled,
 }: SessionDrawerProps) {
   const isEdit = !!initial;
+  const [mode, setMode] = React.useState<SessionDrawerMode>(modeProp);
+  const isView = mode === "view" && isEdit;
   const [services, setServices] = React.useState<Service[]>([]);
   const [form, setForm] = React.useState<FormState>(() => emptyForm([]));
   const [conflict, setConflict] = React.useState<SessionItem | null>(null);
   const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) setMode(modeProp);
+  }, [open, modeProp]);
 
   React.useEffect(() => {
     listServices().then(setServices);
@@ -172,24 +182,42 @@ export function SessionDrawer({
     }
   };
 
+  const eyebrow = isView
+    ? "Session details"
+    : isEdit
+      ? "Edit session"
+      : "New session";
+  const title = isEdit ? `Session · ${initial?.id}` : "Schedule a session";
+
   return (
     <DrawerShell
       open={open}
       onClose={onClose}
-      eyebrow={isEdit ? "Edit session" : "New session"}
-      title={isEdit ? `Session · ${initial?.id}` : "Schedule a session"}
+      eyebrow={eyebrow}
+      title={title}
       footer={
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
-          <Button onClick={save} loading={busy} disabled={!form.serviceId}>
-            {isEdit ? "Save changes" : "Create session"}
-          </Button>
-        </>
+        isView ? (
+          <>
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+            <Button icon="edit" onClick={() => setMode("edit")}>
+              Edit session
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={onClose} disabled={busy}>
+              Cancel
+            </Button>
+            <Button onClick={save} loading={busy} disabled={!form.serviceId}>
+              {isEdit ? "Save changes" : "Create session"}
+            </Button>
+          </>
+        )
       }
     >
-      <div className="flex flex-col gap-5">
+      <fieldset disabled={isView} className="flex flex-col gap-5 disabled:opacity-90">
         <Field label="Service" required>
           <Select
             value={form.serviceId}
@@ -295,14 +323,14 @@ export function SessionDrawer({
           />
         </Field>
 
-        {isEdit && (
+        {isEdit && !isView && (
           <div className="pt-5 border-t border-line-soft flex justify-end">
             <Button variant="danger" size="sm" icon="x" onClick={cancel} disabled={busy}>
               Cancel session
             </Button>
           </div>
         )}
-      </div>
+      </fieldset>
     </DrawerShell>
   );
 }

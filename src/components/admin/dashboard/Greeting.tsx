@@ -2,75 +2,101 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
-import { Pill } from "@/components/ui/Pill";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 
-type Props = { operatorName?: string };
+type Props = {
+  operatorName?: string;
+  subtitle?: string;
+};
 
-export function Greeting({ operatorName = "Lena" }: Props) {
+const WORDS = [
+  "Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight",
+  "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen",
+  "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty",
+];
+
+export function spell(n: number): string {
+  return n >= 0 && n < WORDS.length ? WORDS[n] : String(n);
+}
+
+function firstNameOf(fullName: string): string {
+  const stripped = fullName.replace(/^(dr|mr|mrs|ms|prof|dipl|sir|madam)\.?\s+/i, "");
+  return stripped.split(/\s+/)[0] || fullName;
+}
+
+function timeGreeting(d: Date): string {
+  const h = d.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+export function Greeting({ operatorName = "Lena", subtitle }: Props) {
   const { openBookingDrawer } = useDrawers();
-  const [copied, setCopied] = React.useState(false);
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/booking`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // ignore
-    }
-  };
 
   const date = new Date();
-  const dateStr = date.toLocaleDateString(undefined, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-  const firstName = operatorName.split(" ")[0];
+  const dateStr = date
+    .toLocaleDateString(undefined, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
+    .toUpperCase();
+  const firstName = firstNameOf(operatorName);
+  const bookingSlug = firstName.toLowerCase();
 
   return (
-    <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between mb-10">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between mb-10">
       <div>
         <div className="eyebrow mb-3">{dateStr}</div>
-        <h1 className="text-h1 text-ink">Welcome back, {firstName}.</h1>
-        <div className="mt-4">
-          <Pill tone="success" icon="dot">Online · Berlin</Pill>
-        </div>
+        <h1 className="text-h1 text-ink">
+          {timeGreeting(date)},{" "}
+          <span className="font-serif italic text-accent">{firstName}</span>.
+        </h1>
+        {subtitle && (
+          <p className="mt-3 text-small text-ink-3">{subtitle}</p>
+        )}
       </div>
-      <div
-        className="flex flex-col gap-2 sm:items-end"
-        style={{ minWidth: 220 }}
-      >
-        <Button
-          variant="primary"
-          size="md"
-          icon="plus"
-          className="w-full sm:w-[220px] whitespace-nowrap justify-start"
-          onClick={() => openBookingDrawer()}
-        >
-          New booking
-        </Button>
-        <a href="/booking" target="_blank" rel="noreferrer" className="w-full sm:w-[220px]">
-          <Button
-            variant="secondary"
-            size="md"
-            icon="eye"
-            full
-            className="whitespace-nowrap justify-start"
+      <div className="flex flex-col gap-3 lg:items-end">
+        <div className="flex items-center gap-3 text-[13px]">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent-soft text-accent">
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: "var(--accent)" }}
+            />
+            Booking page live
+          </span>
+          <a
+            href="/booking"
+            target="_blank"
+            rel="noreferrer"
+            className="text-ink-3 hover:text-ink font-mono truncate"
           >
-            View booking page
+            slotera.app/{bookingSlug}
+          </a>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <a href="/booking" target="_blank" rel="noreferrer">
+            <Button
+              variant="secondary"
+              size="md"
+              icon="eye"
+              className="whitespace-nowrap"
+            >
+              View booking page
+            </Button>
+          </a>
+          <Button
+            variant="primary"
+            size="md"
+            icon="plus"
+            className="whitespace-nowrap"
+            onClick={() => openBookingDrawer()}
+          >
+            New booking
           </Button>
-        </a>
-        <Button
-          variant="ghost"
-          size="md"
-          icon="copy"
-          className="w-full sm:w-[220px] whitespace-nowrap justify-start"
-          onClick={copyLink}
-        >
-          {copied ? "Copied" : "Copy booking link"}
-        </Button>
+        </div>
       </div>
     </div>
   );

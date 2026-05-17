@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { eur } from "@/lib/money";
+import { gbp } from "@/lib/money";
 import type { Service } from "@/types/service";
 
 type Props = {
@@ -43,7 +43,7 @@ export function ServiceSelectorCard({ service, selected, onSelect }: Props) {
             {service.name}
           </h3>
           <span className="text-[15px] font-medium text-ink flex-shrink-0">
-            {service.priceCents === 0 ? "Free" : eur(service.priceCents)}
+            {service.priceCents === 0 ? "Free" : gbp(service.priceCents)}
           </span>
         </div>
         <p className="text-small mt-1">{service.description}</p>

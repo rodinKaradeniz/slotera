@@ -19,9 +19,10 @@ export type BookingDraft = {
     address2: string;
     zip: string;
     city: string;
+    state: string;
   };
   payment: {
-    method: "card" | "paypal" | "sepa";
+    method: "card" | "paypal" | "manual";
     cardNumber: string;
     cardName: string;
     cardExp: string;
@@ -48,6 +49,7 @@ export const EMPTY_DRAFT: BookingDraft = {
     address2: "",
     zip: "",
     city: "",
+    state: "",
   },
   payment: {
     method: "card",

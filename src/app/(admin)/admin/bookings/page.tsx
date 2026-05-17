@@ -1,12 +1,9 @@
 "use client";
 
-import { AdminShell } from "@/components/layout/AdminShell";
+import { useSetCrumbs } from "@/components/layout/PageMeta";
 import { BookingsView } from "@/components/admin/bookings/BookingsView";
 
 export default function BookingsPage() {
-  return (
-    <AdminShell crumbs={[{ label: "Bookings" }]}>
-      <BookingsView />
-    </AdminShell>
-  );
+  useSetCrumbs([{ label: "Bookings" }]);
+  return <BookingsView />;
 }

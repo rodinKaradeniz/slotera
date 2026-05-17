@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -42,48 +41,64 @@ export function SettingsView() {
     getSettings().then(setData);
   }, []);
 
+  const activeMeta = NAV.find((n) => n.id === section);
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Workspace"
-        title="Settings"
-        sub="Configure your booking workflow."
-      />
-      <div className="grid lg:grid-cols-[220px_1fr] gap-8 items-start">
-        <nav className="flex flex-col gap-1 lg:sticky lg:top-24">
-          {NAV.map((n) => {
-            const active = section === n.id;
-            return (
-              <button
-                key={n.id}
-                type="button"
-                onClick={() => setSection(n.id)}
-                className={cn(
-                  "flex items-center gap-2.5 h-10 px-3 rounded-md text-[14px] transition-colors",
-                  active
-                    ? "bg-accent-soft text-accent-ink font-medium"
-                    : "text-ink-2 hover:bg-paper-2",
-                )}
-              >
-                <Icon name={n.icon} size={16} />
-                {n.label}
-              </button>
-            );
-          })}
-        </nav>
+      <div className="grid lg:grid-cols-[280px_1fr] gap-10 items-start">
+        <aside className="flex flex-col lg:sticky lg:top-24">
+          <div className="eyebrow mb-3">Workspace</div>
+          <h1 className="text-h1 text-ink">Settings</h1>
+          <p className="text-body text-ink-2 mt-3 max-w-[28ch]">
+            Configure your booking workflow, branding, and notifications.
+          </p>
+          <nav className="flex flex-col gap-1 mt-8">
+            {NAV.map((n) => {
+              const active = section === n.id;
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => setSection(n.id)}
+                  className={cn(
+                    "flex items-center gap-2.5 h-10 px-3 rounded-md text-[14px] transition-colors text-left",
+                    active
+                      ? "bg-accent-soft text-accent-ink font-medium"
+                      : "text-ink-2 hover:bg-paper-2",
+                  )}
+                >
+                  <Icon name={n.icon} size={16} />
+                  {n.label}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
 
-        {!data ? (
-          <LoadingRows count={2} />
-        ) : (
-          <div className="flex flex-col gap-6">
-            {section === "business" && <BusinessPanel data={data} onChange={setData} />}
-            {section === "branding" && <BrandingPanel data={data} onChange={setData} />}
-            {section === "payments" && <PaymentsPanel data={data} />}
-            {section === "calendar" && <CalendarPanel data={data} onChange={setData} />}
-            {section === "emails" && <EmailsPanel data={data} onChange={setData} />}
-            {section === "account" && <AccountPanel data={data} onChange={setData} />}
-          </div>
-        )}
+        <section className="min-w-0">
+          {activeMeta && (
+            <div className="mb-6">
+              <div className="eyebrow mb-2">{activeMeta.label}</div>
+              <h2
+                className="font-serif text-ink"
+                style={{ fontSize: 28, fontWeight: 380, letterSpacing: "-0.015em" }}
+              >
+                {activeMeta.label} settings
+              </h2>
+            </div>
+          )}
+          {!data ? (
+            <LoadingRows count={2} />
+          ) : (
+            <div className="flex flex-col gap-6">
+              {section === "business" && <BusinessPanel data={data} onChange={setData} />}
+              {section === "branding" && <BrandingPanel data={data} onChange={setData} />}
+              {section === "payments" && <PaymentsPanel data={data} onChange={setData} />}
+              {section === "calendar" && <CalendarPanel data={data} onChange={setData} />}
+              {section === "emails" && <EmailsPanel data={data} onChange={setData} />}
+              {section === "account" && <AccountPanel data={data} onChange={setData} />}
+            </div>
+          )}
+        </section>
       </div>
     </PageContainer>
   );
@@ -215,7 +230,7 @@ function BrandingPanel({ data, onChange }: PanelProps) {
   );
 }
 
-function PaymentsPanel({ data }: { data: SettingsData }) {
+function PaymentsPanel({ data, onChange }: PanelProps) {
   return (
     <>
       <Card padded>
@@ -231,7 +246,7 @@ function PaymentsPanel({ data }: { data: SettingsData }) {
             >
               <span className="w-9 h-9 rounded-md bg-paper-2 text-ink-2 flex items-center justify-center">
                 <Icon
-                  name={p.id === "paypal" ? "paypal" : p.id === "sepa" ? "wallet" : "card"}
+                  name={p.id === "paypal" ? "paypal" : "card"}
                   size={16}
                 />
               </span>
@@ -249,6 +264,7 @@ function PaymentsPanel({ data }: { data: SettingsData }) {
           ))}
         </div>
       </Card>
+      <ManualPaymentPanel data={data} onChange={onChange} />
       <Card padded>
         <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 16 }}>Tax</h3>
         <div className="grid sm:grid-cols-2 gap-4">
@@ -261,6 +277,81 @@ function PaymentsPanel({ data }: { data: SettingsData }) {
         </div>
       </Card>
     </>
+  );
+}
+
+function ManualPaymentPanel({ data, onChange }: PanelProps) {
+  const [enabled, setEnabled] = React.useState(data.payments.manualPaymentEnabled);
+  const [instructions, setInstructions] = React.useState(
+    data.payments.manualPaymentInstructions,
+  );
+
+  const save = async () => {
+    const next = await updateSettings({
+      payments: {
+        ...data.payments,
+        manualPaymentEnabled: enabled,
+        manualPaymentInstructions: instructions,
+      },
+    });
+    onChange(next);
+  };
+
+  const remove = async () => {
+    setEnabled(false);
+    setInstructions("");
+    const next = await updateSettings({
+      payments: {
+        ...data.payments,
+        manualPaymentEnabled: false,
+        manualPaymentInstructions: "",
+      },
+    });
+    onChange(next);
+  };
+
+  return (
+    <PanelCard
+      title="Manual payment"
+      hint="Show clients custom payment instructions (bank transfer, Interac, etc.) at checkout. Bookings using manual payment stay pending until you confirm receipt."
+      onSave={save}
+    >
+      <div className="flex items-center justify-between pb-4 border-b border-line-soft">
+        <div>
+          <div className="text-[14px] font-medium text-ink">
+            Offer manual payment at checkout
+          </div>
+          <div className="text-small">
+            Adds a &ldquo;Manual payment&rdquo; option to the public booking flow.
+          </div>
+        </div>
+        <Toggle checked={enabled} onChange={setEnabled} />
+      </div>
+
+      <Field
+        label="Payment instructions"
+        hint="Plain text. Shown to clients on the payment step and in confirmation emails."
+        className="mt-4"
+      >
+        <Textarea
+          value={instructions}
+          rows={6}
+          disabled={!enabled}
+          placeholder={
+            "Bank transfer to:\nYour Business\nIBAN: ...\nBIC: ...\n\nOr Interac e-Transfer to: you@example.com"
+          }
+          onChange={(e) => setInstructions(e.target.value)}
+        />
+      </Field>
+
+      {data.payments.manualPaymentInstructions && (
+        <div className="flex justify-end mt-4">
+          <Button variant="ghost" size="sm" icon="trash" onClick={remove}>
+            Clear instructions
+          </Button>
+        </div>
+      )}
+    </PanelCard>
   );
 }
 

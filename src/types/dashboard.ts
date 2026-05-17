@@ -13,6 +13,7 @@ export type Kpi = {
 
 export type DashboardScheduleItem = {
   id: string;
+  bookingId?: string;
   time: string;
   end: string;
   client: string;

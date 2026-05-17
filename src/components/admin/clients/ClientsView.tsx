@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { plural } from "@/lib/text";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -13,7 +14,7 @@ import { ClientCard } from "./ClientCard";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { listClients } from "@/services/clients.service";
-import { eur } from "@/lib/money";
+import { gbp } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import type { Client } from "@/types/client";
 
@@ -43,7 +44,14 @@ export function ClientsView() {
       <PageHeader
         eyebrow="Directory"
         title="Clients"
-        sub={clients ? `${clients.length} total` : "Loading…"}
+        description="Everyone who has booked with you, with lifetime spend and activity."
+        meta={
+          clients
+            ? `${plural(clients.length, "client")} · ${
+                clients.filter((c) => c.tag === "active").length
+              } active this week`
+            : "Loading…"
+        }
         actions={
           <>
             <Button variant="secondary" size="md" icon="download">Export CSV</Button>
@@ -93,7 +101,7 @@ export function ClientsView() {
                 {c.totalBookings} bookings
               </div>
               <div className="text-[14px] font-medium text-ink whitespace-nowrap">
-                {eur(c.totalSpentCents)}
+                {gbp(c.totalSpentCents)}
               </div>
               <StatusBadge kind="client" status={c.tag} />
             </Link>

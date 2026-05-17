@@ -21,10 +21,13 @@ import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
 import type { BookingStatus, PaymentStatus } from "@/types/common";
 
+export type BookingDrawerMode = "view" | "edit";
+
 export type BookingDrawerProps = {
   open: boolean;
   onClose: () => void;
   initial?: Booking | null;
+  mode?: BookingDrawerMode;
   defaultSessionId?: string;
   defaultClientId?: string;
   onSaved?: (b: Booking) => void;
@@ -55,12 +58,15 @@ export function BookingDrawer({
   open,
   onClose,
   initial,
+  mode: modeProp = "edit",
   defaultSessionId,
   defaultClientId,
   onSaved,
   onCancelled,
 }: BookingDrawerProps) {
   const isEdit = !!initial;
+  const [mode, setMode] = React.useState<BookingDrawerMode>(modeProp);
+  const isView = mode === "view" && isEdit;
   const [clients, setClients] = React.useState<Client[]>([]);
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
@@ -68,6 +74,10 @@ export function BookingDrawer({
     emptyForm({ sessionId: defaultSessionId, clientId: defaultClientId }),
   );
   const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) setMode(modeProp);
+  }, [open, modeProp]);
 
   React.useEffect(() => {
     Promise.all([listClients(), listSessions(), listServices()]).then(
@@ -127,7 +137,7 @@ export function BookingDrawer({
           status: form.status,
           paymentStatus: form.paymentStatus,
           amountCents: form.amountCents,
-          currency: selectedService?.currency ?? "EUR",
+          currency: selectedService?.currency ?? "GBP",
           notes: form.notes,
         });
         onSaved?.(next);
@@ -153,24 +163,42 @@ export function BookingDrawer({
 
   const ready = !!form.clientId && !!form.sessionId;
 
+  const eyebrow = isView
+    ? "Booking details"
+    : isEdit
+      ? "Edit booking"
+      : "New booking";
+  const title = isEdit ? `Booking ${initial?.id}` : "Create a booking";
+
   return (
     <DrawerShell
       open={open}
       onClose={onClose}
-      eyebrow={isEdit ? "Edit booking" : "New booking"}
-      title={isEdit ? `Booking ${initial?.id}` : "Create a booking"}
+      eyebrow={eyebrow}
+      title={title}
       footer={
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={busy}>
-            Close
-          </Button>
-          <Button onClick={save} loading={busy} disabled={!ready}>
-            {isEdit ? "Save changes" : "Create booking"}
-          </Button>
-        </>
+        isView ? (
+          <>
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+            <Button icon="edit" onClick={() => setMode("edit")}>
+              Edit booking
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={onClose} disabled={busy}>
+              Close
+            </Button>
+            <Button onClick={save} loading={busy} disabled={!ready}>
+              {isEdit ? "Save changes" : "Create booking"}
+            </Button>
+          </>
+        )
       }
     >
-      <div className="flex flex-col gap-5">
+      <fieldset disabled={isView} className="flex flex-col gap-5 disabled:opacity-90">
         <Field label="Client" required>
           <Select
             value={form.clientId}
@@ -270,7 +298,7 @@ export function BookingDrawer({
           />
         </Field>
 
-        {isEdit && (
+        {isEdit && !isView && (
           <div className="pt-5 border-t border-line-soft flex justify-end">
             <Button
               variant="danger"
@@ -283,7 +311,7 @@ export function BookingDrawer({
             </Button>
           </div>
         )}
-      </div>
+      </fieldset>
     </DrawerShell>
   );
 }

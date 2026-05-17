@@ -30,14 +30,14 @@ export function clearSession(): void {
 }
 
 export function readOnboarding(): OnboardingState {
-  if (!isBrowser()) return { service: false, availability: false, share: false };
+  if (!isBrowser()) return { service: false, availability: false, payments: false, share: false };
   try {
     const raw = window.localStorage.getItem(ONBOARDING_KEY);
     return raw
       ? (JSON.parse(raw) as OnboardingState)
-      : { service: false, availability: false, share: false };
+      : { service: false, availability: false, payments: false, share: false };
   } catch {
-    return { service: false, availability: false, share: false };
+    return { service: false, availability: false, payments: false, share: false };
   }
 }
 

@@ -18,6 +18,7 @@ export function Logo({ size = 22, withWord = true, href = "/", className }: Logo
         viewBox="0 0 32 32"
         fill="none"
         aria-hidden
+        style={{ transform: "scaleY(-1)" }}
       >
         <path
           d="M9 9 Q16 4 23 9 Q23 16 16 16 Q9 16 9 23 Q16 28 23 23"

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { Pill } from "@/components/ui/Pill";
 import { SegGroup } from "@/components/ui/SegGroup";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
@@ -14,11 +13,11 @@ const TIERS = [
   {
     id: "solo",
     name: "Solo",
-    price: { monthly: "€19", yearly: "€15" },
+    price: { monthly: "£20", yearly: "£15" },
     blurb: "For independent operators getting paid bookings live.",
     features: [
       "Unlimited services",
-      "Stripe & SEPA payments",
+      "Stripe & manual bank-transfer payments",
       "Google / Apple calendar sync",
       "1 booking page",
     ],
@@ -27,16 +26,15 @@ const TIERS = [
   {
     id: "team",
     name: "Team",
-    price: { monthly: "€49", yearly: "€39" },
+    price: { monthly: "£50", yearly: "£40" },
     blurb: "For practices and studios with a small team.",
     features: [
       "Everything in Solo",
-      "Up to 5 operators",
+      "Up to 10 operators",
       "Group sessions & waitlists",
       "Custom branding",
     ],
     cta: "Start free trial",
-    highlight: true,
   },
   {
     id: "studio",
@@ -74,14 +72,9 @@ export function Pricing() {
       />
       <div className="grid md:grid-cols-3 gap-4">
         {TIERS.map((t) => (
-          <Card
-            key={t.id}
-            selected={t.highlight}
-            className="flex flex-col"
-          >
+          <Card key={t.id} className="flex flex-col">
             <div className="flex items-center justify-between">
               <h3 className="text-h3">{t.name}</h3>
-              {t.highlight && <Pill tone="accent">Most popular</Pill>}
             </div>
             <div className="mt-4 flex items-baseline gap-1">
               <span
@@ -105,11 +98,7 @@ export function Pricing() {
               ))}
             </ul>
             <Link href="/register" className="mt-6">
-              <Button
-                full
-                variant={t.highlight ? "primary" : "secondary"}
-                size="md"
-              >
+              <Button full variant="secondary" size="md">
                 {t.cta}
               </Button>
             </Link>

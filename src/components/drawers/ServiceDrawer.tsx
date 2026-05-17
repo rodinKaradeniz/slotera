@@ -33,7 +33,7 @@ const DEFAULTS: Omit<Service, "id" | "createdAtISO"> = {
   kind: "discovery",
   durationMin: 60,
   priceCents: 12000,
-  currency: "EUR",
+  currency: "GBP",
   capacity: 1,
   locationType: "online",
   location: "Zoom · link sent on confirmation",

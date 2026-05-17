@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Icon } from "@/components/ui/Icon";
 import { NotificationsButton } from "./NotificationsButton";
+import { NavbarSearch } from "@/components/admin/search/NavbarSearch";
 import { cn } from "@/lib/cn";
 
 export type Crumb = { label: string; href?: string };
@@ -10,11 +11,18 @@ export type Crumb = { label: string; href?: string };
 type Props = {
   collapsed: boolean;
   onToggleSidebar: () => void;
+  onOpenPalette: () => void;
   crumbs?: Crumb[];
   right?: React.ReactNode;
 };
 
-export function AdminTopbar({ collapsed, onToggleSidebar, crumbs = [], right }: Props) {
+export function AdminTopbar({
+  collapsed,
+  onToggleSidebar,
+  onOpenPalette,
+  crumbs = [],
+  right,
+}: Props) {
   return (
     <header className="h-16 sticky top-0 z-20 bg-paper/85 backdrop-blur border-b border-line-soft flex items-center px-4 gap-3">
       <button
@@ -55,11 +63,7 @@ export function AdminTopbar({ collapsed, onToggleSidebar, crumbs = [], right }: 
         ))}
       </nav>
 
-      <div className="hidden md:flex items-center h-9 px-3 bg-surface border border-line rounded-md gap-2 w-64 text-ink-3">
-        <Icon name="search" size={14} />
-        <span className="text-[13px] flex-1">Search</span>
-        <kbd className="text-[11px] font-mono text-ink-4">⌘K</kbd>
-      </div>
+      <NavbarSearch onOpenPalette={onOpenPalette} />
 
       {right}
       <NotificationsButton />

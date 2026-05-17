@@ -12,7 +12,7 @@ const ITEMS = [
   },
   {
     q: "What payment processors do you support?",
-    a: "Stripe (cards) is the default. SEPA bank transfers and PayPal can be enabled per service.",
+    a: "Stripe (cards) is the default. PayPal and manual bank-transfer instructions can be enabled workspace-wide.",
   },
   {
     q: "Can I run group classes or workshops?",
@@ -20,16 +20,28 @@ const ITEMS = [
   },
   {
     q: "Where are you hosted?",
-    a: "Slotera is EU-hosted (Frankfurt) and GDPR-native. We sign a DPA on request and never sell client data.",
+    a: "Slotera is built with UK data protection workflows in mind.",
+  },
+  {
+    q: "Can I embed the booking page on my own site?",
+    a: "Yes. You can either link to the hosted booking page or embed it as an iframe. Your colors and fonts come through either way.",
+  },
+  {
+    q: "What happens if a client cancels?",
+    a: "Cancellations follow the policy you set on each service. The session frees up automatically and refunds flow through the same processor you used to take payment.",
   },
 ];
 
 export function FAQ() {
-  const [open, setOpen] = React.useState<number | null>(0);
+  const [open, setOpen] = React.useState<number | null>(null);
   return (
     <Section>
-      <SectionHeader eyebrow="FAQ" title="Common questions." maxTitleWidth="44rem" />
-      <div className="flex flex-col gap-3 max-w-3xl">
+      <SectionHeader
+        eyebrow="FAQ"
+        title="Common questions."
+        maxTitleWidth="44rem"
+      />
+      <div className="flex flex-col gap-3">
         {ITEMS.map((it, i) => (
           <AccordionItem
             key={i}

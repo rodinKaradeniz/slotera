@@ -1,12 +1,9 @@
 "use client";
 
-import { AdminShell } from "@/components/layout/AdminShell";
+import { useSetCrumbs } from "@/components/layout/PageMeta";
 import { CalendarView } from "@/components/admin/calendar/CalendarView";
 
 export default function CalendarPage() {
-  return (
-    <AdminShell crumbs={[{ label: "Calendar" }]}>
-      <CalendarView />
-    </AdminShell>
-  );
+  useSetCrumbs([{ label: "Calendar" }]);
+  return <CalendarView />;
 }

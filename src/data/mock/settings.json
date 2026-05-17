@@ -15,11 +15,13 @@
   "payments": {
     "processors": [
       { "id": "stripe", "label": "Stripe", "detail": "Live · acct_1NJ•••rT", "status": "connected" },
-      { "id": "paypal", "label": "PayPal", "detail": "Not connected", "status": "disconnected" },
-      { "id": "sepa",   "label": "SEPA",   "detail": "Bank transfer instructions on confirmation", "status": "connected" }
+      { "id": "paypal", "label": "PayPal", "detail": "Not connected", "status": "disconnected" }
     ],
     "taxRate": 19,
-    "vatNumber": "DE318123456"
+    "vatNumber": "DE318123456",
+    "manualPaymentEnabled": true,
+    "manualPaymentInstructions": "Bank transfer to:\nHartmann Strategy\nIBAN: DE89 3704 0044 0532 0130 00\nBIC: COBADEFFXXX\n\nPlease include your booking reference in the transfer note. Your spot is held for 48h while we confirm the payment.",
+    "defaultPaymentMethods": ["card", "paypal", "manual"]
   },
   "calendar": {
     "connections": [

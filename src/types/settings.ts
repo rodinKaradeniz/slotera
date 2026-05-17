@@ -7,6 +7,8 @@ export type WorkingDay = {
 
 export type ConnectionStatus = "connected" | "disconnected";
 
+export type PaymentMethod = "card" | "paypal" | "manual";
+
 export type Connection = {
   id: string;
   label: string;
@@ -33,6 +35,9 @@ export type SettingsData = {
     processors: Connection[];
     taxRate: number;
     vatNumber: string;
+    manualPaymentEnabled: boolean;
+    manualPaymentInstructions: string;
+    defaultPaymentMethods: PaymentMethod[];
   };
   calendar: {
     connections: Connection[];

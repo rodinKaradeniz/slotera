@@ -6,7 +6,7 @@
     "status": "confirmed",
     "paymentStatus": "paid",
     "amountCents": 38000,
-    "currency": "EUR",
+    "currency": "GBP",
     "notes": "Wants to focus on Series A narrative.",
     "createdAtISO": "2026-05-12T09:00:00.000Z"
   },
@@ -17,7 +17,7 @@
     "status": "confirmed",
     "paymentStatus": "paid",
     "amountCents": 24000,
-    "currency": "EUR",
+    "currency": "GBP",
     "createdAtISO": "2026-05-13T09:00:00.000Z"
   },
   {
@@ -27,7 +27,7 @@
     "status": "confirmed",
     "paymentStatus": "paid",
     "amountCents": 38000,
-    "currency": "EUR",
+    "currency": "GBP",
     "createdAtISO": "2026-05-09T09:00:00.000Z"
   },
   {
@@ -37,7 +37,7 @@
     "status": "pending",
     "paymentStatus": "pending",
     "amountCents": 18000,
-    "currency": "EUR",
+    "currency": "GBP",
     "notes": "Awaiting bank transfer confirmation.",
     "createdAtISO": "2026-05-14T09:00:00.000Z"
   },
@@ -48,7 +48,7 @@
     "status": "pending",
     "paymentStatus": "pending",
     "amountCents": 18000,
-    "currency": "EUR",
+    "currency": "GBP",
     "createdAtISO": "2026-05-14T11:00:00.000Z"
   },
   {
@@ -58,7 +58,7 @@
     "status": "pending",
     "paymentStatus": "free",
     "amountCents": 0,
-    "currency": "EUR",
+    "currency": "GBP",
     "createdAtISO": "2026-05-15T09:00:00.000Z"
   },
   {
@@ -68,7 +68,7 @@
     "status": "completed",
     "paymentStatus": "paid",
     "amountCents": 38000,
-    "currency": "EUR",
+    "currency": "GBP",
     "createdAtISO": "2026-05-04T09:00:00.000Z"
   },
   {
@@ -78,7 +78,7 @@
     "status": "completed",
     "paymentStatus": "paid",
     "amountCents": 24000,
-    "currency": "EUR",
+    "currency": "GBP",
     "createdAtISO": "2026-05-05T09:00:00.000Z"
   },
   {
@@ -88,7 +88,7 @@
     "status": "completed",
     "paymentStatus": "paid",
     "amountCents": 38000,
-    "currency": "EUR",
+    "currency": "GBP",
     "createdAtISO": "2026-04-29T09:00:00.000Z"
   },
   {
@@ -98,7 +98,7 @@
     "status": "cancelled",
     "paymentStatus": "refunded",
     "amountCents": 24000,
-    "currency": "EUR",
+    "currency": "GBP",
     "notes": "Client travel conflict.",
     "createdAtISO": "2026-05-02T09:00:00.000Z"
   },
@@ -109,7 +109,7 @@
     "status": "cancelled",
     "paymentStatus": "refunded",
     "amountCents": 38000,
-    "currency": "EUR",
+    "currency": "GBP",
     "createdAtISO": "2026-05-11T09:00:00.000Z"
   }
 ]

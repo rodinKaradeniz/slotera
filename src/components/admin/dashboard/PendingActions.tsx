@@ -3,7 +3,6 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { CardHead } from "@/components/shared/CardHead";
 import type { PendingAction } from "@/types/dashboard";
 import { cn } from "@/lib/cn";
 
@@ -12,28 +11,34 @@ type Props = { items: PendingAction[] };
 export function PendingActions({ items }: Props) {
   const [list, setList] = React.useState(items);
   return (
-    <Card padded={false}>
-      <CardHead
-        title="Needs attention"
-        right={
-          <button
-            type="button"
-            onClick={() => setList([...items])}
-            aria-label="Refresh"
-            className="text-ink-3 hover:text-ink w-7 h-7 rounded-md flex items-center justify-center"
+    <Card padded={false} className="h-full flex flex-col">
+      <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-4 border-b border-line-soft">
+        <div>
+          <div className="eyebrow mb-1">Needs your attention</div>
+          <div
+            className="font-serif text-ink"
+            style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.01em" }}
           >
-            <Icon name="refresh" size={14} />
-          </button>
-        }
-      />
-      <div>
+            {list.length} pending
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setList([...items])}
+          aria-label="Refresh"
+          className="text-ink-3 hover:text-ink w-7 h-7 rounded-md flex items-center justify-center"
+        >
+          <Icon name="refresh" size={14} />
+        </button>
+      </div>
+      <div className="flex-1">
         {list.length === 0 && (
           <div className="px-5 py-6 text-small text-center">All caught up.</div>
         )}
         {list.map((p) => (
           <div
             key={p.id}
-            className="flex items-start gap-3 px-5 py-3.5 border-b border-line-soft last:border-b-0"
+            className="flex items-start gap-3 px-6 py-4 border-b border-line-soft last:border-b-0"
           >
             <span
               className={cn(

@@ -1,6 +1,7 @@
 export type Operator = {
   id: string;
   name: string;
+  title?: string;
   email: string;
   workspaceName: string;
   avatarInitials: string;
@@ -15,5 +16,6 @@ export type Session = {
 export type OnboardingState = {
   service: boolean;
   availability: boolean;
+  payments: boolean;
   share: boolean;
 };

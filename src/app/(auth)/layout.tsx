@@ -1,3 +1,6 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { AuthShell } from "@/components/layout/AuthShell";
 
 export default function AuthGroupLayout({
@@ -5,5 +8,7 @@ export default function AuthGroupLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthShell>{children}</AuthShell>;
+  const pathname = usePathname();
+  const wide = pathname?.startsWith("/onboarding") ?? false;
+  return <AuthShell wide={wide}>{children}</AuthShell>;
 }

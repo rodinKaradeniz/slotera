@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { Sparkline } from "@/components/shared/Sparkline";
 import type { Kpi } from "@/types/dashboard";
 import { cn } from "@/lib/cn";
 
@@ -9,13 +8,13 @@ export function KpiTile({ kpi }: { kpi: Kpi }) {
   const up = kpi.trend === "up";
   const down = kpi.trend === "down";
   return (
-    <Card padded={false} className="flex flex-col">
-      <div className="px-5 pt-5 pb-3">
+    <Card padded={false} className="h-full flex flex-col">
+      <div className="px-5 py-4 flex-1 flex flex-col justify-center gap-1.5">
         <div className="eyebrow">{kpi.label}</div>
         <div
-          className="font-serif text-ink mt-2"
+          className="font-serif text-ink"
           style={{
-            fontSize: "clamp(28px, 3vw, 36px)",
+            fontSize: "clamp(26px, 2.6vw, 32px)",
             fontWeight: 380,
             lineHeight: 1.05,
             letterSpacing: "-0.015em",
@@ -25,7 +24,7 @@ export function KpiTile({ kpi }: { kpi: Kpi }) {
         </div>
         <div
           className={cn(
-            "inline-flex items-center gap-1 text-[12px] mt-2",
+            "inline-flex items-center gap-1 text-[12px]",
             up && "text-success",
             down && "text-danger",
             !up && !down && "text-ink-3",
@@ -38,9 +37,6 @@ export function KpiTile({ kpi }: { kpi: Kpi }) {
           {kpi.delta}
           <span className="text-ink-3"> · vs last month</span>
         </div>
-      </div>
-      <div className="bg-surface-warm px-2 pt-1 pb-1 mt-auto rounded-b-lg" style={{ height: 54 }}>
-        <Sparkline data={kpi.spark} height={46} />
       </div>
     </Card>
   );

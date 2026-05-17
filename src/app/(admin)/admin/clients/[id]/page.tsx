@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AdminShell } from "@/components/layout/AdminShell";
+import { useSetCrumbs } from "@/components/layout/PageMeta";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
@@ -13,12 +13,14 @@ import { DetailLine } from "@/components/shared/DetailLine";
 import { Stat } from "@/components/shared/Stat";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { plural } from "@/lib/text";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getClient, updateClient } from "@/services/clients.service";
 import { listBookingsByClient } from "@/services/bookings.service";
 import { listSessions } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
-import { eur } from "@/lib/money";
+import { gbp } from "@/lib/money";
 import { fmtDate } from "@/lib/time";
 import type { Client } from "@/types/client";
 import type { Booking } from "@/types/booking";
@@ -65,13 +67,13 @@ export default function ClientDetailPage() {
     setNotesEditing(false);
   };
 
+  useSetCrumbs([
+    { label: "Clients", href: "/admin/clients" },
+    { label: client?.name ?? "Detail" },
+  ]);
+
   return (
-    <AdminShell
-      crumbs={[
-        { label: "Clients", href: "/admin/clients" },
-        { label: client?.name ?? "Detail" },
-      ]}
-    >
+    <>
       <PageContainer>
         {!client ? (
           <LoadingRows count={3} />
@@ -80,59 +82,66 @@ export default function ClientDetailPage() {
             <button
               type="button"
               onClick={() => router.push("/admin/clients")}
-              className="text-small text-ink-3 hover:text-ink mb-6 inline-flex items-center gap-1"
+              className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1"
             >
               ← All clients
             </button>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10">
-              <div className="flex items-center gap-5">
-                <Avatar name={client.name} size={64} />
-                <div className="flex flex-col">
-                  <h1 className="text-h1 text-ink">{client.name}</h1>
-                  <div className="text-small mt-2">
-                    {client.role ? `${client.role} · ` : ""}
-                    {client.company ?? client.email}
-                  </div>
-                  <div className="flex items-center gap-2 mt-3">
-                    <StatusBadge kind="client" status={client.tag} />
-                    <span className="text-micro">
-                      Since {fmtDate(new Date(client.joinedISO))}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" size="md" icon="mail">
-                  Email
-                </Button>
-                <Button
-                  variant="primary"
-                  size="md"
-                  icon="plus"
-                  onClick={() =>
-                    openBookingDrawer({
-                      defaultClientId: client.id,
-                      onSaved: () => setReload((k) => k + 1),
-                    })
-                  }
-                >
-                  Book a session
-                </Button>
-              </div>
-            </div>
+            <PageHeader
+              eyebrow="Client"
+              title={
+                <span className="inline-flex items-center gap-4">
+                  <Avatar name={client.name} size={48} />
+                  {client.name}
+                </span>
+              }
+              description={
+                client.role
+                  ? `${client.role} · ${client.company ?? client.email}`
+                  : (client.company ?? client.email)
+              }
+              meta={
+                <span className="inline-flex items-center gap-2 flex-wrap">
+                  <StatusBadge kind="client" status={client.tag} />
+                  <span aria-hidden>·</span>
+                  <span>Since {fmtDate(new Date(client.joinedISO))}</span>
+                  <span aria-hidden>·</span>
+                  <span>{plural(client.totalBookings, "booking")}</span>
+                </span>
+              }
+              actions={
+                <>
+                  <Button variant="secondary" size="md" icon="mail">
+                    Email
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    icon="plus"
+                    onClick={() =>
+                      openBookingDrawer({
+                        defaultClientId: client.id,
+                        onSaved: () => setReload((k) => k + 1),
+                      })
+                    }
+                  >
+                    Book a session
+                  </Button>
+                </>
+              }
+            />
 
             <Card padded={false} className="mb-4">
               <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-line-soft">
                 <PadStat label="Total bookings" value={String(client.totalBookings)} />
                 <PadStat label="Completed" value={String(client.completedBookings)} />
                 <PadStat label="Cancelled" value={String(client.cancelledBookings)} />
-                <PadStat label="Total spent" value={eur(client.totalSpentCents)} />
+                <PadStat label="Total spent" value={gbp(client.totalSpentCents)} />
                 <PadStat
                   label="Avg per session"
                   value={
                     client.completedBookings > 0
-                      ? eur(Math.round(client.totalSpentCents / client.completedBookings))
+                      ? gbp(Math.round(client.totalSpentCents / client.completedBookings))
                       : "—"
                   }
                 />
@@ -166,7 +175,7 @@ export default function ClientDetailPage() {
                             : "—"}
                         </div>
                         <div className="text-[14px] font-medium text-ink whitespace-nowrap">
-                          {b.amountCents === 0 ? "Free" : eur(b.amountCents)}
+                          {b.amountCents === 0 ? "Free" : gbp(b.amountCents)}
                         </div>
                         <StatusBadge kind="booking" status={b.status} />
                       </button>
@@ -248,7 +257,7 @@ export default function ClientDetailPage() {
           </>
         )}
       </PageContainer>
-    </AdminShell>
+    </>
   );
 }
 

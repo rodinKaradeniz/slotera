@@ -55,8 +55,8 @@ export function StepDateTime({ date, time, onChange }: Props) {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] items-start">
-      <Card padded={false}>
+    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-stretch h-full">
+      <Card padded={false} className="flex flex-col h-full">
         <div className="flex items-center justify-between px-5 py-4 border-b border-line-soft">
           <button
             type="button"
@@ -83,7 +83,7 @@ export function StepDateTime({ date, time, onChange }: Props) {
             <div key={d} className="text-center text-micro py-1">{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1 px-4 pb-4">
+        <div className="grid grid-cols-7 gap-1 px-4 pb-4 flex-1 auto-rows-fr">
           {cells.map((c) => {
             const past = c.date < today;
             const avail = isAvailable(c.date);
@@ -96,7 +96,7 @@ export function StepDateTime({ date, time, onChange }: Props) {
                 onClick={() => pickDate(c.date)}
                 disabled={disabled}
                 className={cn(
-                  "relative flex flex-col items-center justify-center h-12 rounded-md text-[14px] transition-colors",
+                  "relative flex flex-col items-center justify-center min-h-12 rounded-md text-[14px] transition-colors",
                   c.inMonth ? "text-ink" : "text-ink-4",
                   selected && "bg-accent text-white",
                   !selected && !disabled && "hover:bg-paper-2",
@@ -117,12 +117,16 @@ export function StepDateTime({ date, time, onChange }: Props) {
         </div>
       </Card>
 
-      <Card padded>
+      <Card padded className="flex flex-col h-full">
         <div className="eyebrow mb-3">Available times</div>
         {!date ? (
-          <p className="text-small">Pick a date to see available times.</p>
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-small text-center max-w-[24ch]">
+              Pick a date to see available times.
+            </p>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 flex-1 auto-rows-fr">
             {TIME_SLOTS.map((t) => {
               const active = time === t;
               return (
@@ -131,7 +135,7 @@ export function StepDateTime({ date, time, onChange }: Props) {
                   type="button"
                   onClick={() => pickTime(t)}
                   className={cn(
-                    "h-11 rounded-md border text-[14px] font-medium transition-colors",
+                    "min-h-11 rounded-md border text-[14px] font-medium transition-colors",
                     active
                       ? "bg-accent text-white border-accent"
                       : "bg-surface text-ink border-line hover:border-ink-3",

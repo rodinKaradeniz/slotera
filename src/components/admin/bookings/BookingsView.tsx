@@ -3,6 +3,7 @@
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { plural } from "@/lib/text";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -68,6 +69,7 @@ export function BookingsView() {
         clientCompany: client?.company,
         serviceName: service?.name ?? "Service",
         when: session ? whenFromSession(session) : "—",
+        time: session ? session.startISO.slice(11, 16) : "—",
       };
     });
   }, [bookings, clients, sessions, services]);
@@ -97,7 +99,14 @@ export function BookingsView() {
       <PageHeader
         eyebrow="Operations"
         title="Bookings"
-        sub={bookings ? `${bookings.length} total` : "Loading…"}
+        description="All client reservations across 1:1 calls, group classes and workshops."
+        meta={
+          bookings
+            ? `${plural(bookings.length, "booking")} · ${
+                bookings.filter((b) => b.paymentStatus === "pending").length
+              } pending payment`
+            : "Loading…"
+        }
         actions={
           <>
             <Button variant="secondary" size="md" icon="download">

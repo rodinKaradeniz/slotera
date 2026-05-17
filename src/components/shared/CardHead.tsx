@@ -15,7 +15,14 @@ export function CardHead({ title, right, className }: Props) {
         className,
       )}
     >
-      <span className="font-serif text-ink flex-1" style={{ fontSize: 16 }}>
+      <span
+        className="font-serif text-ink flex-1"
+        style={{
+          fontSize: 18,
+          fontWeight: 400,
+          letterSpacing: "-0.005em",
+        }}
+      >
         {title}
       </span>
       {right && <div className="flex items-center gap-2">{right}</div>}

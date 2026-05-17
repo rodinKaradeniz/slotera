@@ -15,6 +15,8 @@ type DrawerProps = {
   className?: string;
 };
 
+const EXIT_DURATION_MS = 320;
+
 export function DrawerShell({
   open,
   onClose,
@@ -25,7 +27,24 @@ export function DrawerShell({
   className,
 }: DrawerProps) {
   const [mounted, setMounted] = React.useState(false);
+  const [rendered, setRendered] = React.useState(open);
+  const [state, setState] = React.useState<"open" | "closed">("closed");
+
   React.useEffect(() => setMounted(true), []);
+
+  React.useEffect(() => {
+    if (open) {
+      setRendered(true);
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setState("open"));
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    if (!rendered) return;
+    setState("closed");
+    const t = window.setTimeout(() => setRendered(false), EXIT_DURATION_MS);
+    return () => window.clearTimeout(t);
+  }, [open, rendered]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -40,17 +59,19 @@ export function DrawerShell({
     };
   }, [open, onClose]);
 
-  if (!mounted || !open) return null;
+  if (!mounted || !rendered) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-40" role="dialog" aria-modal="true">
       <div
-        className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
+        data-state={state}
+        className="drawer-backdrop absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
         onClick={onClose}
       />
       <div
+        data-state={state}
         className={cn(
-          "absolute bg-surface border-line shadow-3 flex flex-col fade-in",
+          "drawer-panel absolute bg-surface border-line shadow-3 flex flex-col",
           "right-0 top-0 h-full w-full sm:max-w-[480px] border-l",
           "max-sm:top-auto max-sm:bottom-0 max-sm:h-[92vh] max-sm:rounded-t-lg max-sm:border-l-0 max-sm:border-t",
           className,

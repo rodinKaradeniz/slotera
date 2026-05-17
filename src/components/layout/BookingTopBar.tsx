@@ -23,7 +23,7 @@ export function BookingTopBar({
         </span>
         <div className="flex-1" />
         <span className="inline-flex items-center gap-1.5 text-micro text-ink-3">
-          <Icon name="lock" size={12} /> SSL secured · GDPR compliant
+          <Icon name="lock" size={12} /> SSL secured · UK GDPR-aware
         </span>
       </div>
     </header>

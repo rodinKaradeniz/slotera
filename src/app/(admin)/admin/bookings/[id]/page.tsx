@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AdminShell } from "@/components/layout/AdminShell";
+import { useSetCrumbs } from "@/components/layout/PageMeta";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
@@ -12,12 +12,13 @@ import { DetailLine } from "@/components/shared/DetailLine";
 import { Stat } from "@/components/shared/Stat";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getBooking } from "@/services/bookings.service";
 import { getSession } from "@/services/sessions.service";
 import { getService } from "@/services/services.service";
 import { getClient } from "@/services/clients.service";
-import { eur } from "@/lib/money";
+import { gbp } from "@/lib/money";
 import { fmtDate } from "@/lib/time";
 import { LOC_TYPE_META } from "@/lib/status-maps";
 import type { Booking } from "@/types/booking";
@@ -59,53 +60,65 @@ export default function BookingDetailPage() {
     };
   }, [params?.id, reload]);
 
+  useSetCrumbs([
+    { label: "Bookings", href: "/admin/bookings" },
+    { label: booking ? booking.id : "Detail" },
+  ]);
+
   return (
-    <AdminShell
-      crumbs={[
-        { label: "Bookings", href: "/admin/bookings" },
-        { label: booking ? booking.id : "Detail" },
-      ]}
-    >
+    <>
       <PageContainer>
         {!booking ? (
           <LoadingRows count={3} />
         ) : (
           <>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10">
-              <div className="flex flex-col">
-                <button
-                  type="button"
-                  onClick={() => router.push("/admin/bookings")}
-                  className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1 self-start"
-                >
-                  ← All bookings
-                </button>
-                <h1 className="text-h1 text-ink">{service?.name ?? "Booking"}</h1>
-                <div className="flex gap-2 mt-4">
+            <button
+              type="button"
+              onClick={() => router.push("/admin/bookings")}
+              className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1 self-start"
+            >
+              ← All bookings
+            </button>
+            <PageHeader
+              eyebrow="Booking"
+              title={service?.name ?? "Booking"}
+              description={
+                session
+                  ? `${fmtDate(new Date(session.startISO))} · ${session.startISO.slice(11, 16)} – ${session.endISO.slice(11, 16)}`
+                  : undefined
+              }
+              meta={
+                <span className="inline-flex items-center gap-2 flex-wrap">
+                  <span className="font-mono uppercase tracking-widest text-micro">
+                    {booking.id}
+                  </span>
+                  <span aria-hidden>·</span>
                   <StatusBadge kind="booking" status={booking.status} />
                   <StatusBadge kind="payment" status={booking.paymentStatus} />
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="primary"
-                  size="md"
-                  icon="edit"
-                  onClick={() =>
-                    openBookingDrawer({
-                      initial: booking,
-                      onSaved: () => setReload((k) => k + 1),
-                      onCancelled: () => router.push("/admin/bookings"),
-                    })
-                  }
-                >
-                  Edit booking
-                </Button>
-                <Button variant="secondary" size="md" icon="download">
-                  Invoice PDF
-                </Button>
-              </div>
-            </div>
+                </span>
+              }
+              actions={
+                <>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    icon="edit"
+                    onClick={() =>
+                      openBookingDrawer({
+                        initial: booking,
+                        onSaved: () => setReload((k) => k + 1),
+                        onCancelled: () => router.push("/admin/bookings"),
+                      })
+                    }
+                  >
+                    Edit booking
+                  </Button>
+                  <Button variant="secondary" size="md" icon="download">
+                    Invoice PDF
+                  </Button>
+                </>
+              }
+            />
 
             <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
               <div className="flex flex-col gap-6">
@@ -153,15 +166,15 @@ export default function BookingDetailPage() {
                 <Card padded={false}>
                   <CardHead title="Payment" />
                   <div className="p-5">
-                    <Row label="Subtotal" value={eur(booking.amountCents)} />
+                    <Row label="Subtotal" value={gbp(booking.amountCents)} />
                     <Row
                       label="Tax (19%)"
-                      value={eur(Math.round(booking.amountCents * 0.19))}
+                      value={gbp(Math.round(booking.amountCents * 0.19))}
                     />
                     <div className="border-t border-line-soft my-3" />
                     <Row
                       label="Total"
-                      value={eur(Math.round(booking.amountCents * 1.19))}
+                      value={gbp(Math.round(booking.amountCents * 1.19))}
                       bold
                     />
                   </div>
@@ -207,7 +220,7 @@ export default function BookingDetailPage() {
                       />
                       <Stat
                         label="Spent"
-                        value={eur(client.totalSpentCents)}
+                        value={gbp(client.totalSpentCents)}
                       />
                     </div>
                   </Card>
@@ -217,7 +230,7 @@ export default function BookingDetailPage() {
           </>
         )}
       </PageContainer>
-    </AdminShell>
+    </>
   );
 }
 

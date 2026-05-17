@@ -3,6 +3,7 @@
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { plural } from "@/lib/text";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -28,7 +29,14 @@ export function ServicesView() {
       <PageHeader
         eyebrow="Catalog"
         title="Services"
-        sub={services ? `${services.length} total · ${services.filter((s) => s.active).length} active` : "Loading…"}
+        description="The templates clients can book — duration, pricing and capacity."
+        meta={
+          services
+            ? `${plural(services.length, "service")} · ${
+                services.filter((s) => s.active).length
+              } active`
+            : "Loading…"
+        }
         actions={
           <Button
             variant="primary"

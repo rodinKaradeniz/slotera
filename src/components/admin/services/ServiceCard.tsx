@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Icon } from "@/components/ui/Icon";
 import { SERVICE_STYLE, LOC_TYPE_META } from "@/lib/status-maps";
-import { eur } from "@/lib/money";
+import { gbp } from "@/lib/money";
 import type { Service } from "@/types/service";
 
 type Props = { service: Service; onClick: () => void };
@@ -45,7 +45,7 @@ export function ServiceCard({ service, onClick }: Props) {
           <Stat
             icon="card"
             label="Price"
-            value={service.priceCents === 0 ? "Free" : eur(service.priceCents)}
+            value={service.priceCents === 0 ? "Free" : gbp(service.priceCents)}
           />
           <Stat
             icon="users"

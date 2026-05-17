@@ -1,57 +1,66 @@
 "use client";
 
 import * as React from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Card } from "@/components/ui/Card";
 import { SegGroup } from "@/components/ui/SegGroup";
-import { eur } from "@/lib/money";
+import { gbp } from "@/lib/money";
 import type { TrendPoint } from "@/types/dashboard";
 
 type Metric = "revenue" | "bookings";
-
 type Props = { data: TrendPoint[] };
+
+type TooltipPayload = {
+  payload: TrendPoint;
+  value: number;
+};
+
+function ChartTooltip({
+  active,
+  payload,
+  metric,
+}: {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  metric: Metric;
+}) {
+  if (!active || !payload?.length) return null;
+  const pt = payload[0].payload;
+  const v = payload[0].value;
+  return (
+    <div className="bg-ink text-paper rounded-md shadow-3 px-3 py-2 min-w-[140px]">
+      <div className="text-[10px] uppercase tracking-wider text-paper/60 font-mono">
+        Day {pt.d}
+      </div>
+      <div
+        className="font-serif"
+        style={{ fontSize: 18, fontWeight: 380, lineHeight: 1.15 }}
+      >
+        {metric === "revenue" ? gbp(v * 100) : `${v} bookings`}
+      </div>
+    </div>
+  );
+}
 
 export function TrendChart({ data }: Props) {
   const [metric, setMetric] = React.useState<Metric>("revenue");
-  const [hover, setHover] = React.useState<{ x: number; y: number; pt: TrendPoint } | null>(
-    null,
-  );
-
-  const width = 560;
-  const height = 200;
-  const padX = 14;
-  const padY = 18;
-
-  const values = data.map((d) => (metric === "revenue" ? d.revenue : d.bookings));
-  const max = Math.max(...values, 1);
-  const min = 0;
-  const range = max - min || 1;
-  const stepX =
-    data.length > 1 ? (width - padX * 2) / (data.length - 1) : 0;
-
-  const points = data.map((d, i) => {
-    const v = metric === "revenue" ? d.revenue : d.bookings;
-    return {
-      x: padX + i * stepX,
-      y: padY + (height - padY * 2) * (1 - (v - min) / range),
-      pt: d,
-    };
-  });
-
-  const path = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
-    .join(" ");
-
-  const formatValue = (v: number) =>
-    metric === "revenue" ? eur(v * 100) : `${v} bookings`;
 
   return (
-    <Card padded className="flex flex-col">
-      <div className="flex items-center justify-between mb-4">
+    <Card padded className="h-full flex flex-col">
+      <div className="flex items-center justify-between mb-5">
         <div>
           <div className="eyebrow">Last 30 days</div>
           <div
             className="font-serif text-ink mt-1"
-            style={{ fontSize: 22, fontWeight: 400 }}
+            style={{ fontSize: 24, fontWeight: 400, letterSpacing: "-0.01em" }}
           >
             {metric === "revenue" ? "Revenue trend" : "Bookings trend"}
           </div>
@@ -66,84 +75,67 @@ export function TrendChart({ data }: Props) {
           size="sm"
         />
       </div>
-      <div className="relative">
-        <svg
-          width="100%"
-          viewBox={`0 0 ${width} ${height}`}
-          preserveAspectRatio="none"
-          onMouseLeave={() => setHover(null)}
-        >
-          <line
-            x1={padX}
-            x2={width - padX}
-            y1={padY}
-            y2={padY}
-            stroke="var(--line-soft)"
-            strokeDasharray="2 4"
-          />
-          <line
-            x1={padX}
-            x2={width - padX}
-            y1={padY + (height - padY * 2) / 2}
-            y2={padY + (height - padY * 2) / 2}
-            stroke="var(--line-soft)"
-            strokeDasharray="2 4"
-          />
-          <line
-            x1={padX}
-            x2={width - padX}
-            y1={height - padY}
-            y2={height - padY}
-            stroke="var(--line-soft)"
-          />
-          <path
-            d={`${path} L ${points[points.length - 1].x} ${height - padY} L ${padX} ${height - padY} Z`}
-            fill="var(--accent-soft)"
-            opacity={0.55}
-          />
-          <path
-            d={path}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth={1.6}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-          {points.map((p, i) => (
-            <circle
-              key={i}
-              cx={p.x}
-              cy={p.y}
-              r={hover?.pt.d === p.pt.d ? 4 : 2.2}
-              fill="var(--accent)"
-              stroke="#fff"
-              strokeWidth={hover?.pt.d === p.pt.d ? 2 : 0.5}
-              onMouseEnter={() => setHover({ x: p.x, y: p.y, pt: p.pt })}
-              style={{ cursor: "pointer" }}
-            />
-          ))}
-        </svg>
-        {hover && (
-          <div
-            className="absolute pointer-events-none bg-ink text-paper rounded-md shadow-3 px-3 py-2"
-            style={{
-              left: `calc(${(hover.x / width) * 100}% - 74px)`,
-              top: `${(hover.y / height) * 100}% - 70px`,
-              width: 148,
-            }}
+      <div className="flex-1 w-full" style={{ minHeight: 220 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={data}
+            margin={{ top: 8, right: 12, bottom: 4, left: 0 }}
           >
-            <div className="text-[10px] uppercase tracking-wider text-paper/60 font-mono">
-              Day {hover.pt.d}
-            </div>
-            <div
-              className="font-serif"
-              style={{ fontSize: 18, fontWeight: 380, lineHeight: 1.1 }}
-            >
-              {formatValue(metric === "revenue" ? hover.pt.revenue : hover.pt.bookings)}
-            </div>
-          </div>
-        )}
+            <defs>
+              <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              vertical={false}
+              stroke="var(--line-soft)"
+              strokeDasharray="2 4"
+            />
+            <XAxis
+              dataKey="d"
+              tickLine={false}
+              axisLine={{ stroke: "var(--line-soft)" }}
+              tick={{
+                fill: "var(--ink-3)",
+                fontSize: 11,
+                fontFamily: "var(--font-mono)",
+              }}
+              interval={4}
+              tickMargin={8}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              width={48}
+              tick={{
+                fill: "var(--ink-3)",
+                fontSize: 11,
+                fontFamily: "var(--font-mono)",
+              }}
+              tickFormatter={(v: number) =>
+                metric === "revenue" ? `£${v}` : `${v}`
+              }
+            />
+            <Tooltip
+              cursor={{ stroke: "var(--line)", strokeDasharray: "2 4" }}
+              content={<ChartTooltip metric={metric} />}
+            />
+            <Area
+              type="monotone"
+              dataKey={metric}
+              stroke="var(--accent)"
+              strokeWidth={1.8}
+              fill="url(#trendFill)"
+              activeDot={{
+                r: 4,
+                stroke: "#fff",
+                strokeWidth: 2,
+                fill: "var(--accent)",
+              }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </Card>
   );

@@ -3,6 +3,7 @@
   "todaySchedule": [
     {
       "id": "ts-1",
+      "bookingId": "bkg-1001",
       "time": "10:30",
       "end": "12:00",
       "client": "Mila Ozawa",
@@ -15,6 +16,7 @@
     },
     {
       "id": "ts-2",
+      "bookingId": "bkg-1002",
       "time": "14:00",
       "end": "15:00",
       "client": "Sofia Marin",
@@ -26,6 +28,7 @@
     },
     {
       "id": "ts-3",
+      "bookingId": "bkg-1005",
       "time": "17:30",
       "end": "18:00",
       "client": "Amara Bello",
@@ -37,6 +40,7 @@
     },
     {
       "id": "ts-4",
+      "bookingId": "bkg-1004",
       "time": "08:00",
       "end": "09:30",
       "client": "Helena Kreutzer",
@@ -63,7 +67,7 @@
     {
       "id": "revenue",
       "label": "Revenue this month",
-      "value": "€8,420",
+      "value": "£8,420",
       "delta": "+12.4%",
       "trend": "up",
       "spark": [3, 4, 3, 5, 6, 5, 7, 6, 8, 7, 9, 8, 10, 9, 11]
@@ -87,7 +91,7 @@
     {
       "id": "avgvalue",
       "label": "Avg booking value",
-      "value": "€179",
+      "value": "£179",
       "delta": "+4.2%",
       "trend": "up",
       "spark": [5, 5, 6, 6, 6, 7, 6, 7, 8, 7, 8, 8, 9, 9, 10]
@@ -131,7 +135,7 @@
       "tone": "warning",
       "icon": "card",
       "label": "Bank transfer pending",
-      "detail": "Founder Workshop · Helena Kreutzer · €180",
+      "detail": "Founder Workshop · Helena Kreutzer · £180",
       "age": "1h"
     },
     {
@@ -169,7 +173,7 @@
       "service": "Founder Workshop",
       "when": "Tue · 17:00",
       "status": "pending",
-      "amount": "€180",
+      "amount": "£180",
       "pay": "pending"
     },
     {
@@ -179,7 +183,7 @@
       "service": "Founder Workshop",
       "when": "Tue · 17:00",
       "status": "pending",
-      "amount": "€180",
+      "amount": "£180",
       "pay": "pending"
     },
     {
@@ -189,7 +193,7 @@
       "service": "Strategy Deep Dive",
       "when": "Wed · 11:00",
       "status": "confirmed",
-      "amount": "€380",
+      "amount": "£380",
       "pay": "paid"
     },
     {
@@ -199,7 +203,7 @@
       "service": "Decision Sprint",
       "when": "Today · 14:00",
       "status": "confirmed",
-      "amount": "€240",
+      "amount": "£240",
       "pay": "paid"
     },
     {
@@ -209,7 +213,7 @@
       "service": "Strategy Deep Dive",
       "when": "Today · 10:30",
       "status": "confirmed",
-      "amount": "€380",
+      "amount": "£380",
       "pay": "paid"
     }
   ]

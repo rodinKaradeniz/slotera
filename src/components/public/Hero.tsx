@@ -3,11 +3,15 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Section } from "./Section";
+import { HeroCollage } from "./HeroCollage";
 
 export function Hero() {
   return (
-    <Section className="pt-12 pb-16 sm:pt-20 sm:pb-24">
-      <div className="max-w-3xl">
+    <Section
+      className="pt-14 pb-20 sm:pt-28 sm:pb-32"
+      containerClassName="relative"
+    >
+      <div className="max-w-3xl relative z-10">
         <div className="eyebrow mb-5">For consultants, coaches & instructors</div>
         <h1 className="text-display text-ink">
           Paid bookings, without the calendar chaos.
@@ -40,10 +44,12 @@ export function Hero() {
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Icon name="shield" size={14} className="text-success" />
-            EU-hosted · GDPR-native
+            UK GDPR-aware
           </span>
         </div>
       </div>
+
+      <HeroCollage />
     </Section>
   );
 }

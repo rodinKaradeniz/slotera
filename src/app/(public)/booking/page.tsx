@@ -27,7 +27,16 @@ export default function BookingPage() {
   React.useEffect(() => {
     try {
       const raw = window.sessionStorage.getItem(DRAFT_KEY);
-      if (raw) setDraft({ ...EMPTY_DRAFT, ...(JSON.parse(raw) as BookingDraft) });
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<BookingDraft>;
+        setDraft({
+          ...EMPTY_DRAFT,
+          ...parsed,
+          customer: { ...EMPTY_DRAFT.customer, ...(parsed.customer ?? {}) },
+          billing: { ...EMPTY_DRAFT.billing, ...(parsed.billing ?? {}) },
+          payment: { ...EMPTY_DRAFT.payment, ...(parsed.payment ?? {}) },
+        });
+      }
     } catch {
       // ignore
     }
@@ -122,7 +131,7 @@ export default function BookingPage() {
           <StepIndicator current={step} />
         </div>
 
-        <div className="fade-in">
+        <div className="fade-in flex flex-col min-h-[clamp(420px,60vh,640px)] [&>*]:flex-1">
           {step === "service" && (
             <StepService
               selected={draft.service}
@@ -191,9 +200,11 @@ export default function BookingPage() {
             loading={submitting}
           >
             {step === "pay"
-              ? draft.service?.priceCents
-                ? "Pay and confirm"
-                : "Confirm booking"
+              ? draft.payment.method === "manual"
+                ? "Reserve and pay"
+                : draft.service?.priceCents
+                  ? "Pay and confirm"
+                  : "Confirm booking"
               : "Continue"}
           </Button>
         </div>

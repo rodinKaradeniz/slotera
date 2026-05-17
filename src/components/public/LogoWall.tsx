@@ -11,23 +11,46 @@ const LOGOS = [
 ];
 
 export function LogoWall() {
+  const track = [...LOGOS, ...LOGOS];
   return (
     <Section className="py-10 sm:py-12 border-y border-line-soft">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-10">
-        <div className="text-small max-w-xs">
+        <div className="text-small max-w-xs shrink-0">
           Trusted by 1,200+ independent advisors, coaches and instructors
           across Europe.
         </div>
-        <div className="flex-1 flex flex-wrap items-center gap-x-10 gap-y-3 sm:justify-end">
-          {LOGOS.map((l) => (
-            <span
-              key={l}
-              className="text-ink-3 text-[14px] font-medium uppercase"
-              style={{ letterSpacing: "0.1em" }}
-            >
-              {l}
-            </span>
-          ))}
+        <div className="flex-1 min-w-0 overflow-hidden relative">
+          <div
+            className="absolute inset-y-0 left-0 w-12 pointer-events-none z-10"
+            style={{
+              background:
+                "linear-gradient(to right, var(--paper), transparent)",
+            }}
+            aria-hidden
+          />
+          <div
+            className="absolute inset-y-0 right-0 w-12 pointer-events-none z-10"
+            style={{
+              background:
+                "linear-gradient(to left, var(--paper), transparent)",
+            }}
+            aria-hidden
+          />
+          <ul
+            className="marquee-track flex items-center gap-x-10 w-max"
+            aria-label="Trusted by"
+          >
+            {track.map((l, i) => (
+              <li
+                key={`${l}-${i}`}
+                className="text-ink-3 text-[14px] font-medium uppercase whitespace-nowrap"
+                style={{ letterSpacing: "0.1em" }}
+                aria-hidden={i >= LOGOS.length || undefined}
+              >
+                {l}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </Section>

@@ -3,9 +3,10 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { eur } from "@/lib/money";
+import { getSettings } from "@/services/settings.service";
 import { COUNTRIES } from "./types";
 import type { BookingDraft } from "./types";
+import { ReceiptCard } from "./ReceiptCard";
 
 type Props = {
   draft: BookingDraft;
@@ -13,14 +14,21 @@ type Props = {
 };
 
 export function StepReview({ draft, onEdit }: Props) {
-  const country = COUNTRIES.find((c) => c.code === draft.billing.country) ?? COUNTRIES[0];
-  const subtotal = draft.service?.priceCents ?? 0;
-  const tax = Math.round(subtotal * country.vat);
-  const total = subtotal + tax;
+  const country =
+    COUNTRIES.find((c) => c.code === draft.billing.country) ?? COUNTRIES[0];
+  const [manualInstructions, setManualInstructions] = React.useState<
+    string | null
+  >(null);
+
+  React.useEffect(() => {
+    getSettings().then((s) =>
+      setManualInstructions(s.payments.manualPaymentInstructions ?? null),
+    );
+  }, []);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] items-start">
-      <div className="flex flex-col gap-3">
+    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-stretch h-full">
+      <div className="flex flex-col gap-3 h-full">
         <SummaryRow
           title="Service"
           value={draft.service?.name ?? "—"}
@@ -42,13 +50,16 @@ export function StepReview({ draft, onEdit }: Props) {
         />
         <SummaryRow
           title="Your details"
-          value={`${draft.customer.firstName} ${draft.customer.lastName}`.trim() || "—"}
+          value={
+            `${draft.customer.firstName} ${draft.customer.lastName}`.trim() ||
+            "—"
+          }
           hint={draft.customer.email || undefined}
           onEdit={() => onEdit("details")}
         />
         <SummaryRow
           title="Billing"
-          value={`${draft.billing.street || "—"}`}
+          value={draft.billing.street || "—"}
           hint={
             draft.billing.city
               ? `${draft.billing.zip} ${draft.billing.city} · ${country.name}`
@@ -58,36 +69,11 @@ export function StepReview({ draft, onEdit }: Props) {
         />
       </div>
 
-      <Card padded>
-        <div className="eyebrow mb-4">Order summary</div>
-        <Row label="Subtotal" value={subtotal === 0 ? "Free" : eur(subtotal)} />
-        <Row
-          label={`${country.vatLabel} (${(country.vat * 100).toFixed(0)}%)`}
-          value={tax === 0 ? "—" : eur(tax)}
-        />
-        <div className="border-t border-line-soft my-4" />
-        <div className="flex items-baseline justify-between">
-          <span className="text-[14px] text-ink-2">Total</span>
-          <span
-            className="font-serif text-ink"
-            style={{ fontSize: 24, fontWeight: 400 }}
-          >
-            {total === 0 ? "Free" : eur(total)}
-          </span>
-        </div>
-        <div className="flex items-start gap-2 mt-4 text-micro">
-          <Icon name="shield" size={12} /> You won&apos;t be charged until you confirm in the next step.
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between py-1 text-[14px]">
-      <span className="text-ink-3">{label}</span>
-      <span className="text-ink">{value}</span>
+      <ReceiptCard
+        draft={draft}
+        variant="review"
+        manualInstructions={manualInstructions}
+      />
     </div>
   );
 }

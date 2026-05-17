@@ -1,12 +1,9 @@
 "use client";
 
-import { AdminShell } from "@/components/layout/AdminShell";
+import { useSetCrumbs } from "@/components/layout/PageMeta";
 import { DashboardView } from "@/components/admin/dashboard/DashboardView";
 
 export default function DashboardPage() {
-  return (
-    <AdminShell crumbs={[{ label: "Dashboard" }]}>
-      <DashboardView />
-    </AdminShell>
-  );
+  useSetCrumbs([{ label: "Dashboard" }]);
+  return <DashboardView />;
 }
