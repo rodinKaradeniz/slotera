@@ -21,11 +21,14 @@ function buildSubtitle(data: DashboardData): string {
 
 export function DashboardView() {
   const [data, setData] = React.useState<DashboardData | null>(null);
-  const [operatorName, setOperatorName] = React.useState<string>("");
+  const [firstName, setFirstName] = React.useState<string>("");
 
   React.useEffect(() => {
     getDashboard().then(setData);
-    setOperatorName(currentSession()?.operator.name ?? "");
+    const op = currentSession()?.operator;
+    const first =
+      op?.firstNames?.trim().split(/\s+/)[0] ?? op?.name?.split(/\s+/)[0] ?? "";
+    setFirstName(first);
   }, []);
 
   const next = data?.todaySchedule.find((t) => t.status === "next");
@@ -33,7 +36,7 @@ export function DashboardView() {
 
   return (
     <PageContainer>
-      <Greeting operatorName={operatorName || "Lena Hartmann"} subtitle={subtitle} />
+      <Greeting firstName={firstName || "Lena"} subtitle={subtitle} />
 
       {!data ? (
         <LoadingRows count={3} />

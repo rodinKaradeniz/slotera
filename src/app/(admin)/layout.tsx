@@ -10,7 +10,7 @@ export default function AdminGroupLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthGuard>
+    <AuthGuard requireRole="operator_admin">
       <DrawersProvider>
         <PageMetaProvider>
           <AdminShell>{children}</AdminShell>

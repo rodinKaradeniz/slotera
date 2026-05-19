@@ -4,12 +4,21 @@ import { Logo } from "@/components/ui/Logo";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 
+type Size = "default" | "wide" | "medium";
+
 type Props = {
   children: React.ReactNode;
-  wide?: boolean;
+  size?: Size;
 };
 
-export function AuthShell({ children, wide = false }: Props) {
+const WIDTHS: Record<Size, string> = {
+  default: "max-w-md",
+  medium: "max-w-2xl",
+  wide: "max-w-[1100px]",
+};
+
+export function AuthShell({ children, size = "default" }: Props) {
+  const isWide = size !== "default";
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-line-soft">
@@ -26,16 +35,12 @@ export function AuthShell({ children, wide = false }: Props) {
       <main
         className={cn(
           "flex-1 flex px-4 py-12",
-          wide
+          isWide
             ? "items-start justify-center"
             : "items-center justify-center",
         )}
       >
-        <div
-          className={cn("w-full", wide ? "max-w-[1100px]" : "max-w-md")}
-        >
-          {children}
-        </div>
+        <div className={cn("w-full", WIDTHS[size])}>{children}</div>
       </main>
       <footer className="border-t border-line-soft">
         <div className="max-w-[1200px] mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-micro">

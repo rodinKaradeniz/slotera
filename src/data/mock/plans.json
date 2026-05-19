@@ -1,0 +1,48 @@
+[
+  {
+    "id": "solo",
+    "name": "Solo",
+    "description": "For independent operators getting paid bookings live.",
+    "priceMonthly": 2000,
+    "priceYearly": 1500,
+    "currency": "GBP",
+    "maxMembers": 1,
+    "features": [
+      "Unlimited services",
+      "Stripe & manual bank-transfer payments",
+      "Google / Apple calendar sync",
+      "1 booking page"
+    ]
+  },
+  {
+    "id": "team",
+    "name": "Team",
+    "description": "For practices and studios with a small team.",
+    "priceMonthly": 5000,
+    "priceYearly": 4000,
+    "currency": "GBP",
+    "maxMembers": 10,
+    "features": [
+      "Everything in Solo",
+      "Up to 10 team members",
+      "Group sessions & waitlists",
+      "Custom branding"
+    ],
+    "highlight": true
+  },
+  {
+    "id": "custom",
+    "name": "Custom",
+    "description": "For schools, networks and multi-location studios.",
+    "priceMonthly": 0,
+    "priceYearly": 0,
+    "currency": "GBP",
+    "maxMembers": 999,
+    "features": [
+      "Everything in Team",
+      "Unlimited members",
+      "SSO & audit log",
+      "Priority support & DPA"
+    ]
+  }
+]

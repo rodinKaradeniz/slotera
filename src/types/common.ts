@@ -1,11 +1,5 @@
 export type Currency = "EUR" | "USD" | "GBP";
 export type LocationType = "online" | "physical" | "hybrid";
-export type ServiceKind =
-  | "discovery"
-  | "deepdive"
-  | "sprint"
-  | "yoga"
-  | "workshop";
 
 export type Tone =
   | "neutral"

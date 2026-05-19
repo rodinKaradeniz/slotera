@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { getSettings, updateSettings } from "@/services/settings.service";
+import { BillingPanel } from "./BillingPanel";
 import type { SettingsData, WorkingDay } from "@/types/settings";
 import { cn } from "@/lib/cn";
 
@@ -20,17 +21,19 @@ type SectionId =
   | "business"
   | "branding"
   | "payments"
+  | "billing"
   | "calendar"
   | "emails"
   | "account";
 
 const NAV: { id: SectionId; label: string; icon: IconName }[] = [
-  { id: "business", label: "Business", icon: "briefcase" },
-  { id: "branding", label: "Branding", icon: "sparkle" },
-  { id: "payments", label: "Payments", icon: "card" },
-  { id: "calendar", label: "Calendar", icon: "calendar" },
-  { id: "emails",   label: "Emails",   icon: "mail" },
-  { id: "account",  label: "Account",  icon: "user" },
+  { id: "business", label: "Business",          icon: "briefcase" },
+  { id: "branding", label: "Branding",          icon: "sparkle" },
+  { id: "payments", label: "Client payments",   icon: "card" },
+  { id: "billing",  label: "Billing & subscription", icon: "wallet" },
+  { id: "calendar", label: "Calendar",          icon: "calendar" },
+  { id: "emails",   label: "Emails",            icon: "mail" },
+  { id: "account",  label: "Account",           icon: "user" },
 ];
 
 export function SettingsView() {
@@ -93,6 +96,7 @@ export function SettingsView() {
               {section === "business" && <BusinessPanel data={data} onChange={setData} />}
               {section === "branding" && <BrandingPanel data={data} onChange={setData} />}
               {section === "payments" && <PaymentsPanel data={data} onChange={setData} />}
+              {section === "billing" && <BillingPanel />}
               {section === "calendar" && <CalendarPanel data={data} onChange={setData} />}
               {section === "emails" && <EmailsPanel data={data} onChange={setData} />}
               {section === "account" && <AccountPanel data={data} onChange={setData} />}
@@ -236,7 +240,10 @@ function PaymentsPanel({ data, onChange }: PanelProps) {
       <Card padded>
         <div className="mb-4">
           <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>Payment processors</h2>
-          <p className="text-small mt-1">Connect at least one processor to accept paid bookings.</p>
+          <p className="text-small mt-1">
+            How your clients pay you. To manage how you pay Slotera, see{" "}
+            <span className="text-ink-2">Billing &amp; subscription</span>.
+          </p>
         </div>
         <div className="flex flex-col">
           {data.payments.processors.map((p) => (

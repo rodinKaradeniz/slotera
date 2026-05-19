@@ -17,7 +17,7 @@ import {
   removeService,
 } from "@/services/services.service";
 import type { Service } from "@/types/service";
-import type { ServiceKind, LocationType, Currency } from "@/types/common";
+import type { LocationType, Currency } from "@/types/common";
 
 export type ServiceDrawerProps = {
   open: boolean;
@@ -30,7 +30,6 @@ export type ServiceDrawerProps = {
 const DEFAULTS: Omit<Service, "id" | "createdAtISO"> = {
   name: "",
   description: "",
-  kind: "discovery",
   durationMin: 60,
   priceCents: 12000,
   currency: "GBP",
@@ -138,33 +137,16 @@ export function ServiceDrawer({
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Type">
-            <Select
-              value={form.kind}
-              onChange={(e) =>
-                setForm({ ...form, kind: e.target.value as ServiceKind })
-              }
-              options={[
-                { value: "discovery", label: "Discovery" },
-                { value: "deepdive", label: "Deep Dive" },
-                { value: "sprint", label: "Sprint" },
-                { value: "yoga", label: "Yoga" },
-                { value: "workshop", label: "Workshop" },
-              ]}
-            />
-          </Field>
-          <Field label="Duration (min)">
-            <Input
-              type="number"
-              value={String(form.durationMin)}
-              onChange={(e) =>
-                setForm({ ...form, durationMin: Number(e.target.value) || 0 })
-              }
-              min={5}
-            />
-          </Field>
-        </div>
+        <Field label="Duration (min)">
+          <Input
+            type="number"
+            value={String(form.durationMin)}
+            onChange={(e) =>
+              setForm({ ...form, durationMin: Number(e.target.value) || 0 })
+            }
+            min={5}
+          />
+        </Field>
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Price">

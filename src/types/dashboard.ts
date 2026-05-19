@@ -1,4 +1,4 @@
-import type { BookingStatus, PaymentStatus, ServiceKind, Tone } from "./common";
+import type { BookingStatus, PaymentStatus, Tone } from "./common";
 
 export type KpiTrend = "up" | "down" | "flat";
 
@@ -19,7 +19,6 @@ export type DashboardScheduleItem = {
   client: string;
   company?: string;
   service: string;
-  kind: ServiceKind;
   duration: string;
   status: "next" | "done" | "past" | "upcoming";
   notes?: string;
@@ -31,7 +30,6 @@ export type WeekDay = {
   today?: boolean;
   bookings: Array<{
     label: string;
-    kind: ServiceKind;
     done?: boolean;
     next?: boolean;
   }>;

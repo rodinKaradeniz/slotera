@@ -8,10 +8,11 @@ import { Avatar } from "@/components/ui/Avatar";
 import { CardHead } from "@/components/shared/CardHead";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getBooking } from "@/services/bookings.service";
-import { SERVICE_STYLE } from "@/lib/status-maps";
 import type { DashboardScheduleItem } from "@/types/dashboard";
 import type { Booking } from "@/types/booking";
 import { cn } from "@/lib/cn";
+
+const EVENT_STYLE = { bg: "#E7EDE3", fg: "#2A3F2A" };
 
 type Props = {
   item?: DashboardScheduleItem;
@@ -74,7 +75,7 @@ function ScheduleRail({
         {items.map((it) => {
           const left = pct(toMinutes(it.time), startMin, endMin);
           const width = pct(toMinutes(it.end), startMin, endMin) - left;
-          const style = SERVICE_STYLE[it.kind];
+          const style = EVENT_STYLE;
           const isActive = activeId === it.id;
           const isPast = it.status === "done" || it.status === "past";
           const h = isActive ? RAIL_HEIGHT : Math.round(RAIL_HEIGHT * 0.75);
@@ -192,7 +193,7 @@ export function NextSessionCard({ item, schedule }: Props) {
     );
   }
 
-  const style = SERVICE_STYLE[item.kind];
+  const style = EVENT_STYLE;
   const hours = totalBookedHours(schedule);
 
   const openView = () => {

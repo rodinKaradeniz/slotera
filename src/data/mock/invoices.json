@@ -1,0 +1,62 @@
+[
+  {
+    "id": "inv-2026-05",
+    "workspaceId": "ws-op-001",
+    "number": "INV-2026-0005",
+    "amount": 5000,
+    "currency": "GBP",
+    "status": "paid",
+    "issuedAtISO": "2026-05-12T00:00:00.000Z",
+    "paidAtISO": "2026-05-12T00:01:00.000Z",
+    "planId": "team",
+    "billingCycle": "monthly"
+  },
+  {
+    "id": "inv-2026-04",
+    "workspaceId": "ws-op-001",
+    "number": "INV-2026-0004",
+    "amount": 5000,
+    "currency": "GBP",
+    "status": "paid",
+    "issuedAtISO": "2026-04-12T00:00:00.000Z",
+    "paidAtISO": "2026-04-12T00:01:00.000Z",
+    "planId": "team",
+    "billingCycle": "monthly"
+  },
+  {
+    "id": "inv-2026-03",
+    "workspaceId": "ws-op-001",
+    "number": "INV-2026-0003",
+    "amount": 5000,
+    "currency": "GBP",
+    "status": "paid",
+    "issuedAtISO": "2026-03-12T00:00:00.000Z",
+    "paidAtISO": "2026-03-12T00:01:00.000Z",
+    "planId": "team",
+    "billingCycle": "monthly"
+  },
+  {
+    "id": "inv-2026-02",
+    "workspaceId": "ws-op-001",
+    "number": "INV-2026-0002",
+    "amount": 5000,
+    "currency": "GBP",
+    "status": "paid",
+    "issuedAtISO": "2026-02-12T00:00:00.000Z",
+    "paidAtISO": "2026-02-12T00:01:00.000Z",
+    "planId": "team",
+    "billingCycle": "monthly"
+  },
+  {
+    "id": "inv-2026-01",
+    "workspaceId": "ws-op-001",
+    "number": "INV-2026-0001",
+    "amount": 5000,
+    "currency": "GBP",
+    "status": "paid",
+    "issuedAtISO": "2026-01-12T00:00:00.000Z",
+    "paidAtISO": "2026-01-12T00:01:00.000Z",
+    "planId": "team",
+    "billingCycle": "monthly"
+  }
+]

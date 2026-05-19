@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 
 type Props = {
-  operatorName?: string;
+  firstName?: string;
   subtitle?: string;
 };
 
@@ -19,11 +19,6 @@ export function spell(n: number): string {
   return n >= 0 && n < WORDS.length ? WORDS[n] : String(n);
 }
 
-function firstNameOf(fullName: string): string {
-  const stripped = fullName.replace(/^(dr|mr|mrs|ms|prof|dipl|sir|madam)\.?\s+/i, "");
-  return stripped.split(/\s+/)[0] || fullName;
-}
-
 function timeGreeting(d: Date): string {
   const h = d.getHours();
   if (h < 12) return "Good morning";
@@ -31,7 +26,7 @@ function timeGreeting(d: Date): string {
   return "Good evening";
 }
 
-export function Greeting({ operatorName = "Lena", subtitle }: Props) {
+export function Greeting({ firstName = "Lena", subtitle }: Props) {
   const { openBookingDrawer } = useDrawers();
 
   const date = new Date();
@@ -43,7 +38,6 @@ export function Greeting({ operatorName = "Lena", subtitle }: Props) {
       year: "numeric",
     })
     .toUpperCase();
-  const firstName = firstNameOf(operatorName);
   const bookingSlug = firstName.toLowerCase();
 
   return (

@@ -3,29 +3,31 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { logout } from "@/services/auth.service";
 import { cn } from "@/lib/cn";
-
-type NavItem = { id: string; label: string; icon: IconName; href: string };
-
-const NAV: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", icon: "grid",     href: "/admin/dashboard" },
-  { id: "calendar",  label: "Calendar",  icon: "calendar", href: "/admin/calendar" },
-  { id: "bookings",  label: "Bookings",  icon: "clipboard",href: "/admin/bookings" },
-  { id: "clients",   label: "Clients",   icon: "users",    href: "/admin/clients" },
-  { id: "services",  label: "Services",  icon: "layers",   href: "/admin/services" },
-  { id: "settings",  label: "Settings",  icon: "cog",      href: "/admin/settings" },
-];
+import type { NavItem } from "@/lib/nav";
 
 type Props = {
   collapsed: boolean;
-  operatorName?: string;
-  workspaceName?: string;
+  nav: NavItem[];
+  homeHref: string;
+  eyebrow: string;
+  workspaceLabel?: string;
+  userName?: string;
+  userSubtitle?: string;
 };
 
-export function AdminSidebar({ collapsed, operatorName, workspaceName }: Props) {
+export function Sidebar({
+  collapsed,
+  nav,
+  homeHref,
+  eyebrow,
+  workspaceLabel,
+  userName,
+  userSubtitle,
+}: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -58,20 +60,20 @@ export function AdminSidebar({ collapsed, operatorName, workspaceName }: Props) 
           collapsed && "justify-center",
         )}
       >
-        <Logo withWord={!collapsed} href="/admin/dashboard" />
+        <Logo withWord={!collapsed} href={homeHref} />
       </div>
 
       {!collapsed && (
         <div className="px-3 pt-4 pb-2">
-          <div className="eyebrow">Workspace</div>
+          <div className="eyebrow">{eyebrow}</div>
           <div className="text-[14px] font-medium text-ink mt-0.5 truncate">
-            {workspaceName ?? "Slotera"}
+            {workspaceLabel ?? "Slotera"}
           </div>
         </div>
       )}
 
       <nav className="flex-1 px-2 py-2 flex flex-col gap-1">
-        {NAV.map((item) => {
+        {nav.map((item) => {
           const active =
             pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
@@ -104,9 +106,11 @@ export function AdminSidebar({ collapsed, operatorName, workspaceName }: Props) 
         {!collapsed && (
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-medium text-ink truncate">
-              {operatorName ?? "Operator"}
+              {userName ?? "Operator"}
             </div>
-            <div className="text-micro truncate">Online · Berlin</div>
+            <div className="text-micro truncate">
+              {userSubtitle ?? "Online · Berlin"}
+            </div>
           </div>
         )}
         <button

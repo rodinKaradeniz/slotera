@@ -1,0 +1,78 @@
+{
+  "totals": {
+    "workspaces": 184,
+    "activeSubscriptions": 142,
+    "trialingAccounts": 27,
+    "mrr": 786400,
+    "pastDue": 6,
+    "newSignupsThisWeek": 12,
+    "openInquiries": 4
+  },
+  "recentWorkspaces": [
+    {
+      "id": "ws-007",
+      "name": "Beacon Climbing",
+      "ownerName": "Ravi Patel",
+      "planId": "team",
+      "createdAtISO": "2026-05-15T09:00:00.000Z"
+    },
+    {
+      "id": "ws-003",
+      "name": "Sona Yoga",
+      "ownerName": "Priya Anand",
+      "planId": "team",
+      "createdAtISO": "2026-05-08T09:00:00.000Z"
+    },
+    {
+      "id": "ws-009",
+      "name": "Tideline Studio",
+      "ownerName": "Mara Ellis",
+      "planId": "solo",
+      "createdAtISO": "2026-05-06T08:00:00.000Z"
+    },
+    {
+      "id": "ws-010",
+      "name": "Verdant Pottery",
+      "ownerName": "Jude Carmichael",
+      "planId": "solo",
+      "createdAtISO": "2026-05-03T11:20:00.000Z"
+    }
+  ],
+  "recentEvents": [
+    {
+      "id": "evt-001",
+      "type": "subscription_created",
+      "workspaceName": "Beacon Climbing",
+      "description": "Trial started on Team plan",
+      "atISO": "2026-05-19T08:01:00.000Z"
+    },
+    {
+      "id": "evt-002",
+      "type": "payment_failed",
+      "workspaceName": "Hale & Co Therapy",
+      "description": "Card payment declined (£20.00)",
+      "atISO": "2026-05-18T03:15:00.000Z"
+    },
+    {
+      "id": "evt-003",
+      "type": "plan_changed",
+      "workspaceName": "Northwind Coaching",
+      "description": "Upgraded Solo monthly → Solo yearly",
+      "atISO": "2026-05-17T16:42:00.000Z"
+    },
+    {
+      "id": "evt-004",
+      "type": "subscription_cancelled",
+      "workspaceName": "Allegro Music Lessons",
+      "description": "Customer cancelled effective immediately",
+      "atISO": "2026-05-15T10:24:00.000Z"
+    },
+    {
+      "id": "evt-005",
+      "type": "trial_ended",
+      "workspaceName": "Sona Yoga",
+      "description": "Trial converts to paid on 2026-05-22",
+      "atISO": "2026-05-15T08:00:00.000Z"
+    }
+  ]
+}

@@ -8,12 +8,13 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { login } from "@/services/auth.service";
+import { homePathForRole } from "@/lib/nav";
 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const nextParam = params?.get("next");
-  const next = nextParam ? decodeURIComponent(nextParam) : "/admin/dashboard";
+  const next = nextParam ? decodeURIComponent(nextParam) : null;
 
   const [email, setEmail] = React.useState("hello@slotera.app");
   const [password, setPassword] = React.useState("•••••••••");
@@ -26,8 +27,8 @@ function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      await login(email, password);
-      router.push(next);
+      const session = await login(email, password);
+      router.push(next ?? homePathForRole(session.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
@@ -79,8 +80,8 @@ function LoginForm() {
         Sign in
       </Button>
       <p className="text-micro text-center">
-        Demo: any password works. Try <code>wrong@example.com</code> to see an
-        error.
+        Demo: any password works. Use <code>admin@slotera.app</code> to enter
+        the superadmin area, or <code>wrong@example.com</code> to see an error.
       </p>
     </form>
   );

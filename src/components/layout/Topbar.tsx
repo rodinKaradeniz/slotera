@@ -11,17 +11,23 @@ export type Crumb = { label: string; href?: string };
 type Props = {
   collapsed: boolean;
   onToggleSidebar: () => void;
-  onOpenPalette: () => void;
+  onOpenPalette?: () => void;
   crumbs?: Crumb[];
   right?: React.ReactNode;
+  /** Show the operator command palette search input. */
+  showSearch?: boolean;
+  /** Show notifications bell. */
+  showNotifications?: boolean;
 };
 
-export function AdminTopbar({
+export function Topbar({
   collapsed,
   onToggleSidebar,
   onOpenPalette,
   crumbs = [],
   right,
+  showSearch = false,
+  showNotifications = true,
 }: Props) {
   return (
     <header className="h-16 sticky top-0 z-20 bg-paper/85 backdrop-blur border-b border-line-soft flex items-center px-4 gap-3">
@@ -63,10 +69,12 @@ export function AdminTopbar({
         ))}
       </nav>
 
-      <NavbarSearch onOpenPalette={onOpenPalette} />
+      {showSearch && onOpenPalette && (
+        <NavbarSearch onOpenPalette={onOpenPalette} />
+      )}
 
       {right}
-      <NotificationsButton />
+      {showNotifications && <NotificationsButton />}
     </header>
   );
 }

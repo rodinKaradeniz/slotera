@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Crumb } from "./AdminTopbar";
+import type { Crumb } from "./Topbar";
 
 type PageMeta = {
   crumbs: Crumb[];

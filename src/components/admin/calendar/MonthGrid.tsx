@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { buildMonthGrid, sameDay } from "@/lib/calendar";
-import { SERVICE_STYLE } from "@/lib/status-maps";
 import type { CalEvent } from "./EventBlock";
 import { cn } from "@/lib/cn";
+
+const EVENT_STYLE = { bg: "#ECE8E0", fg: "#3B3B33" };
 
 type Props = {
   anchor: Date;
@@ -60,9 +61,6 @@ export function MonthGrid({ anchor, events, onSelect }: Props) {
                 {c.date.getDate()}
               </div>
               {day.slice(0, 3).map((e) => {
-                const style = e.service
-                  ? SERVICE_STYLE[e.service.kind]
-                  : { bg: "#ECE8E0", fg: "#3B3B33", label: "Session" };
                 return (
                   <button
                     key={e.session.id}
@@ -70,8 +68,8 @@ export function MonthGrid({ anchor, events, onSelect }: Props) {
                     onClick={() => onSelect(e.session.id)}
                     className="text-left text-[11px] px-1.5 py-0.5 rounded truncate min-w-0"
                     style={{
-                      background: style.bg,
-                      color: style.fg,
+                      background: EVENT_STYLE.bg,
+                      color: EVENT_STYLE.fg,
                       border: "1px solid rgba(0,0,0,0.05)",
                     }}
                   >

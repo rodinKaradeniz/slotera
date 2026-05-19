@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { cn } from "@/lib/cn";
-import { SERVICE_STYLE } from "@/lib/status-maps";
 import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
 
@@ -21,10 +20,9 @@ type Props = {
   hourPx?: number;
 };
 
+const EVENT_STYLE = { bg: "#ECE8E0", fg: "#3B3B33" };
+
 export function EventBlock({ event, selected, onSelect, hourPx = 56 }: Props) {
-  const style = event.service
-    ? SERVICE_STYLE[event.service.kind]
-    : { bg: "#ECE8E0", fg: "#3B3B33", label: "Session" };
   const top = (event.startHour - 8) * hourPx;
   const height = Math.max(36, (event.endHour - event.startHour) * hourPx);
   const session = event.session;
@@ -47,8 +45,8 @@ export function EventBlock({ event, selected, onSelect, hourPx = 56 }: Props) {
       style={{
         top,
         height,
-        background: style.bg,
-        color: style.fg,
+        background: EVENT_STYLE.bg,
+        color: EVENT_STYLE.fg,
         border: "1px solid rgba(0,0,0,0.06)",
       }}
     >

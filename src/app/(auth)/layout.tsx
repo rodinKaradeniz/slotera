@@ -8,7 +8,11 @@ export default function AuthGroupLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const wide = pathname?.startsWith("/onboarding") ?? false;
-  return <AuthShell wide={wide}>{children}</AuthShell>;
+  const pathname = usePathname() ?? "";
+  const size = pathname.startsWith("/onboarding")
+    ? "wide"
+    : pathname.startsWith("/register")
+      ? "medium"
+      : "default";
+  return <AuthShell size={size}>{children}</AuthShell>;
 }

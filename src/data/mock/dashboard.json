@@ -9,7 +9,6 @@
       "client": "Mila Ozawa",
       "company": "Kintsugi Studio",
       "service": "Strategy Deep Dive",
-      "kind": "deepdive",
       "duration": "90m",
       "status": "next",
       "notes": "Wants to focus on Series A narrative."
@@ -22,7 +21,6 @@
       "client": "Sofia Marin",
       "company": "Lambda Co",
       "service": "Decision Sprint",
-      "kind": "sprint",
       "duration": "60m",
       "status": "upcoming"
     },
@@ -34,7 +32,6 @@
       "client": "Amara Bello",
       "company": "Studio ARC",
       "service": "Discovery Call",
-      "kind": "discovery",
       "duration": "30m",
       "status": "upcoming"
     },
@@ -46,20 +43,19 @@
       "client": "Helena Kreutzer",
       "company": "Kreutzer GmbH",
       "service": "Strategy Deep Dive",
-      "kind": "deepdive",
       "duration": "90m",
       "status": "done"
     }
   ],
   "weekStrip": [
-    { "day": "Mon", "date": 18, "bookings": [{ "label": "Deep Dive · 9:00", "kind": "deepdive" }] },
+    { "day": "Mon", "date": 18, "bookings": [{ "label": "Deep Dive · 9:00" }] },
     { "day": "Tue", "date": 19, "bookings": [
-      { "label": "Discovery · 11:00", "kind": "discovery" },
-      { "label": "Workshop · 17:00", "kind": "workshop" }
+      { "label": "Discovery · 11:00" },
+      { "label": "Workshop · 17:00" }
     ] },
-    { "day": "Wed", "date": 20, "bookings": [{ "label": "Deep Dive · 11:00", "kind": "deepdive" }] },
-    { "day": "Thu", "date": 21, "bookings": [{ "label": "Sprint · 12:00", "kind": "sprint" }] },
-    { "day": "Fri", "date": 22, "bookings": [{ "label": "Discovery · 14:00", "kind": "discovery" }] },
+    { "day": "Wed", "date": 20, "bookings": [{ "label": "Deep Dive · 11:00" }] },
+    { "day": "Thu", "date": 21, "bookings": [{ "label": "Sprint · 12:00" }] },
+    { "day": "Fri", "date": 22, "bookings": [{ "label": "Discovery · 14:00" }] },
     { "day": "Sat", "date": 23, "bookings": [] },
     { "day": "Sun", "date": 24, "bookings": [] }
   ],

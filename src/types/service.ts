@@ -1,10 +1,9 @@
-import type { Currency, LocationType, ServiceKind } from "./common";
+import type { Currency, LocationType } from "./common";
 
 export type Service = {
   id: string;
   name: string;
   description: string;
-  kind: ServiceKind;
   durationMin: number;
   priceCents: number;
   currency: Currency;

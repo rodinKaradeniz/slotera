@@ -68,7 +68,9 @@ export default function OnboardingPage() {
 
   React.useEffect(() => {
     const session = currentSession();
-    if (session?.operator.name) setOperatorName(session.operator.name);
+    const first = session?.operator.firstNames?.trim().split(/\s+/)[0];
+    if (first) setOperatorName(first);
+    else if (session?.operator.name) setOperatorName(session.operator.name);
 
     let cancelled = false;
     (async () => {
@@ -118,9 +120,9 @@ export default function OnboardingPage() {
       </div>
 
       <Card padded>
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr] lg:gap-14">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.35fr] lg:gap-20">
           <div className="flex flex-col">
-            <div className="eyebrow mb-3">Welcome, {operatorName.split(" ")[0]}</div>
+            <div className="eyebrow mb-3">Welcome, {operatorName}</div>
             <h1 className="text-h2 text-ink">
               Let&apos;s get your workspace ready.
             </h1>
@@ -151,8 +153,8 @@ export default function OnboardingPage() {
             <div className="mt-auto pt-8 hidden lg:block">
               <Link href="/admin/dashboard">
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="primary"
+                  size="md"
                   iconRight="arrow-right"
                 >
                   Go to dashboard
@@ -161,14 +163,14 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5">
             {SETUP_STEPS.map((s, i) => {
               const isDone = state[s.key];
               return (
                 <div
                   key={s.key}
                   className={cn(
-                    "flex items-start gap-4 p-5 rounded-md border transition-colors",
+                    "flex items-start gap-3 p-4 rounded-md border transition-colors",
                     isDone
                       ? "bg-accent-soft border-[rgba(61,90,61,0.25)]"
                       : "bg-surface border-line",
@@ -176,30 +178,30 @@ export default function OnboardingPage() {
                 >
                   <span
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
                       isDone
                         ? "bg-accent text-white"
                         : "bg-paper-2 text-ink-2",
                     )}
                   >
                     {isDone ? (
-                      <Icon name="check" size={18} strokeWidth={2.5} />
+                      <Icon name="check" size={16} strokeWidth={2.5} />
                     ) : (
-                      <span className="font-mono text-[12px]">0{i + 1}</span>
+                      <span className="font-mono text-[11px]">0{i + 1}</span>
                     )}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Icon name={s.icon} size={14} className="text-ink-3" />
+                      <Icon name={s.icon} size={13} className="text-ink-3" />
                       <h3
                         className="font-serif text-ink"
-                        style={{ fontSize: 18, fontWeight: 400 }}
+                        style={{ fontSize: 16, fontWeight: 400 }}
                       >
                         {s.title}
                       </h3>
                       {isDone && <Pill tone="accent">Done</Pill>}
                     </div>
-                    <p className="text-body mt-1 text-ink-3">{s.body}</p>
+                    <p className="text-small mt-1 text-ink-3">{s.body}</p>
                   </div>
                   <div className="flex flex-shrink-0">
                     <Link href={s.href}>
@@ -218,7 +220,7 @@ export default function OnboardingPage() {
 
             <div
               className={cn(
-                "mt-2 flex items-start gap-4 p-5 rounded-lg border-2 border-dashed transition-colors",
+                "mt-1 flex items-start gap-3 p-4 rounded-lg border-2 border-dashed transition-colors",
                 allDone
                   ? "border-accent bg-accent-soft/40"
                   : "border-line-soft bg-paper-2/50",
@@ -226,19 +228,19 @@ export default function OnboardingPage() {
             >
               <span
                 className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
                   allDone
                     ? "bg-accent text-white"
                     : "bg-surface text-ink-3 border border-line",
                 )}
               >
-                <Icon name="link" size={16} />
+                <Icon name="link" size={14} />
               </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3
                     className="font-serif text-ink"
-                    style={{ fontSize: 18, fontWeight: 400 }}
+                    style={{ fontSize: 16, fontWeight: 400 }}
                   >
                     Open your booking page
                   </h3>
@@ -246,7 +248,7 @@ export default function OnboardingPage() {
                     {allDone ? "Ready to share" : "Launch"}
                   </Pill>
                 </div>
-                <p className="text-body mt-1 text-ink-3">
+                <p className="text-small mt-1 text-ink-3">
                   {allDone
                     ? "Everything's wired up. Share the public link with clients or embed it on your site."
                     : "Finish the setup steps above, then preview and share your public booking page."}

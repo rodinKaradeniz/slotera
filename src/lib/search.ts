@@ -165,7 +165,7 @@ async function buildIndex(): Promise<SearchResult[]> {
     subtitle: `${s.durationMin} min${s.capacity > 1 ? ` · group of ${s.capacity}` : ""}`,
     href: `/admin/services`,
     icon: "layers",
-    keywords: [s.name, s.description, s.kind, s.locationType]
+    keywords: [s.name, s.description, s.locationType]
       .filter(Boolean)
       .join(" ")
       .toLowerCase(),

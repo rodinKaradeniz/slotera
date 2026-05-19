@@ -3,9 +3,10 @@ import type {
   ClientTag,
   LocationType,
   PaymentStatus,
-  ServiceKind,
   Tone,
 } from "@/types/common";
+import type { SubscriptionStatus } from "@/types/billing";
+import type { PlatformInquiryStatus, PlatformInquiryType } from "@/types/platform";
 
 type Meta<L extends string = string> = { tone: Tone; label: L; icon?: string };
 
@@ -31,17 +32,6 @@ export const CLIENT_TAGS: Record<ClientTag, Meta> = {
   dormant: { tone: "neutral", label: "Dormant" },
 };
 
-export const SERVICE_STYLE: Record<
-  ServiceKind,
-  { label: string; bg: string; fg: string }
-> = {
-  discovery: { label: "Discovery", bg: "#E7EDE3", fg: "#2A3F2A" },
-  deepdive:  { label: "Deep Dive", bg: "#ECE8E0", fg: "#3B3B33" },
-  sprint:    { label: "Sprint",    bg: "#F4E9D6", fg: "#B47B2B" },
-  yoga:      { label: "Yoga",      bg: "#E1E7EE", fg: "#3F5670" },
-  workshop:  { label: "Workshop",  bg: "#F2DDD8", fg: "#A33B2A" },
-};
-
 export const LOC_TYPE_META: Record<
   LocationType,
   { label: string; icon: string }
@@ -49,4 +39,31 @@ export const LOC_TYPE_META: Record<
   online:   { label: "Online",   icon: "video" },
   physical: { label: "In person", icon: "map-pin" },
   hybrid:   { label: "Hybrid",   icon: "globe" },
+};
+
+export const SUBSCRIPTION_STATUS: Record<SubscriptionStatus, Meta> = {
+  trialing:         { tone: "info",    label: "Trialing",         icon: "sparkle" },
+  active:           { tone: "accent",  label: "Active",           icon: "check" },
+  past_due:         { tone: "danger",  label: "Past due",         icon: "alert" },
+  cancel_scheduled: { tone: "warning", label: "Cancel scheduled", icon: "clock" },
+  cancelled:        { tone: "neutral", label: "Cancelled",        icon: "x" },
+};
+
+export const INQUIRY_STATUS: Record<PlatformInquiryStatus, Meta> = {
+  new:       { tone: "info",    label: "New",       icon: "sparkle" },
+  in_review: { tone: "warning", label: "In review", icon: "clock" },
+  resolved:  { tone: "accent",  label: "Resolved",  icon: "check" },
+};
+
+export const INQUIRY_TYPE: Record<PlatformInquiryType, { label: string; tone: Tone }> = {
+  business:    { label: "Business inquiry",   tone: "accent" },
+  development: { label: "Development issue",  tone: "danger" },
+  feature:     { label: "Feature request",    tone: "info" },
+  general:     { label: "General request",    tone: "neutral" },
+};
+
+export const PLAN_LABEL: Record<"solo" | "team" | "custom", string> = {
+  solo:   "Solo",
+  team:   "Team",
+  custom: "Custom",
 };

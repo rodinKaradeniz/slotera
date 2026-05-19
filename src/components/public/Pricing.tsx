@@ -9,7 +9,17 @@ import { SegGroup } from "@/components/ui/SegGroup";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
 
-const TIERS = [
+type Tier = {
+  id: "solo" | "team" | "custom";
+  name: string;
+  price: { monthly: string; yearly: string };
+  blurb: string;
+  features: string[];
+  cta: string;
+  href: string;
+};
+
+const TIERS: Tier[] = [
   {
     id: "solo",
     name: "Solo",
@@ -22,6 +32,7 @@ const TIERS = [
       "1 booking page",
     ],
     cta: "Start free trial",
+    href: "/register?plan=solo",
   },
   {
     id: "team",
@@ -30,24 +41,26 @@ const TIERS = [
     blurb: "For practices and studios with a small team.",
     features: [
       "Everything in Solo",
-      "Up to 10 operators",
+      "Up to 10 team members",
       "Group sessions & waitlists",
       "Custom branding",
     ],
     cta: "Start free trial",
+    href: "/register?plan=team",
   },
   {
-    id: "studio",
-    name: "Studio",
+    id: "custom",
+    name: "Custom",
     price: { monthly: "Custom", yearly: "Custom" },
     blurb: "For schools, networks and multi-location studios.",
     features: [
       "Everything in Team",
-      "Unlimited operators",
+      "Unlimited team members",
       "SSO & audit log",
       "Priority support & DPA",
     ],
     cta: "Talk to us",
+    href: "/#contact",
   },
 ];
 
@@ -97,7 +110,7 @@ export function Pricing() {
                 </li>
               ))}
             </ul>
-            <Link href="/register" className="mt-6">
+            <Link href={t.href} className="mt-6">
               <Button full variant="secondary" size="md">
                 {t.cta}
               </Button>

@@ -12,6 +12,11 @@ type ToggleProps = {
   "aria-label"?: string;
 };
 
+/**
+ * Knob sits inside the track via flexbox `items-center`, with the inner area
+ * sized so the knob exactly fills it vertically. Avoids the absolute/
+ * top:50% + transform pattern which sub-pixel-rounded the knob a hair high.
+ */
 export function Toggle({
   checked,
   onChange,
@@ -22,8 +27,9 @@ export function Toggle({
 }: ToggleProps) {
   const dims =
     size === "sm"
-      ? { w: 32, h: 18, knob: 14 }
-      : { w: 40, h: 22, knob: 18 };
+      ? { w: 32, h: 18, knob: 14, pad: 2 }
+      : { w: 40, h: 22, knob: 18, pad: 2 };
+  const travel = dims.w - dims.knob - dims.pad * 2;
   return (
     <button
       type="button"
@@ -32,23 +38,20 @@ export function Toggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative inline-flex items-center rounded-full transition-colors flex-shrink-0",
+        "relative inline-flex items-center rounded-full transition-colors shrink-0",
         checked ? "bg-accent" : "bg-line",
         disabled && "opacity-60 cursor-not-allowed",
         className,
       )}
-      style={{ width: dims.w, height: dims.h }}
+      style={{ width: dims.w, height: dims.h, padding: dims.pad }}
       {...rest}
     >
       <span
-        className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-1 transition-transform"
+        className="block rounded-full bg-white shadow-1 transition-transform"
         style={{
           width: dims.knob,
           height: dims.knob,
-          left: 2,
-          transform: `translateY(-50%) translateX(${
-            checked ? dims.w - dims.knob - 4 : 0
-          }px)`,
+          transform: `translateX(${checked ? travel : 0}px)`,
         }}
       />
     </button>

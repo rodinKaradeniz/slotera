@@ -3,9 +3,17 @@
 import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { currentSession } from "@/services/auth.service";
+import { homePathForRole } from "@/lib/nav";
 import { Skeleton } from "@/components/ui/Skeleton";
+import type { UserRole } from "@/types/auth";
 
-export function AuthGuard({ children }: { children: React.ReactNode }) {
+type Props = {
+  children: React.ReactNode;
+  /** When set, the guard also requires the session role to match. */
+  requireRole?: UserRole;
+};
+
+export function AuthGuard({ children, requireRole }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [ready, setReady] = React.useState(false);
@@ -17,8 +25,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace(`/login?next=${next}`);
       return;
     }
+    if (requireRole && session.role !== requireRole) {
+      router.replace(homePathForRole(session.role));
+      return;
+    }
     setReady(true);
-  }, [router, pathname]);
+  }, [router, pathname, requireRole]);
 
   if (!ready) {
     return (
