@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { Icon } from "@/components/ui/Icon";
+import { DemoGuideButton } from "@/components/public/DemoGuideButton";
 import { cn } from "@/lib/cn";
 
 type Size = "default" | "wide" | "medium";
@@ -22,14 +23,17 @@ export function AuthShell({ children, size = "default" }: Props) {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-line-soft">
-        <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between gap-3">
           <Logo />
-          <Link
-            href="/booking"
-            className="text-[13px] text-ink-3 hover:text-ink inline-flex items-center gap-1"
-          >
-            <Icon name="eye" size={14} /> View public booking page
-          </Link>
+          <div className="flex items-center gap-4">
+            <DemoGuideButton variant="link" />
+            <Link
+              href="/booking"
+              className="text-[13px] text-ink-3 hover:text-ink inline-flex items-center gap-1"
+            >
+              <Icon name="eye" size={14} /> View public booking page
+            </Link>
+          </div>
         </div>
       </header>
       <main

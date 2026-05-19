@@ -9,6 +9,7 @@ import { Testimonials } from "@/components/public/Testimonials";
 import { Pricing } from "@/components/public/Pricing";
 import { FAQ } from "@/components/public/FAQ";
 import { FinalCTA } from "@/components/public/FinalCTA";
+import { DemoGuideButton } from "@/components/public/DemoGuideButton";
 
 export default function LandingPage() {
   return (
@@ -26,6 +27,8 @@ export default function LandingPage() {
         <FinalCTA />
       </main>
       <PublicFooter />
+      {/* Auto-opens once per session; the visible trigger lives in PublicNav. */}
+      <DemoGuideButton autoOpen className="sr-only" />
     </>
   );
 }

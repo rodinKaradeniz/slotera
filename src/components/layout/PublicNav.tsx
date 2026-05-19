@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { ContactModal } from "@/components/public/ContactModal";
+import { DemoGuideButton } from "@/components/public/DemoGuideButton";
 
 export function PublicNav() {
   const [contactOpen, setContactOpen] = React.useState(false);
@@ -26,6 +27,7 @@ export function PublicNav() {
         </nav>
         <div className="flex-1" />
         <div className="flex items-center gap-2">
+          <DemoGuideButton variant="ghost" className="hidden sm:inline-flex" />
           <Link href="/login">
             <Button variant="ghost" size="md">Log in</Button>
           </Link>

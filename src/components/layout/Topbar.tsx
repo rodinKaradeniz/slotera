@@ -4,6 +4,7 @@ import * as React from "react";
 import { Icon } from "@/components/ui/Icon";
 import { NotificationsButton } from "./NotificationsButton";
 import { NavbarSearch } from "@/components/admin/search/NavbarSearch";
+import { DemoGuideButton } from "@/components/public/DemoGuideButton";
 import { cn } from "@/lib/cn";
 
 export type Crumb = { label: string; href?: string };
@@ -72,6 +73,8 @@ export function Topbar({
       {showSearch && onOpenPalette && (
         <NavbarSearch onOpenPalette={onOpenPalette} />
       )}
+
+      <DemoGuideButton variant="ghost" className="hidden md:inline-flex" />
 
       {right}
       {showNotifications && <NotificationsButton />}
