@@ -22,7 +22,7 @@ export type BookingDraft = {
     state: string;
   };
   payment: {
-    method: "card" | "paypal" | "manual";
+    method: "card" | "manual";
     cardNumber: string;
     cardName: string;
     cardExp: string;

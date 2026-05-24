@@ -38,7 +38,6 @@ export function Greeting({ firstName = "Lena", subtitle }: Props) {
       year: "numeric",
     })
     .toUpperCase();
-  const bookingSlug = firstName.toLowerCase();
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between mb-10">
@@ -61,14 +60,6 @@ export function Greeting({ firstName = "Lena", subtitle }: Props) {
             />
             Booking page live
           </span>
-          <a
-            href="/booking"
-            target="_blank"
-            rel="noreferrer"
-            className="text-ink-3 hover:text-ink font-mono truncate"
-          >
-            slotera.app/{bookingSlug}
-          </a>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <a href="/booking" target="_blank" rel="noreferrer">

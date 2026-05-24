@@ -15,7 +15,7 @@ export const BOOKING_STATUS: Record<BookingStatus, Meta> = {
   confirmed: { tone: "accent",  label: "Confirmed", icon: "check" },
   completed: { tone: "neutral", label: "Completed", icon: "check" },
   cancelled: { tone: "danger",  label: "Cancelled", icon: "x" },
-  noshow:    { tone: "danger",  label: "No-show",   icon: "x" },
+  noshow:    { tone: "warning", label: "No-show",   icon: "alert" },
 };
 
 export const PAY_STATUS: Record<PaymentStatus, Meta> = {

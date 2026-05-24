@@ -13,7 +13,7 @@ const FEATURES: { icon: IconName; title: string; body: string }[] = [
   {
     icon: "card",
     title: "Stripe-grade payments",
-    body: "Take cards, PayPal, or manual bank transfer. Issue invoices and refunds without leaving the app.",
+    body: "Take cards or manual bank transfer. Issue invoices and refunds without leaving the app.",
   },
   {
     icon: "shield",

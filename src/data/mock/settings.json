@@ -6,7 +6,8 @@
     "email": "lena@hartmannstrategy.com",
     "phone": "+49 30 12345678",
     "address": "Mitte, Berlin · 10115",
-    "bookingPageUrl": "slotera.app/lena"
+    "bookingPageUrl": "slotera.app/lena",
+    "bookingPageEnabled": true
   },
   "branding": {
     "accent": "#3D5A3D",
@@ -14,14 +15,13 @@
   },
   "payments": {
     "processors": [
-      { "id": "stripe", "label": "Stripe", "detail": "Live · acct_1NJ•••rT", "status": "connected" },
-      { "id": "paypal", "label": "PayPal", "detail": "Not connected", "status": "disconnected" }
+      { "id": "stripe", "label": "Stripe", "detail": "Live · acct_1NJ•••rT", "status": "connected" }
     ],
     "taxRate": 19,
     "vatNumber": "DE318123456",
     "manualPaymentEnabled": true,
     "manualPaymentInstructions": "Bank transfer to:\nHartmann Strategy\nIBAN: DE89 3704 0044 0532 0130 00\nBIC: COBADEFFXXX\n\nPlease include your booking reference in the transfer note. Your spot is held for 48h while we confirm the payment.",
-    "defaultPaymentMethods": ["card", "paypal", "manual"]
+    "defaultPaymentMethods": ["card", "manual"]
   },
   "calendar": {
     "connections": [

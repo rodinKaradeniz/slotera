@@ -7,6 +7,7 @@ import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import type {
   BillingCycle,
+  BillingPaymentMethod,
   Invoice,
   PlanId,
   SubscriptionPlan,
@@ -99,4 +100,14 @@ export async function listInvoices(): Promise<Invoice[]> {
   if (dataSource !== "mock") throw new NotImplementedError("listInvoices");
   await sleep(60);
   return [...invoices];
+}
+
+export async function updateMockPaymentMethod(
+  input: BillingPaymentMethod,
+): Promise<WorkspaceSubscription> {
+  if (dataSource !== "mock")
+    throw new NotImplementedError("updateMockPaymentMethod");
+  await sleep(120);
+  subscription = { ...subscription, paymentMethod: { ...input } };
+  return { ...subscription };
 }

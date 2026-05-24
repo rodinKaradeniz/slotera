@@ -21,7 +21,6 @@ type Props = {
 
 const METHOD_META: Record<PaymentMethod, { label: string; icon: IconName }> = {
   card: { label: "Card", icon: "card" },
-  paypal: { label: "PayPal", icon: "paypal" },
   manual: { label: "Manual payment", icon: "wallet" },
 };
 
@@ -35,7 +34,7 @@ export function StepPayment({ draft, payment, onChange }: Props) {
   const update = (patch: Partial<Payment>) => onChange({ ...payment, ...patch });
 
   const methods = React.useMemo<PaymentMethod[]>(() => {
-    if (!settings) return ["card", "paypal"];
+    if (!settings) return ["card"];
     const enabled = settings.payments.defaultPaymentMethods.filter((m) =>
       m === "manual" ? settings.payments.manualPaymentEnabled : true,
     );
@@ -121,14 +120,6 @@ export function StepPayment({ draft, payment, onChange }: Props) {
                 inputMode="numeric"
               />
             </Field>
-          </div>
-        )}
-
-        {payment.method === "paypal" && (
-          <div className="rounded-md border border-dashed border-line p-6 text-small text-center">
-            <Icon name="info" size={16} className="mx-auto mb-2" />
-            PayPal checkout is mocked in this demo. You&apos;ll be redirected on the
-            next step.
           </div>
         )}
 

@@ -27,13 +27,13 @@ type SectionId =
   | "account";
 
 const NAV: { id: SectionId; label: string; icon: IconName }[] = [
-  { id: "business", label: "Business",          icon: "briefcase" },
-  { id: "branding", label: "Branding",          icon: "sparkle" },
-  { id: "payments", label: "Client payments",   icon: "card" },
-  { id: "billing",  label: "Billing & subscription", icon: "wallet" },
-  { id: "calendar", label: "Calendar",          icon: "calendar" },
-  { id: "emails",   label: "Emails",            icon: "mail" },
-  { id: "account",  label: "Account",           icon: "user" },
+  { id: "business", label: "Business Profile",        icon: "briefcase" },
+  { id: "branding", label: "Branding",                icon: "sparkle" },
+  { id: "payments", label: "Client Payments",         icon: "card" },
+  { id: "billing",  label: "Billing & Subscription",  icon: "wallet" },
+  { id: "calendar", label: "Calendar",                icon: "calendar" },
+  { id: "emails",   label: "Emails",                  icon: "mail" },
+  { id: "account",  label: "Account",                 icon: "user" },
 ];
 
 export function SettingsView() {
@@ -80,12 +80,12 @@ export function SettingsView() {
         <section className="min-w-0">
           {activeMeta && (
             <div className="mb-6">
-              <div className="eyebrow mb-2">{activeMeta.label}</div>
+              <div className="eyebrow mb-2">Settings</div>
               <h2
                 className="font-serif text-ink"
                 style={{ fontSize: 28, fontWeight: 380, letterSpacing: "-0.015em" }}
               >
-                {activeMeta.label} settings
+                {activeMeta.label}
               </h2>
             </div>
           )}
@@ -148,7 +148,7 @@ function BusinessPanel({ data, onChange }: PanelProps) {
   };
   return (
     <PanelCard
-      title="Business profile"
+      title="Business Profile"
       hint="Visible on your public booking page."
       onSave={save}
     >
@@ -239,10 +239,10 @@ function PaymentsPanel({ data, onChange }: PanelProps) {
     <>
       <Card padded>
         <div className="mb-4">
-          <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>Payment processors</h2>
+          <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>Payment Processors</h2>
           <p className="text-small mt-1">
             How your clients pay you. To manage how you pay Slotera, see{" "}
-            <span className="text-ink-2">Billing &amp; subscription</span>.
+            <span className="text-ink-2">Billing &amp; Subscription</span>.
           </p>
         </div>
         <div className="flex flex-col">
@@ -252,10 +252,7 @@ function PaymentsPanel({ data, onChange }: PanelProps) {
               className="flex items-center gap-3 py-3 border-b border-line-soft last:border-b-0"
             >
               <span className="w-9 h-9 rounded-md bg-paper-2 text-ink-2 flex items-center justify-center">
-                <Icon
-                  name={p.id === "paypal" ? "paypal" : "card"}
-                  size={16}
-                />
+                <Icon name="card" size={16} />
               </span>
               <div className="flex-1">
                 <div className="text-[14px] font-medium text-ink">{p.label}</div>
@@ -319,7 +316,7 @@ function ManualPaymentPanel({ data, onChange }: PanelProps) {
 
   return (
     <PanelCard
-      title="Manual payment"
+      title="Manual Payment"
       hint="Show clients custom payment instructions (bank transfer, Interac, etc.) at checkout. Bookings using manual payment stay pending until you confirm receipt."
       onSave={save}
     >
@@ -376,7 +373,7 @@ function CalendarPanel({ data, onChange }: PanelProps) {
     <>
       <Card padded>
         <div className="mb-4">
-          <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>Calendar connections</h2>
+          <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>Calendar Connections</h2>
           <p className="text-small mt-1">Two-way sync prevents double-booking.</p>
         </div>
         {data.calendar.connections.map((c) => (
@@ -401,7 +398,7 @@ function CalendarPanel({ data, onChange }: PanelProps) {
         ))}
       </Card>
 
-      <PanelCard title="Working hours" onSave={save}>
+      <PanelCard title="Working Hours" onSave={save}>
         <div className="flex flex-col gap-2">
           {hours.map((h, i) => (
             <div
@@ -440,7 +437,7 @@ function EmailsPanel({ data, onChange }: PanelProps) {
     onChange(next);
   };
   return (
-    <PanelCard title="Email notifications" onSave={save}>
+    <PanelCard title="Email Notifications" onSave={save}>
       <h3 className="text-[13px] font-medium text-ink-2 uppercase tracking-wide mb-2">
         Notify me when
       </h3>

@@ -7,7 +7,7 @@ export type WorkingDay = {
 
 export type ConnectionStatus = "connected" | "disconnected";
 
-export type PaymentMethod = "card" | "paypal" | "manual";
+export type PaymentMethod = "card" | "manual";
 
 export type Connection = {
   id: string;
@@ -25,6 +25,8 @@ export type SettingsData = {
     phone: string;
     address: string;
     bookingPageUrl: string;
+    /** When false, the public booking page renders a "bookings paused" card. */
+    bookingPageEnabled: boolean;
   };
   branding: {
     accent: string;

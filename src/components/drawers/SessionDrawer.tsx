@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 import { ConflictWarning } from "@/components/shared/ConflictWarning";
 import {
   createSession,
@@ -90,6 +91,7 @@ export function SessionDrawer({
   onCancelled,
 }: SessionDrawerProps) {
   const isEdit = !!initial;
+  const { toast } = useToast();
   const [mode, setMode] = React.useState<SessionDrawerMode>(modeProp);
   const isView = mode === "view" && isEdit;
   const [services, setServices] = React.useState<Service[]>([]);
@@ -148,6 +150,7 @@ export function SessionDrawer({
           notes: form.notes,
         });
         onSaved?.(next);
+        toast.success("Session updated");
       } else {
         const next = await createSession({
           serviceId: form.serviceId,
@@ -162,8 +165,13 @@ export function SessionDrawer({
           notes: form.notes,
         });
         onSaved?.(next);
+        toast.success("Session scheduled");
       }
       onClose();
+    } catch (err) {
+      toast.error("Couldn't save session", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -176,7 +184,12 @@ export function SessionDrawer({
     try {
       const next = await cancelSession(initial.id);
       onCancelled?.(next);
+      toast.success("Session cancelled");
       onClose();
+    } catch (err) {
+      toast.error("Couldn't cancel session", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }

@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { useToast } from "@/components/ui/Toast";
 import {
   createService,
   updateService,
@@ -36,6 +37,7 @@ const DEFAULTS: Omit<Service, "id" | "createdAtISO"> = {
   capacity: 1,
   locationType: "online",
   location: "Zoom · link sent on confirmation",
+  bookingMode: "open",
   cancellationRule: "Free reschedule up to 12h before.",
   active: true,
 };
@@ -48,6 +50,7 @@ export function ServiceDrawer({
   onRemoved,
 }: ServiceDrawerProps) {
   const isEdit = !!initial;
+  const { toast } = useToast();
   const [form, setForm] = React.useState<Omit<Service, "id" | "createdAtISO">>(
     initial
       ? { ...initial }
@@ -65,11 +68,17 @@ export function ServiceDrawer({
       if (isEdit && initial) {
         const next = await updateService(initial.id, form);
         onSaved?.(next);
+        toast.success("Service updated");
       } else {
         const next = await createService(form);
         onSaved?.(next);
+        toast.success("Service created");
       }
       onClose();
+    } catch (err) {
+      toast.error("Couldn't save service", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -84,6 +93,13 @@ export function ServiceDrawer({
         : await activateService(initial.id);
       onSaved?.(next);
       setForm((f) => ({ ...f, active: next.active }));
+      toast.success(
+        next.active ? "Service activated" : "Service deactivated",
+      );
+    } catch (err) {
+      toast.error("Couldn't update service", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -97,7 +113,12 @@ export function ServiceDrawer({
     try {
       await removeService(initial.id);
       onRemoved?.(initial.id);
+      toast.success("Service deleted");
       onClose();
+    } catch (err) {
+      toast.error("Couldn't delete service", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }

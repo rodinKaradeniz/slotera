@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
 import {
   createBooking,
   updateBooking,
@@ -67,6 +68,7 @@ export function BookingDrawer({
   const isEdit = !!initial;
   const [mode, setMode] = React.useState<BookingDrawerMode>(modeProp);
   const isView = mode === "view" && isEdit;
+  const { toast } = useToast();
   const [clients, setClients] = React.useState<Client[]>([]);
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
@@ -130,6 +132,7 @@ export function BookingDrawer({
           notes: form.notes,
         });
         onSaved?.(next);
+        toast.success("Booking updated");
       } else {
         const next = await createBooking({
           clientId: form.clientId,
@@ -141,8 +144,13 @@ export function BookingDrawer({
           notes: form.notes,
         });
         onSaved?.(next);
+        toast.success("Booking created");
       }
       onClose();
+    } catch (err) {
+      toast.error("Couldn't save booking", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -155,7 +163,12 @@ export function BookingDrawer({
     try {
       const next = await cancelBooking(initial.id);
       onCancelled?.(next);
+      toast.success("Booking cancelled");
       onClose();
+    } catch (err) {
+      toast.error("Couldn't cancel booking", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }

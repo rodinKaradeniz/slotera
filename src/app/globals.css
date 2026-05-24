@@ -171,8 +171,31 @@ html, body {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+@keyframes slToastIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slToastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(16px); }
+}
 
 .fade-in { animation: slIn 0.4s cubic-bezier(.2,.7,.2,1) both; }
+
+/* ── toast animation ──────────────────────────────────────────────────────
+   ToastViewport drives these via `data-state="open"|"closed"` so dismiss
+   can animate too. Top-right on every breakpoint.
+   ─────────────────────────────────────────────────────────────────────── */
+.toast-item {
+  animation: slToastIn 220ms cubic-bezier(.2,.7,.2,1) both;
+}
+.toast-item[data-state="closed"] {
+  animation: slToastOut 180ms cubic-bezier(.4,0,.6,1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-item,
+  .toast-item[data-state="closed"] { animation: none; }
+}
 
 /* ── drawer / side-sheet animation ─────────────────────────────────────────
    DrawerShell drives these via a `data-state="open"|"closed"` attribute so

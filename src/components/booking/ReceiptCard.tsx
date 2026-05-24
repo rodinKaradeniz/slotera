@@ -17,13 +17,11 @@ type Props = {
 
 const METHOD_LABEL: Record<BookingDraft["payment"]["method"], string> = {
   card: "Card",
-  paypal: "PayPal",
   manual: "Manual payment",
 };
 
 const METHOD_ICON: Record<BookingDraft["payment"]["method"], IconName> = {
   card: "card",
-  paypal: "paypal",
   manual: "wallet",
 };
 

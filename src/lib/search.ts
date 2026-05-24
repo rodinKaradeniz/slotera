@@ -86,7 +86,7 @@ const NAV_RESULTS: SearchResult[] = [
     subtitle: "Processors, tax, manual instructions",
     href: "/admin/settings?tab=payments",
     icon: "card",
-    keywords: "settings payments stripe paypal manual tax vat",
+    keywords: "settings payments stripe manual tax vat",
   },
   {
     id: "nav-settings-calendar",

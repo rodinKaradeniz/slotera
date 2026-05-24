@@ -108,7 +108,6 @@ const REGISTRY: Record<string, LucideIcon> = {
   edit: Edit2,
   refresh: RefreshCcw,
   apple: Apple,
-  paypal: Wallet,
   "map-pin": MapPin,
   briefcase: Briefcase,
   phone: Phone,

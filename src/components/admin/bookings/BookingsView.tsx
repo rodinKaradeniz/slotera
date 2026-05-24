@@ -21,7 +21,13 @@ import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
 import type { BookingStatus } from "@/types/common";
 
-const STATUS_ORDER: BookingStatus[] = ["pending", "confirmed", "completed", "cancelled"];
+const STATUS_ORDER: BookingStatus[] = [
+  "pending",
+  "confirmed",
+  "completed",
+  "noshow",
+  "cancelled",
+];
 
 function whenFromSession(s: SessionItem): string {
   const start = new Date(s.startISO);

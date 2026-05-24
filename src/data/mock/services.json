@@ -9,6 +9,7 @@
     "capacity": 1,
     "locationType": "online",
     "location": "Zoom · link sent on booking",
+    "bookingMode": "open",
     "cancellationRule": "Free reschedule up to 12h before. Free cancellation up to 2h before.",
     "active": true,
     "createdAtISO": "2026-01-12T10:00:00.000Z"
@@ -23,6 +24,7 @@
     "capacity": 1,
     "locationType": "online",
     "location": "Zoom · link sent on confirmation",
+    "bookingMode": "open",
     "cancellationRule": "Refundable up to 24h before. After that 50% refund.",
     "active": true,
     "createdAtISO": "2026-01-12T10:00:00.000Z"
@@ -37,6 +39,7 @@
     "capacity": 1,
     "locationType": "hybrid",
     "location": "Zoom or Berlin office · your choice",
+    "bookingMode": "open",
     "cancellationRule": "Refundable up to 48h before.",
     "active": true,
     "createdAtISO": "2026-01-14T10:00:00.000Z"
@@ -51,9 +54,11 @@
     "capacity": 6,
     "locationType": "physical",
     "location": "Berlin · Mitte studio",
+    "bookingMode": "scheduled",
     "cancellationRule": "Reschedule up to 5 days before. No refunds within 48h.",
     "active": true,
-    "createdAtISO": "2026-02-02T10:00:00.000Z"
+    "createdAtISO": "2026-02-02T10:00:00.000Z",
+    "notes": "Confirm projector + whiteboard markers the day before. Bring printed pre-reads (10 copies)."
   },
   {
     "id": "svc-yoga",
@@ -65,6 +70,7 @@
     "capacity": 12,
     "locationType": "physical",
     "location": "Berlin · Kreuzberg studio",
+    "bookingMode": "scheduled",
     "cancellationRule": "Free cancellation up to 6h before.",
     "active": false,
     "createdAtISO": "2026-02-20T10:00:00.000Z"

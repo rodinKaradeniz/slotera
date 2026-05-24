@@ -12,7 +12,7 @@ const ITEMS = [
   },
   {
     q: "What payment processors do you support?",
-    a: "Stripe (cards) is the default. PayPal and manual bank-transfer instructions can be enabled workspace-wide.",
+    a: "Stripe (cards) is the default. Manual bank-transfer instructions can be enabled workspace-wide.",
   },
   {
     q: "Can I run group classes or workshops?",

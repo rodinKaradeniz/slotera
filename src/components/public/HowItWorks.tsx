@@ -6,17 +6,17 @@ import { Section } from "./Section";
 
 const STEPS = [
   {
-    n: "01",
+    n: "1",
     title: "Define your sessions",
     body: "Set up the services you offer with duration, capacity, and pricing. 1:1 or group — Slotera doesn't care.",
   },
   {
-    n: "02",
+    n: "2",
     title: "Connect your calendar",
     body: "Sync Google, Apple or Outlook. We respect your availability and prevent double-booking automatically.",
   },
   {
-    n: "03",
+    n: "3",
     title: "Share one link",
     body: "Clients pick a slot, pay, and get the meeting link. You see new bookings in your dashboard.",
   },
