@@ -171,7 +171,7 @@ function ToastViewport({
     <div
       // `pointer-events-none` on the stack so it can't block clicks; each toast
       // re-enables them. `aria-live` polite so screen readers announce them.
-      className="fixed top-4 right-4 z-[60] flex flex-col gap-2 pointer-events-none max-w-[calc(100vw-2rem)] w-[360px]"
+      className="fixed top-4 right-4 z-60 flex flex-col gap-2 pointer-events-none max-w-[calc(100vw-2rem)] w-[360px]"
       role="region"
       aria-label="Notifications"
       aria-live="polite"
@@ -183,7 +183,7 @@ function ToastViewport({
             key={item.id}
             data-state={item.closing ? "closed" : "open"}
             className={cn(
-              "toast-item pointer-events-auto bg-surface border border-line rounded-lg shadow-3 px-3.5 py-3 flex items-start gap-3",
+              "toast-item pointer-events-auto bg-surface border border-line rounded-lg shadow-3 px-3.5 py-3 flex items-center gap-3",
               meta.ring,
             )}
             role={item.kind === "error" ? "alert" : "status"}

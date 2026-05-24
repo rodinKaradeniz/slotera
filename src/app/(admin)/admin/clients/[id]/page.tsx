@@ -16,6 +16,7 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { plural } from "@/lib/text";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
+import { useToast } from "@/components/ui/Toast";
 import { getClient, updateClient } from "@/services/clients.service";
 import { listBookingsByClient } from "@/services/bookings.service";
 import { listSessions } from "@/services/sessions.service";
@@ -31,6 +32,7 @@ export default function ClientDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { openBookingDrawer } = useDrawers();
+  const { toast } = useToast();
   const [client, setClient] = React.useState<Client | null>(null);
   const [bookings, setBookings] = React.useState<Booking[]>([]);
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
@@ -62,9 +64,16 @@ export default function ClientDetailPage() {
 
   const saveNotes = async () => {
     if (!client) return;
-    await updateClient(client.id, { notes: notesDraft });
-    setReload((k) => k + 1);
-    setNotesEditing(false);
+    try {
+      await updateClient(client.id, { notes: notesDraft });
+      setReload((k) => k + 1);
+      setNotesEditing(false);
+      toast.success("Notes saved");
+    } catch (err) {
+      toast.error("Couldn't save notes", {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
   };
 
   useSetCrumbs([

@@ -303,7 +303,11 @@ export function BookingDrawer({
           />
         </Field>
 
-        <Field label="Notes" optional>
+        <Field
+          label="Booking note"
+          optional
+          hint="Only visible to you. Context for this specific booking."
+        >
           <Textarea
             value={form.notes}
             rows={3}

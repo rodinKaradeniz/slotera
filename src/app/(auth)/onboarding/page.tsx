@@ -6,94 +6,118 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { Pill } from "@/components/ui/Pill";
 import { Logo } from "@/components/ui/Logo";
-import { currentSession } from "@/services/auth.service";
-import { listServices } from "@/services/services.service";
-import { listSessions } from "@/services/sessions.service";
-import { getSettings } from "@/services/settings.service";
+import { Pill } from "@/components/ui/Pill";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import {
+  ServiceForm,
+  type ServiceFormValue,
+} from "@/components/shared/forms/ServiceForm";
+import { WorkingHoursForm } from "@/components/shared/forms/WorkingHoursForm";
+import {
+  ManualPaymentForm,
+  type ManualPaymentValue,
+} from "@/components/shared/forms/ManualPaymentForm";
+import { currentSession, markOnboardingStep } from "@/services/auth.service";
+import { createService, listServices } from "@/services/services.service";
+import { getSettings, updateSettings } from "@/services/settings.service";
+import type { SettingsData, WorkingDay } from "@/types/settings";
 import { cn } from "@/lib/cn";
 
-type SetupKey = "service" | "availability" | "payments";
+/* ──────────────────────────────────────────────────────────────────────────
+   Onboarding is a five-pane linear stepper:
+     0 — Intro
+     1 — Create your first service
+     2 — Set availability
+     3 — Set up payments
+     4 — Done
 
-type SetupStep = {
-  key: SetupKey;
-  title: string;
-  body: string;
-  icon: IconName;
-  cta: string;
-  href: string;
-};
+   On mount, completion is data-derived from existing services + settings,
+   and the stepper jumps to the first incomplete pane. "Skip for now" exits
+   to the dashboard at any point — re-entry resumes from data state again.
+   ────────────────────────────────────────────────────────────────────────── */
 
-const SETUP_STEPS: SetupStep[] = [
-  {
-    key: "service",
-    title: "Create your first service",
-    body: "Define what you offer — duration, capacity, price. You can edit it later.",
-    icon: "layers",
-    cta: "Create service",
-    href: "/admin/services",
-  },
-  {
-    key: "availability",
-    title: "Set your availability",
-    body: "Tell Slotera which days and hours clients can book.",
-    icon: "calendar",
-    cta: "Set hours",
-    href: "/admin/settings",
-  },
-  {
-    key: "payments",
-    title: "Set up payments",
-    body: "Connect a processor or add manual payment instructions (bank transfer, Interac, etc.) for your booking page.",
-    icon: "card",
-    cta: "Set up payments",
-    href: "/admin/settings",
-  },
+type StepKey = "intro" | "service" | "availability" | "payments" | "done";
+
+const STEPS: { key: StepKey; label: string }[] = [
+  { key: "intro", label: "Welcome" },
+  { key: "service", label: "Service" },
+  { key: "availability", label: "Availability" },
+  { key: "payments", label: "Payments" },
+  { key: "done", label: "Done" },
 ];
 
-type Completion = Record<SetupKey, boolean>;
-
-const EMPTY: Completion = {
-  service: false,
-  availability: false,
-  payments: false,
+const DEFAULT_SERVICE: ServiceFormValue = {
+  name: "",
+  description: "",
+  durationMin: 60,
+  priceCents: 12000,
+  currency: "GBP",
+  capacity: 1,
+  locationType: "online",
+  location: "Zoom · link sent on confirmation",
+  bookingMode: "open",
+  cancellationRule: "Free reschedule up to 12h before.",
+  active: true,
 };
+
+const DEFAULT_HOURS: WorkingDay[] = [
+  { day: "Mon", enabled: true, start: "09:00", end: "18:00" },
+  { day: "Tue", enabled: true, start: "09:00", end: "18:00" },
+  { day: "Wed", enabled: true, start: "09:00", end: "18:00" },
+  { day: "Thu", enabled: true, start: "09:00", end: "18:00" },
+  { day: "Fri", enabled: true, start: "09:00", end: "17:00" },
+  { day: "Sat", enabled: false, start: "10:00", end: "14:00" },
+  { day: "Sun", enabled: false, start: "10:00", end: "14:00" },
+];
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [state, setState] = React.useState<Completion>(EMPTY);
-  const [loading, setLoading] = React.useState(true);
+  const { toast } = useToast();
+
+  const [step, setStep] = React.useState<number>(0);
+  const [settings, setSettings] = React.useState<SettingsData | null>(null);
+  const [ready, setReady] = React.useState(false);
+
   const [operatorName, setOperatorName] = React.useState<string>("Operator");
+  const [serviceForm, setServiceForm] =
+    React.useState<ServiceFormValue>(DEFAULT_SERVICE);
+  const [hours, setHours] = React.useState<WorkingDay[]>(DEFAULT_HOURS);
+  const [manualPayment, setManualPayment] = React.useState<ManualPaymentValue>({
+    enabled: false,
+    instructions: "",
+  });
+  const [serviceDone, setServiceDone] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
     const session = currentSession();
     const first = session?.operator.firstNames?.trim().split(/\s+/)[0];
     if (first) setOperatorName(first);
-    else if (session?.operator.name) setOperatorName(session.operator.name);
+    else if (session?.operator.name)
+      setOperatorName(session.operator.name.split(/\s+/)[0]);
 
     let cancelled = false;
     (async () => {
-      const [services, sessions, settings] = await Promise.all([
-        listServices(),
-        listSessions(),
-        getSettings(),
-      ]);
+      const [services, s] = await Promise.all([listServices(), getSettings()]);
       if (cancelled) return;
-      const hasService = services.length > 0;
-      const hasAvailability =
-        settings.calendar.workingHours.some((d) => d.enabled) ||
-        sessions.length > 0;
-      const hasPayments =
-        settings.payments.processors.some((p) => p.status === "connected") ||
-        (settings.payments.manualPaymentEnabled &&
-          settings.payments.manualPaymentInstructions.trim().length > 0);
-      setState({
-        service: hasService,
-        availability: hasAvailability,
-        payments: hasPayments,
+      setSettings(s);
+      setHours(s.calendar.workingHours);
+      setManualPayment({
+        enabled: s.payments.manualPaymentEnabled,
+        instructions: s.payments.manualPaymentInstructions,
       });
-      setLoading(false);
+
+      const hasService = services.length > 0;
+      setServiceDone(hasService);
+      // Visual-testing mode: always start on the intro pane so the full
+      // five-pane walkthrough is reachable even when the seed mocks already
+      // satisfy every completion check. Re-enable `resumeStep(...)` below
+      // when partial-progress resume is wanted again.
+      // setStep(resumeStep(hasService, hasAvailability, hasPayments));
+      setStep(0);
+      setReady(true);
     })();
 
     return () => {
@@ -101,10 +125,76 @@ export default function OnboardingPage() {
     };
   }, []);
 
-  const total = SETUP_STEPS.length;
-  const done = SETUP_STEPS.filter((s) => state[s.key]).length;
-  const percent = Math.round((done / total) * 100);
-  const allDone = done === total;
+  const skipToDashboard = () => router.push("/admin/dashboard");
+
+  const saveService = async () => {
+    if (!serviceForm.name.trim()) {
+      toast.error("Give your service a name first.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await createService(serviceForm);
+      markOnboardingStep("service", true);
+      setServiceDone(true);
+      toast.success("Service created");
+      setStep(2);
+    } catch (err) {
+      toast.error("Couldn't create service", {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveAvailability = async () => {
+    if (!settings) return;
+    if (!hours.some((d) => d.enabled)) {
+      toast.error("Enable at least one day so clients can book.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const next = await updateSettings({
+        calendar: { ...settings.calendar, workingHours: hours },
+      });
+      setSettings(next);
+      markOnboardingStep("availability", true);
+      toast.success("Availability saved");
+      setStep(3);
+    } catch (err) {
+      toast.error("Couldn't save availability", {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const savePayments = async () => {
+    if (!settings) return;
+    setBusy(true);
+    try {
+      const next = await updateSettings({
+        payments: {
+          ...settings.payments,
+          manualPaymentEnabled: manualPayment.enabled,
+          manualPaymentInstructions: manualPayment.instructions,
+        },
+      });
+      setSettings(next);
+      markOnboardingStep("payments", true);
+      toast.success("Payment setup saved");
+      setStep(4);
+    } catch (err) {
+      toast.error("Couldn't save payment setup", {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="w-full">
@@ -112,177 +202,426 @@ export default function OnboardingPage() {
         <Logo />
         <button
           type="button"
-          onClick={() => router.push("/admin/dashboard")}
+          onClick={skipToDashboard}
           className="text-small text-ink-3 hover:text-ink"
         >
           Skip for now
         </button>
       </div>
 
-      <Card padded>
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.35fr] lg:gap-20">
-          <div className="flex flex-col">
-            <div className="eyebrow mb-3">Welcome, {operatorName}</div>
-            <h1 className="text-h2 text-ink">
-              Let&apos;s get your workspace ready.
-            </h1>
-            <p className="text-body mt-3 text-ink-3">
-              Complete three setup steps, then open your booking page when
-              you&apos;re ready to share it.
-            </p>
-
-            <div className="flex items-center gap-3 mt-6">
-              <div className="flex-1 h-1.5 bg-paper-2 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-accent transition-all"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-              <span className="text-small font-mono text-ink-2">
-                {done} / {total}
-              </span>
+      <Card padded className="overflow-hidden">
+        <div className="flex flex-col gap-6">
+          {!ready ? (
+            <div className="flex flex-col gap-4">
+              <Skeleton h={28} />
+              <Skeleton h={18} w="60%" />
+              <Skeleton h={220} />
             </div>
+          ) : (
+            <>
+              <StepHeader step={step} operatorName={operatorName} />
+              <StepIndicator step={step} />
 
-            <div className="mt-6 rounded-md border border-line-soft bg-paper-2 p-4 text-small text-ink-3">
-              <div className="eyebrow mb-1.5">How completion works</div>
-              Each step is marked done automatically once the underlying setting
-              exists in your workspace — a service, working hours, or a payment
-              method. No checklists to babysit.
-            </div>
-
-            <div className="mt-auto pt-8 hidden lg:block">
-              <Link href="/admin/dashboard">
-                <Button
-                  variant="primary"
-                  size="md"
-                  iconRight="arrow-right"
-                >
-                  Go to dashboard
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            {SETUP_STEPS.map((s, i) => {
-              const isDone = state[s.key];
-              return (
-                <div
-                  key={s.key}
-                  className={cn(
-                    "flex items-start gap-3 p-4 rounded-md border transition-colors",
-                    isDone
-                      ? "bg-accent-soft border-[rgba(61,90,61,0.25)]"
-                      : "bg-surface border-line",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                      isDone
-                        ? "bg-accent text-white"
-                        : "bg-paper-2 text-ink-2",
-                    )}
-                  >
-                    {isDone ? (
-                      <Icon name="check" size={16} strokeWidth={2.5} />
-                    ) : (
-                      <span className="font-mono text-[11px]">0{i + 1}</span>
-                    )}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Icon name={s.icon} size={13} className="text-ink-3" />
-                      <h3
-                        className="font-serif text-ink"
-                        style={{ fontSize: 16, fontWeight: 400 }}
-                      >
-                        {s.title}
-                      </h3>
-                      {isDone && <Pill tone="accent">Done</Pill>}
-                    </div>
-                    <p className="text-small mt-1 text-ink-3">{s.body}</p>
-                  </div>
-                  <div className="flex flex-shrink-0">
-                    <Link href={s.href}>
-                      <Button
-                        variant={isDone ? "secondary" : "primary"}
-                        size="sm"
-                        iconRight="arrow-right"
-                      >
-                        {isDone ? "Review" : s.cta}
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-
-            <div
-              className={cn(
-                "mt-1 flex items-start gap-3 p-4 rounded-lg border-2 border-dashed transition-colors",
-                allDone
-                  ? "border-accent bg-accent-soft/40"
-                  : "border-line-soft bg-paper-2/50",
-              )}
-            >
-              <span
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                  allDone
-                    ? "bg-accent text-white"
-                    : "bg-surface text-ink-3 border border-line",
+              <div className="min-h-[300px]">
+                {step === 0 && <IntroPane operatorName={operatorName} />}
+                {step === 1 && (
+                  <ServiceForm
+                    value={serviceForm}
+                    onChange={setServiceForm}
+                    showActiveToggle={false}
+                    disabled={busy}
+                  />
                 )}
-              >
-                <Icon name="link" size={14} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3
-                    className="font-serif text-ink"
-                    style={{ fontSize: 16, fontWeight: 400 }}
-                  >
-                    Open your booking page
-                  </h3>
-                  <Pill tone={allDone ? "accent" : "neutral"}>
-                    {allDone ? "Ready to share" : "Launch"}
-                  </Pill>
-                </div>
-                <p className="text-small mt-1 text-ink-3">
-                  {allDone
-                    ? "Everything's wired up. Share the public link with clients or embed it on your site."
-                    : "Finish the setup steps above, then preview and share your public booking page."}
-                </p>
+                {step === 2 && (
+                  <WorkingHoursForm
+                    value={hours}
+                    onChange={setHours}
+                    disabled={busy}
+                  />
+                )}
+                {step === 3 && (
+                  <PaymentsPane
+                    value={manualPayment}
+                    onChange={setManualPayment}
+                    stripeConnected={
+                      settings?.payments.processors.some(
+                        (p) => p.id === "stripe" && p.status === "connected",
+                      ) ?? false
+                    }
+                    onConnectStripe={async () => {
+                      if (!settings) return;
+                      const next = await updateSettings({
+                        payments: {
+                          ...settings.payments,
+                          processors: settings.payments.processors.map((p) =>
+                            p.id === "stripe"
+                              ? { ...p, status: "connected" }
+                              : p,
+                          ),
+                        },
+                      });
+                      setSettings(next);
+                      toast.success("Stripe connected (mock)");
+                    }}
+                    disabled={busy}
+                  />
+                )}
+                {step === 4 && <DonePane />}
               </div>
-              <div className="flex flex-shrink-0">
-                <Link href="/booking" target="_blank" rel="noreferrer">
-                  <Button
-                    variant={allDone ? "primary" : "secondary"}
-                    size="sm"
-                    iconRight="arrow-right"
-                  >
-                    Open page
-                  </Button>
-                </Link>
-              </div>
-            </div>
 
-            {loading && (
-              <div className="text-micro text-ink-3 mt-1">
-                Checking your workspace…
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex justify-end mt-8 lg:hidden">
-          <Link href="/admin/dashboard">
-            <Button variant="primary" size="md" iconRight="arrow-right">
-              Go to dashboard
-            </Button>
-          </Link>
+              <StepFooter
+                step={step}
+                busy={busy}
+                serviceDone={serviceDone}
+                onBack={() => setStep((s) => Math.max(0, s - 1))}
+                onNextFromIntro={() => setStep(1)}
+                onSaveService={saveService}
+                onSaveAvailability={saveAvailability}
+                onSavePayments={savePayments}
+                onFinish={skipToDashboard}
+              />
+            </>
+          )}
         </div>
       </Card>
     </div>
   );
+}
+
+/* ── header / chrome ─────────────────────────────────────────────────────── */
+
+function StepHeader({
+  step,
+  operatorName,
+}: {
+  step: number;
+  operatorName: string;
+}) {
+  const meta = STEP_COPY[step];
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="eyebrow">Welcome, {operatorName}</div>
+      <h1 className="text-h2 text-ink">{meta.title}</h1>
+      <p className="text-body text-ink-3 mt-1">{meta.subtitle}</p>
+    </div>
+  );
+}
+
+const STEP_COPY: { title: string; subtitle: string }[] = [
+  {
+    title: "Let's get you onboarded",
+    subtitle:
+      "Three quick steps and you'll have a workspace ready to take bookings.",
+  },
+  {
+    title: "Create your first service",
+    subtitle:
+      "What do clients book from you? You can add more later — this is just the starting point.",
+  },
+  {
+    title: "Set your availability",
+    subtitle:
+      "Tell Slotera which days and hours you're open. Group sessions and special dates can be scheduled separately.",
+  },
+  {
+    title: "Set up payments",
+    subtitle:
+      "Stripe takes cards. Manual payment shows clients custom instructions (bank transfer, Interac).",
+  },
+  {
+    title: "You're all set",
+    subtitle: "Your workspace is ready. Share your booking page when you'd like.",
+  },
+];
+
+function StepIndicator({ step }: { step: number }) {
+  // The intro and done panels live outside the 3-step "work" progress.
+  if (step === 0 || step === 4) return null;
+  const workSteps = STEPS.slice(1, 4); // service, availability, payments
+  const activeIdx = step - 1; // 0..2
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        {workSteps.map((s, i) => {
+          const completed = i < activeIdx;
+          const active = i === activeIdx;
+          return (
+            <React.Fragment key={s.key}>
+              <span
+                className={cn(
+                  "flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-mono transition-colors",
+                  completed
+                    ? "bg-accent text-white"
+                    : active
+                      ? "bg-ink text-paper"
+                      : "bg-paper-2 text-ink-3 border border-line",
+                )}
+              >
+                {completed ? <Icon name="check" size={12} strokeWidth={2.5} /> : i + 1}
+              </span>
+              {i < workSteps.length - 1 && (
+                <span
+                  className={cn(
+                    "h-px flex-1",
+                    completed ? "bg-accent" : "bg-line",
+                  )}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-between text-micro">
+        {workSteps.map((s) => (
+          <span key={s.key}>{s.label}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── individual panes ────────────────────────────────────────────────────── */
+
+function IntroPane({ operatorName }: { operatorName: string }) {
+  const items: { icon: IconName; title: string; body: string }[] = [
+    {
+      icon: "layers",
+      title: "Create your first service",
+      body: "Set its duration, price, capacity, and where it happens.",
+    },
+    {
+      icon: "calendar",
+      title: "Set your availability",
+      body: "Pick which days and hours clients can book.",
+    },
+    {
+      icon: "card",
+      title: "Set up payments",
+      body: "Stripe for cards, or manual instructions for bank transfer.",
+    },
+  ];
+  return (
+    <div className="flex flex-col gap-5">
+      <p className="text-body text-ink-2 max-w-xl">
+        Hi {operatorName} — here&apos;s what we&apos;ll do together. You can
+        skip at any time and come back later from the dashboard.
+      </p>
+      <ol className="flex flex-col gap-3">
+        {items.map((it, i) => (
+          <li
+            key={it.title}
+            className="flex items-start gap-3 rounded-md border border-line-soft bg-surface-warm px-4 py-3"
+          >
+            <span className="w-8 h-8 rounded-md bg-accent-soft text-accent flex items-center justify-center shrink-0">
+              <Icon name={it.icon} size={16} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-medium text-ink">
+                <span className="text-ink-3 mr-1.5">{i + 1}.</span>
+                {it.title}
+              </div>
+              <p className="text-small mt-0.5">{it.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function PaymentsPane({
+  value,
+  onChange,
+  stripeConnected,
+  onConnectStripe,
+  disabled,
+}: {
+  value: ManualPaymentValue;
+  onChange: (next: ManualPaymentValue) => void;
+  stripeConnected: boolean;
+  onConnectStripe: () => Promise<void>;
+  disabled?: boolean;
+}) {
+  const [connecting, setConnecting] = React.useState(false);
+  const connect = async () => {
+    setConnecting(true);
+    try {
+      await onConnectStripe();
+    } finally {
+      setConnecting(false);
+    }
+  };
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] items-start">
+      <div className="rounded-lg border border-line bg-surface p-5 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="w-8 h-8 rounded-md bg-paper-2 text-ink-2 flex items-center justify-center">
+            <Icon name="card" size={16} />
+          </span>
+          <span className="text-[15px] font-medium text-ink">
+            Stripe (mock)
+          </span>
+        </div>
+        <p className="text-small">
+          Take card payments via Stripe. Mocked for the demo — no real account
+          needed.
+        </p>
+        {stripeConnected ? (
+          <Pill tone="accent" icon="check">
+            Connected
+          </Pill>
+        ) : (
+          <Button
+            variant="primary"
+            size="sm"
+            icon="card"
+            loading={connecting}
+            disabled={disabled}
+            onClick={connect}
+          >
+            Connect Stripe (mock)
+          </Button>
+        )}
+        <p className="text-micro text-ink-3 mt-1">
+          You can also set this up later from Settings → Client Payments.
+        </p>
+      </div>
+      <div className="rounded-lg border border-line bg-surface p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="w-8 h-8 rounded-md bg-paper-2 text-ink-2 flex items-center justify-center">
+            <Icon name="wallet" size={16} />
+          </span>
+          <span className="text-[15px] font-medium text-ink">
+            Manual payment
+          </span>
+        </div>
+        <p className="text-small mb-4">
+          Show clients custom instructions (bank transfer, Interac, etc.) at
+          checkout. Bookings stay pending until you confirm receipt.
+        </p>
+        <ManualPaymentForm value={value} onChange={onChange} disabled={disabled} />
+      </div>
+    </div>
+  );
+}
+
+function DonePane() {
+  return (
+    <div className="flex flex-col items-center text-center gap-5 py-6">
+      <span className="w-14 h-14 rounded-full bg-accent-soft text-accent flex items-center justify-center">
+        <Icon name="check" size={24} strokeWidth={2.5} />
+      </span>
+      <div className="flex flex-col gap-2 max-w-md">
+        <h2
+          className="font-serif text-ink"
+          style={{ fontSize: 26, fontWeight: 400, letterSpacing: "-0.01em" }}
+        >
+          Your workspace is ready
+        </h2>
+        <p className="text-body text-ink-3">
+          You can share your booking page now or come back to refine your
+          services, hours, and payment instructions any time.
+        </p>
+      </div>
+      <Link href="/booking" target="_blank" rel="noreferrer">
+        <Button variant="secondary" size="md" icon="eye">
+          Preview your booking page
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+/* ── footer actions ─────────────────────────────────────────────────────── */
+
+function StepFooter({
+  step,
+  busy,
+  serviceDone,
+  onBack,
+  onNextFromIntro,
+  onSaveService,
+  onSaveAvailability,
+  onSavePayments,
+  onFinish,
+}: {
+  step: number;
+  busy: boolean;
+  serviceDone: boolean;
+  onBack: () => void;
+  onNextFromIntro: () => void;
+  onSaveService: () => void;
+  onSaveAvailability: () => void;
+  onSavePayments: () => void;
+  onFinish: () => void;
+}) {
+  const showBack = step > 0 && step < 4;
+  return (
+    <div className="flex items-center justify-between gap-3 pt-4 border-t border-line-soft">
+      {showBack ? (
+        <Button variant="ghost" icon="arrow-left" onClick={onBack} disabled={busy}>
+          Back
+        </Button>
+      ) : (
+        <span />
+      )}
+      {step === 0 && (
+        <Button variant="primary" iconRight="arrow-right" onClick={onNextFromIntro}>
+          Get started
+        </Button>
+      )}
+      {step === 1 && (
+        <Button
+          variant="primary"
+          iconRight="arrow-right"
+          loading={busy}
+          onClick={onSaveService}
+        >
+          {serviceDone ? "Add another & continue" : "Create service & continue"}
+        </Button>
+      )}
+      {step === 2 && (
+        <Button
+          variant="primary"
+          iconRight="arrow-right"
+          loading={busy}
+          onClick={onSaveAvailability}
+        >
+          Save availability & continue
+        </Button>
+      )}
+      {step === 3 && (
+        <Button
+          variant="primary"
+          iconRight="arrow-right"
+          loading={busy}
+          onClick={onSavePayments}
+        >
+          Save & continue
+        </Button>
+      )}
+      {step === 4 && (
+        <Button variant="primary" iconRight="arrow-right" onClick={onFinish}>
+          Go to dashboard
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/* ── helpers ─────────────────────────────────────────────────────────────── */
+
+// Kept around for the partial-progress resume flow (currently disabled for
+// visual testing — see the mount effect above).
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function resumeStep(
+  serviceDone: boolean,
+  availabilityDone: boolean,
+  paymentsDone: boolean,
+): number {
+  if (!serviceDone && !availabilityDone && !paymentsDone) return 0;
+  if (!serviceDone) return 1;
+  if (!availabilityDone) return 2;
+  if (!paymentsDone) return 3;
+  return 4;
 }

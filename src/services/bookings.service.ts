@@ -2,7 +2,7 @@ import bookingsJson from "@/data/mock/bookings.json";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
-import type { Booking, BookingInput } from "@/types/booking";
+import type { Booking, BookingAttendance, BookingInput } from "@/types/booking";
 import { NotFoundError, NotImplementedError } from "./_errors";
 
 let mock: Booking[] = JSON.parse(JSON.stringify(bookingsJson)) as Booking[];
@@ -58,4 +58,25 @@ export async function updateBooking(
 
 export async function cancelBooking(id: string): Promise<Booking> {
   return updateBooking(id, { status: "cancelled", paymentStatus: "refunded" });
+}
+
+/**
+ * Record per-attendee attendance for a single booking. Pass `null` to clear
+ * (the field is optional on `Booking`, so a clear is meaningful — used by
+ * "undo" actions).
+ */
+export async function setBookingAttendance(
+  id: string,
+  attendance: BookingAttendance | null,
+): Promise<Booking> {
+  if (dataSource !== "mock")
+    throw new NotImplementedError("setBookingAttendance");
+  await sleep(80);
+  const idx = mock.findIndex((b) => b.id === id);
+  if (idx === -1) throw new NotFoundError("booking", id);
+  const next: Booking = { ...mock[idx] };
+  if (attendance === null) delete next.attendance;
+  else next.attendance = attendance;
+  mock = [...mock.slice(0, idx), next, ...mock.slice(idx + 1)];
+  return next;
 }

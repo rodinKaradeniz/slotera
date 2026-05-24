@@ -2,14 +2,13 @@
 
 import * as React from "react";
 import { DrawerShell } from "@/components/ui/DrawerShell";
-import { Field } from "@/components/ui/Field";
-import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
-import { Select } from "@/components/ui/Select";
-import { Toggle } from "@/components/ui/Toggle";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
+import {
+  ServiceForm,
+  type ServiceFormValue,
+} from "@/components/shared/forms/ServiceForm";
 import {
   createService,
   updateService,
@@ -18,7 +17,6 @@ import {
   removeService,
 } from "@/services/services.service";
 import type { Service } from "@/types/service";
-import type { LocationType, Currency } from "@/types/common";
 
 export type ServiceDrawerProps = {
   open: boolean;
@@ -28,7 +26,7 @@ export type ServiceDrawerProps = {
   onRemoved?: (id: string) => void;
 };
 
-const DEFAULTS: Omit<Service, "id" | "createdAtISO"> = {
+const DEFAULTS: ServiceFormValue = {
   name: "",
   description: "",
   durationMin: 60,
@@ -51,10 +49,8 @@ export function ServiceDrawer({
 }: ServiceDrawerProps) {
   const isEdit = !!initial;
   const { toast } = useToast();
-  const [form, setForm] = React.useState<Omit<Service, "id" | "createdAtISO">>(
-    initial
-      ? { ...initial }
-      : DEFAULTS,
+  const [form, setForm] = React.useState<ServiceFormValue>(
+    initial ? { ...initial } : DEFAULTS,
   );
   const [busy, setBusy] = React.useState(false);
 
@@ -142,119 +138,7 @@ export function ServiceDrawer({
       }
     >
       <div className="flex flex-col gap-5">
-        <Field label="Service name" required>
-          <Input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="e.g. Strategy Deep Dive"
-          />
-        </Field>
-
-        <Field label="Description" hint="One short line clients see on the booking page.">
-          <Textarea
-            value={form.description}
-            rows={3}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </Field>
-
-        <Field label="Duration (min)">
-          <Input
-            type="number"
-            value={String(form.durationMin)}
-            onChange={(e) =>
-              setForm({ ...form, durationMin: Number(e.target.value) || 0 })
-            }
-            min={5}
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Price">
-            <Input
-              type="number"
-              prefix={form.currency}
-              value={String(form.priceCents / 100)}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  priceCents: Math.round(Number(e.target.value) * 100) || 0,
-                })
-              }
-              min={0}
-            />
-          </Field>
-          <Field label="Currency">
-            <Select
-              value={form.currency}
-              onChange={(e) =>
-                setForm({ ...form, currency: e.target.value as Currency })
-              }
-              options={["EUR", "USD", "GBP"]}
-            />
-          </Field>
-        </div>
-
-        <Field label="Capacity" hint="1 for 1:1. Higher for group sessions or workshops.">
-          <Input
-            type="number"
-            value={String(form.capacity)}
-            onChange={(e) =>
-              setForm({ ...form, capacity: Math.max(1, Number(e.target.value) || 1) })
-            }
-            min={1}
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Location type">
-            <Select
-              value={form.locationType}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  locationType: e.target.value as LocationType,
-                })
-              }
-              options={[
-                { value: "online", label: "Online" },
-                { value: "physical", label: "In person" },
-                { value: "hybrid", label: "Hybrid" },
-              ]}
-            />
-          </Field>
-          <Field label="Meeting / location">
-            <Input
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-            />
-          </Field>
-        </div>
-
-        <Field label="Cancellation / reschedule rule">
-          <Textarea
-            value={form.cancellationRule}
-            rows={2}
-            onChange={(e) =>
-              setForm({ ...form, cancellationRule: e.target.value })
-            }
-          />
-        </Field>
-
-        <div className="flex items-center justify-between rounded-md border border-line bg-surface-warm p-4">
-          <div>
-            <div className="text-[14px] font-medium text-ink">
-              {form.active ? "Active" : "Inactive"}
-            </div>
-            <div className="text-small">
-              Inactive services don&apos;t appear on the booking page.
-            </div>
-          </div>
-          <Toggle
-            checked={form.active}
-            onChange={(v) => setForm({ ...form, active: v })}
-          />
-        </div>
+        <ServiceForm value={form} onChange={setForm} disabled={busy} />
 
         {isEdit && (
           <div className="mt-4 pt-5 border-t border-line-soft">

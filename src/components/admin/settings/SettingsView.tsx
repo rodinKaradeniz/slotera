@@ -12,6 +12,8 @@ import { Toggle } from "@/components/ui/Toggle";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { LoadingRows } from "@/components/shared/LoadingRows";
+import { ManualPaymentForm } from "@/components/shared/forms/ManualPaymentForm";
+import { WorkingHoursForm } from "@/components/shared/forms/WorkingHoursForm";
 import { getSettings, updateSettings } from "@/services/settings.service";
 import { BillingPanel } from "./BillingPanel";
 import type { SettingsData, WorkingDay } from "@/types/settings";
@@ -285,25 +287,24 @@ function PaymentsPanel({ data, onChange }: PanelProps) {
 }
 
 function ManualPaymentPanel({ data, onChange }: PanelProps) {
-  const [enabled, setEnabled] = React.useState(data.payments.manualPaymentEnabled);
-  const [instructions, setInstructions] = React.useState(
-    data.payments.manualPaymentInstructions,
-  );
+  const [value, setValue] = React.useState({
+    enabled: data.payments.manualPaymentEnabled,
+    instructions: data.payments.manualPaymentInstructions,
+  });
 
   const save = async () => {
     const next = await updateSettings({
       payments: {
         ...data.payments,
-        manualPaymentEnabled: enabled,
-        manualPaymentInstructions: instructions,
+        manualPaymentEnabled: value.enabled,
+        manualPaymentInstructions: value.instructions,
       },
     });
     onChange(next);
   };
 
   const remove = async () => {
-    setEnabled(false);
-    setInstructions("");
+    setValue({ enabled: false, instructions: "" });
     const next = await updateSettings({
       payments: {
         ...data.payments,
@@ -320,33 +321,7 @@ function ManualPaymentPanel({ data, onChange }: PanelProps) {
       hint="Show clients custom payment instructions (bank transfer, Interac, etc.) at checkout. Bookings using manual payment stay pending until you confirm receipt."
       onSave={save}
     >
-      <div className="flex items-center justify-between pb-4 border-b border-line-soft">
-        <div>
-          <div className="text-[14px] font-medium text-ink">
-            Offer manual payment at checkout
-          </div>
-          <div className="text-small">
-            Adds a &ldquo;Manual payment&rdquo; option to the public booking flow.
-          </div>
-        </div>
-        <Toggle checked={enabled} onChange={setEnabled} />
-      </div>
-
-      <Field
-        label="Payment instructions"
-        hint="Plain text. Shown to clients on the payment step and in confirmation emails."
-        className="mt-4"
-      >
-        <Textarea
-          value={instructions}
-          rows={6}
-          disabled={!enabled}
-          placeholder={
-            "Bank transfer to:\nYour Business\nIBAN: ...\nBIC: ...\n\nOr Interac e-Transfer to: you@example.com"
-          }
-          onChange={(e) => setInstructions(e.target.value)}
-        />
-      </Field>
+      <ManualPaymentForm value={value} onChange={setValue} />
 
       {data.payments.manualPaymentInstructions && (
         <div className="flex justify-end mt-4">
@@ -361,8 +336,6 @@ function ManualPaymentPanel({ data, onChange }: PanelProps) {
 
 function CalendarPanel({ data, onChange }: PanelProps) {
   const [hours, setHours] = React.useState<WorkingDay[]>(data.calendar.workingHours);
-  const updateDay = (i: number, patch: Partial<WorkingDay>) =>
-    setHours(hours.map((h, idx) => (i === idx ? { ...h, ...patch } : h)));
   const save = async () => {
     const next = await updateSettings({
       calendar: { ...data.calendar, workingHours: hours },
@@ -399,32 +372,7 @@ function CalendarPanel({ data, onChange }: PanelProps) {
       </Card>
 
       <PanelCard title="Working Hours" onSave={save}>
-        <div className="flex flex-col gap-2">
-          {hours.map((h, i) => (
-            <div
-              key={h.day}
-              className="grid grid-cols-[60px_auto_1fr_1fr] items-center gap-3 py-2"
-            >
-              <div className="text-[14px] font-medium text-ink">{h.day}</div>
-              <Toggle
-                checked={h.enabled}
-                onChange={(v) => updateDay(i, { enabled: v })}
-              />
-              <Input
-                type="time"
-                value={h.start}
-                disabled={!h.enabled}
-                onChange={(e) => updateDay(i, { start: e.target.value })}
-              />
-              <Input
-                type="time"
-                value={h.end}
-                disabled={!h.enabled}
-                onChange={(e) => updateDay(i, { end: e.target.value })}
-              />
-            </div>
-          ))}
-        </div>
+        <WorkingHoursForm value={hours} onChange={setHours} />
       </PanelCard>
     </>
   );

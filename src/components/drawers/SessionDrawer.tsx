@@ -5,10 +5,12 @@ import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Tabs } from "@/components/ui/Tabs";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { ConflictWarning } from "@/components/shared/ConflictWarning";
+import { AttendanceTab } from "./AttendanceTab";
 import {
   createSession,
   updateSession,
@@ -98,9 +100,16 @@ export function SessionDrawer({
   const [form, setForm] = React.useState<FormState>(() => emptyForm([]));
   const [conflict, setConflict] = React.useState<SessionItem | null>(null);
   const [busy, setBusy] = React.useState(false);
+  // Attendance only makes sense for an existing group session — for new or 1:1
+  // sessions we render the details body directly and skip the tab control.
+  const canShowAttendance = isEdit && (initial?.capacity ?? 0) > 1;
+  const [tab, setTab] = React.useState<"details" | "attendance">("details");
 
   React.useEffect(() => {
-    if (open) setMode(modeProp);
+    if (open) {
+      setMode(modeProp);
+      setTab("details");
+    }
   }, [open, modeProp]);
 
   React.useEffect(() => {
@@ -209,7 +218,11 @@ export function SessionDrawer({
       eyebrow={eyebrow}
       title={title}
       footer={
-        isView ? (
+        tab === "attendance" ? (
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        ) : isView ? (
           <>
             <Button variant="ghost" onClick={onClose}>
               Close
@@ -230,6 +243,22 @@ export function SessionDrawer({
         )
       }
     >
+      {canShowAttendance && (
+        <div className="mb-5">
+          <Tabs
+            value={tab}
+            onChange={(v) => setTab(v as "details" | "attendance")}
+            tabs={[
+              { value: "details", label: "Details" },
+              { value: "attendance", label: "Attendance" },
+            ]}
+          />
+        </div>
+      )}
+
+      {tab === "attendance" && initial ? (
+        <AttendanceTab sessionId={initial.id} />
+      ) : (
       <fieldset disabled={isView} className="flex flex-col gap-5 disabled:opacity-90">
         <Field label="Service" required>
           <Select
@@ -328,7 +357,11 @@ export function SessionDrawer({
           />
         </Field>
 
-        <Field label="Notes" optional>
+        <Field
+          label="Internal notes"
+          optional
+          hint="Only visible to you. Use for session-specific reminders or attendee context."
+        >
           <Textarea
             value={form.notes}
             rows={3}
@@ -344,6 +377,7 @@ export function SessionDrawer({
           </div>
         )}
       </fieldset>
+      )}
     </DrawerShell>
   );
 }

@@ -7,13 +7,17 @@ import { BookingFooter } from "@/components/layout/BookingFooter";
 import { StepIndicator, STEPS, type StepKey } from "@/components/layout/StepIndicator";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { StepService } from "@/components/booking/StepService";
 import { StepDateTime } from "@/components/booking/StepDateTime";
 import { StepDetails } from "@/components/booking/StepDetails";
 import { StepBilling } from "@/components/booking/StepBilling";
 import { StepReview } from "@/components/booking/StepReview";
 import { StepPayment } from "@/components/booking/StepPayment";
+import { BookingsPausedCard } from "@/components/booking/BookingsPausedCard";
 import { EMPTY_DRAFT, type BookingDraft } from "@/components/booking/types";
+import { getSettings } from "@/services/settings.service";
+import type { SettingsData } from "@/types/settings";
 
 const DRAFT_KEY = "slotera.booking.draft";
 
@@ -23,6 +27,11 @@ export default function BookingPage() {
   const [draft, setDraft] = React.useState<BookingDraft>(EMPTY_DRAFT);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [settings, setSettings] = React.useState<SettingsData | null>(null);
+
+  React.useEffect(() => {
+    getSettings().then(setSettings);
+  }, []);
 
   React.useEffect(() => {
     try {
@@ -123,9 +132,40 @@ export default function BookingPage() {
     router.push("/booking/confirmation");
   };
 
+  // While settings are loading, render a quiet placeholder rather than the
+  // stepper — otherwise the operator could see the full form for a frame
+  // before the paused card replaces it.
+  if (settings === null) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <BookingTopBar />
+        <main className="flex-1 max-w-[1100px] mx-auto w-full px-6 pt-10 pb-10">
+          <div className="flex flex-col gap-3 max-w-md mx-auto">
+            <Skeleton h={28} />
+            <Skeleton h={20} />
+            <Skeleton h={20} w="60%" />
+          </div>
+        </main>
+        <BookingFooter />
+      </div>
+    );
+  }
+
+  if (!settings.business.bookingPageEnabled) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <BookingTopBar consultantName={settings.business.displayName} />
+        <main className="flex-1 max-w-[1100px] mx-auto w-full px-6 pt-16 pb-10">
+          <BookingsPausedCard displayName={settings.business.displayName} />
+        </main>
+        <BookingFooter />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
-      <BookingTopBar />
+      <BookingTopBar consultantName={settings.business.displayName} />
       <main className="flex-1 max-w-[1100px] mx-auto w-full px-6 pt-10 pb-10">
         <div className="mb-10 px-2 sm:px-6">
           <StepIndicator current={step} />
