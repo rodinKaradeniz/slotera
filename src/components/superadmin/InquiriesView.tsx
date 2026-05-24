@@ -1,14 +1,17 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Pill } from "@/components/ui/Pill";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { NewWorkspaceDrawer } from "./NewWorkspaceDrawer";
 import { listInquiries, setInquiryStatus } from "@/services/platform.service";
 import { INQUIRY_STATUS, INQUIRY_TYPE } from "@/lib/status-maps";
 import { fmtDate } from "@/lib/time";
@@ -37,10 +40,12 @@ const STATUS_OPTIONS: Array<{
 ];
 
 export function InquiriesView() {
+  const router = useRouter();
   const [items, setItems] = React.useState<PlatformInquiry[] | null>(null);
   const [query, setQuery] = React.useState("");
   const [type, setType] = React.useState<"" | PlatformInquiryType>("");
   const [status, setStatus] = React.useState<"" | PlatformInquiryStatus>("");
+  const [promoting, setPromoting] = React.useState<PlatformInquiry | null>(null);
 
   React.useEffect(() => {
     listInquiries().then(setItems);
@@ -68,7 +73,7 @@ export function InquiriesView() {
       <PageHeader
         eyebrow="Platform"
         title="Inquiries"
-        description="Incoming contact/support/business messages. The public contact modal still shows mock success — submissions are not yet stored."
+        description="Incoming contact, support, and business messages. Custom-plan signups land here for manual onboarding."
         meta={items ? `${items.length} inquiries` : undefined}
       />
 
@@ -142,12 +147,43 @@ export function InquiriesView() {
                     ]}
                     className="w-40"
                   />
+                  {i.type === "business" && i.status === "new" && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon="building"
+                      onClick={() => setPromoting(i)}
+                    >
+                      Promote to workspace
+                    </Button>
+                  )}
                 </div>
               </div>
             );
           })}
         </Card>
       )}
+
+      <NewWorkspaceDrawer
+        open={promoting !== null}
+        onClose={() => setPromoting(null)}
+        fromInquiryId={promoting?.id}
+        initial={
+          promoting
+            ? {
+                ownerName: promoting.name,
+                ownerEmail: promoting.email,
+              }
+            : undefined
+        }
+        onCreated={async (ws) => {
+          // Refresh the inquiries list so the row reflects the new
+          // 'Resolved' status, then deep-link to the freshly minted workspace.
+          const next = await listInquiries();
+          setItems(next);
+          router.push(`/superadmin/workspaces/${ws.id}`);
+        }}
+      />
     </PageContainer>
   );
 }

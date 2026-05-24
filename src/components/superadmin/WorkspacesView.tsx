@@ -2,14 +2,17 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Pill } from "@/components/ui/Pill";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { NewWorkspaceDrawer } from "./NewWorkspaceDrawer";
 import { listWorkspaces } from "@/services/platform.service";
 import { PLAN_LABEL, SUBSCRIPTION_STATUS } from "@/lib/status-maps";
 import { fmtDate, fmtRelative } from "@/lib/time";
@@ -33,10 +36,12 @@ const PLAN_OPTIONS: Array<{ value: "" | PlanId; label: string }> = [
 ];
 
 export function WorkspacesView() {
+  const router = useRouter();
   const [items, setItems] = React.useState<Workspace[] | null>(null);
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<"" | SubscriptionStatus>("");
   const [plan, setPlan] = React.useState<"" | PlanId>("");
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   React.useEffect(() => {
     listWorkspaces().then(setItems);
@@ -63,6 +68,16 @@ export function WorkspacesView() {
         title="Workspaces"
         description="Every registered Slotera workspace, with plan and subscription status."
         meta={items ? `${items.length} workspaces` : undefined}
+        actions={
+          <Button
+            variant="primary"
+            size="md"
+            icon="plus"
+            onClick={() => setDrawerOpen(true)}
+          >
+            New workspace
+          </Button>
+        }
       />
 
       <div className="grid sm:grid-cols-[1fr_180px_180px] gap-3 mb-4">
@@ -137,6 +152,15 @@ export function WorkspacesView() {
           })}
         </Card>
       )}
+
+      <NewWorkspaceDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onCreated={(ws) => {
+          listWorkspaces().then(setItems);
+          router.push(`/superadmin/workspaces/${ws.id}`);
+        }}
+      />
     </PageContainer>
   );
 }

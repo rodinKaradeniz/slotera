@@ -2,17 +2,18 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
-import { Pill } from "@/components/ui/Pill";
-import { register } from "@/services/auth.service";
-import { listPlans } from "@/services/billing.service";
-import { gbp } from "@/lib/money";
-import type { PlanId, SubscriptionPlan } from "@/types/billing";
+import {
+  EMPTY_REGISTER_DRAFT,
+  readRegisterDraft,
+  writeRegisterDraft,
+  type RegisterDraft,
+} from "@/lib/register-draft";
 
 const TITLE_OPTIONS = [
   { value: "", label: "—" },
@@ -34,41 +35,18 @@ const BUSINESS_TYPES = [
   "Other",
 ];
 
-function isPlanId(v: string | null): v is PlanId {
-  return v === "solo" || v === "team" || v === "custom";
-}
-
 function RegisterForm() {
   const router = useRouter();
-  const params = useSearchParams();
-  const planParam = params?.get("plan");
-  const selectedPlanId: PlanId | null = isPlanId(planParam) ? planParam : null;
 
-  const [plan, setPlan] = React.useState<SubscriptionPlan | null>(null);
-
-  React.useEffect(() => {
-    if (!selectedPlanId) {
-      setPlan(null);
-      return;
-    }
-    listPlans().then((plans) => {
-      setPlan(plans.find((p) => p.id === selectedPlanId) ?? null);
-    });
-  }, [selectedPlanId]);
-
-  const [form, setForm] = React.useState({
-    title: "Dr.",
-    customTitle: "",
-    firstNames: "Lena Maria",
-    lastName: "Hartmann",
-    email: "lena@hartmannstrategy.com",
-    password: "",
-    confirmPassword: "",
-    workspaceName: "Hartmann Strategy",
-    type: BUSINESS_TYPES[0],
-  });
+  const [form, setForm] = React.useState<RegisterDraft>(EMPTY_REGISTER_DRAFT);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Resume the draft if the user came back via Back from /register/plan, etc.
+  React.useEffect(() => {
+    const stored = readRegisterDraft();
+    if (stored) setForm({ ...EMPTY_REGISTER_DRAFT, ...stored });
+  }, []);
 
   const passwordMismatch =
     form.confirmPassword.length > 0 && form.password !== form.confirmPassword;
@@ -84,29 +62,16 @@ function RegisterForm() {
       setError("Passwords don't match.");
       return;
     }
-    const titleValue =
-      form.title === "__other__" ? form.customTitle.trim() : form.title;
     setLoading(true);
-    try {
-      await register({
-        title: titleValue || undefined,
-        firstNames: form.firstNames,
-        lastName: form.lastName,
-        email: form.email,
-        workspaceName: form.workspaceName,
-      });
-      router.push("/onboarding");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed.");
-    } finally {
-      setLoading(false);
-    }
+    // No account is created here — the draft is staged so /register/plan and
+    // /register/payment can decide whether to actually register (Solo/Team)
+    // or divert to a Custom-plan inquiry (no account).
+    writeRegisterDraft(form);
+    router.push("/register/plan");
   };
 
   return (
     <form className="flex flex-col gap-4" onSubmit={submit}>
-      {plan && <SelectedPlanCard plan={plan} />}
-
       <div
         className={`grid gap-4 sm:grid-cols-[120px_1fr_1fr] ${
           form.title === "__other__" ? "sm:grid-cols-[120px_140px_1fr_1fr]" : ""
@@ -114,7 +79,7 @@ function RegisterForm() {
       >
         <Field label="Title">
           <Select
-            value={form.title}
+            value={form.title ?? ""}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             options={TITLE_OPTIONS}
           />
@@ -122,7 +87,7 @@ function RegisterForm() {
         {form.title === "__other__" && (
           <Field label="Custom title">
             <Input
-              value={form.customTitle}
+              value={form.customTitle ?? ""}
               onChange={(e) =>
                 setForm({ ...form, customTitle: e.target.value })
               }
@@ -201,8 +166,8 @@ function RegisterForm() {
         </Field>
         <Field label="What do you offer?">
           <Select
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
+            value={form.businessType}
+            onChange={(e) => setForm({ ...form, businessType: e.target.value })}
             options={BUSINESS_TYPES}
           />
         </Field>
@@ -216,46 +181,18 @@ function RegisterForm() {
         iconRight="arrow-right"
         disabled={passwordMismatch}
       >
-        Create workspace
+        Choose plan
       </Button>
     </form>
-  );
-}
-
-function SelectedPlanCard({ plan }: { plan: SubscriptionPlan }) {
-  const monthly = plan.id === "custom" ? "Custom" : gbp(plan.priceMonthly);
-  return (
-    <div className="rounded-lg border border-accent bg-accent-soft px-4 py-3">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <div className="eyebrow mb-0.5">Selected plan</div>
-          <div className="text-[15px] font-medium text-ink">
-            {plan.name} ·{" "}
-            <span className="text-ink-2">{plan.description}</span>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="font-serif text-ink" style={{ fontSize: 22, fontWeight: 380 }}>
-            {monthly}
-            {plan.id !== "custom" && (
-              <span className="text-small ml-1">/mo</span>
-            )}
-          </div>
-          <div className="mt-1">
-            <Pill tone="accent" icon="sparkle">14-day free trial · monthly</Pill>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
 export default function RegisterPage() {
   return (
     <AuthCard
-      eyebrow="Free 14-day trial"
+      eyebrow="Step 1 of 3"
       title="Create your workspace."
-      subtitle="Spin up a booking page in under 10 minutes. No credit card required."
+      subtitle="Spin up a booking page in under 10 minutes. Pick your plan next."
       footer={
         <span>
           Already on Slotera?{" "}
@@ -265,9 +202,7 @@ export default function RegisterPage() {
         </span>
       }
     >
-      <React.Suspense fallback={null}>
-        <RegisterForm />
-      </React.Suspense>
+      <RegisterForm />
     </AuthCard>
   );
 }

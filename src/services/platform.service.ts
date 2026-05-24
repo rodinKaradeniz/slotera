@@ -9,11 +9,12 @@ import { sleep } from "@/lib/delay";
 import type {
   PlatformInquiry,
   PlatformInquiryStatus,
+  PlatformInquiryType,
   PlatformOverview,
   PlatformSubscription,
   Workspace,
 } from "@/types/platform";
-import type { PlanId, SubscriptionStatus } from "@/types/billing";
+import type { BillingCycle, PlanId, SubscriptionStatus } from "@/types/billing";
 import { NotFoundError, NotImplementedError } from "./_errors";
 
 let workspaces: Workspace[] = JSON.parse(
@@ -42,6 +43,79 @@ export async function getWorkspace(id: string): Promise<Workspace | null> {
   if (dataSource !== "mock") throw new NotImplementedError("getWorkspace");
   await sleep(60);
   return workspaces.find((w) => w.id === id) ?? null;
+}
+
+/**
+ * Slotera staff manually provisions a workspace (typically after a Custom-plan
+ * inquiry). Creates the workspace AND the matching `PlatformSubscription` so
+ * the new row shows up consistently across Workspaces, Subscriptions, and the
+ * Overview KPIs.
+ */
+export type CreateWorkspaceInput = {
+  name: string;
+  ownerName: string;
+  ownerEmail: string;
+  planId: PlanId;
+  billingCycle: BillingCycle;
+  status: SubscriptionStatus;
+  seats: number;
+  /** Pounds, not cents. Converted internally. */
+  amountPounds: number;
+  trialEndsAtISO?: string | null;
+  nextBillingAtISO?: string | null;
+};
+
+export async function createWorkspace(
+  input: CreateWorkspaceInput,
+): Promise<Workspace> {
+  if (dataSource !== "mock") throw new NotImplementedError("createWorkspace");
+  await sleep(180);
+
+  const id = `ws-${Math.random().toString(36).slice(2, 8)}`;
+  const nowISO = new Date().toISOString();
+  const slug = slugifyWorkspace(input.name);
+
+  const workspace: Workspace = {
+    id,
+    name: input.name.trim(),
+    slug,
+    ownerName: input.ownerName.trim(),
+    ownerEmail: input.ownerEmail.trim().toLowerCase(),
+    planId: input.planId,
+    subscriptionStatus: input.status,
+    createdAtISO: nowISO,
+    lastActiveISO: nowISO,
+    bookingsCount: 0,
+    servicesCount: 0,
+    clientsCount: 0,
+  };
+
+  const subscription: PlatformSubscription = {
+    id: `sub-${id}`,
+    workspaceId: id,
+    workspaceName: workspace.name,
+    planId: input.planId,
+    status: input.status,
+    billingCycle: input.billingCycle,
+    trialEndsAtISO: input.trialEndsAtISO ?? null,
+    nextBillingAtISO: input.nextBillingAtISO ?? null,
+    amount: Math.round(input.amountPounds * 100),
+    currency: "GBP",
+    paymentStatus: input.status === "trialing" ? "n/a" : "paid",
+  };
+
+  workspaces = [workspace, ...workspaces];
+  subscriptions = [subscription, ...subscriptions];
+  return workspace;
+}
+
+function slugifyWorkspace(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32) || `workspace-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 export async function setWorkspacePlan(
@@ -123,6 +197,33 @@ export async function listInquiries(): Promise<PlatformInquiry[]> {
   if (dataSource !== "mock") throw new NotImplementedError("listInquiries");
   await sleep(80);
   return [...inquiries];
+}
+
+/**
+ * Persists a new platform inquiry. Used by the Custom-plan registration path
+ * (and any future "talk to sales" CTAs) so Slotera staff see the lead in the
+ * superadmin Inquiries view. Distinct from the general public `ContactModal`,
+ * which by default does NOT persist.
+ */
+export async function createInquiry(input: {
+  name: string;
+  email: string;
+  type: PlatformInquiryType;
+  message: string;
+}): Promise<PlatformInquiry> {
+  if (dataSource !== "mock") throw new NotImplementedError("createInquiry");
+  await sleep(160);
+  const created: PlatformInquiry = {
+    id: `inq-${Math.random().toString(36).slice(2, 8)}`,
+    name: input.name.trim(),
+    email: input.email.trim().toLowerCase(),
+    type: input.type,
+    message: input.message.trim(),
+    status: "new",
+    createdAtISO: new Date().toISOString(),
+  };
+  inquiries = [created, ...inquiries];
+  return created;
 }
 
 export async function setInquiryStatus(

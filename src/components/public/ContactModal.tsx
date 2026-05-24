@@ -8,44 +8,90 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { createInquiry } from "@/services/platform.service";
+import type { PlatformInquiryType } from "@/types/platform";
 
+/**
+ * Public contact modal. By default the submission is purely mocked — nothing
+ * is stored, nothing is sent. Pass `persist` to route the submission through
+ * `createInquiry()` so it shows up in the superadmin Inquiries view (used by
+ * the Custom-plan registration path).
+ */
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** When true, the submission is persisted as a `PlatformInquiry`. */
+  persist?: boolean;
+  /** Override the modal eyebrow + title for caller-specific framing. */
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  /** Pre-fill helpers. */
+  presetName?: string;
+  presetEmail?: string;
+  presetMessage?: string;
+  defaultReason?: PlatformInquiryType;
 };
 
-const REASONS = [
+const REASONS: { value: PlatformInquiryType; label: string }[] = [
   { value: "business", label: "Business inquiry" },
-  { value: "dev", label: "Development issue" },
+  { value: "development", label: "Development issue" },
   { value: "feature", label: "Feature request" },
-  { value: "other", label: "General request" },
+  { value: "general", label: "General request" },
 ];
 
 type FormState = {
   name: string;
   email: string;
-  reason: string;
+  reason: PlatformInquiryType;
   message: string;
 };
 
-const EMPTY: FormState = {
-  name: "",
-  email: "",
-  reason: REASONS[0].value,
-  message: "",
-};
+function emptyForm(opts: Partial<FormState> = {}): FormState {
+  return {
+    name: opts.name ?? "",
+    email: opts.email ?? "",
+    reason: opts.reason ?? "business",
+    message: opts.message ?? "",
+  };
+}
 
-export function ContactModal({ open, onClose }: Props) {
-  const [form, setForm] = React.useState<FormState>(EMPTY);
+export function ContactModal({
+  open,
+  onClose,
+  persist = false,
+  eyebrow = "Contact",
+  title = "Get in touch",
+  description = "Business inquiries, development issues, feature requests — drop us a line and we'll get back to you.",
+  presetName,
+  presetEmail,
+  presetMessage,
+  defaultReason,
+}: Props) {
+  const [form, setForm] = React.useState<FormState>(() =>
+    emptyForm({
+      name: presetName,
+      email: presetEmail,
+      message: presetMessage,
+      reason: defaultReason,
+    }),
+  );
   const [submitting, setSubmitting] = React.useState(false);
   const [success, setSuccess] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
-    setForm(EMPTY);
+    setForm(
+      emptyForm({
+        name: presetName,
+        email: presetEmail,
+        message: presetMessage,
+        reason: defaultReason,
+      }),
+    );
     setSuccess(false);
     setSubmitting(false);
-  }, [open]);
+  }, [open, presetName, presetEmail, presetMessage, defaultReason]);
 
   const valid =
     form.name.trim().length > 0 &&
@@ -56,20 +102,48 @@ export function ContactModal({ open, onClose }: Props) {
     e.preventDefault();
     if (!valid) return;
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitting(false);
-    setSuccess(true);
+    try {
+      if (persist) {
+        await createInquiry({
+          name: form.name,
+          email: form.email,
+          type: form.reason,
+          message: form.message,
+        });
+      } else {
+        // Mocked submission — no persistence, just simulated latency.
+        await new Promise((r) => setTimeout(r, 600));
+      }
+      setSuccess(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Get in touch"
-      description={
-        success
-          ? undefined
-          : "Business inquiries, development issues, feature requests — drop us a line and we'll get back to you."
+      title={
+        <span className="block">
+          <span className="eyebrow block mb-2">{eyebrow}</span>
+          <span
+            className="block font-serif text-ink"
+            style={{
+              fontSize: 28,
+              fontWeight: 380,
+              letterSpacing: "-0.015em",
+              lineHeight: 1.1,
+            }}
+          >
+            {title}
+          </span>
+          {!success && description && (
+            <span className="block text-body text-ink-2 mt-2">
+              {description}
+            </span>
+          )}
+        </span>
       }
       size="md"
       footer={
@@ -103,8 +177,9 @@ export function ContactModal({ open, onClose }: Props) {
           </span>
           <h3 className="text-h3 text-ink">Message sent.</h3>
           <p className="text-body text-ink-3 max-w-sm">
-            Thanks for reaching out — a teammate will reply within one business
-            day. (This is a mocked confirmation — nothing was actually sent.)
+            {persist
+              ? "Thanks — Slotera will reach out within one business day."
+              : "Thanks for reaching out — a teammate will reply within one business day. (This is a mocked confirmation — nothing was actually sent.)"}
           </p>
         </div>
       ) : (
@@ -129,7 +204,9 @@ export function ContactModal({ open, onClose }: Props) {
           <Field label="Reason" required>
             <Select
               value={form.reason}
-              onChange={(e) => setForm({ ...form, reason: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, reason: e.target.value as PlatformInquiryType })
+              }
               options={REASONS}
             />
           </Field>

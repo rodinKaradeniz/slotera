@@ -20,7 +20,7 @@ import {
   type ManualPaymentValue,
 } from "@/components/shared/forms/ManualPaymentForm";
 import { currentSession, markOnboardingStep } from "@/services/auth.service";
-import { createService, listServices } from "@/services/services.service";
+import { createService } from "@/services/services.service";
 import { getSettings, updateSettings } from "@/services/settings.service";
 import type { SettingsData, WorkingDay } from "@/types/settings";
 import { cn } from "@/lib/cn";
@@ -88,7 +88,6 @@ export default function OnboardingPage() {
     enabled: false,
     instructions: "",
   });
-  const [serviceDone, setServiceDone] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
@@ -100,7 +99,7 @@ export default function OnboardingPage() {
 
     let cancelled = false;
     (async () => {
-      const [services, s] = await Promise.all([listServices(), getSettings()]);
+      const s = await getSettings();
       if (cancelled) return;
       setSettings(s);
       setHours(s.calendar.workingHours);
@@ -109,13 +108,14 @@ export default function OnboardingPage() {
         instructions: s.payments.manualPaymentInstructions,
       });
 
-      const hasService = services.length > 0;
-      setServiceDone(hasService);
       // Visual-testing mode: always start on the intro pane so the full
       // five-pane walkthrough is reachable even when the seed mocks already
-      // satisfy every completion check. Re-enable `resumeStep(...)` below
-      // when partial-progress resume is wanted again.
-      // setStep(resumeStep(hasService, hasAvailability, hasPayments));
+      // satisfy every completion check. To restore partial-progress resume:
+      //   const services = await listServices();
+      //   const hasService = services.length > 0;
+      //   const hasAvailability = s.calendar.workingHours.some((d) => d.enabled);
+      //   const hasPayments = ...;
+      //   setStep(resumeStep(hasService, hasAvailability, hasPayments));
       setStep(0);
       setReady(true);
     })();
@@ -136,7 +136,6 @@ export default function OnboardingPage() {
     try {
       await createService(serviceForm);
       markOnboardingStep("service", true);
-      setServiceDone(true);
       toast.success("Service created");
       setStep(2);
     } catch (err) {
@@ -272,7 +271,6 @@ export default function OnboardingPage() {
               <StepFooter
                 step={step}
                 busy={busy}
-                serviceDone={serviceDone}
                 onBack={() => setStep((s) => Math.max(0, s - 1))}
                 onNextFromIntro={() => setStep(1)}
                 onSaveService={saveService}
@@ -537,7 +535,6 @@ function DonePane() {
 function StepFooter({
   step,
   busy,
-  serviceDone,
   onBack,
   onNextFromIntro,
   onSaveService,
@@ -547,7 +544,6 @@ function StepFooter({
 }: {
   step: number;
   busy: boolean;
-  serviceDone: boolean;
   onBack: () => void;
   onNextFromIntro: () => void;
   onSaveService: () => void;
@@ -577,7 +573,7 @@ function StepFooter({
           loading={busy}
           onClick={onSaveService}
         >
-          {serviceDone ? "Add another & continue" : "Create service & continue"}
+          Add and continue
         </Button>
       )}
       {step === 2 && (
