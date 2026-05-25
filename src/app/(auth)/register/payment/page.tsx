@@ -18,6 +18,14 @@ import {
 } from "@/services/billing.service";
 import { gbp } from "@/lib/money";
 import {
+  detectCardBrand,
+  formatCardCvc,
+  formatCardExpiry,
+  formatCardNumber,
+  isValidCardExpiry,
+  parseCardExpiry,
+} from "@/lib/card";
+import {
   clearRegisterDraft,
   readRegisterDraft,
   resolveTitle,
@@ -75,7 +83,7 @@ export default function RegisterPaymentPage() {
   const valid =
     card.cardholder.trim().length > 1 &&
     card.number.replace(/\s/g, "").length >= 12 &&
-    /^\d{2}\/\d{2}$/.test(card.exp.trim()) &&
+    isValidCardExpiry(card.exp) &&
     /^\d{3,4}$/.test(card.cvc.trim());
 
   const submit = async (e: React.FormEvent) => {
@@ -105,13 +113,12 @@ export default function RegisterPaymentPage() {
       await changePlan(plan.id, draft.billingCycle ?? "monthly");
 
       // 3. Save the mock card so the Billing panel reflects it immediately.
-      const [expMonth, expYear] = card.exp.split("/").map((s) => Number(s.trim()));
+      const { month, year } = parseCardExpiry(card.exp);
       await updateMockPaymentMethod({
-        brand: detectBrand(raw),
+        brand: detectCardBrand(raw),
         last4: raw.slice(-4),
-        expMonth: expMonth || 1,
-        // expYear from "MM/YY" → 20YY
-        expYear: expYear ? 2000 + expYear : new Date().getFullYear() + 1,
+        expMonth: month,
+        expYear: year,
         holder: card.cardholder.trim(),
       });
 
@@ -196,28 +203,38 @@ export default function RegisterPaymentPage() {
         >
           <Input
             value={card.number}
-            onChange={(e) => setCard({ ...card, number: e.target.value })}
+            onChange={(e) =>
+              setCard({ ...card, number: formatCardNumber(e.target.value) })
+            }
             placeholder="4242 4242 4242 4242"
             inputMode="numeric"
             autoComplete="cc-number"
+            maxLength={19}
           />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Expiration" required>
             <Input
               value={card.exp}
-              onChange={(e) => setCard({ ...card, exp: e.target.value })}
-              placeholder="MM/YY"
+              onChange={(e) =>
+                setCard({ ...card, exp: formatCardExpiry(e.target.value) })
+              }
+              placeholder="MM / YY"
+              inputMode="numeric"
               autoComplete="cc-exp"
+              maxLength={7}
             />
           </Field>
           <Field label="CVC" required>
             <Input
               value={card.cvc}
-              onChange={(e) => setCard({ ...card, cvc: e.target.value })}
+              onChange={(e) =>
+                setCard({ ...card, cvc: formatCardCvc(e.target.value) })
+              }
               placeholder="123"
               inputMode="numeric"
               autoComplete="cc-csc"
+              maxLength={4}
             />
           </Field>
         </div>
@@ -243,9 +260,3 @@ export default function RegisterPaymentPage() {
   );
 }
 
-function detectBrand(num: string): string {
-  if (num.startsWith("4")) return "Visa";
-  if (/^5[1-5]/.test(num)) return "Mastercard";
-  if (/^3[47]/.test(num)) return "Amex";
-  return "Card";
-}

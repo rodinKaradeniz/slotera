@@ -4,10 +4,15 @@ import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Icon } from "@/components/ui/Icon";
+import { useToast } from "@/components/ui/Toast";
+import { ContactModal } from "@/components/public/ContactModal";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { CardHead } from "@/components/shared/CardHead";
+import { currentSession } from "@/services/auth.service";
 import {
   cancelSubscription,
   changePlan,
@@ -15,11 +20,20 @@ import {
   listInvoices,
   listPlans,
   reactivateSubscription,
+  updateMockPaymentMethod,
 } from "@/services/billing.service";
 import { PLAN_LABEL, SUBSCRIPTION_STATUS } from "@/lib/status-maps";
 import { gbp } from "@/lib/money";
 import { fmtDate } from "@/lib/time";
 import { cn } from "@/lib/cn";
+import {
+  detectCardBrand,
+  formatCardCvc,
+  formatCardExpiry,
+  formatCardNumber,
+  isValidCardExpiry,
+  parseCardExpiry,
+} from "@/lib/card";
 import type {
   BillingCycle,
   Invoice,
@@ -29,11 +43,14 @@ import type {
 } from "@/types/billing";
 
 export function BillingPanel() {
+  const { toast } = useToast();
   const [sub, setSub] = React.useState<WorkspaceSubscription | null>(null);
   const [plans, setPlans] = React.useState<SubscriptionPlan[]>([]);
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [planModal, setPlanModal] = React.useState(false);
   const [cancelModal, setCancelModal] = React.useState(false);
+  const [cardModal, setCardModal] = React.useState(false);
+  const [customContactOpen, setCustomContactOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
@@ -57,6 +74,11 @@ export function BillingPanel() {
       await changePlan(planId, cycle);
       await refresh();
       setPlanModal(false);
+      toast.success("Plan updated");
+    } catch (err) {
+      toast.error("Couldn't change plan", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -65,9 +87,18 @@ export function BillingPanel() {
   const onCancel = async () => {
     setBusy(true);
     try {
-      await cancelSubscription();
+      const next = await cancelSubscription();
       await refresh();
       setCancelModal(false);
+      toast.info("Subscription cancelled", {
+        description: next.cancelAtISO
+          ? `Active until ${fmtDate(new Date(next.cancelAtISO))}.`
+          : "It'll stay active until the end of the current cycle.",
+      });
+    } catch (err) {
+      toast.error("Couldn't cancel subscription", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -78,6 +109,11 @@ export function BillingPanel() {
     try {
       await reactivateSubscription();
       await refresh();
+      toast.success("Subscription reactivated");
+    } catch (err) {
+      toast.error("Couldn't reactivate subscription", {
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -188,8 +224,13 @@ export function BillingPanel() {
           <h3 className="text-h3 text-ink" style={{ fontSize: 16 }}>
             Payment method
           </h3>
-          <Button variant="secondary" size="sm" icon="edit">
-            Update card
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="edit"
+            onClick={() => setCardModal(true)}
+          >
+            {sub.paymentMethod ? "Update card" : "Add card"}
           </Button>
         </div>
         {sub.paymentMethod ? (
@@ -249,28 +290,67 @@ export function BillingPanel() {
         plans={plans}
         current={sub}
         onConfirm={onChangePlan}
+        onCustomSelected={() => {
+          setPlanModal(false);
+          setCustomContactOpen(true);
+        }}
         busy={busy}
       />
 
-      <Modal open={cancelModal} onClose={() => setCancelModal(false)} title="Cancel subscription?">
-        <p className="text-body mt-2">
-          Your subscription will remain active until{" "}
-          <strong>
-            {sub.nextBillingAtISO
-              ? fmtDate(new Date(sub.nextBillingAtISO))
-              : "the end of the current cycle"}
-          </strong>
-          . You can reactivate before that date to keep things running.
-        </p>
-        <div className="flex justify-end gap-2 mt-5">
-          <Button variant="ghost" onClick={() => setCancelModal(false)}>
-            Keep subscription
-          </Button>
-          <Button variant="danger" loading={busy} onClick={onCancel}>
-            Cancel subscription
-          </Button>
-        </div>
-      </Modal>
+      <Modal
+        open={cancelModal}
+        onClose={() => setCancelModal(false)}
+        title="Cancel subscription?"
+        description={
+          <>
+            Your subscription will remain active until{" "}
+            <strong>
+              {sub.nextBillingAtISO
+                ? fmtDate(new Date(sub.nextBillingAtISO))
+                : "the end of the current cycle"}
+            </strong>
+            . You can reactivate before that date to keep things running.
+          </>
+        }
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setCancelModal(false)}>
+              Keep subscription
+            </Button>
+            <Button variant="danger" loading={busy} onClick={onCancel}>
+              Cancel subscription
+            </Button>
+          </>
+        }
+      />
+
+      <UpdatePaymentMethodModal
+        open={cardModal}
+        onClose={() => setCardModal(false)}
+        currentHolder={sub.paymentMethod?.holder ?? ""}
+        onUpdated={async () => {
+          await refresh();
+          setCardModal(false);
+          toast.success("Payment method updated");
+        }}
+        onError={(msg) =>
+          toast.error("Couldn't update payment method", { description: msg })
+        }
+      />
+
+      <ContactModal
+        open={customContactOpen}
+        onClose={() => setCustomContactOpen(false)}
+        persist
+        eyebrow="Custom plan"
+        title="Talk to Slotera"
+        description="Tell us about your team size or use case and we'll set up a tailored plan. Your current subscription stays as-is until we agree on terms."
+        presetName={currentSession()?.operator.name ?? ""}
+        presetEmail={currentSession()?.operator.email ?? ""}
+        defaultReason="business"
+        presetMessage="I'd like to upgrade to a Custom plan — please get in touch."
+      />
     </>
   );
 }
@@ -319,6 +399,7 @@ function PlanModal({
   plans,
   current,
   onConfirm,
+  onCustomSelected,
   busy,
 }: {
   open: boolean;
@@ -326,10 +407,13 @@ function PlanModal({
   plans: SubscriptionPlan[];
   current: WorkspaceSubscription;
   onConfirm: (planId: PlanId, cycle: BillingCycle) => void;
+  /** Called when the operator chooses Custom — should open the sales-contact flow. */
+  onCustomSelected: () => void;
   busy: boolean;
 }) {
   const [planId, setPlanId] = React.useState<PlanId>(current.planId);
   const [cycle, setCycle] = React.useState<BillingCycle>(current.billingCycle);
+  const isCustom = planId === "custom";
 
   React.useEffect(() => {
     if (open) {
@@ -414,18 +498,175 @@ function PlanModal({
         })}
       </div>
 
+      {isCustom && (
+        <div className="mt-5 rounded-md border border-line-soft bg-paper-2 px-4 py-3 text-small">
+          Custom plans are tailored per team. Send us a quick note and Slotera
+          will follow up to set this up — no automatic upgrade yet.
+        </div>
+      )}
+
       <div className="flex justify-end gap-2 mt-5">
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button
-          variant="primary"
-          loading={busy}
-          onClick={() => onConfirm(planId, cycle)}
-          disabled={planId === current.planId && cycle === current.billingCycle}
+        {isCustom ? (
+          <Button
+            variant="primary"
+            icon="mail"
+            onClick={onCustomSelected}
+          >
+            Contact Slotera
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            loading={busy}
+            onClick={() => onConfirm(planId, cycle)}
+            disabled={
+              planId === current.planId && cycle === current.billingCycle
+            }
+          >
+            Confirm change
+          </Button>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+type CardForm = {
+  holder: string;
+  number: string;
+  exp: string;
+  cvc: string;
+};
+
+const EMPTY_CARD: CardForm = { holder: "", number: "", exp: "", cvc: "" };
+
+function UpdatePaymentMethodModal({
+  open,
+  onClose,
+  currentHolder,
+  onUpdated,
+  onError,
+}: {
+  open: boolean;
+  onClose: () => void;
+  currentHolder: string;
+  onUpdated: () => Promise<void> | void;
+  onError: (message: string) => void;
+}) {
+  const [form, setForm] = React.useState<CardForm>(EMPTY_CARD);
+  const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) setForm({ ...EMPTY_CARD, holder: currentHolder });
+  }, [open, currentHolder]);
+
+  const valid =
+    form.holder.trim().length > 1 &&
+    form.number.replace(/\s/g, "").length >= 12 &&
+    isValidCardExpiry(form.exp) &&
+    /^\d{3,4}$/.test(form.cvc.trim());
+
+  const submit = async () => {
+    if (!valid) return;
+    const raw = form.number.replace(/\s/g, "");
+    if (raw.endsWith("0002")) {
+      onError("Card declined. Try 4242 4242 4242 4242 for a mock success.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { month, year } = parseCardExpiry(form.exp);
+      await updateMockPaymentMethod({
+        brand: detectCardBrand(raw),
+        last4: raw.slice(-4),
+        expMonth: month,
+        expYear: year,
+        holder: form.holder.trim(),
+      });
+      await onUpdated();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Update payment method"
+      description="Mocked checkout — no real charge."
+      size="sm"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            loading={busy}
+            disabled={!valid}
+            onClick={submit}
+          >
+            Save card
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <Field label="Cardholder name" required>
+          <Input
+            value={form.holder}
+            onChange={(e) => setForm({ ...form, holder: e.target.value })}
+            autoComplete="cc-name"
+          />
+        </Field>
+        <Field
+          label="Card number"
+          required
+          hint="4242 4242 4242 4242 succeeds, 4000 0000 0000 0002 declines."
         >
-          Confirm change
-        </Button>
+          <Input
+            value={form.number}
+            onChange={(e) =>
+              setForm({ ...form, number: formatCardNumber(e.target.value) })
+            }
+            placeholder="4242 4242 4242 4242"
+            inputMode="numeric"
+            autoComplete="cc-number"
+            maxLength={19}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Expiration" required>
+            <Input
+              value={form.exp}
+              onChange={(e) =>
+                setForm({ ...form, exp: formatCardExpiry(e.target.value) })
+              }
+              placeholder="MM / YY"
+              inputMode="numeric"
+              autoComplete="cc-exp"
+              maxLength={7}
+            />
+          </Field>
+          <Field label="CVC" required>
+            <Input
+              value={form.cvc}
+              onChange={(e) =>
+                setForm({ ...form, cvc: formatCardCvc(e.target.value) })
+              }
+              placeholder="123"
+              inputMode="numeric"
+              autoComplete="cc-csc"
+              maxLength={4}
+            />
+          </Field>
+        </div>
       </div>
     </Modal>
   );

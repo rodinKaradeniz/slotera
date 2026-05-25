@@ -7,7 +7,35 @@
     "phone": "+49 30 12345678",
     "address": "Mitte, Berlin · 10115",
     "bookingPageUrl": "slotera.app/lena",
-    "bookingPageEnabled": true
+    "bookingPageEnabled": true,
+    "locations": [
+      {
+        "id": "loc-mitte",
+        "label": "Mitte Studio",
+        "address": {
+          "street": "Rosenthaler Straße 40",
+          "street2": "2nd floor",
+          "city": "Berlin",
+          "region": "Berlin",
+          "postalCode": "10178",
+          "country": "DE",
+          "notes": "Buzzer for 'Hartmann Strategy' — second floor, glass door on the left."
+        }
+      },
+      {
+        "id": "loc-kreuzberg",
+        "label": "Kreuzberg Studio",
+        "address": {
+          "street": "Oranienstraße 17",
+          "street2": "",
+          "city": "Berlin",
+          "region": "Berlin",
+          "postalCode": "10999",
+          "country": "DE",
+          "notes": "Mats and props provided. Please arrive 10 minutes early for class."
+        }
+      }
+    ]
   },
   "branding": {
     "accent": "#3D5A3D",

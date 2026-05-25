@@ -8,8 +8,10 @@ import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { ConflictWarning } from "@/components/shared/ConflictWarning";
+import { AddressPicker } from "@/components/shared/forms/AddressPicker";
 import { AttendanceTab } from "./AttendanceTab";
 import {
   createSession,
@@ -18,10 +20,12 @@ import {
   findConflict,
 } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
+import { getSettings } from "@/services/settings.service";
 import { addMinutes } from "@/lib/time";
 import type { Service } from "@/types/service";
 import type { Recurring, SessionItem, SessionStatus } from "@/types/session";
 import type { LocationType } from "@/types/common";
+import type { Address, WorkspaceLocation } from "@/types/address";
 
 export type SessionDrawerMode = "view" | "edit";
 
@@ -42,6 +46,8 @@ type FormState = {
   capacity: number;
   locationType: LocationType;
   location: string;
+  /** Optional structured address. Only used when locationType is physical/hybrid. */
+  address?: Address;
   recurring: Recurring;
   status: SessionStatus;
   notes: string;
@@ -60,6 +66,7 @@ function toForm(item: SessionItem, services: Service[]): FormState {
     capacity: item.capacity,
     locationType: item.locationType,
     location: item.location,
+    address: item.address,
     recurring: item.recurring,
     status: item.status,
     notes: item.notes ?? "",
@@ -78,6 +85,7 @@ function emptyForm(services: Service[]): FormState {
     capacity: first?.capacity ?? 1,
     locationType: first?.locationType ?? "online",
     location: first?.location ?? "Zoom",
+    address: first?.address ? { ...first.address } : undefined,
     recurring: "one-off",
     status: "scheduled",
     notes: "",
@@ -97,9 +105,13 @@ export function SessionDrawer({
   const [mode, setMode] = React.useState<SessionDrawerMode>(modeProp);
   const isView = mode === "view" && isEdit;
   const [services, setServices] = React.useState<Service[]>([]);
+  const [savedLocations, setSavedLocations] = React.useState<WorkspaceLocation[]>(
+    [],
+  );
   const [form, setForm] = React.useState<FormState>(() => emptyForm([]));
   const [conflict, setConflict] = React.useState<SessionItem | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [confirmCancel, setConfirmCancel] = React.useState(false);
   // Attendance only makes sense for an existing group session — for new or 1:1
   // sessions we render the details body directly and skip the tab control.
   const canShowAttendance = isEdit && (initial?.capacity ?? 0) > 1;
@@ -114,6 +126,7 @@ export function SessionDrawer({
 
   React.useEffect(() => {
     listServices().then(setServices);
+    getSettings().then((s) => setSavedLocations(s.business.locations ?? []));
   }, []);
 
   React.useEffect(() => {
@@ -145,6 +158,10 @@ export function SessionDrawer({
   const save = async () => {
     setBusy(true);
     try {
+      // Drop the address entirely if the session went online — keeps the
+      // SessionItem clean and avoids carrying stale physical-address data.
+      const addressOnSave =
+        form.locationType === "online" ? undefined : form.address;
       if (isEdit && initial) {
         const next = await updateSession(initial.id, {
           serviceId: form.serviceId,
@@ -155,6 +172,7 @@ export function SessionDrawer({
           status: form.status,
           locationType: form.locationType,
           location: form.location,
+          address: addressOnSave,
           recurring: form.recurring,
           notes: form.notes,
         });
@@ -170,6 +188,7 @@ export function SessionDrawer({
           status: form.status,
           locationType: form.locationType,
           location: form.location,
+          address: addressOnSave,
           recurring: form.recurring,
           notes: form.notes,
         });
@@ -188,12 +207,12 @@ export function SessionDrawer({
 
   const cancel = async () => {
     if (!initial) return;
-    if (!confirm("Cancel this session? All bookings will be marked cancelled.")) return;
     setBusy(true);
     try {
       const next = await cancelSession(initial.id);
       onCancelled?.(next);
       toast.success("Session cancelled");
+      setConfirmCancel(false);
       onClose();
     } catch (err) {
       toast.error("Couldn't cancel session", {
@@ -273,6 +292,9 @@ export function SessionDrawer({
                 capacity: svc?.capacity ?? form.capacity,
                 locationType: svc?.locationType ?? form.locationType,
                 location: svc?.location ?? form.location,
+                // Inherit the service's default address (if any). When the new
+                // service has none, clear — the operator can re-attach manually.
+                address: svc?.address ? { ...svc.address } : undefined,
               });
             }}
             options={services.map((s) => ({ value: s.id, label: s.name }))}
@@ -357,6 +379,16 @@ export function SessionDrawer({
           />
         </Field>
 
+        {form.locationType !== "online" && (
+          <AddressPicker
+            value={form.address}
+            onChange={(address) => setForm({ ...form, address })}
+            savedLocations={savedLocations}
+            title="Physical address"
+            description="Shown to attendees on the booking confirmation."
+          />
+        )}
+
         <Field
           label="Internal notes"
           optional
@@ -371,13 +403,32 @@ export function SessionDrawer({
 
         {isEdit && !isView && (
           <div className="pt-5 border-t border-line-soft flex justify-end">
-            <Button variant="danger" size="sm" icon="x" onClick={cancel} disabled={busy}>
+            <Button
+              variant="danger"
+              size="sm"
+              icon="x"
+              onClick={() => setConfirmCancel(true)}
+              disabled={busy}
+            >
               Cancel session
             </Button>
           </div>
         )}
       </fieldset>
       )}
+
+      <ConfirmDialog
+        open={confirmCancel}
+        onClose={() => !busy && setConfirmCancel(false)}
+        onConfirm={cancel}
+        title="Cancel this session?"
+        description="All attendees will be notified and their bookings marked cancelled."
+        confirmLabel="Cancel session"
+        cancelLabel="Keep session"
+        destructive
+        busy={busy}
+      />
     </DrawerShell>
   );
 }
+

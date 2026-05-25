@@ -52,6 +52,31 @@ function ChartTooltip({
 
 export function TrendChart({ data }: Props) {
   const [metric, setMetric] = React.useState<Metric>("revenue");
+  // Recharts' ResponsiveContainer falls back to width(-1)/height(-1) when its
+  // parent is briefly detached or zero-sized during a Next.js route transition,
+  // which prints a noisy console warning. Gate the chart on a measured positive
+  // size so it only mounts once the container has real dimensions.
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [size, setSize] = React.useState<{ w: number; h: number }>({
+    w: 0,
+    h: 0,
+  });
+
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      if (!entry) return;
+      setSize({
+        w: entry.contentRect.width,
+        h: entry.contentRect.height,
+      });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const measured = size.w > 0 && size.h > 0;
 
   return (
     <Card padded className="h-full flex flex-col">
@@ -75,7 +100,12 @@ export function TrendChart({ data }: Props) {
           size="sm"
         />
       </div>
-      <div className="flex-1 w-full" style={{ minHeight: 220 }}>
+      <div
+        ref={containerRef}
+        className="flex-1 w-full"
+        style={{ minHeight: 220 }}
+      >
+        {measured && (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
@@ -136,6 +166,7 @@ export function TrendChart({ data }: Props) {
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </Card>
   );

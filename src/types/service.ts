@@ -1,3 +1,4 @@
+import type { Address } from "./address";
 import type { Currency, LocationType } from "./common";
 
 /**
@@ -20,6 +21,13 @@ export type Service = {
   capacity: number;
   locationType: LocationType;
   location: string;
+  /**
+   * Default structured address inherited when a new session is created from
+   * this service. The session can override per occurrence (e.g. when a
+   * workshop runs at a guest venue). Only meaningful for physical/hybrid
+   * services; ignored when locationType is `"online"`.
+   */
+  address?: Address;
   bookingMode: ServiceBookingMode;
   cancellationRule: string;
   active: boolean;

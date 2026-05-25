@@ -160,9 +160,7 @@ export function Greeting({ firstName = "Lena", subtitle }: Props) {
             </Button>
           </>
         }
-      >
-        <span className="sr-only">Confirm booking page toggle.</span>
-      </Modal>
+      />
     </>
   );
 }

@@ -11,7 +11,8 @@ type ModalProps = {
   title?: React.ReactNode;
   description?: React.ReactNode;
   size?: "sm" | "md" | "lg";
-  children: React.ReactNode;
+  /** Optional. Omit for confirmation-style modals that need only title + footer. */
+  children?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
 };
@@ -50,6 +51,13 @@ export function Modal({
 
   if (!mounted || !open) return null;
 
+  const hasBody =
+    children !== undefined &&
+    children !== null &&
+    children !== false &&
+    children !== true &&
+    children !== "";
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 fade-in"
@@ -68,7 +76,15 @@ export function Modal({
         )}
       >
         {(title || description) && (
-          <div className="px-6 py-5 border-b border-line-soft flex items-start gap-3">
+          <div
+            className={cn(
+              "px-6 py-5 flex items-start gap-3",
+              // Only draw the divider when there's a body below it. Confirm-style
+              // modals (title + footer only) skip the line so they don't get a
+              // floating rule with empty space underneath.
+              hasBody && "border-b border-line-soft",
+            )}
+          >
             <div className="flex-1 min-w-0">
               {title && <h2 className="text-h3 text-ink">{title}</h2>}
               {description && (
@@ -85,7 +101,9 @@ export function Modal({
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        {hasBody && (
+          <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        )}
         {footer && (
           <div className="px-6 py-4 border-t border-line-soft flex justify-end gap-2 bg-surface-warm rounded-b-lg">
             {footer}

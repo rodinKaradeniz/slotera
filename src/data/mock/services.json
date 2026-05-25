@@ -54,6 +54,15 @@
     "capacity": 6,
     "locationType": "physical",
     "location": "Berlin · Mitte studio",
+    "address": {
+      "street": "Rosenthaler Straße 40",
+      "street2": "2nd floor",
+      "city": "Berlin",
+      "region": "Berlin",
+      "postalCode": "10178",
+      "country": "DE",
+      "notes": "Buzzer for 'Hartmann Strategy' — second floor, glass door on the left."
+    },
     "bookingMode": "scheduled",
     "cancellationRule": "Reschedule up to 5 days before. No refunds within 48h.",
     "active": true,

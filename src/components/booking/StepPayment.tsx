@@ -6,6 +6,11 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
+import {
+  formatCardCvc,
+  formatCardExpiry,
+  formatCardNumber,
+} from "@/lib/card";
 import { getSettings } from "@/services/settings.service";
 import type { PaymentMethod, SettingsData } from "@/types/settings";
 import type { BookingDraft } from "./types";
@@ -100,24 +105,37 @@ export function StepPayment({ draft, payment, onChange }: Props) {
             >
               <Input
                 value={payment.cardNumber}
-                onChange={(e) => update({ cardNumber: e.target.value })}
+                onChange={(e) =>
+                  update({ cardNumber: formatCardNumber(e.target.value) })
+                }
                 placeholder="4242 4242 4242 4242"
                 inputMode="numeric"
+                autoComplete="cc-number"
+                maxLength={19}
               />
             </Field>
             <Field label="Expiration" required>
               <Input
                 value={payment.cardExp}
-                onChange={(e) => update({ cardExp: e.target.value })}
-                placeholder="MM/YY"
+                onChange={(e) =>
+                  update({ cardExp: formatCardExpiry(e.target.value) })
+                }
+                placeholder="MM / YY"
+                inputMode="numeric"
+                autoComplete="cc-exp"
+                maxLength={7}
               />
             </Field>
             <Field label="CVC" required>
               <Input
                 value={payment.cardCvc}
-                onChange={(e) => update({ cardCvc: e.target.value })}
+                onChange={(e) =>
+                  update({ cardCvc: formatCardCvc(e.target.value) })
+                }
                 placeholder="123"
                 inputMode="numeric"
+                autoComplete="cc-csc"
+                maxLength={4}
               />
             </Field>
           </div>

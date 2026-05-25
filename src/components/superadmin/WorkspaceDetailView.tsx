@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Pill } from "@/components/ui/Pill";
 import { Textarea } from "@/components/ui/Textarea";
+import { useToast } from "@/components/ui/Toast";
 import { Stat } from "@/components/shared/Stat";
 import { DetailLine } from "@/components/shared/DetailLine";
 import { LoadingRows } from "@/components/shared/LoadingRows";
@@ -31,6 +32,7 @@ const PLAN_OPTIONS: Array<{ value: PlanId; label: string }> = [
 
 export function WorkspaceDetailView({ id }: { id: string }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [workspace, setWorkspace] = React.useState<Workspace | null>(null);
   const [notFound, setNotFound] = React.useState(false);
   const [notes, setNotes] = React.useState("");
@@ -117,7 +119,9 @@ export function WorkspaceDetailView({ id }: { id: string }) {
               variant="secondary"
               size="md"
               icon="eye"
-              onClick={() => alert("View-as is a placeholder in this mock build.")}
+              onClick={() =>
+                toast.info("View-as is a placeholder in this mock build.")
+              }
             >
               View as operator
             </Button>

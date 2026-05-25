@@ -1,3 +1,5 @@
+import type { WorkspaceLocation } from "./address";
+
 export type WorkingDay = {
   day: string;
   enabled: boolean;
@@ -23,10 +25,13 @@ export type SettingsData = {
     bio: string;
     email: string;
     phone: string;
+    /** Free-form public business address (single line, shown in the footer). */
     address: string;
     bookingPageUrl: string;
     /** When false, the public booking page renders a "bookings paused" card. */
     bookingPageEnabled: boolean;
+    /** Structured studios/offices the operator can attach to sessions. */
+    locations: WorkspaceLocation[];
   };
   branding: {
     accent: string;

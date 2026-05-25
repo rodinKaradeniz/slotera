@@ -4,6 +4,7 @@ import * as React from "react";
 import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import {
   ServiceForm,
@@ -53,6 +54,7 @@ export function ServiceDrawer({
     initial ? { ...initial } : DEFAULTS,
   );
   const [busy, setBusy] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   React.useEffect(() => {
     if (open) setForm(initial ? { ...initial } : DEFAULTS);
@@ -103,13 +105,12 @@ export function ServiceDrawer({
 
   const remove = async () => {
     if (!initial) return;
-    if (!confirm(`Permanently delete "${initial.name}"? This cannot be undone.`))
-      return;
     setBusy(true);
     try {
       await removeService(initial.id);
       onRemoved?.(initial.id);
       toast.success("Service deleted");
+      setConfirmDelete(false);
       onClose();
     } catch (err) {
       toast.error("Couldn't delete service", {
@@ -162,7 +163,7 @@ export function ServiceDrawer({
                 variant="danger"
                 size="sm"
                 icon="trash"
-                onClick={remove}
+                onClick={() => setConfirmDelete(true)}
                 disabled={busy}
               >
                 Remove service
@@ -171,6 +172,17 @@ export function ServiceDrawer({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => !busy && setConfirmDelete(false)}
+        onConfirm={remove}
+        title={`Delete "${initial?.name ?? "this service"}"?`}
+        description="This permanently removes the service. Existing sessions and bookings stay on your calendar but new clients can't book it."
+        confirmLabel="Delete service"
+        destructive
+        busy={busy}
+      />
     </DrawerShell>
   );
 }

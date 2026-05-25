@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
+import { AddressPicker } from "./AddressPicker";
+import { getSettings } from "@/services/settings.service";
 import type { Service } from "@/types/service";
 import type { Currency, LocationType } from "@/types/common";
+import type { WorkspaceLocation } from "@/types/address";
 
 /**
  * Controlled fields for a service (everything except IDs and creation timestamp).
@@ -33,6 +36,14 @@ export function ServiceForm({
   showActiveToggle = true,
   disabled,
 }: Props) {
+  const [savedLocations, setSavedLocations] = React.useState<WorkspaceLocation[]>(
+    [],
+  );
+
+  React.useEffect(() => {
+    getSettings().then((s) => setSavedLocations(s.business.locations ?? []));
+  }, []);
+
   return (
     <fieldset disabled={disabled} className="flex flex-col gap-5 disabled:opacity-90">
       <Field label="Service name" required>
@@ -126,6 +137,16 @@ export function ServiceForm({
           />
         </Field>
       </div>
+
+      {value.locationType !== "online" && (
+        <AddressPicker
+          value={value.address}
+          onChange={(address) => onChange({ ...value, address })}
+          savedLocations={savedLocations}
+          title="Default address"
+          description="New sessions of this service will inherit this address. You can override per session."
+        />
+      )}
 
       <Field label="Cancellation / reschedule rule">
         <Textarea

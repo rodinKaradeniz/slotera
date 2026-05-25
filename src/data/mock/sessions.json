@@ -44,7 +44,16 @@
     "bookedCount": 4,
     "status": "scheduled",
     "locationType": "physical",
-    "location": "Berlin · Mitte studio",
+    "location": "Mitte Studio",
+    "address": {
+      "street": "Rosenthaler Straße 40",
+      "street2": "2nd floor",
+      "city": "Berlin",
+      "region": "Berlin",
+      "postalCode": "10178",
+      "country": "DE",
+      "notes": "Buzzer for 'Hartmann Strategy' — second floor, glass door on the left."
+    },
     "recurring": "one-off"
   },
   {
@@ -92,7 +101,15 @@
     "bookedCount": 2,
     "status": "scheduled",
     "locationType": "physical",
-    "location": "Berlin · Mitte studio",
+    "location": "Mitte Studio",
+    "address": {
+      "street": "Rosenthaler Straße 40",
+      "street2": "2nd floor",
+      "city": "Berlin",
+      "region": "Berlin",
+      "postalCode": "10178",
+      "country": "DE"
+    },
     "recurring": "one-off"
   },
   {

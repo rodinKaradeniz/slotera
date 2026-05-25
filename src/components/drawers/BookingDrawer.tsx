@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import {
   createBooking,
@@ -69,6 +70,7 @@ export function BookingDrawer({
   const [mode, setMode] = React.useState<BookingDrawerMode>(modeProp);
   const isView = mode === "view" && isEdit;
   const { toast } = useToast();
+  const [confirmCancel, setConfirmCancel] = React.useState(false);
   const [clients, setClients] = React.useState<Client[]>([]);
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
@@ -158,12 +160,12 @@ export function BookingDrawer({
 
   const cancel = async () => {
     if (!initial) return;
-    if (!confirm("Cancel this booking?")) return;
     setBusy(true);
     try {
       const next = await cancelBooking(initial.id);
       onCancelled?.(next);
       toast.success("Booking cancelled");
+      setConfirmCancel(false);
       onClose();
     } catch (err) {
       toast.error("Couldn't cancel booking", {
@@ -321,7 +323,7 @@ export function BookingDrawer({
               variant="danger"
               size="sm"
               icon="x"
-              onClick={cancel}
+              onClick={() => setConfirmCancel(true)}
               disabled={busy}
             >
               Cancel booking
@@ -329,6 +331,18 @@ export function BookingDrawer({
           </div>
         )}
       </fieldset>
+
+      <ConfirmDialog
+        open={confirmCancel}
+        onClose={() => !busy && setConfirmCancel(false)}
+        onConfirm={cancel}
+        title="Cancel this booking?"
+        description="The client will be marked cancelled and refunded. They keep visibility into the original session."
+        confirmLabel="Cancel booking"
+        cancelLabel="Keep booking"
+        destructive
+        busy={busy}
+      />
     </DrawerShell>
   );
 }

@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Pill } from "@/components/ui/Pill";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
@@ -49,11 +51,14 @@ const CYCLE_OPTIONS: Array<{ value: "" | BillingCycle; label: string }> = [
 ];
 
 export function SubscriptionsView() {
+  const { toast } = useToast();
   const [items, setItems] = React.useState<PlatformSubscription[] | null>(null);
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<"" | SubscriptionStatus>("");
   const [plan, setPlan] = React.useState<"" | PlanId>("");
   const [cycle, setCycle] = React.useState<"" | BillingCycle>("");
+  const [cancelTargetId, setCancelTargetId] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
     listPlatformSubscriptions().then(setItems);
@@ -81,10 +86,21 @@ export function SubscriptionsView() {
     refresh();
   };
 
-  const onCancel = async (id: string) => {
-    if (!confirm("Cancel this subscription (mock)?")) return;
-    await setSubscriptionStatus(id, "cancel_scheduled");
-    refresh();
+  const confirmCancel = async () => {
+    if (!cancelTargetId) return;
+    setBusy(true);
+    try {
+      await setSubscriptionStatus(cancelTargetId, "cancel_scheduled");
+      await refresh();
+      toast.info("Subscription cancellation scheduled");
+      setCancelTargetId(null);
+    } catch (err) {
+      toast.error("Couldn't cancel subscription", {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const onReactivate = async (id: string) => {
@@ -192,7 +208,7 @@ export function SubscriptionsView() {
                       variant="ghost"
                       size="sm"
                       icon="x"
-                      onClick={() => onCancel(s.id)}
+                      onClick={() => setCancelTargetId(s.id)}
                     >
                       Cancel
                     </Button>
@@ -201,7 +217,9 @@ export function SubscriptionsView() {
                     variant="ghost"
                     size="sm"
                     icon="file"
-                    onClick={() => alert("Invoice list is mocked — open the workspace detail.")}
+                    onClick={() =>
+                      toast.info("Invoice list is mocked — open the workspace detail to see it.")
+                    }
                   >
                     Invoices
                   </Button>
@@ -214,6 +232,18 @@ export function SubscriptionsView() {
       <p className="text-small mt-3">
         Subscription actions update local state only. No payment provider is connected.
       </p>
+
+      <ConfirmDialog
+        open={cancelTargetId !== null}
+        onClose={() => !busy && setCancelTargetId(null)}
+        onConfirm={confirmCancel}
+        title="Cancel this subscription (mock)?"
+        description="The status will flip to 'cancel scheduled'. The mock keeps the row visible so you can reactivate it from this page."
+        confirmLabel="Cancel subscription"
+        cancelLabel="Keep active"
+        destructive
+        busy={busy}
+      />
     </PageContainer>
   );
 }

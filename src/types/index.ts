@@ -1,4 +1,5 @@
 export * from "./common";
+export * from "./address";
 export * from "./service";
 export * from "./session";
 export * from "./booking";
