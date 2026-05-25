@@ -40,15 +40,18 @@ export type PlatformInquiryType =
   | "feature"
   | "general";
 
-export type PlatformInquiryStatus = "new" | "in_review" | "resolved";
-
 export type PlatformInquiry = {
   id: string;
   name: string;
   email: string;
   type: PlatformInquiryType;
   message: string;
-  status: PlatformInquiryStatus;
+  /**
+   * Inbox-style read/unread state. Set to true when the operator opens the
+   * preview modal; can be flipped back to false from the modal footer for
+   * follow-up flagging. Replaces the older `new | in_review | resolved` enum.
+   */
+  read: boolean;
   createdAtISO: string;
 };
 

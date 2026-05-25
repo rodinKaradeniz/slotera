@@ -6,7 +6,7 @@ import type {
   Tone,
 } from "@/types/common";
 import type { SubscriptionStatus } from "@/types/billing";
-import type { PlatformInquiryStatus, PlatformInquiryType } from "@/types/platform";
+import type { PlatformInquiryType } from "@/types/platform";
 
 type Meta<L extends string = string> = { tone: Tone; label: L; icon?: string };
 
@@ -47,12 +47,6 @@ export const SUBSCRIPTION_STATUS: Record<SubscriptionStatus, Meta> = {
   past_due:         { tone: "danger",  label: "Past due",         icon: "alert" },
   cancel_scheduled: { tone: "warning", label: "Cancel scheduled", icon: "clock" },
   cancelled:        { tone: "neutral", label: "Cancelled",        icon: "x" },
-};
-
-export const INQUIRY_STATUS: Record<PlatformInquiryStatus, Meta> = {
-  new:       { tone: "info",    label: "New",       icon: "sparkle" },
-  in_review: { tone: "warning", label: "In review", icon: "clock" },
-  resolved:  { tone: "accent",  label: "Resolved",  icon: "check" },
 };
 
 export const INQUIRY_TYPE: Record<PlatformInquiryType, { label: string; tone: Tone }> = {

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import {
   createWorkspace,
-  setInquiryStatus,
+  setInquiryRead,
   type CreateWorkspaceInput,
 } from "@/services/platform.service";
 import type {
@@ -24,12 +24,12 @@ import type { Workspace } from "@/types/platform";
  *   • /superadmin/workspaces — "New workspace" button (blank initial state)
  *   • /superadmin/inquiries  — "Promote to workspace" action on business
  *     inquiries (pre-fills name/owner from the inquiry and, on save, also
- *     flips the inquiry's status to `resolved`).
+ *     marks the inquiry as read).
  */
 export type NewWorkspaceDrawerProps = {
   open: boolean;
   onClose: () => void;
-  /** When present, the inquiry is resolved after a successful save. */
+  /** When present, the inquiry is marked read after a successful save. */
   fromInquiryId?: string;
   initial?: {
     name?: string;
@@ -157,7 +157,7 @@ export function NewWorkspaceDrawer({
       };
       const ws = await createWorkspace(payload);
       if (fromInquiryId) {
-        await setInquiryStatus(fromInquiryId, "resolved");
+        await setInquiryRead(fromInquiryId, true);
       }
       toast.success("Workspace created", {
         description: `${form.name} · ${form.planId.toUpperCase()} plan`,
@@ -300,7 +300,7 @@ export function NewWorkspaceDrawer({
 
         {fromInquiryId && (
           <div className="rounded-md border border-line-soft bg-paper-2 px-3 py-2.5 text-small">
-            On save, this inquiry will be marked <strong>Resolved</strong>.
+            On save, this inquiry will be marked <strong>read</strong>.
           </div>
         )}
       </fieldset>

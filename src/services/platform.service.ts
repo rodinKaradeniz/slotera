@@ -8,7 +8,6 @@ import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import type {
   PlatformInquiry,
-  PlatformInquiryStatus,
   PlatformInquiryType,
   PlatformOverview,
   PlatformSubscription,
@@ -219,22 +218,26 @@ export async function createInquiry(input: {
     email: input.email.trim().toLowerCase(),
     type: input.type,
     message: input.message.trim(),
-    status: "new",
+    read: false,
     createdAtISO: new Date().toISOString(),
   };
   inquiries = [created, ...inquiries];
   return created;
 }
 
-export async function setInquiryStatus(
+/**
+ * Toggle read/unread on a single inquiry. Used by the preview modal (auto-marks
+ * read on open) and by the "Mark unread" footer action.
+ */
+export async function setInquiryRead(
   id: string,
-  status: PlatformInquiryStatus,
+  read: boolean,
 ): Promise<PlatformInquiry> {
-  if (dataSource !== "mock") throw new NotImplementedError("setInquiryStatus");
-  await sleep(80);
+  if (dataSource !== "mock") throw new NotImplementedError("setInquiryRead");
+  await sleep(60);
   const idx = inquiries.findIndex((i) => i.id === id);
   if (idx === -1) throw new NotFoundError("inquiry", id);
-  const next: PlatformInquiry = { ...inquiries[idx], status };
+  const next: PlatformInquiry = { ...inquiries[idx], read };
   inquiries = [...inquiries.slice(0, idx), next, ...inquiries.slice(idx + 1)];
   return next;
 }

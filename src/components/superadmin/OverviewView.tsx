@@ -56,7 +56,7 @@ export function OverviewView() {
             <div className="grid grid-cols-2 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-line-soft">
               <PadStat label="Past due" value={String(data.totals.pastDue)} />
               <PadStat label="New signups this week" value={String(data.totals.newSignupsThisWeek)} />
-              <PadStat label="Open inquiries" value={String(data.totals.openInquiries)} />
+              <PadStat label="Unread inquiries" value={String(data.totals.openInquiries)} />
             </div>
           </Card>
 
