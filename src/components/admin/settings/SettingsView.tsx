@@ -259,6 +259,14 @@ function PaymentsPanel({ data, onChange }: PanelProps) {
             <span className="text-ink-2">Billing &amp; Subscription</span>.
           </p>
         </div>
+        <div className="flex items-start gap-2 rounded-md border border-line-soft bg-paper-2 px-3 py-2 mb-4 text-small text-ink-2">
+          <Icon name="info" size={14} className="mt-0.5 shrink-0 text-ink-3" />
+          <span>
+            Stripe-powered card payments may include processing fees. Fees vary
+            by payment method and region. Review Stripe pricing before enabling
+            live payments.
+          </span>
+        </div>
         <div className="flex flex-col">
           {data.payments.processors.map((p) => (
             <div
@@ -283,6 +291,7 @@ function PaymentsPanel({ data, onChange }: PanelProps) {
         </div>
       </Card>
       <ManualPaymentPanel data={data} onChange={onChange} />
+      <BookingTermsPanel data={data} onChange={onChange} />
       <Card padded>
         <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 16 }}>Tax</h3>
         <div className="grid sm:grid-cols-2 gap-4">
@@ -342,6 +351,60 @@ function ManualPaymentPanel({ data, onChange }: PanelProps) {
           </Button>
         </div>
       )}
+    </PanelCard>
+  );
+}
+
+function BookingTermsPanel({ data, onChange }: PanelProps) {
+  const [value, setValue] = React.useState({
+    enabled: data.payments.bookingTerms.enabled,
+    content: data.payments.bookingTerms.content,
+  });
+
+  const save = async () => {
+    const next = await updateSettings({
+      payments: {
+        ...data.payments,
+        bookingTerms: value,
+      },
+    });
+    onChange(next);
+  };
+
+  return (
+    <PanelCard
+      title="Booking Terms"
+      hint="Your own booking terms. Shown to clients during checkout, separate from Slotera's platform terms."
+      onSave={save}
+    >
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between pb-4 border-b border-line-soft">
+          <div>
+            <div className="text-[14px] font-medium text-ink">
+              Enable custom booking terms
+            </div>
+            <div className="text-small">
+              Shown to clients on the booking page when they open the Terms and Privacy modal.
+            </div>
+          </div>
+          <Toggle
+            checked={value.enabled}
+            onChange={(enabled) => setValue({ ...value, enabled })}
+          />
+        </div>
+        <Field
+          label="Terms content"
+          hint="Plain text. Cancellation window, refund policy, no-show rules, etc."
+        >
+          <Textarea
+            value={value.content}
+            rows={8}
+            disabled={!value.enabled}
+            placeholder="Cancellations and rescheduling are free up to 24 hours before your session..."
+            onChange={(e) => setValue({ ...value, content: e.target.value })}
+          />
+        </Field>
+      </div>
     </PanelCard>
   );
 }

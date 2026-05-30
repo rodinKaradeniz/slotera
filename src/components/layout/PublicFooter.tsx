@@ -4,11 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { ContactModal } from "@/components/public/ContactModal";
+import { PublicLegalModal } from "@/components/public/PublicLegalModal";
 
 type FooterLink = { label: string; href?: string; onClick?: () => void };
 
 export function PublicFooter() {
   const [contactOpen, setContactOpen] = React.useState(false);
+  const [legalOpen, setLegalOpen] = React.useState(false);
 
   return (
     <footer className="border-t border-line-soft bg-paper">
@@ -31,27 +33,24 @@ export function PublicFooter() {
         <FooterCol
           title="Company"
           links={[
-            { label: "About", href: "#" },
-            { label: "Blog", href: "#" },
             { label: "Contact", onClick: () => setContactOpen(true) },
           ]}
         />
         <FooterCol
           title="Legal"
           links={[
-            { label: "Imprint", href: "#" },
-            { label: "Privacy", href: "#" },
-            { label: "Terms", href: "#" },
+            { label: "Legal", onClick: () => setLegalOpen(true) },
           ]}
         />
       </div>
       <div className="border-t border-line-soft">
         <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between text-micro">
-          <span>© 2026 Slotera · Berlin</span>
+          <span>© Velora Labs. Slotera is a product by Velora Labs.</span>
           <span>UK GDPR-aware</span>
         </div>
       </div>
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
+      <PublicLegalModal open={legalOpen} onClose={() => setLegalOpen(false)} />
     </footer>
   );
 }

@@ -45,6 +45,10 @@ export type SettingsData = {
     manualPaymentEnabled: boolean;
     manualPaymentInstructions: string;
     defaultPaymentMethods: PaymentMethod[];
+    bookingTerms: {
+      enabled: boolean;
+      content: string;
+    };
   };
   calendar: {
     connections: Connection[];

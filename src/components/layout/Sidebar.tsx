@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
+import { ContactModal } from "@/components/public/ContactModal";
 import { logout } from "@/services/auth.service";
 import { cn } from "@/lib/cn";
 import type { NavItem } from "@/lib/nav";
@@ -31,6 +32,7 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [reportOpen, setReportOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -48,6 +50,7 @@ export function Sidebar({
   };
 
   return (
+    <>
     <aside
       className={cn(
         "h-screen sticky top-0 bg-surface-warm border-r border-line flex flex-col flex-shrink-0 transition-[width] duration-200",
@@ -139,7 +142,10 @@ export function Sidebar({
             <button
               type="button"
               className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2 text-left"
-              onClick={() => setMenuOpen(false)}
+              onClick={() => {
+                setMenuOpen(false);
+                setReportOpen(true);
+              }}
             >
               <Icon name="alert" size={14} /> Report a problem
             </button>
@@ -154,5 +160,15 @@ export function Sidebar({
         )}
       </div>
     </aside>
+    <ContactModal
+      open={reportOpen}
+      onClose={() => setReportOpen(false)}
+      persist
+      defaultReason="development"
+      eyebrow="Operator workspace"
+      title="Report a problem"
+      description="Spotted a bug or a broken flow? Send us a note — we'll take a look."
+    />
+    </>
   );
 }

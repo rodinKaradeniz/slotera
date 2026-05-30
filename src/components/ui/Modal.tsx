@@ -10,7 +10,7 @@ type ModalProps = {
   onClose: () => void;
   title?: React.ReactNode;
   description?: React.ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   /** Optional. Omit for confirmation-style modals that need only title + footer. */
   children?: React.ReactNode;
   footer?: React.ReactNode;
@@ -21,6 +21,7 @@ const SIZES = {
   sm: "max-w-md",
   md: "max-w-xl",
   lg: "max-w-3xl",
+  xl: "max-w-5xl",
 };
 
 export function Modal({

@@ -145,6 +145,10 @@ Slotera has two completely separate payment domains. Keep them separate in code,
 
 **`PaymentMethod = "card" | "manual"`**. PayPal was removed everywhere and should not be reintroduced. SEPA was removed and should stay removed.
 
+**Stripe fee notice (operator-facing only).** Onboarding's Payments step and Settings → Client Payments → Payment Processors each render a small `bg-paper-2` info banner near the Stripe/card setup, explaining that Stripe-powered payments may include processing fees. Never show this banner to the public client (booking flow). No fee math, no real Stripe.
+
+**Provider booking terms.** `payments.bookingTerms: { enabled, content }` lives next to `manualPaymentEnabled` in the settings shape. Operators edit it in Settings → Client Payments → Booking Terms. It surfaces to clients on the **Provider Booking Terms** tab of the public booking flow's `LegalModal`. These are the operator's *own* terms — distinct from Slotera's platform terms/privacy (the modal's second tab).
+
 ### Manual payment instructions
 
 Manual payment instructions are **global** workspace-level settings, not per-service. Use the wording: *Manual payment*, *Payment instructions*, *Manual payment instructions*. Examples: "Bank transfer to this account: …", "Interac transfer to this email: …".
@@ -260,10 +264,13 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 - **"UK GDPR-aware"** wording (or "Built with UK data protection workflows in mind"). Never claim "GDPR compliant".
 - Smooth anchor scrolling for `#features` / `#pricing` / `#faq` works via `<html data-scroll-behavior="smooth">` plus `globals.css`.
 - Hero collage is desktop/tablet only mini-UI cards — hide or simplify on mobile.
+- **Company-behind-Slotera is `Velora Labs`** — a mock legal entity. Slotera is the product brand and stays unchanged across the UI; Velora Labs only appears in the footer copyright (`© Velora Labs. Slotera is a product by Velora Labs.`) and the public `PublicLegalModal`'s Imprint tab. Don't rename the product, don't sprinkle "Velora Labs" elsewhere.
+- **Footer** has a single `Legal` link that opens `PublicLegalModal` with three tabs: Imprint / Privacy / Terms. There are no separate `/imprint`, `/privacy`, `/terms` pages. Footer "Company" column is just `Contact` — no Blog or About.
 
 ### Public booking flow
 
 - Stepper keeps action buttons aligned across steps via a consistent flexible min-height area. Don't use fixed heights.
+- The consent checkbox on the Details step links to a single `LegalModal` with two tabs: **Provider Booking Terms** (from `settings.payments.bookingTerms` — falls back to a default placeholder if `enabled=false` or empty) and **Slotera Terms & Privacy** (combined terms + privacy sub-sections inside the same tab). Keep it one consent link, not three.
 - Billing address order: line 1 → line 2 → city + state/region → country + postal code.
 - Review and Pay steps use `ReceiptCard` (perforated receipt look) showing service, client, billing address, subtotal, tax/VAT, total, payment method, and manual instructions when applicable.
 - When `settings.business.bookingPageEnabled === false`, the page renders `BookingsPausedCard` (operator name + Get in touch button) instead of the stepper. The route still returns 200 — don't 404 it, that would break shared links silently.
@@ -340,7 +347,7 @@ These are the components new work should reuse before rolling its own. Re-listin
 
 ### Modal & dialogs
 
-- **`Modal`** (`src/components/ui/Modal.tsx`) — base portal modal. `children` is **optional**: when omitted, the dividing line under title/description is suppressed and no padded body region is rendered. Always pass buttons via the `footer` prop (not inside the body).
+- **`Modal`** (`src/components/ui/Modal.tsx`) — base portal modal. `children` is **optional**: when omitted, the dividing line under title/description is suppressed and no padded body region is rendered. Always pass buttons via the `footer` prop (not inside the body). Sizes: `"sm"` (`max-w-md`), `"md"` (`max-w-xl`, default), `"lg"` (`max-w-3xl`), `"xl"` (`max-w-5xl`).
 - **`ConfirmDialog`** (`src/components/ui/ConfirmDialog.tsx`) — thin Modal wrapper for destructive/significant actions. Props: `title`, `description`, `confirmLabel`, `cancelLabel`, `destructive`, `busy`. **Replaces `window.confirm()` everywhere.** Pattern: caller tracks a `pendingX` state (or just a boolean), opens the dialog, runs the action inside `onConfirm` with try/catch + toast, closes on success.
 - **`ContactModal`** (`src/components/public/ContactModal.tsx`) — described above. Pass `persist` to route through `createInquiry()`.
 

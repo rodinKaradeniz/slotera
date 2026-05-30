@@ -191,6 +191,7 @@ export default function BookingPage() {
               <StepDetails
                 customer={draft.customer}
                 onChange={(customer) => setDraft({ ...draft, customer })}
+                providerBookingTerms={settings?.payments.bookingTerms}
               />
             </Card>
           )}

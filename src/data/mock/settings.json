@@ -49,7 +49,11 @@
     "vatNumber": "DE318123456",
     "manualPaymentEnabled": true,
     "manualPaymentInstructions": "Bank transfer to:\nHartmann Strategy\nIBAN: DE89 3704 0044 0532 0130 00\nBIC: COBADEFFXXX\n\nPlease include your booking reference in the transfer note. Your spot is held for 48h while we confirm the payment.",
-    "defaultPaymentMethods": ["card", "manual"]
+    "defaultPaymentMethods": ["card", "manual"],
+    "bookingTerms": {
+      "enabled": true,
+      "content": "Cancellations and rescheduling are free up to 24 hours before your session. Inside that window, the booking fee is non-refundable.\n\nIf you don't show up to a confirmed session, the full fee is forfeited. For group sessions, please arrive 5–10 minutes early so we can start on time.\n\nQuestions about a booking? Reply to your confirmation email and I'll get back to you within one business day."
+    }
   },
   "calendar": {
     "connections": [

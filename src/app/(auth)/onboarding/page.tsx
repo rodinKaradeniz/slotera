@@ -464,6 +464,14 @@ function PaymentsPane({
           Take card payments via Stripe. Mocked for the demo — no real account
           needed.
         </p>
+        <div className="flex items-start gap-2 rounded-md border border-line-soft bg-paper-2 px-3 py-2 text-small text-ink-2">
+          <Icon name="info" size={14} className="mt-0.5 shrink-0 text-ink-3" />
+          <span>
+            Stripe-powered card payments may include processing fees. Fees vary
+            by payment method and region. Review Stripe pricing before enabling
+            live payments.
+          </span>
+        </div>
         {stripeConnected ? (
           <Pill tone="accent" icon="check">
             Connected

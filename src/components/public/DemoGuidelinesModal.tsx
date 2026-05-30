@@ -57,7 +57,7 @@ export function DemoGuidelinesModal({ open, onClose }: Props) {
       <Modal
         open={open}
         onClose={onClose}
-        size="lg"
+        size="xl"
         title={
           <span className="block">
             <span className="eyebrow block mb-2">Demo guide</span>

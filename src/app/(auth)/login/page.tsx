@@ -7,6 +7,7 @@ import { AuthCard } from "@/components/auth/AuthCard";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { login } from "@/services/auth.service";
 import { homePathForRole } from "@/lib/nav";
 
@@ -75,7 +76,15 @@ function LoginForm() {
           Forgot password?
         </Link>
       </div>
-      {error && <div className="text-small text-danger">{error}</div>}
+      {error && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 px-3 py-2.5 text-small text-danger"
+        >
+          <Icon name="alert" size={14} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
       <Button type="submit" loading={loading} size="lg" iconRight="arrow-right">
         Sign in
       </Button>

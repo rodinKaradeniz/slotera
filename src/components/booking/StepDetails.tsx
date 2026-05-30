@@ -12,9 +12,13 @@ type Customer = BookingDraft["customer"];
 type Props = {
   customer: Customer;
   onChange: (next: Customer) => void;
+  providerBookingTerms?: {
+    enabled: boolean;
+    content: string;
+  };
 };
 
-export function StepDetails({ customer, onChange }: Props) {
+export function StepDetails({ customer, onChange, providerBookingTerms }: Props) {
   const [legalOpen, setLegalOpen] = React.useState(false);
   const update = (patch: Partial<Customer>) => onChange({ ...customer, ...patch });
 
@@ -87,7 +91,11 @@ export function StepDetails({ customer, onChange }: Props) {
         </span>
       </label>
 
-      <LegalModal open={legalOpen} onClose={() => setLegalOpen(false)} />
+      <LegalModal
+        open={legalOpen}
+        onClose={() => setLegalOpen(false)}
+        providerBookingTerms={providerBookingTerms}
+      />
     </>
   );
 }
