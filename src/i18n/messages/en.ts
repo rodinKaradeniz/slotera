@@ -76,7 +76,6 @@ export const en = {
   // Demo guide modal
   "demoGuide.eyebrow": "Demo guide",
   "demoGuide.title": "Welcome to Slotera",
-  "demoGuide.motto": "Paid bookings, without the calendar chaos.",
   "demoGuide.disclaimer":
     "This is a demo version of Slotera, built to showcase the main booking and admin workflows. Some features are mocked while the product is still in progress.",
   "demoGuide.youCanTry": "You can try:",

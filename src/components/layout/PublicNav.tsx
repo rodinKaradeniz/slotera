@@ -19,7 +19,6 @@ export function PublicNav() {
         <nav className="hidden md:flex items-center gap-6 text-[14px] text-ink-2 ml-6">
           <Link href="#features" className="hover:text-ink">{t("landing.nav.features")}</Link>
           <Link href="#pricing" className="hover:text-ink">{t("landing.nav.pricing")}</Link>
-          <Link href="/booking" className="hover:text-ink">{t("landing.nav.liveDemo")}</Link>
           <button
             type="button"
             onClick={() => setContactOpen(true)}

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ConsultantIntro } from "./ConsultantIntro";
 import { ServiceSelectorCard } from "./ServiceSelectorCard";
-import { listServices } from "@/services/services.service";
+import { listBookingServices } from "@/services/demo.service";
 import type { Service } from "@/types/service";
 import type { DemoPersona } from "@/types/demo";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -19,15 +19,7 @@ export function StepService({ selected, onSelect, persona }: Props) {
   const [services, setServices] = React.useState<Service[] | null>(null);
 
   React.useEffect(() => {
-    listServices().then((all) => {
-      let list = all.filter((x) => x.active);
-      if (persona) {
-        list = persona.serviceIds
-          .map((id) => list.find((s) => s.id === id))
-          .filter((s): s is Service => Boolean(s));
-      }
-      setServices(list);
-    });
+    listBookingServices(persona ?? null).then(setServices);
   }, [persona]);
 
   return (
@@ -37,19 +29,27 @@ export function StepService({ selected, onSelect, persona }: Props) {
         titleOverride={persona?.title}
         bioOverride={persona?.bio}
       />
-      <div className="flex flex-col gap-3 lg:justify-center lg:max-w-[460px] lg:ml-auto lg:w-full">
-        {services === null
-          ? Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} h={92} className="rounded-lg" />
-            ))
-          : services.map((s) => (
-              <ServiceSelectorCard
-                key={s.id}
-                service={s}
-                selected={selected?.id === s.id}
-                onSelect={() => onSelect(s)}
-              />
-            ))}
+      {/* Outer column centers vertically next to the intro; inner list scrolls
+          independently on desktop/tablet when there are many services, so the
+          provider intro on the left stays put and the stepper body never
+          overflows the viewport. Centering lives on the outer wrapper (not the
+          scroll container) to avoid the flexbox justify-center + overflow
+          top-clipping bug. On mobile the list flows with normal page scroll. */}
+      <div className="flex flex-col lg:justify-center lg:max-w-[460px] lg:ml-auto lg:w-full">
+        <div className="flex flex-col gap-3 sm:max-h-[clamp(360px,55vh,560px)] sm:overflow-y-auto sm:pr-1">
+          {services === null
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} h={92} className="rounded-lg" />
+              ))
+            : services.map((s) => (
+                <ServiceSelectorCard
+                  key={s.id}
+                  service={s}
+                  selected={selected?.id === s.id}
+                  onSelect={() => onSelect(s)}
+                />
+              ))}
+        </div>
       </div>
     </div>
   );

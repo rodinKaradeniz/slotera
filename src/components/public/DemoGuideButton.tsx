@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { DemoGuidelinesModal } from "./DemoGuidelinesModal";
-import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 
 const AUTOOPEN_KEY = "slotera.demoGuideSeen";
@@ -49,8 +48,7 @@ export function DemoGuideButton({
         )}
         aria-label="Open demo guide"
       >
-        <Icon name="info" size={14} />
-        Demo Guide
+        Demo
       </button>
       <DemoGuidelinesModal open={open} onClose={() => setOpen(false)} />
     </>

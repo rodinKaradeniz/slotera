@@ -63,9 +63,6 @@ export function DemoGuidelinesModal({ open, onClose }: Props) {
             >
               {t("demoGuide.title")}
             </span>
-            <span className="block text-body-lg text-ink-3 mt-3 italic">
-              {t("demoGuide.motto")}
-            </span>
             <span className="block text-body text-ink-2 mt-3">
               {t("demoGuide.disclaimer")}
             </span>
@@ -88,7 +85,7 @@ export function DemoGuidelinesModal({ open, onClose }: Props) {
             {ITEMS.map((item, i) => (
               <li
                 key={item.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-md border border-line-soft bg-surface-warm px-4 py-3"
+                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 rounded-md border border-line-soft bg-surface-warm px-4 py-3"
               >
                 <span className="w-8 h-8 rounded-md bg-accent-soft text-accent flex items-center justify-center shrink-0 self-start sm:self-center">
                   <Icon name={item.icon} size={16} />
@@ -102,36 +99,41 @@ export function DemoGuidelinesModal({ open, onClose }: Props) {
                     {t(`demoGuide.step.${item.id}.body`)}
                   </p>
 
-                  {/* Persona/context chips live inside the booking step. */}
+                  {/* The booking step keeps its default link on the left; the
+                      persona chips live in the right-hand column below. */}
                   {item.id === "booking" && (
-                    <div className="mt-2.5">
-                      <div className="text-micro mb-1.5">
-                        {t("demoGuide.step.booking.tryAs")}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {PERSONAS.map((p) => (
-                          <Link
-                            key={p.slug}
-                            href={`/booking?demo=${p.slug}`}
-                            onClick={onClose}
-                          >
-                            <Button variant="secondary" size="sm">
-                              {t(`demoGuide.persona.${p.slug}`)}
-                            </Button>
-                          </Link>
-                        ))}
-                      </div>
-                      <Link
-                        href="/booking"
-                        onClick={onClose}
-                        className="inline-flex items-center gap-1 text-[13px] text-ink-3 hover:text-ink mt-2.5"
-                      >
-                        {t("demoGuide.step.booking.defaultLink")}
-                        <Icon name="arrow-right" size={13} />
-                      </Link>
-                    </div>
+                    <Link
+                      href="/booking"
+                      onClick={onClose}
+                      className="inline-flex items-center gap-1 text-[13px] text-ink-3 hover:text-ink mt-2.5"
+                    >
+                      {t("demoGuide.step.booking.defaultLink")}
+                      <Icon name="arrow-right" size={13} />
+                    </Link>
                   )}
                 </div>
+
+                {/* Booking step: persona/context chips on the right (stacked on
+                    mobile). Compact pill chips rather than full buttons. */}
+                {item.id === "booking" && (
+                  <div className="shrink-0 sm:w-[208px] sm:text-right">
+                    <div className="text-micro mb-1.5">
+                      {t("demoGuide.step.booking.tryAs")}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 sm:justify-end">
+                      {PERSONAS.map((p) => (
+                        <Link
+                          key={p.slug}
+                          href={`/booking?demo=${p.slug}`}
+                          onClick={onClose}
+                          className="inline-flex items-center h-7 px-2.5 rounded-full border border-line bg-surface text-[12px] text-ink-2 hover:border-ink-3 hover:text-ink transition-colors"
+                        >
+                          {t(`demoGuide.persona.${p.slug}`)}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Steps 1 + 2 keep a single right-aligned CTA. */}
                 {item.id !== "booking" && (

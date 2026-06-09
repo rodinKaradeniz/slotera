@@ -62,7 +62,6 @@ export const tr: Partial<Messages> = {
 
   "demoGuide.eyebrow": "Demo rehberi",
   "demoGuide.title": "Slotera'ya hoş geldiniz",
-  "demoGuide.motto": "Takvim karmaşası olmadan ücretli rezervasyonlar.",
   "demoGuide.disclaimer":
     "Bu, Slotera'nın ana rezervasyon ve yönetim akışlarını gösteren bir demo sürümüdür. Ürün geliştirilirken bazı özellikler taklittir.",
   "demoGuide.youCanTry": "Şunları deneyebilirsiniz:",

@@ -62,7 +62,6 @@ export const de: Partial<Messages> = {
 
   "demoGuide.eyebrow": "Demo-Anleitung",
   "demoGuide.title": "Willkommen bei Slotera",
-  "demoGuide.motto": "Bezahlte Buchungen, ohne Kalenderchaos.",
   "demoGuide.disclaimer":
     "Dies ist eine Demoversion von Slotera, die die wichtigsten Buchungs- und Admin-Abläufe zeigt. Einige Funktionen sind nachgebildet, während das Produkt noch entwickelt wird.",
   "demoGuide.youCanTry": "Sie können Folgendes ausprobieren:",
