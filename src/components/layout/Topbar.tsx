@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { NotificationsButton } from "./NotificationsButton";
 import { NavbarSearch } from "@/components/admin/search/NavbarSearch";
 import { DemoGuideButton } from "@/components/public/DemoGuideButton";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { cn } from "@/lib/cn";
 
 export type Crumb = { label: string; href?: string };
@@ -73,6 +74,8 @@ export function Topbar({
       {showSearch && onOpenPalette && (
         <NavbarSearch onOpenPalette={onOpenPalette} />
       )}
+
+      <LanguageSwitcher className="hidden md:inline-flex" />
 
       <DemoGuideButton variant="ghost" className="hidden md:inline-flex" />
 

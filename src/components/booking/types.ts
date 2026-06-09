@@ -1,9 +1,12 @@
 import type { Service } from "@/types/service";
+import type { FormAnswer } from "@/types/form";
 
 export type BookingDraft = {
   service: Service | null;
   date: string | null; // ISO date yyyy-mm-dd
   time: string | null; // HH:mm
+  /** Answers keyed by form template id — populated on the conditional Forms step. */
+  formResponses: Record<string, FormAnswer[]>;
   customer: {
     firstName: string;
     lastName: string;
@@ -34,6 +37,7 @@ export const EMPTY_DRAFT: BookingDraft = {
   service: null,
   date: null,
   time: null,
+  formResponses: {},
   customer: {
     firstName: "",
     lastName: "",

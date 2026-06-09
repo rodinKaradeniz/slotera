@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
+import { I18nProvider } from "@/components/i18n/I18nProvider";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -40,7 +41,9 @@ export default function RootLayout({
       className={`${fraunces.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen bg-paper text-ink antialiased">
-        <ToastProvider>{children}</ToastProvider>
+        <I18nProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </I18nProvider>
       </body>
     </html>
   );

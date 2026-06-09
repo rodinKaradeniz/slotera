@@ -83,5 +83,50 @@
     "cancellationRule": "Free cancellation up to 6h before.",
     "active": false,
     "createdAtISO": "2026-02-20T10:00:00.000Z"
+  },
+  {
+    "id": "svc-vet-checkup",
+    "name": "Wellness Check",
+    "description": "A relaxed check-up to keep your pet healthy and happy.",
+    "durationMin": 30,
+    "priceCents": 4500,
+    "currency": "GBP",
+    "capacity": 1,
+    "locationType": "physical",
+    "location": "Greenfield Vet · consult room",
+    "bookingMode": "open",
+    "cancellationRule": "Free reschedule up to 24h before.",
+    "active": true,
+    "createdAtISO": "2026-02-21T10:00:00.000Z"
+  },
+  {
+    "id": "svc-therapy-session",
+    "name": "Intro Therapy Session",
+    "description": "A gentle first session to talk through what's on your mind.",
+    "durationMin": 50,
+    "priceCents": 7000,
+    "currency": "GBP",
+    "capacity": 1,
+    "locationType": "online",
+    "location": "Secure video · link sent on confirmation",
+    "bookingMode": "open",
+    "cancellationRule": "Free cancellation up to 24h before.",
+    "active": true,
+    "createdAtISO": "2026-02-22T10:00:00.000Z"
+  },
+  {
+    "id": "svc-trainer-session",
+    "name": "Goal-Setting Session",
+    "description": "A first 1:1 to map your goals and build a plan that fits you.",
+    "durationMin": 60,
+    "priceCents": 5500,
+    "currency": "GBP",
+    "capacity": 1,
+    "locationType": "physical",
+    "location": "Riverside Gym · studio floor",
+    "bookingMode": "open",
+    "cancellationRule": "Free reschedule up to 12h before.",
+    "active": true,
+    "createdAtISO": "2026-02-23T10:00:00.000Z"
   }
 ]

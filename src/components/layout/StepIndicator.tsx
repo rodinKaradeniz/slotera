@@ -5,14 +5,20 @@ export type StepKey =
   | "service"
   | "time"
   | "details"
+  | "forms"
   | "billing"
   | "review"
   | "pay";
 
-export const STEPS: { key: StepKey; label: string }[] = [
+export type Step = { key: StepKey; label: string };
+
+// Canonical full sequence. The booking flow drops "forms" when the chosen
+// service has no attached forms, and passes the resulting list via `steps`.
+export const STEPS: Step[] = [
   { key: "service", label: "Service" },
   { key: "time",    label: "Time" },
   { key: "details", label: "Details" },
+  { key: "forms",   label: "Forms" },
   { key: "billing", label: "Billing" },
   { key: "review",  label: "Review" },
   { key: "pay",     label: "Pay" },
@@ -20,10 +26,10 @@ export const STEPS: { key: StepKey; label: string }[] = [
 
 const DOT = 14;
 
-type Props = { current: StepKey };
+type Props = { current: StepKey; steps?: Step[] };
 
-export function StepIndicator({ current }: Props) {
-  const idx = STEPS.findIndex((s) => s.key === current);
+export function StepIndicator({ current, steps = STEPS }: Props) {
+  const idx = steps.findIndex((s) => s.key === current);
   return (
     <div className="w-full">
       <div className="relative flex items-start justify-between" style={{ minHeight: 56 }}>
@@ -36,10 +42,10 @@ export function StepIndicator({ current }: Props) {
           style={{
             top: DOT / 2 - 1,
             height: 2,
-            width: idx > 0 ? `${(idx / (STEPS.length - 1)) * 100}%` : 0,
+            width: idx > 0 ? `${(idx / (steps.length - 1)) * 100}%` : 0,
           }}
         />
-        {STEPS.map((s, i) => {
+        {steps.map((s, i) => {
           const done = i < idx;
           const active = i === idx;
           return (

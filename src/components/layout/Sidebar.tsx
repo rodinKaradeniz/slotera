@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { ContactModal } from "@/components/public/ContactModal";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import { logout } from "@/services/auth.service";
 import { cn } from "@/lib/cn";
 import type { NavItem } from "@/lib/nav";
@@ -31,6 +32,7 @@ export function Sidebar({
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [reportOpen, setReportOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -79,6 +81,7 @@ export function Sidebar({
         {nav.map((item) => {
           const active =
             pathname === item.href || pathname?.startsWith(item.href + "/");
+          const label = t(`nav.${item.id}` as Parameters<typeof t>[0]);
           return (
             <Link
               key={item.id}
@@ -90,10 +93,10 @@ export function Sidebar({
                   ? "bg-accent-soft text-accent-ink"
                   : "text-ink-2 hover:bg-paper-2",
               )}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? label : undefined}
             >
               <Icon name={item.icon} size={18} />
-              {!collapsed && <span className="text-[14px]">{item.label}</span>}
+              {!collapsed && <span className="text-[14px]">{label}</span>}
             </Link>
           );
         })}

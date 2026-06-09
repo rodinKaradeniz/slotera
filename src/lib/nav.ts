@@ -14,6 +14,7 @@ export const OPERATOR_NAV: NavItem[] = [
   { id: "bookings",  label: "Bookings",  icon: "clipboard", href: "/admin/bookings" },
   { id: "clients",   label: "Clients",   icon: "users",     href: "/admin/clients" },
   { id: "services",  label: "Services",  icon: "layers",    href: "/admin/services" },
+  { id: "forms",     label: "Forms",     icon: "file",      href: "/admin/forms" },
   { id: "settings",  label: "Settings",  icon: "cog",       href: "/admin/settings" },
 ];
 

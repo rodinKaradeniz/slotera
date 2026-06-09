@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { AddressPicker } from "./AddressPicker";
+import { AttachedFormsField } from "./AttachedFormsField";
 import { getSettings } from "@/services/settings.service";
 import type { Service } from "@/types/service";
 import type { Currency, LocationType } from "@/types/common";
@@ -27,6 +28,8 @@ type Props = {
   onChange: (next: ServiceFormValue) => void;
   /** Hide the active toggle (e.g. during first-time onboarding). */
   showActiveToggle?: boolean;
+  /** Saved service id — enables the "Attached forms" section in edit mode. */
+  serviceId?: string;
   disabled?: boolean;
 };
 
@@ -34,6 +37,7 @@ export function ServiceForm({
   value,
   onChange,
   showActiveToggle = true,
+  serviceId,
   disabled,
 }: Props) {
   const [savedLocations, setSavedLocations] = React.useState<WorkspaceLocation[]>(
@@ -170,6 +174,8 @@ export function ServiceForm({
           placeholder="e.g. Bring projector + whiteboard markers. Send pre-reads 48h ahead."
         />
       </Field>
+
+      <AttachedFormsField serviceId={serviceId} disabled={disabled} />
 
       {showActiveToggle && (
         <div className="flex items-center justify-between rounded-md border border-line bg-surface-warm p-4">

@@ -4,18 +4,22 @@ import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { getSettings } from "@/services/settings.service";
+import { plural } from "@/lib/text";
 import { COUNTRIES } from "./types";
 import type { BookingDraft } from "./types";
 import { ReceiptCard } from "./ReceiptCard";
 
 type Props = {
   draft: BookingDraft;
-  onEdit: (step: "service" | "time" | "details" | "billing") => void;
+  onEdit: (step: "service" | "time" | "details" | "forms" | "billing") => void;
 };
 
 export function StepReview({ draft, onEdit }: Props) {
   const country =
     COUNTRIES.find((c) => c.code === draft.billing.country) ?? COUNTRIES[0];
+  const completedForms = Object.values(draft.formResponses).filter(
+    (answers) => answers.length > 0,
+  ).length;
   const [manualInstructions, setManualInstructions] = React.useState<
     string | null
   >(null);
@@ -57,6 +61,13 @@ export function StepReview({ draft, onEdit }: Props) {
           hint={draft.customer.email || undefined}
           onEdit={() => onEdit("details")}
         />
+        {completedForms > 0 && (
+          <SummaryRow
+            title="Forms"
+            value={`${plural(completedForms, "form")} completed`}
+            onEdit={() => onEdit("forms")}
+          />
+        )}
         <SummaryRow
           title="Billing"
           value={draft.billing.street || "—"}

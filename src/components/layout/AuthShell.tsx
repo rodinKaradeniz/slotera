@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { Icon } from "@/components/ui/Icon";
 import { DemoGuideButton } from "@/components/public/DemoGuideButton";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { cn } from "@/lib/cn";
 
 type Size = "default" | "wide" | "medium";
@@ -26,6 +27,7 @@ export function AuthShell({ children, size = "default" }: Props) {
         <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between gap-3">
           <Logo />
           <div className="flex items-center gap-4">
+            <LanguageSwitcher className="hidden sm:inline-flex" />
             <DemoGuideButton variant="link" />
             <Link
               href="/booking"

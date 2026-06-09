@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { login } from "@/services/auth.service";
 import { homePathForRole } from "@/lib/nav";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 function LoginForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const nextParam = params?.get("next");
@@ -86,7 +88,7 @@ function LoginForm() {
         </div>
       )}
       <Button type="submit" loading={loading} size="lg" iconRight="arrow-right">
-        Sign in
+        {t("auth.login.submit")}
       </Button>
       <p className="text-micro text-center">
         Demo: any password works. Use <code>admin@slotera.app</code> to enter

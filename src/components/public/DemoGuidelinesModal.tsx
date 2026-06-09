@@ -20,6 +20,13 @@ type Item = {
   ctaLabel: string;
 };
 
+const PERSONAS: { slug: string; label: string }[] = [
+  { slug: "consultant", label: "Consultant" },
+  { slug: "vet", label: "Vet" },
+  { slug: "therapist", label: "Therapist" },
+  { slug: "trainer", label: "Personal trainer" },
+];
+
 const ITEMS: Item[] = [
   {
     icon: "lock",
@@ -127,6 +134,29 @@ export function DemoGuidelinesModal({ open, onClose }: Props) {
               </li>
             ))}
           </ol>
+
+          <div className="mt-1 rounded-md border border-line-soft bg-surface-warm px-4 py-3">
+            <div className="text-[14px] font-medium text-ink">
+              Try the booking page in a different context
+            </div>
+            <p className="text-small mt-0.5 mb-2.5">
+              The same booking flow, with services and intake forms tailored to
+              each kind of provider.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PERSONAS.map((p) => (
+                <Link
+                  key={p.slug}
+                  href={`/booking?demo=${p.slug}`}
+                  onClick={onClose}
+                >
+                  <Button variant="secondary" size="sm" iconRight="arrow-right">
+                    {p.label}
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          </div>
 
           <div className="mt-2 flex flex-col sm:flex-row sm:items-start gap-3 rounded-md border border-line-soft bg-paper-2 px-4 py-3 text-small">
             <div className="flex items-start gap-2 flex-1">

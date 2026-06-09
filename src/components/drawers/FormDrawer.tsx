@@ -7,50 +7,46 @@ import { Icon } from "@/components/ui/Icon";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import {
-  ServiceForm,
-  type ServiceFormValue,
-} from "@/components/shared/forms/ServiceForm";
+  FormTemplateForm,
+  type FormTemplateFormValue,
+} from "@/components/shared/forms/FormTemplateForm";
 import {
-  createService,
-  updateService,
-  deactivateService,
-  activateService,
-  removeService,
-} from "@/services/services.service";
-import type { Service } from "@/types/service";
+  createForm,
+  updateForm,
+  deactivateForm,
+  activateForm,
+  removeForm,
+} from "@/services/forms.service";
+import type { FormTemplate } from "@/types/form";
 
-export type ServiceDrawerProps = {
+export type FormDrawerProps = {
   open: boolean;
   onClose: () => void;
-  initial?: Service | null;
-  onSaved?: (s: Service) => void;
+  initial?: FormTemplate | null;
+  onSaved?: (f: FormTemplate) => void;
   onRemoved?: (id: string) => void;
 };
 
-const DEFAULTS: ServiceFormValue = {
+const DEFAULTS: FormTemplateFormValue = {
   name: "",
   description: "",
-  durationMin: 60,
-  priceCents: 12000,
-  currency: "GBP",
-  capacity: 1,
-  locationType: "online",
-  location: "Zoom · link sent on confirmation",
-  bookingMode: "open",
-  cancellationRule: "Free reschedule up to 12h before.",
-  active: true,
+  status: "active",
+  purpose: "intake",
+  fields: [],
+  attachedServiceIds: [],
+  requiredBeforePayment: true,
 };
 
-export function ServiceDrawer({
+export function FormDrawer({
   open,
   onClose,
   initial,
   onSaved,
   onRemoved,
-}: ServiceDrawerProps) {
+}: FormDrawerProps) {
   const isEdit = !!initial;
   const { toast } = useToast();
-  const [form, setForm] = React.useState<ServiceFormValue>(
+  const [form, setForm] = React.useState<FormTemplateFormValue>(
     initial ? { ...initial } : DEFAULTS,
   );
   const [busy, setBusy] = React.useState(false);
@@ -61,20 +57,24 @@ export function ServiceDrawer({
   }, [initial, open]);
 
   const save = async () => {
+    if (!form.name.trim()) {
+      toast.error("Add a form name first");
+      return;
+    }
     setBusy(true);
     try {
       if (isEdit && initial) {
-        const next = await updateService(initial.id, form);
+        const next = await updateForm(initial.id, form);
         onSaved?.(next);
-        toast.success("Service updated");
+        toast.success("Form updated");
       } else {
-        const next = await createService(form);
+        const next = await createForm(form);
         onSaved?.(next);
-        toast.success("Service created");
+        toast.success("Form created");
       }
       onClose();
     } catch (err) {
-      toast.error("Couldn't save service", {
+      toast.error("Couldn't save form", {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -86,16 +86,17 @@ export function ServiceDrawer({
     if (!initial) return;
     setBusy(true);
     try {
-      const next = initial.active
-        ? await deactivateService(initial.id)
-        : await activateService(initial.id);
+      const next =
+        initial.status === "active"
+          ? await deactivateForm(initial.id)
+          : await activateForm(initial.id);
       onSaved?.(next);
-      setForm((f) => ({ ...f, active: next.active }));
+      setForm((f) => ({ ...f, status: next.status }));
       toast.success(
-        next.active ? "Service activated" : "Service deactivated",
+        next.status === "active" ? "Form activated" : "Form deactivated",
       );
     } catch (err) {
-      toast.error("Couldn't update service", {
+      toast.error("Couldn't update form", {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -107,13 +108,13 @@ export function ServiceDrawer({
     if (!initial) return;
     setBusy(true);
     try {
-      await removeService(initial.id);
+      await removeForm(initial.id);
       onRemoved?.(initial.id);
-      toast.success("Service deleted");
+      toast.success("Form deleted");
       setConfirmDelete(false);
       onClose();
     } catch (err) {
-      toast.error("Couldn't delete service", {
+      toast.error("Couldn't delete form", {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -125,8 +126,8 @@ export function ServiceDrawer({
     <DrawerShell
       open={open}
       onClose={onClose}
-      eyebrow={isEdit ? "Edit service" : "New service"}
-      title={isEdit ? form.name || "Untitled service" : "Create a service"}
+      eyebrow={isEdit ? "Edit form" : "New form"}
+      title={isEdit ? form.name || "Untitled form" : "Create a form"}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
@@ -139,12 +140,7 @@ export function ServiceDrawer({
       }
     >
       <div className="flex flex-col gap-5">
-        <ServiceForm
-          value={form}
-          onChange={setForm}
-          serviceId={initial?.id}
-          disabled={busy}
-        />
+        <FormTemplateForm value={form} onChange={setForm} disabled={busy} />
 
         {isEdit && (
           <div className="mt-4 pt-5 border-t border-line-soft">
@@ -153,7 +149,8 @@ export function ServiceDrawer({
               <span className="font-medium text-ink">Danger zone</span>
             </div>
             <p className="text-small mb-3">
-              Deactivating hides the service; removing deletes it permanently.
+              Deactivating hides the form from the booking flow; removing
+              deletes it permanently.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -162,7 +159,7 @@ export function ServiceDrawer({
                 onClick={toggleActive}
                 disabled={busy}
               >
-                {form.active ? "Deactivate" : "Activate"}
+                {form.status === "active" ? "Deactivate" : "Activate"}
               </Button>
               <Button
                 variant="danger"
@@ -171,7 +168,7 @@ export function ServiceDrawer({
                 onClick={() => setConfirmDelete(true)}
                 disabled={busy}
               >
-                Remove service
+                Remove form
               </Button>
             </div>
           </div>
@@ -182,9 +179,9 @@ export function ServiceDrawer({
         open={confirmDelete}
         onClose={() => !busy && setConfirmDelete(false)}
         onConfirm={remove}
-        title={`Delete "${initial?.name ?? "this service"}"?`}
-        description="This permanently removes the service. Existing sessions and bookings stay on your calendar but new clients can't book it."
-        confirmLabel="Delete service"
+        title={`Delete "${initial?.name ?? "this form"}"?`}
+        description="This permanently removes the form. Services it was attached to will no longer ask clients to complete it."
+        confirmLabel="Delete form"
         destructive
         busy={busy}
       />

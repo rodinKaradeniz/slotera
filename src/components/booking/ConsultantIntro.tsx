@@ -4,17 +4,29 @@ import * as React from "react";
 import { getSettings } from "@/services/settings.service";
 import type { SettingsData } from "@/types/settings";
 
-export function ConsultantIntro() {
+type Props = {
+  /** Demo-persona overrides. When set, take precedence over workspace settings. */
+  nameOverride?: string;
+  titleOverride?: string;
+  bioOverride?: string;
+};
+
+export function ConsultantIntro({
+  nameOverride,
+  titleOverride,
+  bioOverride,
+}: Props = {}) {
   const [settings, setSettings] = React.useState<SettingsData | null>(null);
 
   React.useEffect(() => {
     getSettings().then(setSettings);
   }, []);
 
-  const name = settings?.business.displayName ?? "Dr. Lena Hartmann";
-  const title = "Strategy advisor";
+  const name = nameOverride ?? settings?.business.displayName ?? "Dr. Lena Hartmann";
+  const title = titleOverride ?? "Strategy advisor";
   const location = settings?.business.address ?? "Berlin";
   const description =
+    bioOverride ??
     settings?.business.bio ??
     "I work with founders on hard strategic decisions — pricing, positioning, and the messy choices between them. Most clients come to me before a fundraise, a pivot, or a launch.";
 

@@ -7,6 +7,7 @@ import type {
 } from "@/types/common";
 import type { SubscriptionStatus } from "@/types/billing";
 import type { PlatformInquiryType } from "@/types/platform";
+import type { FormPurpose, FormStatus } from "@/types/form";
 
 type Meta<L extends string = string> = { tone: Tone; label: L; icon?: string };
 
@@ -60,4 +61,17 @@ export const PLAN_LABEL: Record<"solo" | "team" | "custom", string> = {
   solo:   "Solo",
   team:   "Team",
   custom: "Custom",
+};
+
+export const FORM_STATUS: Record<FormStatus, Meta> = {
+  active:   { tone: "success", label: "Active" },
+  inactive: { tone: "neutral", label: "Inactive" },
+};
+
+export const FORM_PURPOSE: Record<FormPurpose, string> = {
+  intake:    "Intake",
+  questions: "Questions",
+  agreement: "Agreement",
+  nda:       "NDA",
+  other:     "Other",
 };

@@ -1,0 +1,62 @@
+import type { Messages } from "./en";
+
+/** Turkish — demo-grade translations. Missing keys fall back to English. */
+export const tr: Partial<Messages> = {
+  "common.save": "Kaydet",
+  "common.cancel": "İptal",
+  "common.back": "Geri",
+  "common.continue": "Devam",
+  "common.close": "Kapat",
+  "common.edit": "Düzenle",
+  "common.search": "Ara",
+  "common.loading": "Yükleniyor…",
+  "common.new": "Yeni",
+  "common.active": "Aktif",
+  "common.inactive": "Pasif",
+
+  "nav.dashboard": "Panel",
+  "nav.calendar": "Takvim",
+  "nav.bookings": "Rezervasyonlar",
+  "nav.clients": "Müşteriler",
+  "nav.services": "Hizmetler",
+  "nav.forms": "Formlar",
+  "nav.settings": "Ayarlar",
+  "nav.overview": "Genel Bakış",
+  "nav.workspaces": "Çalışma Alanları",
+  "nav.subscriptions": "Abonelikler",
+  "nav.inquiries": "Talepler",
+
+  "landing.nav.features": "Özellikler",
+  "landing.nav.pricing": "Fiyatlandırma",
+  "landing.nav.liveDemo": "Canlı demo",
+  "landing.nav.contact": "İletişim",
+  "landing.cta.login": "Giriş yap",
+  "landing.cta.startTrial": "Ücretsiz dene",
+
+  "booking.step.service": "Hizmet",
+  "booking.step.time": "Zaman",
+  "booking.step.details": "Bilgiler",
+  "booking.step.forms": "Formlar",
+  "booking.step.billing": "Fatura",
+  "booking.step.review": "Özet",
+  "booking.step.pay": "Ödeme",
+  "booking.back": "Geri",
+  "booking.continue": "Devam",
+  "booking.payConfirm": "Öde ve onayla",
+  "booking.reservePay": "Rezerve et ve öde",
+  "booking.confirm": "Rezervasyonu onayla",
+
+  "auth.login.submit": "Giriş yap",
+  "auth.register.submit": "Hesap oluştur",
+  "auth.field.email": "E-posta",
+  "auth.field.password": "Şifre",
+
+  "contact.title": "Bize ulaşın",
+  "contact.send": "Mesaj gönder",
+  "contact.field.name": "Ad",
+  "contact.field.email": "E-posta",
+  "contact.field.message": "Mesaj",
+
+  "forms.title": "Formlar",
+  "forms.new": "Yeni form",
+};

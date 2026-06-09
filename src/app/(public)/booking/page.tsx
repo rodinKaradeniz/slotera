@@ -14,24 +14,67 @@ import { StepDetails } from "@/components/booking/StepDetails";
 import { StepBilling } from "@/components/booking/StepBilling";
 import { StepReview } from "@/components/booking/StepReview";
 import { StepPayment } from "@/components/booking/StepPayment";
+import {
+  StepForms,
+  areRequiredFormsComplete,
+} from "@/components/booking/StepForms";
 import { BookingsPausedCard } from "@/components/booking/BookingsPausedCard";
 import { EMPTY_DRAFT, type BookingDraft } from "@/components/booking/types";
 import { getSettings } from "@/services/settings.service";
+import { listFormsForService, saveFormResponse } from "@/services/forms.service";
+import { getPersonaSync } from "@/services/demo.service";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import type { SettingsData } from "@/types/settings";
+import type { FormTemplate } from "@/types/form";
+import type { DemoPersona } from "@/types/demo";
 
 const DRAFT_KEY = "slotera.booking.draft";
 
 export default function BookingPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [step, setStep] = React.useState<StepKey>("service");
   const [draft, setDraft] = React.useState<BookingDraft>(EMPTY_DRAFT);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [settings, setSettings] = React.useState<SettingsData | null>(null);
+  const [forms, setForms] = React.useState<FormTemplate[]>([]);
+  const [persona, setPersona] = React.useState<DemoPersona | null>(null);
 
   React.useEffect(() => {
     getSettings().then(setSettings);
   }, []);
+
+  // `?demo=<slug>` applies a lightweight persona override (provider name +
+  // intro copy + which seeded services show). Read client-side to avoid a
+  // useSearchParams Suspense boundary, matching the sessionStorage effects.
+  React.useEffect(() => {
+    const slug = new URLSearchParams(window.location.search).get("demo");
+    setPersona(getPersonaSync(slug));
+  }, []);
+
+  // Active forms attached to the chosen service decide whether the conditional
+  // Forms step appears. Refetch whenever the selected service changes.
+  const serviceId = draft.service?.id ?? null;
+  React.useEffect(() => {
+    if (!serviceId) {
+      setForms([]);
+      return;
+    }
+    let cancelled = false;
+    listFormsForService(serviceId).then((f) => {
+      if (!cancelled) setForms(f);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceId]);
+
+  // Drop the Forms step when the chosen service has no attached forms.
+  const activeSteps = React.useMemo(
+    () => STEPS.filter((s) => s.key !== "forms" || forms.length > 0),
+    [forms.length],
+  );
 
   React.useEffect(() => {
     try {
@@ -41,6 +84,7 @@ export default function BookingPage() {
         setDraft({
           ...EMPTY_DRAFT,
           ...parsed,
+          formResponses: parsed.formResponses ?? {},
           customer: { ...EMPTY_DRAFT.customer, ...(parsed.customer ?? {}) },
           billing: { ...EMPTY_DRAFT.billing, ...(parsed.billing ?? {}) },
           payment: { ...EMPTY_DRAFT.payment, ...(parsed.payment ?? {}) },
@@ -59,7 +103,13 @@ export default function BookingPage() {
     }
   }, [draft]);
 
-  const idx = STEPS.findIndex((s) => s.key === step);
+  const idx = activeSteps.findIndex((s) => s.key === step);
+
+  // If the active step list changes out from under us (e.g. the Forms step
+  // disappears), snap back to a valid step rather than rendering nothing.
+  React.useEffect(() => {
+    if (idx === -1) setStep("details");
+  }, [idx]);
 
   const canAdvance = (() => {
     switch (step) {
@@ -74,6 +124,8 @@ export default function BookingPage() {
           draft.customer.email.trim() &&
           draft.customer.consent
         );
+      case "forms":
+        return areRequiredFormsComplete(forms, draft.formResponses);
       case "billing":
         return (
           draft.billing.street.trim() &&
@@ -94,8 +146,8 @@ export default function BookingPage() {
   })();
 
   const back = () => {
-    if (idx === 0) return;
-    setStep(STEPS[idx - 1].key);
+    if (idx <= 0) return;
+    setStep(activeSteps[idx - 1].key);
     setError(null);
   };
 
@@ -105,7 +157,7 @@ export default function BookingPage() {
       submit();
       return;
     }
-    setStep(STEPS[idx + 1].key);
+    setStep(activeSteps[idx + 1].key);
   };
 
   const submit = async () => {
@@ -120,6 +172,20 @@ export default function BookingPage() {
       return;
     }
     const ref = `SLT-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    // Best-effort mock persistence of form answers against the booking ref.
+    try {
+      await Promise.all(
+        forms.map((form) =>
+          saveFormResponse({
+            bookingId: ref,
+            formTemplateId: form.id,
+            answers: draft.formResponses[form.id] ?? [],
+          }),
+        ),
+      );
+    } catch {
+      // ignore — mock only
+    }
     try {
       window.sessionStorage.setItem(
         "slotera.booking.last",
@@ -165,10 +231,23 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <BookingTopBar consultantName={settings.business.displayName} />
+      <BookingTopBar
+        consultantName={persona?.displayName ?? settings.business.displayName}
+      />
       <main className="flex-1 max-w-[1100px] mx-auto w-full px-6 pt-10 pb-10">
+        {persona && (
+          <p className="text-small text-ink-2 text-center mb-6 max-w-xl mx-auto">
+            {persona.intro}
+          </p>
+        )}
         <div className="mb-10 px-2 sm:px-6">
-          <StepIndicator current={step} />
+          <StepIndicator
+            current={step}
+            steps={activeSteps.map((s) => ({
+              key: s.key,
+              label: t(`booking.step.${s.key}`),
+            }))}
+          />
         </div>
 
         <div className="fade-in flex flex-col min-h-[clamp(420px,60vh,640px)] [&>*]:flex-1">
@@ -176,6 +255,7 @@ export default function BookingPage() {
             <StepService
               selected={draft.service}
               onSelect={(s) => setDraft({ ...draft, service: s })}
+              persona={persona}
             />
           )}
           {step === "time" && draft.service && (
@@ -194,6 +274,13 @@ export default function BookingPage() {
                 providerBookingTerms={settings?.payments.bookingTerms}
               />
             </Card>
+          )}
+          {step === "forms" && (
+            <StepForms
+              forms={forms}
+              responses={draft.formResponses}
+              onChange={(formResponses) => setDraft({ ...draft, formResponses })}
+            />
           )}
           {step === "billing" && (
             <Card padded>
@@ -230,7 +317,7 @@ export default function BookingPage() {
             onClick={back}
             disabled={idx === 0}
           >
-            Back
+            {t("booking.back")}
           </Button>
           <Button
             variant="primary"
@@ -242,11 +329,11 @@ export default function BookingPage() {
           >
             {step === "pay"
               ? draft.payment.method === "manual"
-                ? "Reserve and pay"
+                ? t("booking.reservePay")
                 : draft.service?.priceCents
-                  ? "Pay and confirm"
-                  : "Confirm booking"
-              : "Continue"}
+                  ? t("booking.payConfirm")
+                  : t("booking.confirm")
+              : t("booking.continue")}
           </Button>
         </div>
       </main>

@@ -1,0 +1,62 @@
+import type { Messages } from "./en";
+
+/** German — demo-grade translations. Missing keys fall back to English. */
+export const de: Partial<Messages> = {
+  "common.save": "Speichern",
+  "common.cancel": "Abbrechen",
+  "common.back": "Zurück",
+  "common.continue": "Weiter",
+  "common.close": "Schließen",
+  "common.edit": "Bearbeiten",
+  "common.search": "Suchen",
+  "common.loading": "Lädt…",
+  "common.new": "Neu",
+  "common.active": "Aktiv",
+  "common.inactive": "Inaktiv",
+
+  "nav.dashboard": "Übersicht",
+  "nav.calendar": "Kalender",
+  "nav.bookings": "Buchungen",
+  "nav.clients": "Kunden",
+  "nav.services": "Leistungen",
+  "nav.forms": "Formulare",
+  "nav.settings": "Einstellungen",
+  "nav.overview": "Überblick",
+  "nav.workspaces": "Arbeitsbereiche",
+  "nav.subscriptions": "Abonnements",
+  "nav.inquiries": "Anfragen",
+
+  "landing.nav.features": "Funktionen",
+  "landing.nav.pricing": "Preise",
+  "landing.nav.liveDemo": "Live-Demo",
+  "landing.nav.contact": "Kontakt",
+  "landing.cta.login": "Anmelden",
+  "landing.cta.startTrial": "Kostenlos testen",
+
+  "booking.step.service": "Leistung",
+  "booking.step.time": "Zeit",
+  "booking.step.details": "Angaben",
+  "booking.step.forms": "Formulare",
+  "booking.step.billing": "Rechnung",
+  "booking.step.review": "Überprüfen",
+  "booking.step.pay": "Zahlen",
+  "booking.back": "Zurück",
+  "booking.continue": "Weiter",
+  "booking.payConfirm": "Bezahlen und bestätigen",
+  "booking.reservePay": "Reservieren und zahlen",
+  "booking.confirm": "Buchung bestätigen",
+
+  "auth.login.submit": "Anmelden",
+  "auth.register.submit": "Konto erstellen",
+  "auth.field.email": "E-Mail",
+  "auth.field.password": "Passwort",
+
+  "contact.title": "Kontakt aufnehmen",
+  "contact.send": "Nachricht senden",
+  "contact.field.name": "Name",
+  "contact.field.email": "E-Mail",
+  "contact.field.message": "Nachricht",
+
+  "forms.title": "Formulare",
+  "forms.new": "Neues Formular",
+};
