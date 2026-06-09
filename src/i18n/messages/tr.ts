@@ -59,4 +59,34 @@ export const tr: Partial<Messages> = {
 
   "forms.title": "Formlar",
   "forms.new": "Yeni form",
+
+  "demoGuide.eyebrow": "Demo rehberi",
+  "demoGuide.title": "Slotera'ya hoş geldiniz",
+  "demoGuide.motto": "Takvim karmaşası olmadan ücretli rezervasyonlar.",
+  "demoGuide.disclaimer":
+    "Bu, Slotera'nın ana rezervasyon ve yönetim akışlarını gösteren bir demo sürümüdür. Ürün geliştirilirken bazı özellikler taklittir.",
+  "demoGuide.youCanTry": "Şunları deneyebilirsiniz:",
+  "demoGuide.step.account.title": "Giriş yapın veya demo hesabı oluşturun",
+  "demoGuide.step.account.body":
+    "Bir çalışma alanı oluşturmak ve yönetim paneline erişmek için kimlik doğrulama akışını kullanın.",
+  "demoGuide.step.account.cta": "Demo hesabı oluştur",
+  "demoGuide.step.dashboard.title": "Yönetim panelini keşfedin",
+  "demoGuide.step.dashboard.body":
+    "Hizmet oluşturun, uygunluğu yönetin, rezervasyonları görüntüleyin ve ana yönetim akışlarını test edin.",
+  "demoGuide.step.dashboard.cta": "Yönetim panelini aç",
+  "demoGuide.step.booking.title": "Genel rezervasyon sayfasını test edin",
+  "demoGuide.step.booking.body":
+    "Müşterilerin bir hizmeti baştan sona nasıl rezerve ettiğini görün.",
+  "demoGuide.step.booking.tryAs": "Şu rolde deneyin:",
+  "demoGuide.step.booking.defaultLink": "Standart rezervasyon sayfasını aç",
+  "demoGuide.persona.consultant": "Danışman",
+  "demoGuide.persona.vet": "Veteriner",
+  "demoGuide.persona.therapist": "Terapist",
+  "demoGuide.persona.trainer": "Kişisel antrenör",
+  "demoGuide.noteLabel": "Not:",
+  "demoGuide.note":
+    "Bu bir demo ortamıdır, bu nedenle bazı akışlar ürün geliştirilirken taklit veri kullanır. Bir şey yanlış görünürse, bir hata veya bozuk akış fark ederseniz, bir iş talebiniz ya da özellik öneriniz varsa veya Slotera'yı konuşmak isterseniz bize ulaşın.",
+  "demoGuide.contact": "Bize ulaşın",
+  "demoGuide.close": "Kapat",
+  "demoGuide.startExploring": "Keşfetmeye başla",
 };

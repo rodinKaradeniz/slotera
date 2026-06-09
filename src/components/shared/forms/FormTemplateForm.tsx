@@ -58,9 +58,32 @@ function hasOptions(type: FormFieldType): boolean {
 export function FormTemplateForm({ value, onChange, disabled }: Props) {
   const [services, setServices] = React.useState<Service[]>([]);
 
+  // Refs to each field's label input, keyed by field id, so a freshly added
+  // field can be scrolled into view + focused once it has rendered.
+  const labelRefs = React.useRef<Map<string, HTMLInputElement>>(new Map());
+  const pendingFocusId = React.useRef<string | null>(null);
+
   React.useEffect(() => {
     listServices().then((s) => setServices(s.filter((x) => x.active)));
   }, []);
+
+  React.useEffect(() => {
+    const id = pendingFocusId.current;
+    if (!id) return;
+    const el = labelRefs.current.get(id);
+    if (!el) return;
+    pendingFocusId.current = null;
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "center",
+      });
+      el.focus();
+    });
+  }, [value.fields]);
 
   const patch = (p: Partial<FormTemplateFormValue>) => onChange({ ...value, ...p });
 
@@ -71,18 +94,21 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
       ),
     });
 
-  const addField = () =>
+  const addField = () => {
+    const id = makeId("ff");
+    pendingFocusId.current = id;
     patch({
       fields: [
         ...value.fields,
         {
-          id: makeId("ff"),
+          id,
           label: "",
           type: "short_text",
           required: false,
         },
       ],
     });
+  };
 
   const removeField = (id: string) =>
     patch({ fields: value.fields.filter((f) => f.id !== id) });
@@ -188,6 +214,11 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
 
               <Field label="Label" required>
                 <Input
+                  ref={(el) => {
+                    const m = labelRefs.current;
+                    if (el) m.set(f.id, el);
+                    else m.delete(f.id);
+                  }}
                   value={f.label}
                   onChange={(e) => updateField(f.id, { label: e.target.value })}
                   placeholder="e.g. What would you like us to look at?"

@@ -277,6 +277,13 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 - Card inputs are auto-formatted via `src/lib/card.ts` (`formatCardNumber` → `"4242 4242 4242 4242"`, `formatCardExpiry` → `"12 / 30"`, `formatCardCvc` digits-only). Apply these in every card form (booking, register payment, billing update card).
 - **Address surfacing** — `SessionItem.address` is stored but not yet shown to the public client. The booking flow's date/time picker doesn't resolve to a specific `SessionItem` (free-form slots), so there's no plumbed-through session reference at confirmation. Surfacing the address publicly is the natural pairing with the `bookingMode: "scheduled"` flow when it gets built — the "scheduled" mode resolves the chosen session and can pass its address to the receipt and confirmation.
 
+### Forms
+
+- Reusable `FormTemplate`s (`src/types/form.ts`) are created under `/admin/forms` and attached to services. Attachment is **single-sourced on `FormTemplate.attachedServiceIds`** — there is no `Service.attachedFormIds` field. The public flow resolves attachment via `listFormsForService(serviceId)`. Don't reintroduce a dual-write relationship.
+- Forms attach at the **service** level only; sessions inherit, they are not attached per-session.
+- The booking flow handles **pre-payment** form completion: a conditional Forms step (one step, all attached active forms stacked) appears between Details and Billing when the chosen service has attached forms, and is gated on required fields before payment. `FormTemplate.requiredBeforePayment` already exists for this.
+- **Future — optional / post-booking forms (not built; do not implement now).** A later iteration may let clients complete *optional* forms after booking via a customer reservation-management link/page (possible routes: `/reservation/:id`, `/booking/manage?token=...`). Such a page could let a client view reservation details, complete remaining optional forms, review manual payment instructions, reschedule/cancel if allowed, and see address/meeting details. This is deferred because it needs guest access / magic links, email delivery, and backend persistence — all Phase 2/3 concerns. Keep wording non-clinical/non-legal (intake questions, pre-visit information, client-provided notes, agreement acknowledgement); no medical-record or compliance claims.
+
 ### Calendar
 
 - Day / Week / Month views supported.
