@@ -13,7 +13,7 @@ type Props = {
   onClose: () => void;
 };
 
-type StepId = "account" | "dashboard" | "booking";
+type StepId = "dashboard" | "booking" | "reservation";
 
 type Item = {
   id: StepId;
@@ -22,9 +22,9 @@ type Item = {
 };
 
 const ITEMS: Item[] = [
-  { id: "account", icon: "lock", href: "/register" },
   { id: "dashboard", icon: "grid", href: "/admin/dashboard" },
   { id: "booking", icon: "eye", href: "/booking" },
+  { id: "reservation", icon: "clipboard", href: "/reservation/demo" },
 ];
 
 const PERSONAS: { slug: "consultant" | "vet" | "therapist" | "trainer" }[] = [
@@ -69,14 +69,24 @@ export function DemoGuidelinesModal({ open, onClose }: Props) {
           </span>
         }
         footer={
-          <>
-            <Button variant="ghost" onClick={onClose}>
-              {t("demoGuide.close")}
-            </Button>
-            <Button variant="primary" iconRight="arrow-right" onClick={onClose}>
-              {t("demoGuide.startExploring")}
-            </Button>
-          </>
+          <div className="flex flex-1 flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* Account creation is intentionally secondary to the demo cards. */}
+            <Link
+              href="/register"
+              onClick={onClose}
+              className="text-[13px] text-ink-3 hover:text-ink underline-offset-2 hover:underline self-center sm:self-auto"
+            >
+              {t("demoGuide.createAccount")}
+            </Link>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="ghost" onClick={onClose}>
+                {t("demoGuide.close")}
+              </Button>
+              <Button variant="primary" iconRight="arrow-right" onClick={onClose}>
+                {t("demoGuide.startExploring")}
+              </Button>
+            </div>
+          </div>
         }
       >
         <div className="flex flex-col gap-3">

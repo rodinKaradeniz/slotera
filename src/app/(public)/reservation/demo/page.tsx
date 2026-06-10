@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BookingTopBar } from "@/components/layout/BookingTopBar";
+import { PublicNav } from "@/components/layout/PublicNav";
 import { BookingFooter } from "@/components/layout/BookingFooter";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -112,7 +112,7 @@ export default function ReservationDemoPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <BookingTopBar consultantName={DEMO.provider} />
+      <PublicNav />
       <main className="flex-1 max-w-[920px] mx-auto w-full px-6 pt-10 pb-12">
         <div className="flex flex-col gap-2 mb-8">
           <div>

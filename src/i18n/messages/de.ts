@@ -397,13 +397,9 @@ export const de: Partial<Messages> = {
   "demoGuide.disclaimer":
     "Dies ist eine Demoversion von Slotera, die die wichtigsten Buchungs- und Admin-Abläufe zeigt. Einige Funktionen sind nachgebildet, während das Produkt noch entwickelt wird.",
   "demoGuide.youCanTry": "Sie können Folgendes ausprobieren:",
-  "demoGuide.step.account.title": "Anmelden oder Demokonto erstellen",
-  "demoGuide.step.account.body":
-    "Nutzen Sie den Anmeldeablauf, um einen Arbeitsbereich anzulegen und auf das Admin-Dashboard zuzugreifen.",
-  "demoGuide.step.account.cta": "Demokonto erstellen",
-  "demoGuide.step.dashboard.title": "Admin-Dashboard erkunden",
+  "demoGuide.step.dashboard.title": "Die Anbieterseite ansehen — das Admin-Dashboard",
   "demoGuide.step.dashboard.body":
-    "Leistungen anlegen, Verfügbarkeit verwalten, Buchungen ansehen und die wichtigsten Admin-Abläufe testen.",
+    "Schlüpfen Sie in den Arbeitsbereich des Anbieters, um Buchungen, Leistungen und Formulare zu verwalten und Kalender und Einstellungen zu erkunden.",
   "demoGuide.step.dashboard.cta": "Admin-Dashboard öffnen",
   "demoGuide.step.booking.title": "Öffentliche Buchungsseite testen",
   "demoGuide.step.booking.body":
@@ -414,10 +410,15 @@ export const de: Partial<Messages> = {
   "demoGuide.persona.vet": "Tierarzt",
   "demoGuide.persona.therapist": "Therapeut",
   "demoGuide.persona.trainer": "Personal Trainer",
+  "demoGuide.step.reservation.title": "Die Kunden-Reservierungsseite ansehen",
+  "demoGuide.step.reservation.body":
+    "Sehen Sie das Erlebnis nach der Buchung: Reservierungsdetails, optionale Formulare, Nachrichten an den Anbieter sowie Anfragen zur Umbuchung oder Stornierung.",
+  "demoGuide.step.reservation.cta": "Reservierungsseite öffnen",
   "demoGuide.noteLabel": "Hinweis:",
   "demoGuide.note":
     "Dies ist eine Demo-Umgebung, daher verwenden einige Abläufe nachgebildete Daten, während das Produkt noch entwickelt wird. Falls etwas nicht stimmt, Sie einen Fehler oder einen defekten Ablauf entdecken, eine geschäftliche Anfrage oder einen Funktionswunsch haben oder Slotera besprechen möchten, melden Sie sich gern.",
   "demoGuide.contact": "Kontakt aufnehmen",
+  "demoGuide.createAccount": "Stattdessen Konto erstellen",
   "demoGuide.close": "Schließen",
   "demoGuide.startExploring": "Loslegen",
 };

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { BookingTopBar } from "@/components/layout/BookingTopBar";
+import { PublicNav } from "@/components/layout/PublicNav";
 import { BookingFooter } from "@/components/layout/BookingFooter";
 import { StepIndicator, STEPS, type StepKey } from "@/components/layout/StepIndicator";
 import { Button } from "@/components/ui/Button";
@@ -204,7 +204,7 @@ export default function BookingPage() {
   if (settings === null) {
     return (
       <div className="min-h-screen flex flex-col">
-        <BookingTopBar />
+        <PublicNav />
         <main className="flex-1 max-w-[1100px] mx-auto w-full px-6 pt-10 pb-10">
           <div className="flex flex-col gap-3 max-w-md mx-auto">
             <Skeleton h={28} />
@@ -220,7 +220,7 @@ export default function BookingPage() {
   if (!settings.business.bookingPageEnabled) {
     return (
       <div className="min-h-screen flex flex-col">
-        <BookingTopBar consultantName={settings.business.displayName} />
+        <PublicNav />
         <main className="flex-1 max-w-[1100px] mx-auto w-full px-6 pt-16 pb-10">
           <BookingsPausedCard displayName={settings.business.displayName} />
         </main>
@@ -231,9 +231,7 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <BookingTopBar
-        consultantName={persona?.displayName ?? settings.business.displayName}
-      />
+      <PublicNav />
       <main className="flex-1 max-w-[1100px] mx-auto w-full px-6 pt-10 pb-10">
         {persona && (
           <p className="text-small text-ink-2 text-center mb-6 max-w-xl mx-auto">

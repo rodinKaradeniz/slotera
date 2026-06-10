@@ -397,13 +397,9 @@ export const tr: Partial<Messages> = {
   "demoGuide.disclaimer":
     "Bu, Slotera'nın ana rezervasyon ve yönetim akışlarını gösteren bir demo sürümüdür. Ürün geliştirilirken bazı özellikler taklittir.",
   "demoGuide.youCanTry": "Şunları deneyebilirsiniz:",
-  "demoGuide.step.account.title": "Giriş yapın veya demo hesabı oluşturun",
-  "demoGuide.step.account.body":
-    "Bir çalışma alanı oluşturmak ve yönetim paneline erişmek için kimlik doğrulama akışını kullanın.",
-  "demoGuide.step.account.cta": "Demo hesabı oluştur",
-  "demoGuide.step.dashboard.title": "Yönetim panelini keşfedin",
+  "demoGuide.step.dashboard.title": "Hizmet sağlayıcının tarafını görün — yönetim paneli",
   "demoGuide.step.dashboard.body":
-    "Hizmet oluşturun, uygunluğu yönetin, rezervasyonları görüntüleyin ve ana yönetim akışlarını test edin.",
+    "Rezervasyonları, hizmetleri ve formları yönetmek, takvimi ve ayarları keşfetmek için sağlayıcının çalışma alanına geçin.",
   "demoGuide.step.dashboard.cta": "Yönetim panelini aç",
   "demoGuide.step.booking.title": "Genel rezervasyon sayfasını test edin",
   "demoGuide.step.booking.body":
@@ -414,10 +410,15 @@ export const tr: Partial<Messages> = {
   "demoGuide.persona.vet": "Veteriner",
   "demoGuide.persona.therapist": "Terapist",
   "demoGuide.persona.trainer": "Kişisel antrenör",
+  "demoGuide.step.reservation.title": "Müşteri rezervasyon sayfasını görün",
+  "demoGuide.step.reservation.body":
+    "Rezervasyon sonrası deneyimi görün: rezervasyon ayrıntıları, isteğe bağlı formlar, sağlayıcıya mesaj gönderme ve yeniden planlama veya iptal talebi.",
+  "demoGuide.step.reservation.cta": "Rezervasyon sayfasını aç",
   "demoGuide.noteLabel": "Not:",
   "demoGuide.note":
     "Bu bir demo ortamıdır, bu nedenle bazı akışlar ürün geliştirilirken taklit veri kullanır. Bir şey yanlış görünürse, bir hata veya bozuk akış fark ederseniz, bir iş talebiniz ya da özellik öneriniz varsa veya Slotera'yı konuşmak isterseniz bize ulaşın.",
   "demoGuide.contact": "Bize ulaşın",
+  "demoGuide.createAccount": "Bunun yerine hesap oluştur",
   "demoGuide.close": "Kapat",
   "demoGuide.startExploring": "Keşfetmeye başla",
 };

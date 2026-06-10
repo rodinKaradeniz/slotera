@@ -436,13 +436,9 @@ export const en = {
   "demoGuide.disclaimer":
     "This is a demo version of Slotera, built to showcase the main booking and admin workflows. Some features are mocked while the product is still in progress.",
   "demoGuide.youCanTry": "You can try:",
-  "demoGuide.step.account.title": "Sign in or create a demo account",
-  "demoGuide.step.account.body":
-    "Use the authentication flow to provision a workspace and access the admin dashboard.",
-  "demoGuide.step.account.cta": "Create demo account",
-  "demoGuide.step.dashboard.title": "Explore the admin dashboard",
+  "demoGuide.step.dashboard.title": "See the operator's side — the admin dashboard",
   "demoGuide.step.dashboard.body":
-    "Create services, manage availability, view bookings, and test the main admin workflows.",
+    "Step into the provider's workspace to manage bookings, services, and forms, and explore the calendar and settings.",
   "demoGuide.step.dashboard.cta": "Open admin dashboard",
   "demoGuide.step.booking.title": "Test the public booking page",
   "demoGuide.step.booking.body":
@@ -453,10 +449,15 @@ export const en = {
   "demoGuide.persona.vet": "Vet",
   "demoGuide.persona.therapist": "Therapist",
   "demoGuide.persona.trainer": "Personal trainer",
+  "demoGuide.step.reservation.title": "View the customer reservation page",
+  "demoGuide.step.reservation.body":
+    "See the post-booking experience: reservation details, optional forms, messaging the provider, and requesting a reschedule or cancellation.",
+  "demoGuide.step.reservation.cta": "Open reservation page",
   "demoGuide.noteLabel": "Note:",
   "demoGuide.note":
     "This is a demo environment, so some flows use mocked data while the product is still in progress. If anything looks off, you spot a bug or a broken flow, have a business inquiry or feature request, or would like to book time to discuss Slotera — feel free to reach out.",
   "demoGuide.contact": "Contact us",
+  "demoGuide.createAccount": "Create account instead",
   "demoGuide.close": "Close",
   "demoGuide.startExploring": "Start exploring",
 } as const;
