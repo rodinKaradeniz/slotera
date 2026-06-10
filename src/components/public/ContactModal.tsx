@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { createInquiry } from "@/services/platform.service";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import type { PlatformInquiryType } from "@/types/platform";
 
 /**
@@ -33,13 +34,6 @@ type Props = {
   defaultReason?: PlatformInquiryType;
 };
 
-const REASONS: { value: PlatformInquiryType; label: string }[] = [
-  { value: "business", label: "Business inquiry" },
-  { value: "development", label: "Development issue" },
-  { value: "feature", label: "Feature request" },
-  { value: "general", label: "General request" },
-];
-
 type FormState = {
   name: string;
   email: string;
@@ -60,14 +54,24 @@ export function ContactModal({
   open,
   onClose,
   persist = false,
-  eyebrow = "Contact",
-  title = "Get in touch",
-  description = "Business inquiries, development issues, feature requests — drop us a line and we'll get back to you.",
+  eyebrow,
+  title,
+  description,
   presetName,
   presetEmail,
   presetMessage,
   defaultReason,
 }: Props) {
+  const { t } = useI18n();
+  const eyebrowText = eyebrow ?? t("contact.eyebrow");
+  const titleText = title ?? t("contact.title");
+  const descriptionText = description ?? t("contact.description");
+  const reasons: { value: PlatformInquiryType; label: string }[] = [
+    { value: "business", label: t("contact.reason.business") },
+    { value: "development", label: t("contact.reason.development") },
+    { value: "feature", label: t("contact.reason.feature") },
+    { value: "general", label: t("contact.reason.general") },
+  ];
   const [form, setForm] = React.useState<FormState>(() =>
     emptyForm({
       name: presetName,
@@ -126,7 +130,7 @@ export function ContactModal({
       onClose={onClose}
       title={
         <span className="block">
-          <span className="eyebrow block mb-2">{eyebrow}</span>
+          <span className="eyebrow block mb-2">{eyebrowText}</span>
           <span
             className="block font-serif text-ink"
             style={{
@@ -136,11 +140,11 @@ export function ContactModal({
               lineHeight: 1.1,
             }}
           >
-            {title}
+            {titleText}
           </span>
-          {!success && description && (
+          {!success && descriptionText && (
             <span className="block text-body text-ink-2 mt-2">
-              {description}
+              {descriptionText}
             </span>
           )}
         </span>
@@ -149,12 +153,12 @@ export function ContactModal({
       footer={
         success ? (
           <Button variant="primary" size="md" onClick={onClose}>
-            Close
+            {t("common.close")}
           </Button>
         ) : (
           <>
             <Button variant="ghost" size="md" onClick={onClose}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="primary"
@@ -164,7 +168,7 @@ export function ContactModal({
               loading={submitting}
               disabled={!valid}
             >
-              Send message
+              {t("contact.send")}
             </Button>
           </>
         )
@@ -175,24 +179,24 @@ export function ContactModal({
           <span className="w-12 h-12 rounded-full bg-accent-soft text-accent flex items-center justify-center">
             <Icon name="check" size={22} strokeWidth={2.5} />
           </span>
-          <h3 className="text-h3 text-ink">Message sent.</h3>
+          <h3 className="text-h3 text-ink">{t("contact.success.title")}</h3>
           <p className="text-body text-ink-3 max-w-sm">
             {persist
-              ? "Thanks — Slotera will reach out within one business day."
-              : "Thanks for reaching out — a teammate will reply within one business day. (This is a mocked confirmation — nothing was actually sent.)"}
+              ? t("contact.success.bodyPersist")
+              : t("contact.success.body")}
           </p>
         </div>
       ) : (
         <form id="contact-form" onSubmit={submit} className="flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Name" required>
+            <Field label={t("contact.field.name")} required>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 autoComplete="name"
               />
             </Field>
-            <Field label="Email" required>
+            <Field label={t("contact.field.email")} required>
               <Input
                 type="email"
                 value={form.email}
@@ -201,21 +205,21 @@ export function ContactModal({
               />
             </Field>
           </div>
-          <Field label="Reason" required>
+          <Field label={t("contact.field.reason")} required>
             <Select
               value={form.reason}
               onChange={(e) =>
                 setForm({ ...form, reason: e.target.value as PlatformInquiryType })
               }
-              options={REASONS}
+              options={reasons}
             />
           </Field>
-          <Field label="Message" required>
+          <Field label={t("contact.field.message")} required>
             <Textarea
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
               rows={5}
-              placeholder="Tell us what's on your mind…"
+              placeholder={t("contact.message.placeholder")}
             />
           </Field>
         </form>

@@ -12,6 +12,17 @@ export const LANGS: { value: Lang; label: string }[] = [
 
 const LANG_KEY = "slotera.lang";
 
+/** BCP-47 locale used for `Intl` date / number formatting per UI language. */
+const LOCALES: Record<Lang, string> = {
+  en: "en-GB",
+  tr: "tr-TR",
+  de: "de-DE",
+};
+
+export function localeForLang(lang: Lang): string {
+  return LOCALES[lang];
+}
+
 const DICTS: Record<Lang, Partial<Messages>> = { en, tr, de };
 
 function isBrowser() {

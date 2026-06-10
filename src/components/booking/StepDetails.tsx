@@ -5,6 +5,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { LegalModal } from "./LegalModal";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import type { BookingDraft } from "./types";
 
 type Customer = BookingDraft["customer"];
@@ -19,25 +20,30 @@ type Props = {
 };
 
 export function StepDetails({ customer, onChange, providerBookingTerms }: Props) {
+  const { t } = useI18n();
   const [legalOpen, setLegalOpen] = React.useState(false);
   const update = (patch: Partial<Customer>) => onChange({ ...customer, ...patch });
+
+  // Consent sentence is a template with a `{terms}` token replaced by the
+  // clickable link; split so word order works across languages.
+  const consentParts = t("booking.details.consent").split("{terms}");
 
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="First name" required>
+        <Field label={t("booking.details.firstName")} required>
           <Input
             value={customer.firstName}
             onChange={(e) => update({ firstName: e.target.value })}
           />
         </Field>
-        <Field label="Last name" required>
+        <Field label={t("booking.details.lastName")} required>
           <Input
             value={customer.lastName}
             onChange={(e) => update({ lastName: e.target.value })}
           />
         </Field>
-        <Field label="Email" required>
+        <Field label={t("booking.details.email")} required>
           <Input
             type="email"
             icon="mail"
@@ -45,7 +51,7 @@ export function StepDetails({ customer, onChange, providerBookingTerms }: Props)
             onChange={(e) => update({ email: e.target.value })}
           />
         </Field>
-        <Field label="Phone">
+        <Field label={t("booking.details.phone")}>
           <Input
             type="tel"
             icon="phone"
@@ -53,14 +59,14 @@ export function StepDetails({ customer, onChange, providerBookingTerms }: Props)
             onChange={(e) => update({ phone: e.target.value })}
           />
         </Field>
-        <Field label="Company" className="sm:col-span-2">
+        <Field label={t("booking.details.company")} className="sm:col-span-2">
           <Input
             value={customer.company}
             onChange={(e) => update({ company: e.target.value })}
           />
         </Field>
         <Field
-          label="Anything you'd like to share before the call?"
+          label={t("booking.details.notes")}
           className="sm:col-span-2"
         >
           <Textarea
@@ -79,15 +85,15 @@ export function StepDetails({ customer, onChange, providerBookingTerms }: Props)
           onChange={(e) => update({ consent: e.target.checked })}
         />
         <span className="text-small text-ink-2">
-          I agree to the{" "}
+          {consentParts[0]}
           <button
             type="button"
             className="underline text-ink hover:text-accent"
             onClick={() => setLegalOpen(true)}
           >
-            Terms and Privacy Policy
+            {t("booking.details.consentLink")}
           </button>
-          .
+          {consentParts[1] ?? ""}
         </span>
       </label>
 

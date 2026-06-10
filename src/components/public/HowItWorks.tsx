@@ -1,33 +1,26 @@
+"use client";
+
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { Messages } from "@/i18n/messages/en";
 
-const STEPS = [
-  {
-    n: "1",
-    title: "Define your sessions",
-    body: "Set up the services you offer with duration, capacity, and pricing. 1:1 or group — Slotera doesn't care.",
-  },
-  {
-    n: "2",
-    title: "Connect your calendar",
-    body: "Sync Google, Apple or Outlook. We respect your availability and prevent double-booking automatically.",
-  },
-  {
-    n: "3",
-    title: "Share one link",
-    body: "Clients pick a slot, pay, and get the meeting link. You see new bookings in your dashboard.",
-  },
+const STEPS: { n: string; titleKey: keyof Messages; bodyKey: keyof Messages }[] = [
+  { n: "1", titleKey: "landing.how.step1.title", bodyKey: "landing.how.step1.body" },
+  { n: "2", titleKey: "landing.how.step2.title", bodyKey: "landing.how.step2.body" },
+  { n: "3", titleKey: "landing.how.step3.title", bodyKey: "landing.how.step3.body" },
 ];
 
 export function HowItWorks() {
+  const { t } = useI18n();
   return (
     <Section>
       <SectionHeader
-        eyebrow="How it works"
-        title="Go from inbox tag-team to a real booking flow in an afternoon."
+        eyebrow={t("landing.how.eyebrow")}
+        title={t("landing.how.title")}
         maxTitleWidth="44rem"
       />
       <div className="flex flex-col sm:flex-row sm:items-stretch gap-4">
@@ -44,8 +37,8 @@ export function HowItWorks() {
               >
                 {s.n}
               </div>
-              <h3 className="text-h3 mt-4">{s.title}</h3>
-              <p className="text-body mt-2 text-ink-3">{s.body}</p>
+              <h3 className="text-h3 mt-4">{t(s.titleKey)}</h3>
+              <p className="text-body mt-2 text-ink-3">{t(s.bodyKey)}</p>
             </Card>
             {i < STEPS.length - 1 && (
               <div

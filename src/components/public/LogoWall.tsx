@@ -1,5 +1,8 @@
+"use client";
+
 import * as React from "react";
 import { Section } from "./Section";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 const LOGOS = [
   "Kintsugi",
@@ -11,13 +14,13 @@ const LOGOS = [
 ];
 
 export function LogoWall() {
+  const { t } = useI18n();
   const track = [...LOGOS, ...LOGOS];
   return (
     <Section className="py-10 sm:py-12 border-y border-line-soft">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-10">
         <div className="text-small max-w-xs shrink-0">
-          Trusted by 1,200+ independent advisors, coaches and instructors
-          across Europe.
+          {t("landing.logos.trustedBy")}
         </div>
         <div className="flex-1 min-w-0 overflow-hidden relative">
           <div

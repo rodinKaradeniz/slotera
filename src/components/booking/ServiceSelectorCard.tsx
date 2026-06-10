@@ -4,6 +4,7 @@ import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { gbp } from "@/lib/money";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import type { Service } from "@/types/service";
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export function ServiceSelectorCard({ service, selected, onSelect }: Props) {
+  const { t } = useI18n();
   return (
     <Card
       hover
@@ -43,7 +45,7 @@ export function ServiceSelectorCard({ service, selected, onSelect }: Props) {
             {service.name}
           </h3>
           <span className="text-[15px] font-medium text-ink flex-shrink-0">
-            {service.priceCents === 0 ? "Free" : gbp(service.priceCents)}
+            {service.priceCents === 0 ? t("common.free") : gbp(service.priceCents)}
           </span>
         </div>
         <p className="text-small mt-1">{service.description}</p>

@@ -4,41 +4,26 @@ import * as React from "react";
 import { AccordionItem } from "@/components/ui/Accordion";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { Messages } from "@/i18n/messages/en";
 
-const ITEMS = [
-  {
-    q: "Do my clients need an account?",
-    a: "No. Clients book and pay as guests. You see them as clients in your dashboard automatically.",
-  },
-  {
-    q: "What payment processors do you support?",
-    a: "Stripe (cards) is the default. Manual bank-transfer instructions can be enabled workspace-wide.",
-  },
-  {
-    q: "Can I run group classes or workshops?",
-    a: "Yes. Set the session capacity to any number above 1. Slotera handles spots-left and waitlists.",
-  },
-  {
-    q: "Where are you hosted?",
-    a: "Slotera is built with UK data protection workflows in mind.",
-  },
-  {
-    q: "Can I embed the booking page on my own site?",
-    a: "Yes. You can either link to the hosted booking page or embed it as an iframe. Your colors and fonts come through either way.",
-  },
-  {
-    q: "What happens if a client cancels?",
-    a: "Cancellations follow the policy you set on each service. The session frees up automatically and refunds flow through the same processor you used to take payment.",
-  },
+const ITEMS: { qKey: keyof Messages; aKey: keyof Messages }[] = [
+  { qKey: "landing.faq.q1.q", aKey: "landing.faq.q1.a" },
+  { qKey: "landing.faq.q2.q", aKey: "landing.faq.q2.a" },
+  { qKey: "landing.faq.q3.q", aKey: "landing.faq.q3.a" },
+  { qKey: "landing.faq.q4.q", aKey: "landing.faq.q4.a" },
+  { qKey: "landing.faq.q5.q", aKey: "landing.faq.q5.a" },
+  { qKey: "landing.faq.q6.q", aKey: "landing.faq.q6.a" },
 ];
 
 export function FAQ() {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState<number | null>(null);
   return (
     <Section>
       <SectionHeader
-        eyebrow="FAQ"
-        title="Common questions."
+        eyebrow={t("landing.faq.eyebrow")}
+        title={t("landing.faq.title")}
         maxTitleWidth="44rem"
       />
       <div className="flex flex-col gap-3">
@@ -48,10 +33,12 @@ export function FAQ() {
             open={open === i}
             onToggle={() => setOpen(open === i ? null : i)}
             header={
-              <span className="text-[15px] font-medium text-ink">{it.q}</span>
+              <span className="text-[15px] font-medium text-ink">
+                {t(it.qKey)}
+              </span>
             }
           >
-            <div className="px-5 py-4 text-body">{it.a}</div>
+            <div className="px-5 py-4 text-body">{t(it.aKey)}</div>
           </AccordionItem>
         ))}
       </div>

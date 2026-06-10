@@ -8,11 +8,15 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { localeForLang } from "@/lib/i18n";
 import type { BookingDraft } from "@/components/booking/types";
 
 type Stored = { ref: string; draft: BookingDraft };
 
 export default function ConfirmationPage() {
+  const { t, lang } = useI18n();
+  const locale = localeForLang(lang);
   const [data, setData] = React.useState<Stored | null>(null);
   const [copied, setCopied] = React.useState(false);
 
@@ -46,26 +50,30 @@ export default function ConfirmationPage() {
           <div className="mx-auto w-16 h-16 rounded-full bg-accent-soft text-accent flex items-center justify-center mb-5">
             <Icon name="check" size={28} strokeWidth={2.5} />
           </div>
-          <h1 className="text-h2 text-ink">Your booking is confirmed.</h1>
+          <h1 className="text-h2 text-ink">{t("booking.confirm.title")}</h1>
           <p className="text-body mt-2 text-ink-3">
-            We&apos;ve sent a confirmation email
-            {data?.draft.customer.email ? ` to ${data.draft.customer.email}` : ""}.
+            {data?.draft.customer.email
+              ? t("booking.confirm.emailSent", { email: data.draft.customer.email })
+              : t("booking.confirm.emailSentNoAddress")}
           </p>
           {data && (
             <div className="mt-3">
               <Pill tone="accent" icon="sparkle">
-                Reference {data.ref}
+                {t("booking.confirm.reference", { ref: data.ref })}
               </Pill>
             </div>
           )}
           {data && (
             <div className="grid sm:grid-cols-2 gap-3 mt-8 text-left">
-              <DetailLine label="Service" value={data.draft.service?.name ?? "—"} />
               <DetailLine
-                label="When"
+                label={t("booking.confirm.service")}
+                value={data.draft.service?.name ?? "—"}
+              />
+              <DetailLine
+                label={t("booking.confirm.when")}
                 value={
                   data.draft.date
-                    ? `${new Date(data.draft.date).toLocaleDateString(undefined, {
+                    ? `${new Date(data.draft.date).toLocaleDateString(locale, {
                         weekday: "long",
                         day: "numeric",
                         month: "long",
@@ -74,26 +82,44 @@ export default function ConfirmationPage() {
                 }
               />
               <DetailLine
-                label="Attendee"
+                label={t("booking.confirm.attendee")}
                 value={`${data.draft.customer.firstName} ${data.draft.customer.lastName}`.trim()}
               />
-              <DetailLine label="Meeting link" value={meetingLink} />
+              <DetailLine label={t("booking.confirm.meetingLink")} value={meetingLink} />
             </div>
           )}
           <div className="flex flex-wrap justify-center gap-2 mt-8">
             <Button variant="primary" icon="copy" onClick={copy}>
-              {copied ? "Copied" : "Copy meeting link"}
+              {copied ? t("booking.confirm.copied") : t("booking.confirm.copyLink")}
             </Button>
+            {/* Demo-only preview of the future customer reservation page. */}
+            <Link href="/reservation/demo">
+              <Button variant="secondary" icon="eye">
+                {t("booking.confirm.manage")}
+              </Button>
+            </Link>
             <Link href="/booking">
-              <Button variant="secondary">Book another session</Button>
+              <Button variant="ghost">{t("booking.confirm.bookAnother")}</Button>
             </Link>
           </div>
         </Card>
 
         <div className="grid sm:grid-cols-3 gap-3 mt-6">
-          <NextCard icon="calendar" title="Add to calendar" body="Google · Apple · Outlook · ICS" />
-          <NextCard icon="download" title="Download invoice" body="PDF, billing-ready" />
-          <NextCard icon="mail" title="Forward email" body="Loop in a colleague" />
+          <NextCard
+            icon="calendar"
+            title={t("booking.confirm.addCalendar.title")}
+            body={t("booking.confirm.addCalendar.body")}
+          />
+          <NextCard
+            icon="download"
+            title={t("booking.confirm.invoice.title")}
+            body={t("booking.confirm.invoice.body")}
+          />
+          <NextCard
+            icon="mail"
+            title={t("booking.confirm.forward.title")}
+            body={t("booking.confirm.forward.body")}
+          />
         </div>
       </main>
       <BookingFooter />

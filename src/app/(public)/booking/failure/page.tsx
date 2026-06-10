@@ -6,8 +6,10 @@ import { BookingFooter } from "@/components/layout/BookingFooter";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 export default function FailurePage() {
+  const { t } = useI18n();
   return (
     <div className="min-h-screen flex flex-col">
       <BookingTopBar />
@@ -16,17 +18,16 @@ export default function FailurePage() {
           <div className="mx-auto w-16 h-16 rounded-full bg-[#F2DDD8] text-danger flex items-center justify-center mb-5">
             <Icon name="x" size={28} strokeWidth={2.5} />
           </div>
-          <h1 className="text-h2 text-ink">Payment declined.</h1>
-          <p className="text-body mt-2 text-ink-3">
-            We couldn&apos;t process that card. You can try another card or pick a
-            different payment method.
-          </p>
+          <h1 className="text-h2 text-ink">{t("booking.failure.title")}</h1>
+          <p className="text-body mt-2 text-ink-3">{t("booking.failure.body")}</p>
           <div className="flex flex-wrap justify-center gap-2 mt-8">
             <Link href="/booking">
-              <Button variant="primary" icon="arrow-left">Back to payment</Button>
+              <Button variant="primary" icon="arrow-left">
+                {t("booking.failure.backToPayment")}
+              </Button>
             </Link>
             <Link href="/">
-              <Button variant="secondary">Cancel booking</Button>
+              <Button variant="secondary">{t("booking.failure.cancel")}</Button>
             </Link>
           </div>
         </Card>

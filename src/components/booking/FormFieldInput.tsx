@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
 import { SegGroup } from "@/components/ui/SegGroup";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import type { FormField } from "@/types/form";
 
 /**
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export function FormFieldInput({ field, value, onChange }: Props) {
+  const { t } = useI18n();
   const { type, label, required, placeholder, helpText } = field;
 
   // Consent + yes/no render their own label, so don't double up via <Field>.
@@ -47,8 +49,8 @@ export function FormFieldInput({ field, value, onChange }: Props) {
             value={value === true ? "yes" : value === false ? "no" : ""}
             onChange={(v) => onChange(v === "yes")}
             options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
+              { value: "yes", label: t("booking.field.yes") },
+              { value: "no", label: t("booking.field.no") },
             ]}
           />
         </div>
@@ -93,7 +95,7 @@ export function FormFieldInput({ field, value, onChange }: Props) {
           value={typeof value === "string" ? value : ""}
           onChange={(e) => onChange(e.target.value)}
           options={[
-            { value: "", label: "Select…" },
+            { value: "", label: t("booking.field.select") },
             ...(field.options ?? []).map((o) => ({ value: o, label: o })),
           ]}
         />

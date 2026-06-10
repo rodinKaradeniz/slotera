@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
   open: boolean;
@@ -22,10 +23,8 @@ const PLACEHOLDER = (label: string) => Array.from({ length: 3 }, (_, i) => (
   </p>
 ));
 
-const DEFAULT_PROVIDER_TERMS =
-  "This provider hasn't set custom booking terms. Standard cancellation and refund expectations apply — please contact the provider directly with any questions.";
-
 export function LegalModal({ open, onClose, providerBookingTerms }: Props) {
+  const { t } = useI18n();
   const [tab, setTab] = React.useState("provider");
 
   const showProviderContent =
@@ -35,8 +34,8 @@ export function LegalModal({ open, onClose, providerBookingTerms }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Terms and Privacy Policy"
-      description="Booking terms set by this provider, plus Slotera's platform terms and privacy notice."
+      title={t("booking.legal.title")}
+      description={t("booking.legal.description")}
       size="lg"
     >
       <div className="flex justify-start mb-4">
@@ -44,8 +43,8 @@ export function LegalModal({ open, onClose, providerBookingTerms }: Props) {
           value={tab}
           onChange={setTab}
           tabs={[
-            { value: "provider", label: "Provider Booking Terms" },
-            { value: "platform", label: "Slotera Terms & Privacy" },
+            { value: "provider", label: t("booking.legal.tab.provider") },
+            { value: "platform", label: t("booking.legal.tab.platform") },
           ]}
         />
       </div>
@@ -56,19 +55,19 @@ export function LegalModal({ open, onClose, providerBookingTerms }: Props) {
               {providerBookingTerms!.content}
             </p>
           ) : (
-            <p className="text-body">{DEFAULT_PROVIDER_TERMS}</p>
+            <p className="text-body">{t("booking.legal.defaultProviderTerms")}</p>
           )
         ) : (
           <div className="space-y-6">
             <section>
               <h3 className="text-h3 text-ink mb-3" style={{ fontSize: 18 }}>
-                Terms
+                {t("booking.legal.termsHeading")}
               </h3>
               {PLACEHOLDER("Terms")}
             </section>
             <section>
               <h3 className="text-h3 text-ink mb-3" style={{ fontSize: 18 }}>
-                Privacy
+                {t("booking.legal.privacyHeading")}
               </h3>
               {PLACEHOLDER("Privacy")}
             </section>

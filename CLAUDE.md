@@ -284,6 +284,14 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 - The booking flow handles **pre-payment** form completion: a conditional Forms step (one step, all attached active forms stacked) appears between Details and Billing when the chosen service has attached forms, and is gated on required fields before payment. `FormTemplate.requiredBeforePayment` already exists for this.
 - **Future — optional / post-booking forms (not built; do not implement now).** A later iteration may let clients complete *optional* forms after booking via a customer reservation-management link/page (possible routes: `/reservation/:id`, `/booking/manage?token=...`). Such a page could let a client view reservation details, complete remaining optional forms, review manual payment instructions, reschedule/cancel if allowed, and see address/meeting details. This is deferred because it needs guest access / magic links, email delivery, and backend persistence — all Phase 2/3 concerns. Keep wording non-clinical/non-legal (intake questions, pre-visit information, client-provided notes, agreement acknowledgement); no medical-record or compliance claims.
 
+### Customer reservation page (demo)
+
+`/reservation/demo` (`src/app/(public)/reservation/demo/page.tsx`) is a **mocked, public, no-auth Phase 1 preview** of what a customer could see/do *after* booking — it is **not a customer account or "Customer Portal"** (don't use that term in UI copy). Customers still do not have accounts. It surfaces from the booking confirmation page's "Manage reservation" link and uses a single fixed demo reservation (no IDs, tokens, secure links, persistence, or email).
+
+What it demonstrates, all mocked (ConfirmDialog + toast only, no real logic): reservation summary (service, provider, date/time, status, location, payment + manual instructions), **optional/post-booking forms** that weren't required before payment (fill + "save" → toast, marks completed in local state), message-the-provider textarea, and request-reschedule / request-cancellation actions. It's the natural pairing with the "Future — optional / post-booking forms" note above.
+
+A production version would use **secure magic links/tokens sent by email + backend persistence**, and could additionally show address/meeting details. Keep copy non-clinical/non-legal; **no medical-record or compliance claims**. Don't promote this page in the public Demo Guide modal unless it stays uncrowded.
+
 ### Calendar
 
 - Day / Week / Month views supported.

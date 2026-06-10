@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { getSettings } from "@/services/settings.service";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import type { SettingsData } from "@/types/settings";
 
 type Props = {
@@ -16,6 +17,7 @@ export function ConsultantIntro({
   titleOverride,
   bioOverride,
 }: Props = {}) {
+  const { t } = useI18n();
   const [settings, setSettings] = React.useState<SettingsData | null>(null);
 
   React.useEffect(() => {
@@ -23,7 +25,7 @@ export function ConsultantIntro({
   }, []);
 
   const name = nameOverride ?? settings?.business.displayName ?? "Dr. Lena Hartmann";
-  const title = titleOverride ?? "Strategy advisor";
+  const title = titleOverride ?? t("booking.intro.title");
   const location = settings?.business.address ?? "Berlin";
   const description =
     bioOverride ??

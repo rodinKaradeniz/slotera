@@ -5,15 +5,20 @@ import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { buildMonthGrid, isAvailable, sameDay } from "@/lib/calendar";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { localeForLang } from "@/lib/i18n";
 import type { Service } from "@/types/service";
 
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-const DAYS_SHORT = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+
+// Monday-first short weekday labels, derived from the active locale.
+function weekdayShorts(locale: string): string[] {
+  const fmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
+  // 2024-01-01 is a Monday.
+  return Array.from({ length: 7 }, (_, i) =>
+    fmt.format(new Date(Date.UTC(2024, 0, 1 + i))),
+  );
+}
 
 type Props = {
   service: Service;
@@ -23,6 +28,13 @@ type Props = {
 };
 
 export function StepDateTime({ date, time, onChange }: Props) {
+  const { t, lang } = useI18n();
+  const locale = localeForLang(lang);
+  const daysShort = React.useMemo(() => weekdayShorts(locale), [locale]);
+  const monthLabel = React.useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }),
+    [locale],
+  );
   const today = React.useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -62,25 +74,25 @@ export function StepDateTime({ date, time, onChange }: Props) {
             type="button"
             onClick={() => go(-1)}
             className="w-8 h-8 rounded-md hover:bg-paper-2 text-ink-3 flex items-center justify-center"
-            aria-label="Previous month"
+            aria-label={t("booking.datetime.prevMonth")}
           >
             <Icon name="chevron-l" size={16} />
           </button>
           <div className="font-serif text-ink" style={{ fontSize: 17 }}>
-            {MONTH_NAMES[anchor.getMonth()]} {anchor.getFullYear()}
+            {monthLabel.format(anchor)}
           </div>
           <button
             type="button"
             onClick={() => go(1)}
             className="w-8 h-8 rounded-md hover:bg-paper-2 text-ink-3 flex items-center justify-center"
-            aria-label="Next month"
+            aria-label={t("booking.datetime.nextMonth")}
           >
             <Icon name="chevron-r" size={16} />
           </button>
         </div>
         <div className="grid grid-cols-7 gap-1 px-4 pt-3">
-          {DAYS_SHORT.map((d) => (
-            <div key={d} className="text-center text-micro py-1">{d}</div>
+          {daysShort.map((d, i) => (
+            <div key={i} className="text-center text-micro py-1">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1 px-4 pb-4 flex-1 auto-rows-fr">
@@ -118,11 +130,11 @@ export function StepDateTime({ date, time, onChange }: Props) {
       </Card>
 
       <Card padded className="flex flex-col h-full">
-        <div className="eyebrow mb-3">Available times</div>
+        <div className="eyebrow mb-3">{t("booking.datetime.availableTimes")}</div>
         {!date ? (
           <div className="flex-1 flex items-center justify-center">
             <p className="text-small text-center max-w-[24ch]">
-              Pick a date to see available times.
+              {t("booking.datetime.pickDate")}
             </p>
           </div>
         ) : (

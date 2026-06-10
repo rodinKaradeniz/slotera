@@ -9,7 +9,7 @@ import { Testimonials } from "@/components/public/Testimonials";
 import { Pricing } from "@/components/public/Pricing";
 import { FAQ } from "@/components/public/FAQ";
 import { FinalCTA } from "@/components/public/FinalCTA";
-import { DemoGuideButton } from "@/components/public/DemoGuideButton";
+import { DemoGuideAutoOpen } from "@/components/public/DemoGuideProvider";
 
 export default function LandingPage() {
   return (
@@ -27,8 +27,9 @@ export default function LandingPage() {
         <FinalCTA />
       </main>
       <PublicFooter />
-      {/* Auto-opens once per session; the visible trigger lives in PublicNav. */}
-      <DemoGuideButton autoOpen className="sr-only" />
+      {/* Auto-opens the shared Demo Guide modal once per session. The modal
+          instance + visible triggers live in DemoGuideProvider / PublicNav. */}
+      <DemoGuideAutoOpen />
     </>
   );
 }

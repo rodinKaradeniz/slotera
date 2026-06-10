@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { ContactModal } from "@/components/public/ContactModal";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
   /** Operator's public display name. */
@@ -20,6 +21,7 @@ type Props = {
  * one CTA (Get in touch) that opens the shared ContactModal.
  */
 export function BookingsPausedCard({ displayName }: Props) {
+  const { t } = useI18n();
   const [contactOpen, setContactOpen] = React.useState(false);
 
   return (
@@ -41,11 +43,10 @@ export function BookingsPausedCard({ displayName }: Props) {
                 lineHeight: 1.1,
               }}
             >
-              Bookings are paused
+              {t("booking.paused.title")}
             </h1>
             <p className="text-body text-ink-3 max-w-md mx-auto">
-              This booking page isn&apos;t currently accepting new reservations.
-              If you need to get in touch, send a message and we&apos;ll reply.
+              {t("booking.paused.body")}
             </p>
           </div>
 
@@ -55,7 +56,7 @@ export function BookingsPausedCard({ displayName }: Props) {
             icon="mail"
             onClick={() => setContactOpen(true)}
           >
-            Get in touch
+            {t("booking.paused.cta")}
           </Button>
         </div>
       </Card>

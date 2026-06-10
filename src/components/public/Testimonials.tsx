@@ -1,37 +1,39 @@
+"use client";
+
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { Messages } from "@/i18n/messages/en";
 
-const QUOTES = [
+const QUOTES: { name: string; role: string; quoteKey: keyof Messages }[] = [
   {
     name: "Mila Ozawa",
     role: "Co-founder · Kintsugi Studio",
-    quote:
-      "I used to lose half a day every week to scheduling. Slotera collapsed that to a Sunday-night review.",
+    quoteKey: "landing.testimonials.q1",
   },
   {
     name: "Pieter de Vries",
     role: "Creative director · Noord",
-    quote:
-      "The booking page looks like part of my site. Clients don't even notice the handoff.",
+    quoteKey: "landing.testimonials.q2",
   },
   {
     name: "Sofia Marin",
     role: "Ops lead · Lambda Co",
-    quote:
-      "Group workshops with capacity and waitlists used to need a CRM. Now it's two clicks.",
+    quoteKey: "landing.testimonials.q3",
   },
 ];
 
 export function Testimonials() {
+  const { t } = useI18n();
   return (
     <Section>
       <SectionHeader
-        eyebrow="Testimonials"
-        title="Operators we've quietly freed up an afternoon a week."
+        eyebrow={t("landing.testimonials.eyebrow")}
+        title={t("landing.testimonials.title")}
         maxTitleWidth="44rem"
       />
       <div className="grid md:grid-cols-3 gap-4">
@@ -42,7 +44,7 @@ export function Testimonials() {
                 <Icon key={i} name="star" size={14} />
               ))}
             </div>
-            <p className="text-body text-ink-2">&ldquo;{q.quote}&rdquo;</p>
+            <p className="text-body text-ink-2">&ldquo;{t(q.quoteKey)}&rdquo;</p>
             <div className="flex items-center gap-3 mt-6 pt-5 border-t border-line-soft">
               <Avatar name={q.name} />
               <div>

@@ -4,6 +4,8 @@ import * as React from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 import { gbp } from "@/lib/money";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { localeForLang } from "@/lib/i18n";
 import { COUNTRIES } from "./types";
 import type { BookingDraft } from "./types";
 
@@ -13,11 +15,6 @@ type Props = {
   manualInstructions?: string | null;
   reference?: string | null;
   className?: string;
-};
-
-const METHOD_LABEL: Record<BookingDraft["payment"]["method"], string> = {
-  card: "Card",
-  manual: "Manual payment",
 };
 
 const METHOD_ICON: Record<BookingDraft["payment"]["method"], IconName> = {
@@ -32,6 +29,12 @@ export function ReceiptCard({
   reference,
   className,
 }: Props) {
+  const { t, lang } = useI18n();
+  const locale = localeForLang(lang);
+  const methodLabel: Record<BookingDraft["payment"]["method"], string> = {
+    card: t("booking.payment.card"),
+    manual: t("booking.payment.manual"),
+  };
   const country =
     COUNTRIES.find((c) => c.code === draft.billing.country) ?? COUNTRIES[0];
   const subtotal = draft.service?.priceCents ?? 0;
@@ -41,7 +44,7 @@ export function ReceiptCard({
 
   const dateLabel =
     draft.date && draft.time
-      ? `${new Date(draft.date).toLocaleDateString(undefined, {
+      ? `${new Date(draft.date).toLocaleDateString(locale, {
           weekday: "long",
           day: "numeric",
           month: "long",
@@ -62,7 +65,7 @@ export function ReceiptCard({
   const ref =
     reference ??
     `PREVIEW-${draft.service?.id?.slice(0, 4)?.toUpperCase() ?? "XXXX"}`;
-  const today = new Date().toLocaleDateString(undefined, {
+  const today = new Date().toLocaleDateString(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -81,13 +84,17 @@ export function ReceiptCard({
       <div className="px-6 pt-6 pb-5 flex items-start justify-between gap-4">
         <div>
           <div className="eyebrow">
-            {variant === "pay" ? "Payment receipt" : "Order summary"}
+            {variant === "pay"
+              ? t("booking.receipt.paymentReceipt")
+              : t("booking.receipt.orderSummary")}
           </div>
           <div
             className="font-serif text-ink mt-1"
             style={{ fontSize: 22, fontWeight: 400, lineHeight: 1.1 }}
           >
-            {variant === "pay" ? "Almost done" : "Review your booking"}
+            {variant === "pay"
+              ? t("booking.receipt.almostDone")
+              : t("booking.receipt.reviewBooking")}
           </div>
         </div>
         <div className="text-right text-micro">
@@ -99,7 +106,7 @@ export function ReceiptCard({
       <PerforationLine />
 
       <div className="px-6 py-5 flex flex-col gap-5">
-        <ReceiptSection title="Service">
+        <ReceiptSection title={t("booking.receipt.service")}>
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-[15px] text-ink truncate">
               {draft.service?.name ?? "—"}
@@ -114,7 +121,7 @@ export function ReceiptCard({
         </ReceiptSection>
 
         {(clientName || draft.customer.email) && (
-          <ReceiptSection title="Client">
+          <ReceiptSection title={t("booking.receipt.client")}>
             {clientName && (
               <div className="text-[15px] text-ink">{clientName}</div>
             )}
@@ -132,7 +139,7 @@ export function ReceiptCard({
         )}
 
         {addressLines.length > 0 && (
-          <ReceiptSection title="Billing address">
+          <ReceiptSection title={t("booking.receipt.billingAddress")}>
             <div className="text-small text-ink leading-snug">
               {addressLines.map((line, i) => (
                 <div key={i}>{line}</div>
@@ -146,8 +153,8 @@ export function ReceiptCard({
 
       <div className="px-6 py-5 flex flex-col gap-1.5">
         <Row
-          label="Subtotal"
-          value={subtotal === 0 ? "Free" : gbp(subtotal)}
+          label={t("booking.receipt.subtotal")}
+          value={subtotal === 0 ? t("common.free") : gbp(subtotal)}
         />
         <Row
           label={`${country.vatLabel} (${Math.round(country.vat * 100)}%)`}
@@ -159,29 +166,29 @@ export function ReceiptCard({
 
       <div className="px-6 py-5 flex items-baseline justify-between">
         <span className="text-small text-ink-2 uppercase tracking-wider">
-          Total
+          {t("booking.receipt.total")}
         </span>
         <span
           className="font-serif text-ink"
           style={{ fontSize: 28, fontWeight: 400, lineHeight: 1 }}
         >
-          {isFree ? "Free" : gbp(total)}
+          {isFree ? t("common.free") : gbp(total)}
         </span>
       </div>
 
       <DashedDivider />
 
       <div className="px-6 py-5 flex flex-col gap-3">
-        <ReceiptSection title="Payment method">
+        <ReceiptSection title={t("booking.receipt.paymentMethod")}>
           <div className="flex items-center gap-2 text-[14px] text-ink">
             <Icon name={METHOD_ICON[draft.payment.method]} size={14} />
-            {METHOD_LABEL[draft.payment.method]}
+            {methodLabel[draft.payment.method]}
           </div>
         </ReceiptSection>
 
         {draft.payment.method === "manual" && manualInstructions && (
           <div className="rounded-md bg-paper-2 border border-line-soft px-3 py-3">
-            <div className="eyebrow mb-1.5">Manual payment instructions</div>
+            <div className="eyebrow mb-1.5">{t("booking.receipt.manualInstructions")}</div>
             <p className="text-small whitespace-pre-line text-ink">
               {manualInstructions}
             </p>
@@ -194,9 +201,9 @@ export function ReceiptCard({
         <span>
           {variant === "pay"
             ? draft.payment.method === "manual"
-              ? "Manual payments require operator confirmation before your booking is final."
-              : "Encrypted · PCI-DSS via Stripe (mocked)"
-            : "You won't be charged until you confirm in the next step."}
+              ? t("booking.receipt.footerManual")
+              : t("booking.receipt.footerCard")
+            : t("booking.receipt.footerReview")}
         </span>
       </div>
     </div>

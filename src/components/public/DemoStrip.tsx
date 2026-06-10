@@ -1,8 +1,14 @@
+"use client";
+
 import * as React from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { useDemoGuide } from "./DemoGuideProvider";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 export function DemoStrip() {
+  const { open } = useDemoGuide();
+  const { t } = useI18n();
+
   return (
     <section className="my-6">
       <div className="max-w-[1200px] mx-auto px-6">
@@ -12,7 +18,7 @@ export function DemoStrip() {
               className="font-mono text-[11px] uppercase mb-3 opacity-70"
               style={{ letterSpacing: "0.14em" }}
             >
-              See it in action
+              {t("landing.demoStrip.eyebrow")}
             </div>
             <h2
               className="font-serif"
@@ -23,14 +29,12 @@ export function DemoStrip() {
                 letterSpacing: "-0.015em",
               }}
             >
-              Try a real booking flow. No sign-up needed.
+              {t("landing.demoStrip.title")}
             </h2>
           </div>
-          <Link href="/booking">
-            <Button variant="primary" size="lg" iconRight="arrow-right">
-              Open live demo
-            </Button>
-          </Link>
+          <Button variant="primary" size="lg" iconRight="arrow-right" onClick={open}>
+            {t("landing.cta.openDemo")}
+          </Button>
         </div>
       </div>
     </section>

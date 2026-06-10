@@ -1,6 +1,9 @@
+"use client";
+
 import * as React from "react";
 import { Logo } from "@/components/ui/Logo";
 import { Icon } from "@/components/ui/Icon";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
   consultantName?: string;
@@ -9,6 +12,7 @@ type Props = {
 export function BookingTopBar({
   consultantName = "Dr. Lena Hartmann",
 }: Props) {
+  const { t } = useI18n();
   return (
     <header
       className="sticky top-0 z-30 border-b border-line-soft"
@@ -18,12 +22,12 @@ export function BookingTopBar({
         <Logo />
         <span className="hidden md:inline-block w-px h-5 bg-line-soft" />
         <span className="hidden md:inline text-[13px] text-ink-2">
-          Booking with{" "}
+          {t("booking.topbar.with")}{" "}
           <span className="text-ink font-medium">{consultantName}</span>
         </span>
         <div className="flex-1" />
         <span className="inline-flex items-center gap-1.5 text-micro text-ink-3">
-          <Icon name="lock" size={12} /> SSL secured · UK GDPR-aware
+          <Icon name="lock" size={12} /> {t("booking.topbar.secure")}
         </span>
       </div>
     </header>

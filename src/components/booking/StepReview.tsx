@@ -4,7 +4,8 @@ import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { getSettings } from "@/services/settings.service";
-import { plural } from "@/lib/text";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { localeForLang } from "@/lib/i18n";
 import { COUNTRIES } from "./types";
 import type { BookingDraft } from "./types";
 import { ReceiptCard } from "./ReceiptCard";
@@ -15,6 +16,8 @@ type Props = {
 };
 
 export function StepReview({ draft, onEdit }: Props) {
+  const { t, lang } = useI18n();
+  const locale = localeForLang(lang);
   const country =
     COUNTRIES.find((c) => c.code === draft.billing.country) ?? COUNTRIES[0];
   const completedForms = Object.values(draft.formResponses).filter(
@@ -34,16 +37,16 @@ export function StepReview({ draft, onEdit }: Props) {
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-stretch h-full">
       <div className="flex flex-col gap-3 h-full">
         <SummaryRow
-          title="Service"
+          title={t("booking.review.service")}
           value={draft.service?.name ?? "—"}
           hint={draft.service ? `${draft.service.durationMin} min` : undefined}
           onEdit={() => onEdit("service")}
         />
         <SummaryRow
-          title="When"
+          title={t("booking.review.when")}
           value={
             draft.date && draft.time
-              ? `${new Date(draft.date).toLocaleDateString(undefined, {
+              ? `${new Date(draft.date).toLocaleDateString(locale, {
                   weekday: "long",
                   day: "numeric",
                   month: "long",
@@ -53,7 +56,7 @@ export function StepReview({ draft, onEdit }: Props) {
           onEdit={() => onEdit("time")}
         />
         <SummaryRow
-          title="Your details"
+          title={t("booking.review.details")}
           value={
             `${draft.customer.firstName} ${draft.customer.lastName}`.trim() ||
             "—"
@@ -63,13 +66,13 @@ export function StepReview({ draft, onEdit }: Props) {
         />
         {completedForms > 0 && (
           <SummaryRow
-            title="Forms"
-            value={`${plural(completedForms, "form")} completed`}
+            title={t("booking.review.forms")}
+            value={t("booking.review.formsCompleted", { count: completedForms })}
             onEdit={() => onEdit("forms")}
           />
         )}
         <SummaryRow
-          title="Billing"
+          title={t("booking.review.billing")}
           value={draft.billing.street || "—"}
           hint={
             draft.billing.city
@@ -100,6 +103,7 @@ function SummaryRow({
   hint?: string;
   onEdit: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <Card padded={false} className="px-5 py-4 flex items-start gap-4">
       <div className="flex-1 min-w-0">
@@ -112,7 +116,7 @@ function SummaryRow({
         onClick={onEdit}
         className="text-[13px] text-ink-3 hover:text-ink inline-flex items-center gap-1"
       >
-        <Icon name="edit" size={13} /> Edit
+        <Icon name="edit" size={13} /> {t("booking.review.edit")}
       </button>
     </Card>
   );

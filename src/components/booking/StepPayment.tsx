@@ -12,6 +12,7 @@ import {
   formatCardNumber,
 } from "@/lib/card";
 import { getSettings } from "@/services/settings.service";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import type { PaymentMethod, SettingsData } from "@/types/settings";
 import type { BookingDraft } from "./types";
 import { ReceiptCard } from "./ReceiptCard";
@@ -24,12 +25,17 @@ type Props = {
   onChange: (next: Payment) => void;
 };
 
-const METHOD_META: Record<PaymentMethod, { label: string; icon: IconName }> = {
-  card: { label: "Card", icon: "card" },
-  manual: { label: "Manual payment", icon: "wallet" },
+const METHOD_ICON: Record<PaymentMethod, IconName> = {
+  card: "card",
+  manual: "wallet",
 };
 
 export function StepPayment({ draft, payment, onChange }: Props) {
+  const { t } = useI18n();
+  const methodLabel: Record<PaymentMethod, string> = {
+    card: t("booking.payment.card"),
+    manual: t("booking.payment.manual"),
+  };
   const [settings, setSettings] = React.useState<SettingsData | null>(null);
 
   React.useEffect(() => {
@@ -57,7 +63,7 @@ export function StepPayment({ draft, payment, onChange }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-stretch h-full">
       <Card padded className="flex flex-col h-full">
-        <div className="eyebrow mb-4">Payment method</div>
+        <div className="eyebrow mb-4">{t("booking.payment.method")}</div>
         <div
           className={cn(
             "grid gap-2 mb-6",
@@ -68,38 +74,35 @@ export function StepPayment({ draft, payment, onChange }: Props) {
                 : "grid-cols-3",
           )}
         >
-          {methods.map((m) => {
-            const meta = METHOD_META[m];
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => update({ method: m })}
-                className={cn(
-                  "h-12 rounded-md border text-[13px] font-medium flex items-center justify-center gap-2",
-                  payment.method === m
-                    ? "border-accent bg-accent-soft text-accent-ink"
-                    : "border-line bg-surface hover:border-ink-3",
-                )}
-              >
-                <Icon name={meta.icon} size={14} />
-                {meta.label}
-              </button>
-            );
-          })}
+          {methods.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => update({ method: m })}
+              className={cn(
+                "h-12 rounded-md border text-[13px] font-medium flex items-center justify-center gap-2",
+                payment.method === m
+                  ? "border-accent bg-accent-soft text-accent-ink"
+                  : "border-line bg-surface hover:border-ink-3",
+              )}
+            >
+              <Icon name={METHOD_ICON[m]} size={14} />
+              {methodLabel[m]}
+            </button>
+          ))}
         </div>
 
         {payment.method === "card" && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Cardholder name" required className="sm:col-span-2">
+            <Field label={t("booking.payment.cardholderName")} required className="sm:col-span-2">
               <Input
                 value={payment.cardName}
                 onChange={(e) => update({ cardName: e.target.value })}
               />
             </Field>
             <Field
-              label="Card number"
-              hint="Use 4242 4242 4242 4242 for a mock success, or 4000 0000 0000 0002 for a mock failure."
+              label={t("booking.payment.cardNumber")}
+              hint={t("booking.payment.cardNumberHint")}
               required
               className="sm:col-span-2"
             >
@@ -114,7 +117,7 @@ export function StepPayment({ draft, payment, onChange }: Props) {
                 maxLength={19}
               />
             </Field>
-            <Field label="Expiration" required>
+            <Field label={t("booking.payment.expiration")} required>
               <Input
                 value={payment.cardExp}
                 onChange={(e) =>
@@ -126,7 +129,7 @@ export function StepPayment({ draft, payment, onChange }: Props) {
                 maxLength={7}
               />
             </Field>
-            <Field label="CVC" required>
+            <Field label={t("booking.payment.cvc")} required>
               <Input
                 value={payment.cardCvc}
                 onChange={(e) =>
@@ -143,7 +146,7 @@ export function StepPayment({ draft, payment, onChange }: Props) {
 
         {payment.method === "manual" && (
           <div className="flex flex-col gap-3">
-            <div className="eyebrow">Payment instructions</div>
+            <div className="eyebrow">{t("booking.payment.instructions")}</div>
             <div className="rounded-md border border-line bg-paper-2 p-5">
               {settings?.payments.manualPaymentInstructions ? (
                 <p className="text-body whitespace-pre-line text-ink">
@@ -151,14 +154,13 @@ export function StepPayment({ draft, payment, onChange }: Props) {
                 </p>
               ) : (
                 <p className="text-small">
-                  Payment instructions will be shared after you confirm.
+                  {t("booking.payment.instructionsFallback")}
                 </p>
               )}
             </div>
             <div className="flex items-start gap-2 text-micro text-ink-3">
               <Icon name="info" size={12} className="mt-0.5" />
-              Your booking will be marked pending until the operator confirms
-              receipt of payment.
+              {t("booking.payment.pendingNote")}
             </div>
           </div>
         )}
