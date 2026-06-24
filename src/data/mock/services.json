@@ -16,8 +16,8 @@
   },
   {
     "id": "svc-deepdive",
-    "name": "Strategy Deep Dive",
-    "description": "Focused 90-minute working session on a specific decision or initiative.",
+    "name": "Strategy Session",
+    "description": "Focused 90-minute working session on a specific decision, plan or initiative.",
     "durationMin": 90,
     "priceCents": 38000,
     "currency": "GBP",
@@ -31,8 +31,8 @@
   },
   {
     "id": "svc-sprint",
-    "name": "Decision Sprint",
-    "description": "Hands-on 60-minute working block to unblock a single strategic call.",
+    "name": "Coaching Session",
+    "description": "A 60-minute 1:1 coaching session to work through a specific goal or challenge.",
     "durationMin": 60,
     "priceCents": 24000,
     "currency": "GBP",
@@ -46,8 +46,8 @@
   },
   {
     "id": "svc-workshop",
-    "name": "Founder Workshop",
-    "description": "Small-group strategy workshop for early-stage founder teams.",
+    "name": "Group Workshop",
+    "description": "Small-group, expert-led workshop — hands-on and capped for real interaction.",
     "durationMin": 120,
     "priceCents": 18000,
     "currency": "GBP",
@@ -61,13 +61,13 @@
       "region": "Berlin",
       "postalCode": "10178",
       "country": "DE",
-      "notes": "Buzzer for 'Hartmann Strategy' — second floor, glass door on the left."
+      "notes": "Buzzer for the studio — second floor, glass door on the left."
     },
     "bookingMode": "scheduled",
     "cancellationRule": "Reschedule up to 5 days before. No refunds within 48h.",
     "active": true,
     "createdAtISO": "2026-02-02T10:00:00.000Z",
-    "notes": "Confirm projector + whiteboard markers the day before. Bring printed pre-reads (10 copies)."
+    "notes": "Confirm projector + whiteboard markers the day before. Bring printed handouts (10 copies)."
   },
   {
     "id": "svc-yoga",

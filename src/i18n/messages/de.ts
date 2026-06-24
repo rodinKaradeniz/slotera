@@ -21,6 +21,7 @@ export const de: Partial<Messages> = {
   "nav.bookings": "Buchungen",
   "nav.clients": "Kunden",
   "nav.services": "Leistungen",
+  "nav.packages": "Pakete",
   "nav.forms": "Formulare",
   "nav.settings": "Einstellungen",
   "nav.overview": "Überblick",
@@ -37,10 +38,10 @@ export const de: Partial<Messages> = {
   "landing.cta.openDemo": "Demo öffnen",
   "landing.cta.tryDemo": "Demo ausprobieren",
 
-  "landing.hero.eyebrow": "Für Beratende, Coaches & Trainer:innen",
+  "landing.hero.eyebrow": "Für unabhängige Beratende, Coaches & Trainer:innen",
   "landing.hero.title": "Bezahlte Buchungen, ohne Kalender-Chaos.",
   "landing.hero.subtitle":
-    "Slotera übernimmt Ihren gesamten Buchungsablauf — Leistungen, Termine, Zahlungen, Kalender, Erinnerungen — damit Sie nicht länger alles über Tabellen organisieren.",
+    "Slotera ist der Workspace für bezahlte Buchungen und Klienten-Vorbereitung für unabhängige Expert:innen — kassieren Sie per Karte oder Banküberweisung, sammeln Sie die nötigen Angaben vor jedem Termin und führen Sie alles ohne schweres CRM.",
   "landing.hero.badge.noCard": "Keine Kreditkarte nötig",
   "landing.hero.badge.cancel": "Jederzeit kündbar",
   "landing.hero.badge.gdpr": "UK-DSGVO-bewusst",
@@ -51,37 +52,37 @@ export const de: Partial<Messages> = {
   "landing.how.eyebrow": "So funktioniert's",
   "landing.how.title":
     "Vom E-Mail-Hin-und-Her zu einem echten Buchungsablauf an einem Nachmittag.",
-  "landing.how.step1.title": "Termine definieren",
+  "landing.how.step1.title": "Leistungen einrichten",
   "landing.how.step1.body":
-    "Legen Sie Ihre Leistungen mit Dauer, Kapazität und Preis an. 1:1 oder Gruppe — Slotera ist das egal.",
-  "landing.how.step2.title": "Kalender verbinden",
+    "Legen Sie Ihre Leistungen mit Dauer, Kapazität und Preis an — 1:1 oder Gruppe. Bündeln Sie Sitzungen zu Paketen oder mehrwöchigen Programmen und hängen Sie Formulare an, wenn Sie vor dem Termin Kontext brauchen.",
+  "landing.how.step2.title": "Einen Buchungslink teilen",
   "landing.how.step2.body":
-    "Synchronisieren Sie Google, Apple oder Outlook. Wir berücksichtigen Ihre Verfügbarkeit und verhindern Doppelbuchungen automatisch.",
-  "landing.how.step3.title": "Einen Link teilen",
+    "Kunden wählen einen Termin, beantworten Ihre Fragen vor der Sitzung und zahlen per Karte oder Überweisung. Kein Konto nötig.",
+  "landing.how.step3.title": "Termin durchführen, in Verbindung bleiben",
   "landing.how.step3.body":
-    "Kunden wählen einen Termin, zahlen und erhalten den Meeting-Link. Neue Buchungen sehen Sie in Ihrem Dashboard.",
+    "Neue Buchungen landen in Ihrem Dashboard. Kunden erhalten eine Reservierungsseite, um sich vorzubereiten, Ihnen zu schreiben oder eine Änderung anzufragen.",
 
   "landing.features.eyebrow": "Funktionen",
   "landing.features.title":
-    "Alles, was ein Einzelunternehmen braucht. Nichts, was es nicht braucht.",
-  "landing.features.calendar.title": "Intelligente Kalender-Synchronisierung",
-  "landing.features.calendar.body":
-    "Zwei-Wege-Sync mit Google, Apple, Outlook. Puffer und Zeitzonen inklusive.",
-  "landing.features.payments.title": "Zahlungen auf Stripe-Niveau",
-  "landing.features.payments.body":
-    "Karten oder manuelle Banküberweisung. Rechnungen und Erstattungen ohne die App zu verlassen.",
-  "landing.features.gdpr.title": "UK-DSGVO-bewusst",
-  "landing.features.gdpr.body":
-    "Mit Blick auf britische Datenschutz-Abläufe entwickelt. Einwilligungsbelege, Aufbewahrungskontrollen, AV-Vertrag auf Anfrage.",
-  "landing.features.meeting.title": "Integrierte Meeting-Links",
-  "landing.features.meeting.body":
-    "Zoom- oder Meet-Links automatisch erzeugen. Oder eine physische Adresse für Vor-Ort-Termine nutzen.",
-  "landing.features.reminders.title": "Erinnerungen, die ankommen",
-  "landing.features.reminders.body":
-    "Intelligente E-Mail- und SMS-Erinnerungen senken No-Shows im Schnitt um 38 %.",
-  "landing.features.embed.title": "Einbettbar & im eigenen Branding",
-  "landing.features.embed.body":
-    "Buchungsseite auf Ihrer Website einbetten oder die gehostete URL nutzen. Ihre Farben, Ihre Schriften.",
+    "Alles, was eine unabhängige Expertin oder ein Experte braucht. Nichts, was nicht gebraucht wird.",
+  "landing.features.bookings.title": "Bezahlte Buchungen",
+  "landing.features.bookings.body":
+    "Kassieren Sie, wenn Kunden buchen — per Karte oder manueller Banküberweisung, Ihre Wahl. Klare Belege, kein Tabellen-Gefummel.",
+  "landing.features.forms.title": "Intake- & Vorbereitungsformulare",
+  "landing.features.forms.body":
+    "Sammeln Sie den nötigen Kontext vor einem Termin. Machen Sie wichtige Fragen vor der Zahlung verpflichtend oder danach optional.",
+  "landing.features.reservation.title": "Kunden-Reservierungsseite",
+  "landing.features.reservation.body":
+    "Nach der Buchung erhalten Kunden eine Seite, um Details zu prüfen, optionale Formulare auszufüllen, Ihnen zu schreiben oder eine Verschiebung anzufragen.",
+  "landing.features.sessions.title": "Termine & Kalender",
+  "landing.features.sessions.body":
+    "1:1- oder Gruppentermine mit Kapazität und freien Plätzen. Überschneidungen in Ihrem Kalender werden als Konflikt markiert.",
+  "landing.features.languages.title": "Mehrsprachige Buchung",
+  "landing.features.languages.body":
+    "Ihre Kunden können auf Englisch, Türkisch oder Deutsch buchen — der gesamte Ablauf folgt ihrer Sprache.",
+  "landing.features.workspace.title": "Ein schlanker Workspace",
+  "landing.features.workspace.body":
+    "Eine fokussierte Verwaltung für Buchungen, Kunden, Leistungen und Einstellungen — für Ihren Arbeitsalltag gemacht, kein schweres CRM.",
 
   "landing.demoStrip.eyebrow": "In Aktion erleben",
   "landing.demoStrip.title": "Testen Sie einen echten Buchungsablauf. Ohne Anmeldung.",
@@ -112,7 +113,7 @@ export const de: Partial<Messages> = {
   "landing.pricing.solo.f3": "Google- / Apple-Kalender-Sync",
   "landing.pricing.solo.f4": "1 Buchungsseite",
   "landing.pricing.team.name": "Team",
-  "landing.pricing.team.blurb": "Für Praxen und Studios mit kleinem Team.",
+  "landing.pricing.team.blurb": "Für Studios und kleine Expert:innen-Teams.",
   "landing.pricing.team.f1": "Alles aus Solo",
   "landing.pricing.team.f2": "Bis zu 10 Teammitglieder",
   "landing.pricing.team.f3": "Gruppentermine & Wartelisten",
@@ -152,7 +153,7 @@ export const de: Partial<Messages> = {
     "Richten Sie Ihre Buchungsseite in unter 10 Minuten ein. 14 Tage kostenlos, keine Kreditkarte nötig.",
 
   "footer.tagline":
-    "Slotera hilft unabhängigen Beratenden und Coaches, ihren Buchungsablauf zu führen — ohne Tabellen, Kalender und Rechnungen zu jonglieren.",
+    "Slotera hilft unabhängigen Beratenden, Coaches und Trainer:innen, bezahlte Buchungen und Klienten-Vorbereitung zu führen — ohne Tabellen, Kalender und Rechnungen zu jonglieren.",
   "footer.col.product": "Produkt",
   "footer.col.company": "Unternehmen",
   "footer.col.legal": "Rechtliches",
@@ -239,6 +240,17 @@ export const de: Partial<Messages> = {
   "booking.field.yes": "Ja",
   "booking.field.no": "Nein",
   "booking.field.select": "Auswählen…",
+
+  "booking.packages.hintTitle": "Auch als Paket erhältlich",
+  "booking.packages.hintBody":
+    "Diese Sitzung kann als Teil eines mehrteiligen Pakets oder Programms gebucht werden.",
+  "booking.packages.viewOptions": "Paketoptionen ansehen",
+  "booking.packages.modalTitle": "Paketoptionen",
+  "booking.packages.modalBody":
+    "Diese mehrteiligen Angebote enthalten diese Sitzung. Der Paketkauf ist nicht Teil dieser Demo — buchen Sie eine einzelne Sitzung, um fortzufahren.",
+  "booking.packages.featured": "Empfohlen",
+  "booking.packages.sessionsSuffix": "Sitzungen",
+  "booking.packages.validFor": "{days} Tage gültig",
 
   "booking.billing.line1": "Adresszeile 1",
   "booking.billing.line1.placeholder": "Straße und Hausnummer",
@@ -331,6 +343,8 @@ export const de: Partial<Messages> = {
   "reservation.summary.location": "Ort",
   "reservation.summary.payment": "Zahlung",
   "reservation.summary.reference": "Referenz",
+  "reservation.summary.package": "Paket",
+  "reservation.package.session": "Sitzung {n} von {total}",
   "reservation.status.confirmed": "Bestätigt",
   "reservation.status.pendingPayment": "Zahlung ausstehend",
   "reservation.location.online": "Online — Meeting-Link per E-Mail gesendet",
@@ -357,7 +371,7 @@ export const de: Partial<Messages> = {
   "reservation.form.notes.desc": "Alles, was der Anbieter vorab wissen sollte.",
   "reservation.form.notes.field": "Ihre Notizen",
   "reservation.form.notes.placeholder": "z. B. Kontext, Ziele, Fragen, die Sie besprechen möchten…",
-  "reservation.form.update.name": "Update vor dem Termin",
+  "reservation.form.update.name": "Update vor der Sitzung",
   "reservation.form.update.desc": "Ein kurzes Update, damit sich der Anbieter vorbereiten kann.",
   "reservation.form.update.field": "Hat sich seit der Buchung etwas geändert?",
   "reservation.message.title": "Anbieter benachrichtigen",
@@ -407,9 +421,8 @@ export const de: Partial<Messages> = {
   "demoGuide.step.booking.tryAs": "Ausprobieren als:",
   "demoGuide.step.booking.defaultLink": "Standard-Buchungsseite öffnen",
   "demoGuide.persona.consultant": "Berater",
-  "demoGuide.persona.vet": "Tierarzt",
-  "demoGuide.persona.therapist": "Therapeut",
-  "demoGuide.persona.trainer": "Personal Trainer",
+  "demoGuide.persona.coach": "Coach",
+  "demoGuide.persona.instructor": "Kursleiter",
   "demoGuide.step.reservation.title": "Die Kunden-Reservierungsseite ansehen",
   "demoGuide.step.reservation.body":
     "Sehen Sie das Erlebnis nach der Buchung: Reservierungsdetails, optionale Formulare, Nachrichten an den Anbieter sowie Anfragen zur Umbuchung oder Stornierung.",

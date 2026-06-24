@@ -27,11 +27,13 @@ const ITEMS: Item[] = [
   { id: "reservation", icon: "clipboard", href: "/reservation/demo" },
 ];
 
-const PERSONAS: { slug: "consultant" | "vet" | "therapist" | "trainer" }[] = [
+// Public demo personas lead with Slotera's first ICP — consultant, coach,
+// instructor. Specialised verticals (vet/therapist) stay available as flexible
+// mock data but are intentionally not promoted in the public demo guide.
+const PERSONAS: { slug: "consultant" | "coach" | "instructor" }[] = [
   { slug: "consultant" },
-  { slug: "vet" },
-  { slug: "therapist" },
-  { slug: "trainer" },
+  { slug: "coach" },
+  { slug: "instructor" },
 ];
 
 export function DemoGuidelinesModal({ open, onClose }: Props) {

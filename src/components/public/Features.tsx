@@ -9,12 +9,12 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import type { Messages } from "@/i18n/messages/en";
 
 const FEATURES: { icon: IconName; titleKey: keyof Messages; bodyKey: keyof Messages }[] = [
-  { icon: "calendar", titleKey: "landing.features.calendar.title", bodyKey: "landing.features.calendar.body" },
-  { icon: "card", titleKey: "landing.features.payments.title", bodyKey: "landing.features.payments.body" },
-  { icon: "shield", titleKey: "landing.features.gdpr.title", bodyKey: "landing.features.gdpr.body" },
-  { icon: "video", titleKey: "landing.features.meeting.title", bodyKey: "landing.features.meeting.body" },
-  { icon: "bell", titleKey: "landing.features.reminders.title", bodyKey: "landing.features.reminders.body" },
-  { icon: "link", titleKey: "landing.features.embed.title", bodyKey: "landing.features.embed.body" },
+  { icon: "card", titleKey: "landing.features.bookings.title", bodyKey: "landing.features.bookings.body" },
+  { icon: "clipboard", titleKey: "landing.features.forms.title", bodyKey: "landing.features.forms.body" },
+  { icon: "eye", titleKey: "landing.features.reservation.title", bodyKey: "landing.features.reservation.body" },
+  { icon: "calendar", titleKey: "landing.features.sessions.title", bodyKey: "landing.features.sessions.body" },
+  { icon: "globe", titleKey: "landing.features.languages.title", bodyKey: "landing.features.languages.body" },
+  { icon: "grid", titleKey: "landing.features.workspace.title", bodyKey: "landing.features.workspace.body" },
 ];
 
 export function Features() {

@@ -9,12 +9,13 @@ import { NotImplementedError } from "./_errors";
 const personas = JSON.parse(JSON.stringify(personasJson)) as DemoPersona[];
 
 /**
- * The standard (no-persona) booking page belongs to the default provider — a
- * strategy advisor (see settings.business.displayName). It intentionally shows
- * only that provider's curated service set, NOT every active service in the
- * workspace. The vet/therapy/trainer services belong to their own persona
- * providers and only surface under `?demo=<slug>`; the admin Services page
- * still lists the full set via `listServices()`.
+ * The standard (no-persona) booking page is the default consultant/coach/
+ * instructor demo (see settings.business.displayName). It intentionally shows
+ * only this curated, ICP-aligned set — a Discovery Call, a consultant Strategy
+ * Session, a Coaching Session, and a group/instructor-led Workshop — NOT every
+ * active service in the workspace. The persona providers (`?demo=<slug>`) get
+ * their own curated subsets; the admin Services page still lists the full
+ * (richer) mock set via `listServices()`. Curate here, never render-slice.
  */
 export const STANDARD_BOOKING_SERVICE_IDS = [
   "svc-discovery",

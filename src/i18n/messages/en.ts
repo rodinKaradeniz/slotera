@@ -29,6 +29,7 @@ export const en = {
   "nav.bookings": "Bookings",
   "nav.clients": "Clients",
   "nav.services": "Services",
+  "nav.packages": "Packages",
   "nav.forms": "Forms",
   "nav.settings": "Settings",
   "nav.overview": "Overview",
@@ -47,10 +48,10 @@ export const en = {
   "landing.cta.tryDemo": "Try the demo",
 
   // Landing — hero
-  "landing.hero.eyebrow": "For consultants, coaches & instructors",
+  "landing.hero.eyebrow": "For independent consultants, coaches & instructors",
   "landing.hero.title": "Paid bookings, without the calendar chaos.",
   "landing.hero.subtitle":
-    "Slotera handles your reservation flow end-to-end — services, sessions, payments, calendars, reminders — so you stop running it from spreadsheets.",
+    "Slotera is the paid booking and client-prep workspace for independent experts — take card or bank-transfer payments, collect the intake you need before each session, and run it all without a heavy CRM.",
   "landing.hero.badge.noCard": "No credit card required",
   "landing.hero.badge.cancel": "Cancel anytime",
   "landing.hero.badge.gdpr": "UK GDPR-aware",
@@ -63,38 +64,38 @@ export const en = {
   "landing.how.eyebrow": "How it works",
   "landing.how.title":
     "Go from inbox tag-team to a real booking flow in an afternoon.",
-  "landing.how.step1.title": "Define your sessions",
+  "landing.how.step1.title": "Set up your services",
   "landing.how.step1.body":
-    "Set up the services you offer with duration, capacity, and pricing. 1:1 or group — Slotera doesn't care.",
-  "landing.how.step2.title": "Connect your calendar",
+    "Add the services you offer with duration, capacity and price — 1:1 or group. Bundle sessions into packages or multi-week programs, and attach intake forms where you need context before the session.",
+  "landing.how.step2.title": "Share one booking link",
   "landing.how.step2.body":
-    "Sync Google, Apple or Outlook. We respect your availability and prevent double-booking automatically.",
-  "landing.how.step3.title": "Share one link",
+    "Clients pick a time, answer your pre-session questions, and pay by card or bank transfer. No account needed.",
+  "landing.how.step3.title": "Run the session, stay in sync",
   "landing.how.step3.body":
-    "Clients pick a slot, pay, and get the meeting link. You see new bookings in your dashboard.",
+    "New bookings land in your dashboard. Clients get a reservation page to prep, message you, or request a change.",
 
   // Landing — features
   "landing.features.eyebrow": "Features",
   "landing.features.title":
-    "Everything a solo operator needs. Nothing they don't.",
-  "landing.features.calendar.title": "Smart calendar sync",
-  "landing.features.calendar.body":
-    "Two-way sync with Google, Apple, Outlook. Buffers and time zones handled.",
-  "landing.features.payments.title": "Stripe-grade payments",
-  "landing.features.payments.body":
-    "Take cards or manual bank transfer. Issue invoices and refunds without leaving the app.",
-  "landing.features.gdpr.title": "UK GDPR-aware",
-  "landing.features.gdpr.body":
-    "Built with UK data protection workflows in mind. Consent receipts, retention controls, DPA on request.",
-  "landing.features.meeting.title": "Built-in meeting links",
-  "landing.features.meeting.body":
-    "Auto-generate Zoom or Meet links. Or use a physical address for in-person.",
-  "landing.features.reminders.title": "Reminders that land",
-  "landing.features.reminders.body":
-    "Smart email + SMS reminders cut no-shows by 38% on average.",
-  "landing.features.embed.title": "Embeddable & branded",
-  "landing.features.embed.body":
-    "Drop the booking page on your site or use the hosted URL. Your colors, your fonts.",
+    "Everything an independent expert needs. Nothing they don't.",
+  "landing.features.bookings.title": "Paid bookings",
+  "landing.features.bookings.body":
+    "Take payment when clients book — card or manual bank transfer, your choice. Clear receipts, no spreadsheet wrangling.",
+  "landing.features.forms.title": "Client intake & prep forms",
+  "landing.features.forms.body":
+    "Collect the context you need before a session. Make key questions required before payment, or optional afterwards.",
+  "landing.features.reservation.title": "Customer reservation page",
+  "landing.features.reservation.body":
+    "After booking, clients get a page to review details, finish optional forms, message you, or request a reschedule.",
+  "landing.features.sessions.title": "Sessions & calendar",
+  "landing.features.sessions.body":
+    "1:1 or group sessions with capacity and spots-left. Overlaps on your calendar are flagged as conflicts.",
+  "landing.features.languages.title": "Multilingual booking",
+  "landing.features.languages.body":
+    "Your clients can book in English, Turkish or German — the whole flow follows their language.",
+  "landing.features.workspace.title": "A lightweight workspace",
+  "landing.features.workspace.body":
+    "A focused admin for bookings, clients, services and settings — built to run your practice, not a heavy CRM.",
 
   // Landing — demo strip
   "landing.demoStrip.eyebrow": "See it in action",
@@ -128,7 +129,7 @@ export const en = {
   "landing.pricing.solo.f3": "Google / Apple calendar sync",
   "landing.pricing.solo.f4": "1 booking page",
   "landing.pricing.team.name": "Team",
-  "landing.pricing.team.blurb": "For practices and studios with a small team.",
+  "landing.pricing.team.blurb": "For studios and small expert-led teams.",
   "landing.pricing.team.f1": "Everything in Solo",
   "landing.pricing.team.f2": "Up to 10 team members",
   "landing.pricing.team.f3": "Group sessions & waitlists",
@@ -170,7 +171,7 @@ export const en = {
 
   // Footer
   "footer.tagline":
-    "Slotera helps independent advisors and coaches run their reservation flow without juggling spreadsheets, calendars and invoices.",
+    "Slotera helps independent consultants, coaches and instructors run paid bookings and client prep — without juggling spreadsheets, calendars and invoices.",
   "footer.col.product": "Product",
   "footer.col.company": "Company",
   "footer.col.legal": "Legal",
@@ -267,6 +268,18 @@ export const en = {
   "booking.field.yes": "Yes",
   "booking.field.no": "No",
   "booking.field.select": "Select…",
+
+  // Booking — package/program hint (informational only; no package checkout)
+  "booking.packages.hintTitle": "Also available in packages",
+  "booking.packages.hintBody":
+    "This session can be booked as part of a multi-session package or program.",
+  "booking.packages.viewOptions": "View package options",
+  "booking.packages.modalTitle": "Package options",
+  "booking.packages.modalBody":
+    "These multi-session offers include this session. Buying a package isn't part of this demo — book a single session to continue.",
+  "booking.packages.featured": "Featured",
+  "booking.packages.sessionsSuffix": "sessions",
+  "booking.packages.validFor": "Valid for {days} days",
 
   // Booking — billing step
   "booking.billing.line1": "Address line 1",
@@ -367,6 +380,8 @@ export const en = {
   "reservation.summary.location": "Location",
   "reservation.summary.payment": "Payment",
   "reservation.summary.reference": "Reference",
+  "reservation.summary.package": "Package",
+  "reservation.package.session": "Session {n} of {total}",
   "reservation.status.confirmed": "Confirmed",
   "reservation.status.pendingPayment": "Pending payment",
   "reservation.location.online": "Online — meeting link sent by email",
@@ -393,7 +408,7 @@ export const en = {
   "reservation.form.notes.desc": "Anything you'd like the provider to know in advance.",
   "reservation.form.notes.field": "Your notes",
   "reservation.form.notes.placeholder": "e.g. context, goals, questions you'd like to cover…",
-  "reservation.form.update.name": "Pre-visit update",
+  "reservation.form.update.name": "Pre-session update",
   "reservation.form.update.desc": "A quick check-in so the provider can prepare.",
   "reservation.form.update.field": "Anything changed since you booked?",
   "reservation.message.title": "Message the provider",
@@ -446,9 +461,8 @@ export const en = {
   "demoGuide.step.booking.tryAs": "Try it as:",
   "demoGuide.step.booking.defaultLink": "Open the standard booking page",
   "demoGuide.persona.consultant": "Consultant",
-  "demoGuide.persona.vet": "Vet",
-  "demoGuide.persona.therapist": "Therapist",
-  "demoGuide.persona.trainer": "Personal trainer",
+  "demoGuide.persona.coach": "Coach",
+  "demoGuide.persona.instructor": "Instructor",
   "demoGuide.step.reservation.title": "View the customer reservation page",
   "demoGuide.step.reservation.body":
     "See the post-booking experience: reservation details, optional forms, messaging the provider, and requesting a reschedule or cancellation.",

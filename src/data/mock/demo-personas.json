@@ -5,34 +5,25 @@
     "title": "Strategy advisor",
     "intro": "You're booking a strategy session. A short set of context questions comes before payment.",
     "bio": "I work with founders on hard strategic decisions — pricing, positioning, and the messy choices between them. Most clients come to me before a fundraise, a pivot, or a launch.",
-    "serviceIds": ["svc-discovery", "svc-deepdive", "svc-sprint"],
+    "serviceIds": ["svc-discovery", "svc-deepdive"],
     "formTemplateIds": ["frm-consult-context"]
   },
   {
-    "slug": "vet",
-    "displayName": "Greenfield Veterinary",
-    "title": "Small-animal clinic",
-    "intro": "You're booking a visit for your pet. We'll ask for some pre-visit information first.",
-    "bio": "A friendly neighbourhood clinic for cats, dogs, and small animals. Wellness checks, vaccinations, and the occasional worried first-time owner — all welcome.",
-    "serviceIds": ["svc-vet-checkup"],
-    "formTemplateIds": ["frm-vet-intake"]
+    "slug": "coach",
+    "displayName": "Jordan Avery",
+    "title": "Leadership & career coach",
+    "intro": "You're booking a coaching session. A few quick questions help your coach prepare before payment.",
+    "bio": "I coach managers and founders through the moments that matter — a new role, a hard conversation, a stuck team. We start from where you are and build a plan you'll actually keep.",
+    "serviceIds": ["svc-discovery", "svc-sprint"],
+    "formTemplateIds": ["frm-consult-context"]
   },
   {
-    "slug": "therapist",
-    "displayName": "Mara Ellison",
-    "title": "Therapist & counsellor",
-    "intro": "You're booking an intro session. There's a short intake and acknowledgement before payment.",
-    "bio": "I offer a calm, judgement-free space to talk things through. Many people come for a single conversation; others stay for a while. Either is completely fine.",
-    "serviceIds": ["svc-therapy-session"],
-    "formTemplateIds": ["frm-therapy-intake"]
-  },
-  {
-    "slug": "trainer",
+    "slug": "instructor",
     "displayName": "Theo Vance",
-    "title": "Personal trainer",
-    "intro": "You're booking a first session. Tell us your goals and any injury history before payment.",
-    "bio": "I build training that fits your life, not the other way around. We start with where you are, set goals you actually care about, and move at a pace that sticks.",
-    "serviceIds": ["svc-trainer-session"],
-    "formTemplateIds": ["frm-trainer-goals"]
+    "title": "Workshop instructor",
+    "intro": "You're booking with the studio. Pick a session — group workshops show how many spots are left.",
+    "bio": "I run small, hands-on workshops where people actually get to practise, not just watch. Groups stay capped so everyone gets attention and leaves with something they can use.",
+    "serviceIds": ["svc-discovery", "svc-workshop"],
+    "formTemplateIds": []
   }
 ]

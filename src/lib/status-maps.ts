@@ -8,6 +8,10 @@ import type {
 import type { SubscriptionStatus } from "@/types/billing";
 import type { PlatformInquiryType } from "@/types/platform";
 import type { FormPurpose, FormStatus } from "@/types/form";
+import type {
+  PackageProgramKind,
+  PackageProgramStatus,
+} from "@/types/package-program";
 
 type Meta<L extends string = string> = { tone: Tone; label: L; icon?: string };
 
@@ -74,4 +78,17 @@ export const FORM_PURPOSE: Record<FormPurpose, string> = {
   agreement: "Agreement",
   nda:       "NDA",
   other:     "Other",
+};
+
+export const PACKAGE_KIND: Record<
+  PackageProgramKind,
+  { label: string; icon: string }
+> = {
+  package: { label: "Package", icon: "layers" },
+  program: { label: "Program", icon: "repeat" },
+};
+
+export const PACKAGE_STATUS: Record<PackageProgramStatus, Meta> = {
+  active:   { tone: "success", label: "Active" },
+  inactive: { tone: "neutral", label: "Inactive" },
 };

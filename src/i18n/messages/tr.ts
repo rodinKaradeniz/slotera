@@ -21,6 +21,7 @@ export const tr: Partial<Messages> = {
   "nav.bookings": "Rezervasyonlar",
   "nav.clients": "Müşteriler",
   "nav.services": "Hizmetler",
+  "nav.packages": "Paketler",
   "nav.forms": "Formlar",
   "nav.settings": "Ayarlar",
   "nav.overview": "Genel Bakış",
@@ -37,10 +38,10 @@ export const tr: Partial<Messages> = {
   "landing.cta.openDemo": "Demoyu aç",
   "landing.cta.tryDemo": "Demoyu deneyin",
 
-  "landing.hero.eyebrow": "Danışmanlar, koçlar ve eğitmenler için",
+  "landing.hero.eyebrow": "Bağımsız danışmanlar, koçlar ve eğitmenler için",
   "landing.hero.title": "Takvim karmaşası olmadan, ücretli rezervasyonlar.",
   "landing.hero.subtitle":
-    "Slotera rezervasyon akışınızı baştan sona yönetir — hizmetler, seanslar, ödemeler, takvimler, hatırlatmalar — böylece her şeyi tablolardan yürütmeyi bırakırsınız.",
+    "Slotera, bağımsız uzmanlar için ücretli rezervasyon ve müşteri hazırlık çalışma alanıdır — kartla veya banka havalesiyle ödeme alın, her seanstan önce gereken bilgileri toplayın ve tüm bunları ağır bir CRM olmadan yönetin.",
   "landing.hero.badge.noCard": "Kredi kartı gerekmez",
   "landing.hero.badge.cancel": "İstediğiniz zaman iptal edin",
   "landing.hero.badge.gdpr": "UK GDPR'a duyarlı",
@@ -51,37 +52,37 @@ export const tr: Partial<Messages> = {
   "landing.how.eyebrow": "Nasıl çalışır",
   "landing.how.title":
     "Bir öğleden sonrada e-posta trafiğinden gerçek bir rezervasyon akışına geçin.",
-  "landing.how.step1.title": "Seanslarınızı tanımlayın",
+  "landing.how.step1.title": "Hizmetlerinizi tanımlayın",
   "landing.how.step1.body":
-    "Sunduğunuz hizmetleri süre, kapasite ve fiyatla tanımlayın. Birebir ya da grup — Slotera için fark etmez.",
-  "landing.how.step2.title": "Takviminizi bağlayın",
+    "Sunduğunuz hizmetleri süre, kapasite ve fiyatla ekleyin — birebir ya da grup. Seansları paketler veya çok haftalık programlar halinde gruplayın ve seanstan önce bağlam gerektiğinde bilgi formları ekleyin.",
+  "landing.how.step2.title": "Tek bir rezervasyon bağlantısı paylaşın",
   "landing.how.step2.body":
-    "Google, Apple veya Outlook ile senkronize edin. Uygunluğunuza saygı duyar ve çakışan rezervasyonları otomatik önleriz.",
-  "landing.how.step3.title": "Tek bir bağlantı paylaşın",
+    "Müşteriler bir saat seçer, seans öncesi sorularınızı yanıtlar ve kartla ya da banka havalesiyle öder. Hesap gerekmez.",
+  "landing.how.step3.title": "Seansı yürütün, bağlantıda kalın",
   "landing.how.step3.body":
-    "Müşteriler bir saat seçer, öder ve toplantı bağlantısını alır. Siz yeni rezervasyonları panelinizde görürsünüz.",
+    "Yeni rezervasyonlar panelinize düşer. Müşteriler hazırlanmak, size mesaj atmak veya değişiklik talep etmek için bir rezervasyon sayfası alır.",
 
   "landing.features.eyebrow": "Özellikler",
   "landing.features.title":
-    "Tek başına çalışan biri için gereken her şey. Fazlası değil.",
-  "landing.features.calendar.title": "Akıllı takvim senkronizasyonu",
-  "landing.features.calendar.body":
-    "Google, Apple ve Outlook ile çift yönlü senkronizasyon. Aralar ve saat dilimleri otomatik yönetilir.",
-  "landing.features.payments.title": "Stripe seviyesinde ödemeler",
-  "landing.features.payments.body":
-    "Kartla veya manuel banka havalesiyle tahsilat yapın. Uygulamadan çıkmadan fatura ve iade düzenleyin.",
-  "landing.features.gdpr.title": "UK GDPR'a duyarlı",
-  "landing.features.gdpr.body":
-    "UK veri koruma süreçleri göz önünde bulundurularak tasarlandı. Onay kayıtları, saklama denetimleri, talep üzerine DPA.",
-  "landing.features.meeting.title": "Yerleşik toplantı bağlantıları",
-  "landing.features.meeting.body":
-    "Zoom veya Meet bağlantılarını otomatik oluşturun. Ya da yüz yüze görüşmeler için fiziksel adres kullanın.",
-  "landing.features.reminders.title": "Hedefini bulan hatırlatmalar",
-  "landing.features.reminders.body":
-    "Akıllı e-posta ve SMS hatırlatmaları gelmeyen müşteri oranını ortalama %38 azaltır.",
-  "landing.features.embed.title": "Gömülebilir ve markalı",
-  "landing.features.embed.body":
-    "Rezervasyon sayfasını sitenize yerleştirin veya hazır bağlantıyı kullanın. Kendi renkleriniz, kendi yazı tipleriniz.",
+    "Bağımsız bir uzmanın ihtiyacı olan her şey. Fazlası değil.",
+  "landing.features.bookings.title": "Ücretli rezervasyonlar",
+  "landing.features.bookings.body":
+    "Müşteriler rezervasyon yaparken ödemeyi alın — kartla veya manuel banka havalesiyle, seçim sizin. Net makbuzlar, tablo uğraşı yok.",
+  "landing.features.forms.title": "Müşteri bilgi ve hazırlık formları",
+  "landing.features.forms.body":
+    "Seanstan önce ihtiyacınız olan bağlamı toplayın. Önemli soruları ödeme öncesi zorunlu ya da sonrasında isteğe bağlı yapın.",
+  "landing.features.reservation.title": "Müşteri rezervasyon sayfası",
+  "landing.features.reservation.body":
+    "Rezervasyondan sonra müşteriler; ayrıntıları görmek, isteğe bağlı formları tamamlamak, size mesaj atmak veya yeniden planlama istemek için bir sayfa alır.",
+  "landing.features.sessions.title": "Seanslar ve takvim",
+  "landing.features.sessions.body":
+    "Kapasiteli ve kalan kontenjanlı birebir ya da grup seansları. Takviminizdeki çakışmalar çakışma olarak işaretlenir.",
+  "landing.features.languages.title": "Çok dilli rezervasyon",
+  "landing.features.languages.body":
+    "Müşterileriniz İngilizce, Türkçe veya Almanca rezervasyon yapabilir — tüm akış onların diline uyar.",
+  "landing.features.workspace.title": "Hafif bir çalışma alanı",
+  "landing.features.workspace.body":
+    "Rezervasyonlar, müşteriler, hizmetler ve ayarlar için sade bir yönetim — işinizi yürütmek için tasarlandı, ağır bir CRM değil.",
 
   "landing.demoStrip.eyebrow": "İş başında görün",
   "landing.demoStrip.title": "Gerçek bir rezervasyon akışını deneyin. Kayıt gerekmez.",
@@ -112,7 +113,7 @@ export const tr: Partial<Messages> = {
   "landing.pricing.solo.f3": "Google / Apple takvim senkronizasyonu",
   "landing.pricing.solo.f4": "1 rezervasyon sayfası",
   "landing.pricing.team.name": "Ekip",
-  "landing.pricing.team.blurb": "Küçük ekipli klinikler ve stüdyolar için.",
+  "landing.pricing.team.blurb": "Stüdyolar ve küçük uzman ekipler için.",
   "landing.pricing.team.f1": "Solo'daki her şey",
   "landing.pricing.team.f2": "10 ekip üyesine kadar",
   "landing.pricing.team.f3": "Grup seansları ve bekleme listeleri",
@@ -152,7 +153,7 @@ export const tr: Partial<Messages> = {
     "Rezervasyon sayfanızı 10 dakikadan kısa sürede kurun. 14 gün ücretsiz, kredi kartı gerekmez.",
 
   "footer.tagline":
-    "Slotera, bağımsız danışmanların ve koçların tablolar, takvimler ve faturalarla boğuşmadan rezervasyon akışlarını yürütmesine yardımcı olur.",
+    "Slotera; bağımsız danışmanların, koçların ve eğitmenlerin ücretli rezervasyonları ve müşteri hazırlığını yürütmesine yardımcı olur — tablolar, takvimler ve faturalarla boğuşmadan.",
   "footer.col.product": "Ürün",
   "footer.col.company": "Şirket",
   "footer.col.legal": "Yasal",
@@ -239,6 +240,17 @@ export const tr: Partial<Messages> = {
   "booking.field.yes": "Evet",
   "booking.field.no": "Hayır",
   "booking.field.select": "Seçin…",
+
+  "booking.packages.hintTitle": "Paketlerde de mevcut",
+  "booking.packages.hintBody":
+    "Bu seans, çok seanslı bir paketin veya programın parçası olarak rezerve edilebilir.",
+  "booking.packages.viewOptions": "Paket seçeneklerini gör",
+  "booking.packages.modalTitle": "Paket seçenekleri",
+  "booking.packages.modalBody":
+    "Bu çok seanslı teklifler bu seansı içerir. Paket satın alma bu demoda yer almıyor — devam etmek için tek bir seans rezerve edin.",
+  "booking.packages.featured": "Öne çıkan",
+  "booking.packages.sessionsSuffix": "seans",
+  "booking.packages.validFor": "{days} gün geçerli",
 
   "booking.billing.line1": "Adres satırı 1",
   "booking.billing.line1.placeholder": "Sokak ve numara",
@@ -331,6 +343,8 @@ export const tr: Partial<Messages> = {
   "reservation.summary.location": "Konum",
   "reservation.summary.payment": "Ödeme",
   "reservation.summary.reference": "Referans",
+  "reservation.summary.package": "Paket",
+  "reservation.package.session": "Seans {n}/{total}",
   "reservation.status.confirmed": "Onaylandı",
   "reservation.status.pendingPayment": "Ödeme bekleniyor",
   "reservation.location.online": "Çevrimiçi — toplantı bağlantısı e-postayla gönderildi",
@@ -357,7 +371,7 @@ export const tr: Partial<Messages> = {
   "reservation.form.notes.desc": "Sağlayıcının önceden bilmesini istediğiniz her şey.",
   "reservation.form.notes.field": "Notlarınız",
   "reservation.form.notes.placeholder": "ör. bağlam, hedefler, görüşmek istediğiniz sorular…",
-  "reservation.form.update.name": "Ziyaret öncesi güncelleme",
+  "reservation.form.update.name": "Seans öncesi güncelleme",
   "reservation.form.update.desc": "Sağlayıcının hazırlanabilmesi için kısa bir bilgilendirme.",
   "reservation.form.update.field": "Rezervasyondan bu yana değişen bir şey var mı?",
   "reservation.message.title": "Sağlayıcıya mesaj gönderin",
@@ -407,9 +421,8 @@ export const tr: Partial<Messages> = {
   "demoGuide.step.booking.tryAs": "Şu rolde deneyin:",
   "demoGuide.step.booking.defaultLink": "Standart rezervasyon sayfasını aç",
   "demoGuide.persona.consultant": "Danışman",
-  "demoGuide.persona.vet": "Veteriner",
-  "demoGuide.persona.therapist": "Terapist",
-  "demoGuide.persona.trainer": "Kişisel antrenör",
+  "demoGuide.persona.coach": "Koç",
+  "demoGuide.persona.instructor": "Eğitmen",
   "demoGuide.step.reservation.title": "Müşteri rezervasyon sayfasını görün",
   "demoGuide.step.reservation.body":
     "Rezervasyon sonrası deneyimi görün: rezervasyon ayrıntıları, isteğe bağlı formlar, sağlayıcıya mesaj gönderme ve yeniden planlama veya iptal talebi.",

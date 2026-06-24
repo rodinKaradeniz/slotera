@@ -6,6 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Slotera is a paid reservation and session-management product for **individual** service providers (consultants, coaches, instructors, workshop hosts). The current build is a frontend-only Next.js prototype intended for portfolio/client demos — not production.
 
+### Positioning / first ICP (important)
+
+Slotera's **first ICP is independent consultants, coaches, instructors, and small expert-led studios/workshops.** Default public positioning: *"a paid booking and client-prep workspace for independent consultants, coaches, and instructors."* Themes to lead with: paid bookings, client intake/prep forms, session management, the customer reservation page, manual/card payment readiness, the multilingual booking experience, and a lightweight admin workspace — explicitly **not a heavy CRM and not a generic calendar-only tool.**
+
+- The **underlying product model stays generic and flexible** (services, sessions, bookings, forms, payments, clients, calendar, settings, customer reservation page). Don't hardcode a vertical into the data model — refine *positioning and defaults*, not architecture. See the "**No `type` field, ever**" rule under Services.
+- **Public/default surfaces should not try to speak to every vertical at once.** The standard `/booking` default and the public Demo Guide lead with consultant/coach/instructor. Specialised verticals (vet, therapist) may exist as flexible mock examples but are **not** promoted in the public positioning.
+- **Never claim Slotera is veterinary-clinic software, therapy practice-management software, healthcare software, or a medical-records/patient-management system. No medical/clinical/compliance claims.** Keep privacy/legal wording soft ("UK GDPR-aware", never "GDPR compliant" — see Landing copy).
+- Prefer non-clinical language: *client intake, pre-session questions, booking forms, session prep, client notes, customer reservation page.*
+- **Standard `/booking` default story** is the curated consultant/coach/instructor set in `STANDARD_BOOKING_SERVICE_IDS` (`src/services/demo.service.ts`) — Discovery Call, Strategy Session, Coaching Session, Group Workshop. Keep it focused (3–5 services, 4 is the sweet spot) and curate it in the **resolver/data**, never via render-time slicing. Persona demos (`?demo=<slug>`) and the admin Services list can carry richer sets.
+- **Demo Guide personas** (`DemoGuidelinesModal.tsx` + `demo-personas.json`) lead with `consultant`, `coach`, `instructor`. Adjust labels/order/copy here freely; if reintroducing vet/therapist demos, keep them secondary and out of the main public pitch.
+
 ### Phase scope (important)
 
 **Phase 1 — now.** Next.js + TypeScript + Tailwind + mock JSON only. No backend, no real auth, no Stripe, no email provider, no Google Calendar/Meet. Local component state is fine; persistence across reload is not a requirement. Do not add any of those integrations unless explicitly asked.
@@ -190,7 +201,7 @@ Routes:
 
 | Operator (`/admin/*`) | Superadmin (`/superadmin/*`) |
 |---|---|
-| dashboard, calendar, bookings, clients, services, settings | overview, workspaces, workspaces/[id], subscriptions, inquiries, settings |
+| dashboard, calendar, bookings, clients, services, packages, forms, settings | overview, workspaces, workspaces/[id], subscriptions, inquiries, settings |
 
 Mock auth routes by role via `homePathForRole()`. `/superadmin/*` is protected by `AuthGuard requireRole="superadmin"`.
 
@@ -283,6 +294,18 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 - Forms attach at the **service** level only; sessions inherit, they are not attached per-session.
 - The booking flow handles **pre-payment** form completion: a conditional Forms step (one step, all attached active forms stacked) appears between Details and Billing when the chosen service has attached forms, and is gated on required fields before payment. `FormTemplate.requiredBeforePayment` already exists for this.
 - **Future — optional / post-booking forms (not built; do not implement now).** A later iteration may let clients complete *optional* forms after booking via a customer reservation-management link/page (possible routes: `/reservation/:id`, `/booking/manage?token=...`). Such a page could let a client view reservation details, complete remaining optional forms, review manual payment instructions, reschedule/cancel if allowed, and see address/meeting details. This is deferred because it needs guest access / magic links, email delivery, and backend persistence — all Phase 2/3 concerns. Keep wording non-clinical/non-legal (intake questions, pre-visit information, client-provided notes, agreement acknowledgement); no medical-record or compliance claims.
+
+### Packages / Programs
+
+Lightweight Phase 1 demo entities for selling/presenting **multi-session offers** — the kind an independent consultant/coach/instructor runs: a 4-session coaching package, an 8-week program, a group workshop series. `PackageProgram` (`src/types/package-program.ts`), seeded in `src/data/mock/package-programs.json`, served by `src/services/package-programs.service.ts` (`listPackagePrograms`, `getPackageProgram`, `create`/`update`, `deactivate`/`activate`, `removePackageProgram`, `listActivePackagePrograms`, `listPackageProgramsForService`, `setPackageServiceAttachment`).
+
+- `kind: "package" | "program"` — `package` = a bundle of sessions/credits; `program` = a structured offer over time. Branch copy/labels on `kind`, don't add a separate type hierarchy.
+- **Source of truth for the service relationship is `PackageProgram.attachedServiceIds`** — there is **no `Service.packageProgramIds`** field. The service editor's "Available in packages" control (`AvailableInPackagesField`, mounted in `ServiceForm`) persists each toggle via `setPackageServiceAttachment`, exactly like `AttachedFormsField`. Don't reintroduce a dual-write relationship.
+- **Operator surface only:** the **Packages** nav item + `/admin/packages` are operator-admin only (never superadmin). Create/edit uses the global `DrawersProvider` (`openPackageProgramDrawer` → `PackageProgramDrawer` → `PackageProgramForm`).
+- **Public booking is informational only.** When a selected service belongs to active packages, the Service step shows a `PackageOptionsHint` (a hint + a modal listing the offers). **No package checkout, no required choice, no payment changes, no step-sequence changes.**
+- **`/reservation/demo`** shows a **display-only** "Part of: <package> · Session N of M" line. No credit ledger, balance, or consumption.
+- **This is a product/demo model only.** It does **not** implement real checkout, credit/balance ledgers, session consumption, entitlement rules, recurring billing, memberships, coupons, gift cards, or Stripe product/price objects. `formTemplateIds` exists on the type and seeds but has no editor yet (passed through on save) — don't overbuild it. Future iterations may add package purchase, remaining credits, program enrollment, reminders, and customer package management.
+- **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Solo/Team/Custom). Packages/Programs = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
 
 ### Customer reservation page (demo)
 

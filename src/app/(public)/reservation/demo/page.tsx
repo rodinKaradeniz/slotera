@@ -28,7 +28,7 @@ import type { Messages } from "@/i18n/messages/en";
 // chrome around them is translated.
 const DEMO = {
   provider: "Dr. Lena Hartmann",
-  service: "Strategy deep-dive",
+  service: "Strategy Session",
   // 14 days out at 14:00 local, so the page always shows an upcoming booking.
   dateISO: (() => {
     const d = new Date();
@@ -39,6 +39,13 @@ const DEMO = {
   reference: "SLT-DEMO1",
   manualInstructions:
     "Bank transfer to: Velora Labs · IBAN GB00 SLOT 0000 0000 0000 00 · Reference SLT-DEMO1",
+  // Display-only package context — no credit ledger or balance accounting. Shows
+  // how a session could surface as part of a multi-session package/program.
+  packageProgram: {
+    name: "Founder Advisory Package",
+    sessionIndex: 2,
+    sessionTotal: 6,
+  },
 };
 
 type OptionalForm = {
@@ -176,6 +183,17 @@ export default function ReservationDemoPage() {
                   icon="clipboard"
                   label={t("reservation.summary.reference")}
                   value={DEMO.reference}
+                />
+                <SummaryItem
+                  icon="repeat"
+                  label={t("reservation.summary.package")}
+                  value={`${DEMO.packageProgram.name} · ${t(
+                    "reservation.package.session",
+                    {
+                      n: DEMO.packageProgram.sessionIndex,
+                      total: DEMO.packageProgram.sessionTotal,
+                    },
+                  )}`}
                 />
               </dl>
 

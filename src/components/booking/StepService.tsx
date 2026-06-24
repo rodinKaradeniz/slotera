@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ConsultantIntro } from "./ConsultantIntro";
 import { ServiceSelectorCard } from "./ServiceSelectorCard";
+import { PackageOptionsHint } from "./PackageOptionsHint";
 import { listBookingServices } from "@/services/demo.service";
 import type { Service } from "@/types/service";
 import type { DemoPersona } from "@/types/demo";
@@ -23,6 +24,7 @@ export function StepService({ selected, onSelect, persona }: Props) {
   }, [persona]);
 
   return (
+    <div className="flex flex-col">
     <div className="grid gap-12 lg:gap-16 lg:grid-cols-[1fr_1.15fr] lg:items-stretch">
       <ConsultantIntro
         nameOverride={persona?.displayName}
@@ -51,6 +53,10 @@ export function StepService({ selected, onSelect, persona }: Props) {
               ))}
         </div>
       </div>
+    </div>
+      {/* Informational-only: surfaces multi-session packages this service is part
+          of. Never gates or changes what gets booked. */}
+      {selected && <PackageOptionsHint serviceId={selected.id} />}
     </div>
   );
 }
