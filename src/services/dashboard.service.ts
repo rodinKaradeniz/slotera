@@ -3,9 +3,11 @@ import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { listBookings } from "./bookings.service";
 import { listSessions } from "./sessions.service";
+import { listActionItems } from "./session-action-items.service";
 import type { DashboardData, PendingAction } from "@/types/dashboard";
 import type { Booking } from "@/types/booking";
 import type { SessionItem } from "@/types/session";
+import type { SessionActionItem } from "@/types/session-action-item";
 import { NotImplementedError } from "./_errors";
 
 export async function getDashboard(): Promise<DashboardData> {
@@ -13,14 +15,45 @@ export async function getDashboard(): Promise<DashboardData> {
   await sleep(80);
   const base = dashboardJson as unknown as DashboardData;
   // Live-derived pending actions get merged in front of the seeded ones so
-  // recent operator activity (un-marked attendance, etc.) doesn't get buried.
-  const [bookings, sessions] = await Promise.all([listBookings(), listSessions()]);
-  const attendance = computeAttendancePending(bookings, sessions);
+  // recent operator activity (un-marked attendance, open tasks, etc.) doesn't
+  // get buried.
+  const [bookings, sessions, actionItems] = await Promise.all([
+    listBookings(),
+    listSessions(),
+    listActionItems(),
+  ]);
+  const derived = [
+    computeAttendancePending(bookings, sessions),
+    computeActionItemsPending(actionItems, sessions),
+  ].filter((a): a is PendingAction => a !== null);
   return {
     ...base,
-    pendingActions: attendance
-      ? [attendance, ...base.pendingActions]
-      : base.pendingActions,
+    pendingActions: [...derived, ...base.pendingActions],
+  };
+}
+
+/**
+ * Surfaces "review N open session action items" when any real session has
+ * `todo` action items. Demo-only sessions (not present in the sessions list,
+ * e.g. the reservation-workspace seed) are excluded.
+ */
+function computeActionItemsPending(
+  actionItems: SessionActionItem[],
+  sessions: SessionItem[],
+): PendingAction | null {
+  const sessionIds = new Set(sessions.map((s) => s.id));
+  const open = actionItems.filter(
+    (a) => a.status === "todo" && sessionIds.has(a.sessionId),
+  );
+  if (open.length === 0) return null;
+  const n = open.length;
+  return {
+    id: "action-items-pending",
+    tone: "info",
+    icon: "clipboard",
+    label: `Review ${n} open session action item${n === 1 ? "" : "s"}`,
+    detail: "Open a session and use the Notes & Actions tab to work through them.",
+    age: "now",
   };
 }
 

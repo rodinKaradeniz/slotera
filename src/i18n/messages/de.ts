@@ -54,7 +54,7 @@ export const de: Partial<Messages> = {
     "Vom E-Mail-Hin-und-Her zu einem echten Buchungsablauf an einem Nachmittag.",
   "landing.how.step1.title": "Leistungen einrichten",
   "landing.how.step1.body":
-    "Legen Sie Ihre Leistungen mit Dauer, Kapazität und Preis an — 1:1 oder Gruppe. Bündeln Sie Sitzungen zu Paketen oder mehrwöchigen Programmen und hängen Sie Formulare an, wenn Sie vor dem Termin Kontext brauchen.",
+    "Legen Sie Ihre Leistungen mit Dauer, Kapazität und Preis an — 1:1 oder Gruppe. Bündeln Sie Sitzungen zu mehrteiligen Paketen und hängen Sie Formulare an, wenn Sie vor dem Termin Kontext brauchen.",
   "landing.how.step2.title": "Einen Buchungslink teilen",
   "landing.how.step2.body":
     "Kunden wählen einen Termin, beantworten Ihre Fragen vor der Sitzung und zahlen per Karte oder Überweisung. Kein Konto nötig.",
@@ -241,16 +241,15 @@ export const de: Partial<Messages> = {
   "booking.field.no": "Nein",
   "booking.field.select": "Auswählen…",
 
-  "booking.packages.hintTitle": "Auch als Paket erhältlich",
+  "booking.packages.hintTitle": "In Paketen verfügbar",
   "booking.packages.hintBody":
-    "Diese Sitzung kann als Teil eines mehrteiligen Pakets oder Programms gebucht werden.",
+    "Diese Sitzung ist in einem oder mehreren mehrteiligen Paketen enthalten.",
   "booking.packages.viewOptions": "Paketoptionen ansehen",
   "booking.packages.modalTitle": "Paketoptionen",
   "booking.packages.modalBody":
-    "Diese mehrteiligen Angebote enthalten diese Sitzung. Der Paketkauf ist nicht Teil dieser Demo — buchen Sie eine einzelne Sitzung, um fortzufahren.",
+    "Diese Pakete enthalten diese Sitzung. Der Paketkauf ist nicht Teil dieser Demo — buchen Sie eine einzelne Sitzung, um fortzufahren.",
   "booking.packages.featured": "Empfohlen",
   "booking.packages.sessionsSuffix": "Sitzungen",
-  "booking.packages.validFor": "{days} Tage gültig",
 
   "booking.billing.line1": "Adresszeile 1",
   "booking.billing.line1.placeholder": "Straße und Hausnummer",
@@ -359,6 +358,17 @@ export const de: Partial<Messages> = {
   "reservation.actions.rescheduleHint": "Andere Zeit nötig? Fragen Sie nach einem neuen Termin.",
   "reservation.actions.cancelLabel": "Stornierung anfragen",
   "reservation.actions.cancelHint": "Teilen Sie dem Anbieter mit, dass Sie nicht können.",
+  "reservation.actions.stepsLabel": "Ihre nächsten Schritte ansehen",
+  "reservation.actions.stepsHint": "Eine kurze Checkliste, die Ihr Anbieter geteilt hat.",
+  "reservation.steps.title": "Ihre nächsten Schritte",
+  "reservation.steps.note":
+    "Von Ihrem Anbieter geteilt, damit Sie sich vorbereiten können. Haken Sie ab, was Sie erledigt haben — nur für Ihre eigene Übersicht.",
+  "reservation.steps.due": "Fällig",
+  "reservation.steps.doneBadge": "Erledigt",
+  "reservation.steps.markDone": "Als erledigt markieren",
+  "reservation.steps.markTodo": "Als offen markieren",
+  "reservation.steps.marked": "Als erledigt markiert",
+  "reservation.steps.markedDesc": "Schön — das dient nur Ihrer eigenen Übersicht (Demo).",
   "reservation.forms.title": "Optionale Formulare",
   "reservation.forms.note":
     "Diese waren vor der Zahlung nicht erforderlich. Sie können sie jetzt oder jederzeit vor Ihrem Termin ausfüllen.",

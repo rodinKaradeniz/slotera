@@ -1,10 +1,35 @@
 [
   {
+    "id": "frm-discovery-prep",
+    "name": "Discovery Call prep",
+    "description": "A couple of quick questions so your discovery call starts with the right context.",
+    "status": "active",
+    "fields": [
+      {
+        "id": "ff-about",
+        "label": "What would you like to talk through?",
+        "type": "long_text",
+        "required": true,
+        "placeholder": "A sentence or two on what's on your mind.",
+        "helpText": "The more specific, the more we can cover."
+      },
+      {
+        "id": "ff-source",
+        "label": "How did you hear about me?",
+        "type": "short_text",
+        "required": false,
+        "placeholder": "e.g. referral, LinkedIn, a talk"
+      }
+    ],
+    "attachedServiceIds": ["svc-discovery"],
+    "requiredBeforePayment": false,
+    "createdAtISO": "2026-02-08T10:00:00.000Z"
+  },
+  {
     "id": "frm-consult-context",
     "name": "Business context questions",
     "description": "A few intake questions so the session starts with the right context.",
     "status": "active",
-    "purpose": "questions",
     "fields": [
       {
         "id": "ff-company",
@@ -34,116 +59,42 @@
     "createdAtISO": "2026-02-10T10:00:00.000Z"
   },
   {
-    "id": "frm-vet-intake",
-    "name": "Pet pre-visit information",
-    "description": "Client-provided notes about your pet ahead of the visit.",
+    "id": "frm-workshop-intake",
+    "name": "Workshop intake",
+    "description": "Tell us what you'd like to get out of the workshop so we can tailor the room.",
     "status": "active",
-    "purpose": "intake",
     "fields": [
       {
-        "id": "ff-pet-name",
-        "label": "Pet's name",
+        "id": "ff-role",
+        "label": "Your role",
         "type": "short_text",
-        "required": true,
-        "placeholder": "e.g. Biscuit"
+        "required": false,
+        "placeholder": "e.g. Founder, product manager, designer"
       },
       {
-        "id": "ff-species",
-        "label": "Species",
+        "id": "ff-experience",
+        "label": "How familiar are you with the topic?",
         "type": "single_select",
         "required": true,
-        "options": ["Dog", "Cat", "Rabbit", "Bird", "Other"]
+        "options": ["New to it", "Some experience", "Very experienced"]
       },
       {
-        "id": "ff-symptoms",
-        "label": "What would you like us to look at?",
-        "type": "long_text",
-        "required": true,
-        "placeholder": "Describe what you've noticed and when it started.",
-        "helpText": "This is client-provided context, not a medical record."
-      },
-      {
-        "id": "ff-since",
-        "label": "When did you first notice it?",
-        "type": "date",
-        "required": false
-      }
-    ],
-    "attachedServiceIds": ["svc-vet-checkup"],
-    "requiredBeforePayment": true,
-    "createdAtISO": "2026-02-12T10:00:00.000Z"
-  },
-  {
-    "id": "frm-therapy-intake",
-    "name": "Intake & consent acknowledgement",
-    "description": "A short intake and an acknowledgement before your first session.",
-    "status": "active",
-    "purpose": "intake",
-    "fields": [
-      {
-        "id": "ff-goals",
-        "label": "What brings you here right now?",
-        "type": "long_text",
-        "required": true,
-        "placeholder": "Whatever feels relevant — there are no wrong answers.",
-        "helpText": "Client-provided notes. Share only what you're comfortable with."
-      },
-      {
-        "id": "ff-first-time",
-        "label": "Have you worked with a therapist before?",
-        "type": "yes_no",
-        "required": false
-      },
-      {
-        "id": "ff-consent",
-        "label": "I understand this booking is a session request and acknowledge the provider's booking terms.",
-        "type": "consent_checkbox",
-        "required": true
-      }
-    ],
-    "attachedServiceIds": ["svc-therapy-session"],
-    "requiredBeforePayment": true,
-    "createdAtISO": "2026-02-14T10:00:00.000Z"
-  },
-  {
-    "id": "frm-trainer-goals",
-    "name": "Goals & injury history",
-    "description": "Pre-visit information so we can tailor your first session safely.",
-    "status": "active",
-    "purpose": "intake",
-    "fields": [
-      {
-        "id": "ff-tgoals",
-        "label": "What are your main goals?",
-        "type": "long_text",
-        "required": true,
-        "placeholder": "e.g. Build strength, train for a 10k, general fitness."
-      },
-      {
-        "id": "ff-injury",
-        "label": "Any injuries or conditions we should know about?",
+        "id": "ff-hopes",
+        "label": "What would make this a great session for you?",
         "type": "long_text",
         "required": false,
-        "placeholder": "Client-provided notes — leave blank if none.",
-        "helpText": "This is not a medical assessment."
-      },
-      {
-        "id": "ff-active",
-        "label": "Are you currently exercising regularly?",
-        "type": "yes_no",
-        "required": false
+        "placeholder": "Anything you'd like us to make sure we cover."
       }
     ],
-    "attachedServiceIds": ["svc-trainer-session"],
+    "attachedServiceIds": ["svc-workshop"],
     "requiredBeforePayment": true,
-    "createdAtISO": "2026-02-16T10:00:00.000Z"
+    "createdAtISO": "2026-02-12T10:00:00.000Z"
   },
   {
     "id": "frm-nda",
     "name": "Mutual NDA acknowledgement",
     "description": "A simple agreement acknowledgement before we discuss sensitive details.",
     "status": "active",
-    "purpose": "nda",
     "fields": [
       {
         "id": "ff-fullname",

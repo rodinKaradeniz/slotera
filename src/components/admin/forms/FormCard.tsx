@@ -4,7 +4,7 @@ import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Icon } from "@/components/ui/Icon";
-import { FORM_PURPOSE, FORM_STATUS } from "@/lib/status-maps";
+import { FORM_STATUS } from "@/lib/status-maps";
 import { plural } from "@/lib/text";
 import type { FormTemplate } from "@/types/form";
 
@@ -20,8 +20,7 @@ export function FormCard({ form, onClick }: Props) {
       className="cursor-pointer overflow-hidden flex flex-col"
     >
       <div className="p-5 flex-1 flex flex-col">
-        <div className="flex items-center justify-between gap-2">
-          <Pill tone="neutral">{FORM_PURPOSE[form.purpose]}</Pill>
+        <div className="flex items-center justify-end gap-2">
           <Pill tone={status.tone}>{status.label}</Pill>
         </div>
         <h3

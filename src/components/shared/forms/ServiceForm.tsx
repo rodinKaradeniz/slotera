@@ -8,7 +8,6 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { AddressPicker } from "./AddressPicker";
 import { AttachedFormsField } from "./AttachedFormsField";
-import { AvailableInPackagesField } from "./AvailableInPackagesField";
 import { getSettings } from "@/services/settings.service";
 import type { Service } from "@/types/service";
 import type { Currency, LocationType } from "@/types/common";
@@ -177,8 +176,6 @@ export function ServiceForm({
       </Field>
 
       <AttachedFormsField serviceId={serviceId} disabled={disabled} />
-
-      <AvailableInPackagesField serviceId={serviceId} disabled={disabled} />
 
       {showActiveToggle && (
         <div className="flex items-center justify-between rounded-md border border-line bg-surface-warm p-4">

@@ -13,7 +13,6 @@ import { LoadingRows } from "@/components/shared/LoadingRows";
 import { FormCard } from "./FormCard";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { listForms } from "@/services/forms.service";
-import { FORM_PURPOSE } from "@/lib/status-maps";
 import type { FormTemplate } from "@/types/form";
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -37,8 +36,7 @@ export function FormsView() {
     if (!q) return true;
     return (
       f.name.toLowerCase().includes(q) ||
-      f.description.toLowerCase().includes(q) ||
-      FORM_PURPOSE[f.purpose].toLowerCase().includes(q)
+      f.description.toLowerCase().includes(q)
     );
   });
 
@@ -71,7 +69,7 @@ export function FormsView() {
         <div className="flex-1 min-w-[220px]">
           <Input
             icon="search"
-            placeholder="Search forms by name or purpose"
+            placeholder="Search forms by name"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

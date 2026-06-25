@@ -2,9 +2,7 @@
 
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
-import { Pill } from "@/components/ui/Pill";
 import { useToast } from "@/components/ui/Toast";
-import { FORM_PURPOSE } from "@/lib/status-maps";
 import { listForms, setFormServiceAttachment } from "@/services/forms.service";
 import type { FormTemplate } from "@/types/form";
 
@@ -84,7 +82,6 @@ export function AttachedFormsField({ serviceId, disabled }: Props) {
                   className="accent-accent w-4 h-4"
                 />
                 <span className="text-[14px] text-ink flex-1">{f.name}</span>
-                <Pill tone="neutral">{FORM_PURPOSE[f.purpose]}</Pill>
               </label>
             );
           })}

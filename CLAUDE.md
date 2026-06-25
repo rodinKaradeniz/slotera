@@ -144,6 +144,7 @@ The sections below capture decisions that go beyond the code's structure — wha
 - **`bookingMode: "open" | "scheduled"`** is a booking *mechanic*, not a category — see Domain terminology above. Do not branch UI on it the way you would on a category enum.
 - **Default address** — when `locationType` is physical/hybrid, a service can carry an `address?: Address` which is the default inherited by new sessions of that service. The session can override. Switching the chosen service in `SessionDrawer` re-inherits the new service's address.
 - **Internal notes** — `service.notes`, displayed only to the operator. Prep instructions, materials, context. Never shown to clients.
+- **Curated mock set.** `src/data/mock/services.json` is intentionally small and ICP-aligned: 4 active (Discovery Call, Strategy Session, Coaching Session, Group Workshop) + 1 inactive (Monthly Office Hours). Group Workshop is the only `capacity > 1` service and carries the group/attendance/calendar story. Don't re-add broad profession-specific services (yoga/vet/therapy/trainer) unless explicitly reintroduced.
 
 ### Payment domains
 
@@ -291,29 +292,38 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 ### Forms
 
 - Reusable `FormTemplate`s (`src/types/form.ts`) are created under `/admin/forms` and attached to services. Attachment is **single-sourced on `FormTemplate.attachedServiceIds`** — there is no `Service.attachedFormIds` field. The public flow resolves attachment via `listFormsForService(serviceId)`. Don't reintroduce a dual-write relationship.
+- **Simplified shape (no `purpose`).** A `FormTemplate` is `{ id, name, description, status, fields, attachedServiceIds, requiredBeforePayment, createdAtISO }`. There is **no `purpose`/`FormPurpose` field, category, or filter** — don't reintroduce one. Mock forms are curated around the consultant/coach/instructor ICP (Discovery Call prep, Business context questions, Workshop intake, Mutual NDA acknowledgement). Don't add back profession-specific forms (pet/therapy/trainer).
 - Forms attach at the **service** level only; sessions inherit, they are not attached per-session.
 - The booking flow handles **pre-payment** form completion: a conditional Forms step (one step, all attached active forms stacked) appears between Details and Billing when the chosen service has attached forms, and is gated on required fields before payment. `FormTemplate.requiredBeforePayment` already exists for this.
 - **Future — optional / post-booking forms (not built; do not implement now).** A later iteration may let clients complete *optional* forms after booking via a customer reservation-management link/page (possible routes: `/reservation/:id`, `/booking/manage?token=...`). Such a page could let a client view reservation details, complete remaining optional forms, review manual payment instructions, reschedule/cancel if allowed, and see address/meeting details. This is deferred because it needs guest access / magic links, email delivery, and backend persistence — all Phase 2/3 concerns. Keep wording non-clinical/non-legal (intake questions, pre-visit information, client-provided notes, agreement acknowledgement); no medical-record or compliance claims.
 
-### Packages / Programs
+### Packages
 
-Lightweight Phase 1 demo entities for selling/presenting **multi-session offers** — the kind an independent consultant/coach/instructor runs: a 4-session coaching package, an 8-week program, a group workshop series. `PackageProgram` (`src/types/package-program.ts`), seeded in `src/data/mock/package-programs.json`, served by `src/services/package-programs.service.ts` (`listPackagePrograms`, `getPackageProgram`, `create`/`update`, `deactivate`/`activate`, `removePackageProgram`, `listActivePackagePrograms`, `listPackageProgramsForService`, `setPackageServiceAttachment`).
+Lightweight Phase 1 demo entities for selling/presenting **multi-session offers** — the kind an independent consultant/coach/instructor runs: a 4-session coaching package, a strategy sprint package. `ServicePackage` (`src/types/package.ts`), seeded in `src/data/mock/packages.json`, served by `src/services/packages.service.ts` (`listPackages`, `getPackage`, `create`/`update`, `deactivate`/`activate`, `removePackage`, `listActivePackages`, `listPackagesForService`).
 
-- `kind: "package" | "program"` — `package` = a bundle of sessions/credits; `program` = a structured offer over time. Branch copy/labels on `kind`, don't add a separate type hierarchy.
-- **Source of truth for the service relationship is `PackageProgram.attachedServiceIds`** — there is **no `Service.packageProgramIds`** field. The service editor's "Available in packages" control (`AvailableInPackagesField`, mounted in `ServiceForm`) persists each toggle via `setPackageServiceAttachment`, exactly like `AttachedFormsField`. Don't reintroduce a dual-write relationship.
-- **Operator surface only:** the **Packages** nav item + `/admin/packages` are operator-admin only (never superadmin). Create/edit uses the global `DrawersProvider` (`openPackageProgramDrawer` → `PackageProgramDrawer` → `PackageProgramForm`).
-- **Public booking is informational only.** When a selected service belongs to active packages, the Service step shows a `PackageOptionsHint` (a hint + a modal listing the offers). **No package checkout, no required choice, no payment changes, no step-sequence changes.**
+- **Use "Packages" only — there is no separate "Programs" concept.** No `kind` enum, no package/program distinction, no `durationLabel`/`validityDays`/`includedSessionCount` fields. Don't reintroduce them.
+- **A package is an ordered bundle of existing services.** Shape: `ServicePackage { id, name, description, status, priceCents, currency, items: PackageItem[], notes?, featured?, createdAtISO, updatedAtISO }`. `PackageItem { id, serviceId, title?, description?, order }`. Each item points to an existing `Service`; multiple items may share a `serviceId`; the operator arranges them in a custom order (the editor manages `items` as an array and recomputes `order` from position).
+- **Source of truth for the service relationship is `ServicePackage.items[].serviceId`** — there is **no `Service.packageIds`** field and **no dual-write**. To change which packages include a service, edit the package's items on `/admin/packages`. The service editor does **not** have a package-inclusion control (don't reintroduce `AvailableInPackagesField`/`setPackageServiceAttachment`).
+- **Operator surface only:** the **Packages** nav item + `/admin/packages` are operator-admin only (never superadmin). Create/edit uses the global `DrawersProvider` (`openPackageDrawer` → `PackageDrawer` → `PackageForm`). Cards/list show name, price, number of included sessions (`items.length`), status, and a featured indicator.
+- **Public booking is informational only.** When a selected service is included in active packages, the Service step shows a `PackageOptionsHint` (a hint + a modal listing the offers), resolved via `listPackagesForService` (active packages whose `items[].serviceId` matches). **No package checkout, no required choice, no payment changes, no step-sequence changes.** Copy: "Available in packages" / "View package options" — never "programs", "memberships", "credits", "subscriptions", or "available with services".
 - **`/reservation/demo`** shows a **display-only** "Part of: <package> · Session N of M" line. No credit ledger, balance, or consumption.
-- **This is a product/demo model only.** It does **not** implement real checkout, credit/balance ledgers, session consumption, entitlement rules, recurring billing, memberships, coupons, gift cards, or Stripe product/price objects. `formTemplateIds` exists on the type and seeds but has no editor yet (passed through on save) — don't overbuild it. Future iterations may add package purchase, remaining credits, program enrollment, reminders, and customer package management.
-- **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Solo/Team/Custom). Packages/Programs = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
+- **This is a product/demo model only.** It does **not** implement real checkout, credit/balance ledgers, session consumption, entitlement rules, recurring billing, memberships, coupons, gift cards, or Stripe product/price objects. Future iterations may add package purchase, remaining credits, enrollment, reminders, and customer package management.
+- **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Solo/Team/Custom). Packages = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
 
-### Customer reservation page (demo)
+### Customer reservation workspace (demo)
 
-`/reservation/demo` (`src/app/(public)/reservation/demo/page.tsx`) is a **mocked, public, no-auth Phase 1 preview** of what a customer could see/do *after* booking — it is **not a customer account or "Customer Portal"** (don't use that term in UI copy). Customers still do not have accounts. It surfaces from the booking confirmation page's "Manage reservation" link and uses a single fixed demo reservation (no IDs, tokens, secure links, persistence, or email).
+`/reservation/demo` (`src/app/(public)/reservation/demo/page.tsx`) is a **mocked, public, no-auth Phase 1 preview** of a lightweight post-booking **reservation workspace** — what a customer could see/do *after* booking. User-facing copy may call it a **"reservation workspace"** / **"your reservation"**; it is **not a customer account, and never call it a "Customer Portal" or "Client Portal"** (don't use those terms in UI copy). Customers still do not have accounts. It surfaces from the booking confirmation page's "Manage reservation" link and uses a single fixed demo reservation (no IDs, tokens, secure links, persistence, or email).
 
-What it demonstrates, all mocked (ConfirmDialog + toast only, no real logic): reservation summary (service, provider, date/time, status, location, payment + manual instructions), **optional/post-booking forms** that weren't required before payment (fill + "save" → toast, marks completed in local state), message-the-provider textarea, and request-reschedule / request-cancellation actions. It's the natural pairing with the "Future — optional / post-booking forms" note above.
+It is deliberately **not** a full client portal, CRM, project-management app, course platform, or messaging platform.
 
-A production version would use **secure magic links/tokens sent by email + backend persistence**, and could additionally show address/meeting details. Keep copy non-clinical/non-legal; **no medical-record or compliance claims**. Don't promote this page in the public Demo Guide modal unless it stays uncrowded.
+What it demonstrates, all mocked (ConfirmDialog + toast only, no real logic):
+- **Reservation overview** — service, provider, date/time, status, location/online, package context, payment + manual instructions, reservation reference.
+- **Optional/post-booking forms** that weren't required before payment (fill + "save" → toast, marks completed in local state).
+- **Message the provider** — textarea + mocked send (toast). No real messaging/inbox/thread model.
+- **Shared next steps** — `clientVisible` **session action items** (see below) for the demo session, loaded via `listClientActionItemsForSession("ses-demo")`. The client can tick an item done **locally only** (local state + toast); nothing is persisted back. Item titles/descriptions are provider-authored mock content (English, like the provider/service names) — only the surrounding chrome is translated.
+- **Reservation actions** — request-reschedule / request-cancellation (ConfirmDialog + toast).
+
+A production version would use **secure magic links/tokens sent by email + backend persistence**, and could additionally show address/meeting details. Keep copy non-clinical/non-legal; **no medical-record or compliance claims**. **Internal session notes are never exposed here** — only `clientVisible` action items. Don't promote this page in the public Demo Guide modal unless it stays uncrowded.
 
 ### Calendar
 
@@ -376,6 +386,17 @@ type WorkspaceLocation = { id; label; address };
 ### Notes
 
 Every top-level entity has a single optional `notes?: string` textarea — Service (internal), Session (internal), Booking (booking note), Client (notes). Single textarea per entity for now, not a timestamped log. If a multi-author/audit-log shape becomes useful, promote each `notes?: string` to `notes: NoteEntry[]` together — don't fork the shape per entity.
+
+### Session notes & action items
+
+A session carries two distinct admin surfaces, both in the shared `SessionDrawer` under a **"Notes & Actions"** tab (rendered for existing sessions; the tab label shows the open-item count, e.g. `Notes & Actions (2)`):
+
+- **Internal note** — the existing `SessionItem.notes` single string. **Admin/internal by default and never shown to clients.** While *creating* a session the note stays inline on the Details tab; for an *existing* session it moves into the Notes & Actions tab with its own "Save note" button (`updateSession` is a patch-merge, so this stays consistent with the Details "Save"). Don't build a note history/audit log.
+- **Action items** — lightweight admin tasks attached to a session. Type `SessionActionItem` (`src/types/session-action-item.ts`): `{ id, sessionId, title, description?, status: "todo"|"done", dueDate?, clientVisible?, createdAtISO, updatedAtISO }`. Seeded in `src/data/mock/session-action-items.json`, served by `src/services/session-action-items.service.ts` (`listActionItems`, `listActionItemsForSession`, `listClientActionItemsForSession`, `createActionItem`, `updateActionItem`, `toggleActionItemStatus`, `deleteActionItem`). The admin manager (`src/components/drawers/SessionActionItems.tsx`) supports add / edit / mark todo↔done / delete + optional due date + a **"Visible to client"** toggle.
+
+`clientVisible` items may surface as **shared next steps** on the customer reservation workspace (`listClientActionItemsForSession`). **Internal-only items (the default) never leave the admin surface, and internal notes are never exposed to clients.** Keep this lightweight — **no assignees, comments, reminders, notifications, recurrence, project boards, or messaging.**
+
+Derived surfaces: the Dashboard "Needs your attention" list prepends a live **"Review N open session action items"** entry (computed in `dashboard.service.ts` from `todo` items on real sessions; the `ses-demo` seed is excluded). `BookingDrawer` carries a small **"View reservation workspace"** link to `/reservation/demo`.
 
 ---
 

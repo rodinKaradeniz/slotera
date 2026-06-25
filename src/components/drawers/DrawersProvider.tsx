@@ -5,10 +5,7 @@ import { BookingDrawer, type BookingDrawerProps } from "./BookingDrawer";
 import { SessionDrawer, type SessionDrawerProps } from "./SessionDrawer";
 import { ServiceDrawer, type ServiceDrawerProps } from "./ServiceDrawer";
 import { FormDrawer, type FormDrawerProps } from "./FormDrawer";
-import {
-  PackageProgramDrawer,
-  type PackageProgramDrawerProps,
-} from "./PackageProgramDrawer";
+import { PackageDrawer, type PackageDrawerProps } from "./PackageDrawer";
 
 type State =
   | { type: "none" }
@@ -18,7 +15,7 @@ type State =
   | { type: "form"; props: Omit<FormDrawerProps, "open" | "onClose"> }
   | {
       type: "package";
-      props: Omit<PackageProgramDrawerProps, "open" | "onClose">;
+      props: Omit<PackageDrawerProps, "open" | "onClose">;
     };
 
 type Ctx = {
@@ -26,8 +23,8 @@ type Ctx = {
   openSessionDrawer: (props?: Omit<SessionDrawerProps, "open" | "onClose">) => void;
   openServiceDrawer: (props?: Omit<ServiceDrawerProps, "open" | "onClose">) => void;
   openFormDrawer: (props?: Omit<FormDrawerProps, "open" | "onClose">) => void;
-  openPackageProgramDrawer: (
-    props?: Omit<PackageProgramDrawerProps, "open" | "onClose">,
+  openPackageDrawer: (
+    props?: Omit<PackageDrawerProps, "open" | "onClose">,
   ) => void;
   close: () => void;
 };
@@ -53,7 +50,7 @@ export function DrawersProvider({ children }: { children: React.ReactNode }) {
         setState({ type: "service", props }),
       openFormDrawer: (props = {}) =>
         setState({ type: "form", props }),
-      openPackageProgramDrawer: (props = {}) =>
+      openPackageDrawer: (props = {}) =>
         setState({ type: "package", props }),
       close: () => setState({ type: "none" }),
     }),
@@ -83,7 +80,7 @@ export function DrawersProvider({ children }: { children: React.ReactNode }) {
         onClose={value.close}
         {...(state.type === "form" ? state.props : {})}
       />
-      <PackageProgramDrawer
+      <PackageDrawer
         open={state.type === "package"}
         onClose={value.close}
         {...(state.type === "package" ? state.props : {})}

@@ -31,7 +31,6 @@ const DEFAULTS: FormTemplateFormValue = {
   name: "",
   description: "",
   status: "active",
-  purpose: "intake",
   fields: [],
   attachedServiceIds: [],
   requiredBeforePayment: true,

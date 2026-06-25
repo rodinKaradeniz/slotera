@@ -7,58 +7,53 @@ import { Icon } from "@/components/ui/Icon";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import {
-  PackageProgramForm,
-  type PackageProgramFormValue,
-} from "@/components/shared/forms/PackageProgramForm";
+  PackageForm,
+  type PackageFormValue,
+} from "@/components/shared/forms/PackageForm";
 import {
-  createPackageProgram,
-  updatePackageProgram,
-  deactivatePackageProgram,
-  activatePackageProgram,
-  removePackageProgram,
-} from "@/services/package-programs.service";
-import type { PackageProgram } from "@/types/package-program";
+  createPackage,
+  updatePackage,
+  deactivatePackage,
+  activatePackage,
+  removePackage,
+} from "@/services/packages.service";
+import type { ServicePackage } from "@/types/package";
 
-export type PackageProgramDrawerProps = {
+export type PackageDrawerProps = {
   open: boolean;
   onClose: () => void;
-  initial?: PackageProgram | null;
-  onSaved?: (p: PackageProgram) => void;
+  initial?: ServicePackage | null;
+  onSaved?: (p: ServicePackage) => void;
   onRemoved?: (id: string) => void;
 };
 
-const DEFAULTS: PackageProgramFormValue = {
+const DEFAULTS: PackageFormValue = {
   name: "",
   description: "",
   status: "active",
-  kind: "package",
   priceCents: 50000,
   currency: "GBP",
-  includedSessionCount: 4,
-  durationLabel: "",
-  validityDays: 90,
-  attachedServiceIds: [],
-  formTemplateIds: [],
+  items: [],
   notes: "",
   featured: false,
 };
 
 // Strip generated/timestamp fields off an existing record to seed the form value.
-function toFormValue(p: PackageProgram): PackageProgramFormValue {
+function toFormValue(p: ServicePackage): PackageFormValue {
   const { id: _id, createdAtISO: _c, updatedAtISO: _u, ...rest } = p;
   return rest;
 }
 
-export function PackageProgramDrawer({
+export function PackageDrawer({
   open,
   onClose,
   initial,
   onSaved,
   onRemoved,
-}: PackageProgramDrawerProps) {
+}: PackageDrawerProps) {
   const isEdit = !!initial;
   const { toast } = useToast();
-  const [form, setForm] = React.useState<PackageProgramFormValue>(
+  const [form, setForm] = React.useState<PackageFormValue>(
     initial ? toFormValue(initial) : DEFAULTS,
   );
   const [busy, setBusy] = React.useState(false);
@@ -80,11 +75,11 @@ export function PackageProgramDrawer({
     setBusy(true);
     try {
       if (isEdit && initial) {
-        const next = await updatePackageProgram(initial.id, form);
+        const next = await updatePackage(initial.id, form);
         onSaved?.(next);
         toast.success("Package updated");
       } else {
-        const next = await createPackageProgram(form);
+        const next = await createPackage(form);
         onSaved?.(next);
         toast.success("Package created");
       }
@@ -104,8 +99,8 @@ export function PackageProgramDrawer({
     try {
       const next =
         initial.status === "active"
-          ? await deactivatePackageProgram(initial.id)
-          : await activatePackageProgram(initial.id);
+          ? await deactivatePackage(initial.id)
+          : await activatePackage(initial.id);
       onSaved?.(next);
       setForm((f) => ({ ...f, status: next.status }));
       toast.success(
@@ -124,7 +119,7 @@ export function PackageProgramDrawer({
     if (!initial) return;
     setBusy(true);
     try {
-      await removePackageProgram(initial.id);
+      await removePackage(initial.id);
       onRemoved?.(initial.id);
       toast.success("Package deleted");
       setConfirmDelete(false);
@@ -156,7 +151,7 @@ export function PackageProgramDrawer({
       }
     >
       <div className="flex flex-col gap-5">
-        <PackageProgramForm value={form} onChange={setForm} disabled={busy} />
+        <PackageForm value={form} onChange={setForm} disabled={busy} />
 
         {isEdit && (
           <div className="mt-4 pt-5 border-t border-line-soft">
@@ -196,7 +191,7 @@ export function PackageProgramDrawer({
         onClose={() => !busy && setConfirmDelete(false)}
         onConfirm={remove}
         title={`Delete "${initial?.name ?? "this package"}"?`}
-        description="This permanently removes the package/program. Services stay as they are; they just won't reference it anymore."
+        description="This permanently removes the package. Services stay as they are; they just won't be bundled in it anymore."
         confirmLabel="Delete package"
         destructive
         busy={busy}

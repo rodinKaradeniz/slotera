@@ -13,8 +13,6 @@
  * signatures, branching, analytics, or complex validation.
  */
 
-export type FormPurpose = "intake" | "questions" | "agreement" | "nda" | "other";
-
 export type FormFieldType =
   | "short_text"
   | "long_text"
@@ -42,7 +40,6 @@ export type FormTemplate = {
   name: string;
   description: string;
   status: FormStatus;
-  purpose: FormPurpose;
   fields: FormField[];
   /** Services this form is attached to. Source of truth for the public flow. */
   attachedServiceIds: string[];

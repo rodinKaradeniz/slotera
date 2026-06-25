@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ConflictWarning } from "@/components/shared/ConflictWarning";
 import { AddressPicker } from "@/components/shared/forms/AddressPicker";
 import { AttendanceTab } from "./AttendanceTab";
+import { SessionActionItems } from "./SessionActionItems";
 import {
   createSession,
   updateSession,
@@ -21,9 +22,11 @@ import {
 } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
 import { getSettings } from "@/services/settings.service";
+import { listActionItemsForSession } from "@/services/session-action-items.service";
 import { addMinutes } from "@/lib/time";
 import type { Service } from "@/types/service";
 import type { Recurring, SessionItem, SessionStatus } from "@/types/session";
+import type { SessionActionItem } from "@/types/session-action-item";
 import type { LocationType } from "@/types/common";
 import type { Address, WorkspaceLocation } from "@/types/address";
 
@@ -112,10 +115,18 @@ export function SessionDrawer({
   const [conflict, setConflict] = React.useState<SessionItem | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [confirmCancel, setConfirmCancel] = React.useState(false);
-  // Attendance only makes sense for an existing group session — for new or 1:1
-  // sessions we render the details body directly and skip the tab control.
+  const [savingNote, setSavingNote] = React.useState(false);
+  // Tabs appear for an existing session: "Notes & Actions" is always available,
+  // "Attendance" only for a group session. New / 1:1 sessions render the details
+  // body directly (attendance) and keep notes inline in the details form.
   const canShowAttendance = isEdit && (initial?.capacity ?? 0) > 1;
-  const [tab, setTab] = React.useState<"details" | "attendance">("details");
+  const showTabs = isEdit;
+  const [tab, setTab] = React.useState<"details" | "notes" | "attendance">(
+    "details",
+  );
+  const [actionItems, setActionItems] = React.useState<SessionActionItem[]>([]);
+  const [actionItemsLoading, setActionItemsLoading] = React.useState(false);
+  const openActionCount = actionItems.filter((a) => a.status === "todo").length;
 
   React.useEffect(() => {
     if (open) {
@@ -128,6 +139,26 @@ export function SessionDrawer({
     listServices().then(setServices);
     getSettings().then((s) => setSavedLocations(s.business.locations ?? []));
   }, []);
+
+  // Load action items for the open session so the tab badge + panel stay in sync.
+  React.useEffect(() => {
+    if (!open || !initial) {
+      setActionItems([]);
+      return;
+    }
+    let live = true;
+    setActionItemsLoading(true);
+    listActionItemsForSession(initial.id)
+      .then((items) => {
+        if (live) setActionItems(items);
+      })
+      .finally(() => {
+        if (live) setActionItemsLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [open, initial]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -205,6 +236,24 @@ export function SessionDrawer({
     }
   };
 
+  // Internal note saves independently from the Notes & Actions tab (updateSession
+  // is a patch merge, so the main Details "Save" stays consistent with this).
+  const saveNote = async () => {
+    if (!initial) return;
+    setSavingNote(true);
+    try {
+      const next = await updateSession(initial.id, { notes: form.notes });
+      onSaved?.(next);
+      toast.success("Note saved");
+    } catch (err) {
+      toast.error("Couldn't save note", {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
   const cancel = async () => {
     if (!initial) return;
     setBusy(true);
@@ -237,7 +286,7 @@ export function SessionDrawer({
       eyebrow={eyebrow}
       title={title}
       footer={
-        tab === "attendance" ? (
+        tab === "attendance" || tab === "notes" ? (
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
@@ -262,20 +311,63 @@ export function SessionDrawer({
         )
       }
     >
-      {canShowAttendance && (
+      {showTabs && (
         <div className="mb-5">
           <Tabs
             value={tab}
-            onChange={(v) => setTab(v as "details" | "attendance")}
+            onChange={(v) => setTab(v as "details" | "notes" | "attendance")}
             tabs={[
               { value: "details", label: "Details" },
-              { value: "attendance", label: "Attendance" },
+              {
+                value: "notes",
+                label:
+                  openActionCount > 0
+                    ? `Notes & Actions (${openActionCount})`
+                    : "Notes & Actions",
+              },
+              ...(canShowAttendance
+                ? [{ value: "attendance", label: "Attendance" }]
+                : []),
             ]}
           />
         </div>
       )}
 
-      {tab === "attendance" && initial ? (
+      {tab === "notes" && initial ? (
+        <div className="flex flex-col gap-6">
+          <div>
+            <h4 className="text-[13px] font-semibold text-ink">Internal note</h4>
+            <p className="text-micro text-ink-3 mt-0.5 mb-2">
+              Only visible to you. Session-specific reminders or attendee context.
+            </p>
+            <Textarea
+              value={form.notes}
+              rows={3}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
+            <div className="mt-2 flex justify-end">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon="check"
+                onClick={saveNote}
+                loading={savingNote}
+              >
+                Save note
+              </Button>
+            </div>
+          </div>
+
+          <div className="border-t border-line-soft pt-5">
+            <SessionActionItems
+              sessionId={initial.id}
+              items={actionItems}
+              onChange={setActionItems}
+              loading={actionItemsLoading}
+            />
+          </div>
+        </div>
+      ) : tab === "attendance" && initial ? (
         <AttendanceTab sessionId={initial.id} />
       ) : (
       <fieldset disabled={isView} className="flex flex-col gap-5 disabled:opacity-90">
@@ -389,17 +481,21 @@ export function SessionDrawer({
           />
         )}
 
-        <Field
-          label="Internal notes"
-          optional
-          hint="Only visible to you. Use for session-specific reminders or attendee context."
-        >
-          <Textarea
-            value={form.notes}
-            rows={3}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          />
-        </Field>
+        {/* For an existing session the internal note lives in the Notes &
+            Actions tab; while creating, keep it inline here. */}
+        {!isEdit && (
+          <Field
+            label="Internal notes"
+            optional
+            hint="Only visible to you. Use for session-specific reminders or attendee context."
+          >
+            <Textarea
+              value={form.notes}
+              rows={3}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
+          </Field>
+        )}
 
         {isEdit && !isView && (
           <div className="pt-5 border-t border-line-soft flex justify-end">

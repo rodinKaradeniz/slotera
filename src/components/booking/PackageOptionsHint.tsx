@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { formatMoney } from "@/lib/money";
-import { listPackageProgramsForService } from "@/services/package-programs.service";
+import { listPackagesForService } from "@/services/packages.service";
 import { useI18n } from "@/components/i18n/I18nProvider";
-import type { PackageProgram } from "@/types/package-program";
+import type { ServicePackage } from "@/types/package";
 
 /**
  * Informational-only hint shown on the booking Service step when the selected
- * service belongs to one or more active packages/programs. There is NO package
+ * service is included in one or more active packages. There is NO package
  * checkout in Phase 1 — clicking through opens a modal that explains the offers
  * and points the client back to booking a single session. It never alters the
  * step sequence, payment, or what the client books.
@@ -21,12 +21,12 @@ type Props = { serviceId: string };
 
 export function PackageOptionsHint({ serviceId }: Props) {
   const { t } = useI18n();
-  const [items, setItems] = React.useState<PackageProgram[]>([]);
+  const [items, setItems] = React.useState<ServicePackage[]>([]);
   const [open, setOpen] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
-    listPackageProgramsForService(serviceId).then((list) => {
+    listPackagesForService(serviceId).then((list) => {
       if (!cancelled) setItems(list);
     });
     return () => {
@@ -41,17 +41,14 @@ export function PackageOptionsHint({ serviceId }: Props) {
     (a, b) => Number(!!b.featured) - Number(!!a.featured),
   );
 
-  const meta = (p: PackageProgram) =>
-    p.durationLabel ||
-    (p.includedSessionCount != null
-      ? `${p.includedSessionCount} ${t("booking.packages.sessionsSuffix")}`
-      : "");
+  const meta = (p: ServicePackage) =>
+    `${p.items.length} ${t("booking.packages.sessionsSuffix")}`;
 
   return (
     <>
       <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3 rounded-md border border-line-soft bg-paper-2 px-4 py-3">
         <span className="w-8 h-8 rounded-md bg-accent-soft text-accent flex items-center justify-center shrink-0">
-          <Icon name="repeat" size={16} />
+          <Icon name="layers" size={16} />
         </span>
         <div className="flex-1 min-w-0">
           <div className="text-[14px] font-medium text-ink">
@@ -118,13 +115,6 @@ export function PackageOptionsHint({ serviceId }: Props) {
                   <p className="text-small mt-1">{p.description}</p>
                   <div className="text-micro mt-2 flex flex-wrap gap-x-3 gap-y-1">
                     {meta(p) && <span>{meta(p)}</span>}
-                    {p.validityDays != null && (
-                      <span>
-                        {t("booking.packages.validFor", {
-                          days: p.validityDays,
-                        })}
-                      </span>
-                    )}
                   </div>
                 </div>
                 <span className="text-[15px] font-medium text-ink shrink-0">

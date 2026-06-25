@@ -54,7 +54,7 @@ export const tr: Partial<Messages> = {
     "Bir öğleden sonrada e-posta trafiğinden gerçek bir rezervasyon akışına geçin.",
   "landing.how.step1.title": "Hizmetlerinizi tanımlayın",
   "landing.how.step1.body":
-    "Sunduğunuz hizmetleri süre, kapasite ve fiyatla ekleyin — birebir ya da grup. Seansları paketler veya çok haftalık programlar halinde gruplayın ve seanstan önce bağlam gerektiğinde bilgi formları ekleyin.",
+    "Sunduğunuz hizmetleri süre, kapasite ve fiyatla ekleyin — birebir ya da grup. Seansları çok seanslı paketler halinde gruplayın ve seanstan önce bağlam gerektiğinde bilgi formları ekleyin.",
   "landing.how.step2.title": "Tek bir rezervasyon bağlantısı paylaşın",
   "landing.how.step2.body":
     "Müşteriler bir saat seçer, seans öncesi sorularınızı yanıtlar ve kartla ya da banka havalesiyle öder. Hesap gerekmez.",
@@ -241,16 +241,15 @@ export const tr: Partial<Messages> = {
   "booking.field.no": "Hayır",
   "booking.field.select": "Seçin…",
 
-  "booking.packages.hintTitle": "Paketlerde de mevcut",
+  "booking.packages.hintTitle": "Paketlerde mevcut",
   "booking.packages.hintBody":
-    "Bu seans, çok seanslı bir paketin veya programın parçası olarak rezerve edilebilir.",
+    "Bu seans, bir veya daha fazla çok seanslı pakete dahildir.",
   "booking.packages.viewOptions": "Paket seçeneklerini gör",
   "booking.packages.modalTitle": "Paket seçenekleri",
   "booking.packages.modalBody":
-    "Bu çok seanslı teklifler bu seansı içerir. Paket satın alma bu demoda yer almıyor — devam etmek için tek bir seans rezerve edin.",
+    "Bu paketler bu seansı içerir. Paket satın alma bu demoda yer almıyor — devam etmek için tek bir seans rezerve edin.",
   "booking.packages.featured": "Öne çıkan",
   "booking.packages.sessionsSuffix": "seans",
-  "booking.packages.validFor": "{days} gün geçerli",
 
   "booking.billing.line1": "Adres satırı 1",
   "booking.billing.line1.placeholder": "Sokak ve numara",
@@ -359,6 +358,17 @@ export const tr: Partial<Messages> = {
   "reservation.actions.rescheduleHint": "Başka bir saat mi lazım? Yeni bir saat isteyin.",
   "reservation.actions.cancelLabel": "İptal talep et",
   "reservation.actions.cancelHint": "Gelemeyeceğinizi sağlayıcıya bildirin.",
+  "reservation.actions.stepsLabel": "Sonraki adımlarınızı görün",
+  "reservation.actions.stepsHint": "Sağlayıcınızın paylaştığı kısa bir kontrol listesi.",
+  "reservation.steps.title": "Sonraki adımlarınız",
+  "reservation.steps.note":
+    "Hazırlanmanıza yardımcı olmak için sağlayıcınız tarafından paylaşıldı. İlerledikçe işaretleyin — bu yalnızca kendi takibiniz içindir.",
+  "reservation.steps.due": "Son tarih",
+  "reservation.steps.doneBadge": "Tamamlandı",
+  "reservation.steps.markDone": "Tamamlandı olarak işaretle",
+  "reservation.steps.markTodo": "Yapılacak olarak işaretle",
+  "reservation.steps.marked": "Tamamlandı olarak işaretlendi",
+  "reservation.steps.markedDesc": "Harika — bu yalnızca kendi takibiniz içindir (örnek).",
   "reservation.forms.title": "İsteğe bağlı formlar",
   "reservation.forms.note":
     "Bunlar ödeme öncesinde zorunlu değildi. Şimdi veya seansınızdan önce herhangi bir zamanda doldurabilirsiniz.",

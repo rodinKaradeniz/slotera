@@ -14,6 +14,9 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { localeForLang } from "@/lib/i18n";
+import { cn } from "@/lib/cn";
+import { listClientActionItemsForSession } from "@/services/session-action-items.service";
+import type { SessionActionItem } from "@/types/session-action-item";
 import type { Messages } from "@/i18n/messages/en";
 
 /**
@@ -26,6 +29,11 @@ import type { Messages } from "@/i18n/messages/en";
 
 // A fixed demo reservation. Provider/service names stay as mock data; the UI
 // chrome around them is translated.
+//
+// The shared "next steps" come from the same action-item mock model the admin
+// SessionDrawer uses — seeded against this session id with `clientVisible: true`.
+const DEMO_SESSION_ID = "ses-demo";
+
 const DEMO = {
   provider: "Dr. Lena Hartmann",
   service: "Strategy Session",
@@ -40,11 +48,11 @@ const DEMO = {
   manualInstructions:
     "Bank transfer to: Velora Labs · IBAN GB00 SLOT 0000 0000 0000 00 · Reference SLT-DEMO1",
   // Display-only package context — no credit ledger or balance accounting. Shows
-  // how a session could surface as part of a multi-session package/program.
-  packageProgram: {
-    name: "Founder Advisory Package",
-    sessionIndex: 2,
-    sessionTotal: 6,
+  // how a session could surface as part of a multi-session package.
+  package: {
+    name: "Strategy Sprint Package",
+    sessionIndex: 1,
+    sessionTotal: 3,
   },
 };
 
@@ -82,9 +90,34 @@ export default function ReservationDemoPage() {
   const [message, setMessage] = React.useState("");
   const [rescheduleOpen, setRescheduleOpen] = React.useState(false);
   const [cancelOpen, setCancelOpen] = React.useState(false);
+  // Shared next steps from the provider. Marking one "done" is local-only
+  // (client-side tracking) — nothing is persisted back to the provider.
+  const [steps, setSteps] = React.useState<SessionActionItem[] | null>(null);
+  const [stepsDone, setStepsDone] = React.useState<Record<string, boolean>>({});
 
   const formsRef = React.useRef<HTMLDivElement>(null);
   const messageRef = React.useRef<HTMLTextAreaElement>(null);
+  const stepsRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    let live = true;
+    listClientActionItemsForSession(DEMO_SESSION_ID).then((items) => {
+      if (live) setSteps(items);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const toggleStep = (item: SessionActionItem) => {
+    const nowDone = !stepsDone[item.id];
+    setStepsDone((s) => ({ ...s, [item.id]: nowDone }));
+    if (nowDone) {
+      toast.success(t("reservation.steps.marked"), {
+        description: t("reservation.steps.markedDesc"),
+      });
+    }
+  };
 
   const whenLabel = new Date(DEMO.dateISO).toLocaleDateString(locale, {
     weekday: "long",
@@ -185,13 +218,13 @@ export default function ReservationDemoPage() {
                   value={DEMO.reference}
                 />
                 <SummaryItem
-                  icon="repeat"
+                  icon="layers"
                   label={t("reservation.summary.package")}
-                  value={`${DEMO.packageProgram.name} · ${t(
+                  value={`${DEMO.package.name} · ${t(
                     "reservation.package.session",
                     {
-                      n: DEMO.packageProgram.sessionIndex,
-                      total: DEMO.packageProgram.sessionTotal,
+                      n: DEMO.package.sessionIndex,
+                      total: DEMO.package.sessionTotal,
                     },
                   )}`}
                 />
@@ -213,6 +246,14 @@ export default function ReservationDemoPage() {
             <Card padded>
               <h2 className="text-h3 mb-4">{t("reservation.actions.title")}</h2>
               <div className="flex flex-col gap-2">
+                {steps && steps.length > 0 && (
+                  <ActionRow
+                    icon="check"
+                    label={t("reservation.actions.stepsLabel")}
+                    hint={t("reservation.actions.stepsHint")}
+                    onClick={() => scrollTo(stepsRef)}
+                  />
+                )}
                 <ActionRow
                   icon="clipboard"
                   label={t("reservation.actions.formsLabel")}
@@ -241,6 +282,75 @@ export default function ReservationDemoPage() {
             </Card>
           </section>
         </div>
+
+        {/* Shared next steps (client-visible action items from the provider) */}
+        {steps && steps.length > 0 && (
+          <section ref={stepsRef} className="mt-6 scroll-mt-24">
+            <Card padded>
+              <h2 className="text-h3 mb-1">{t("reservation.steps.title")}</h2>
+              <p className="text-small mb-5">{t("reservation.steps.note")}</p>
+              <ul className="flex flex-col gap-2.5">
+                {steps.map((step) => {
+                  const done = stepsDone[step.id] ?? false;
+                  return (
+                    <li
+                      key={step.id}
+                      className="flex items-start gap-3 rounded-md border border-line-soft bg-surface-warm px-4 py-3"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleStep(step)}
+                        aria-label={
+                          done
+                            ? t("reservation.steps.markTodo")
+                            : t("reservation.steps.markDone")
+                        }
+                        className={cn(
+                          "mt-0.5 w-[20px] h-[20px] rounded-[6px] border flex items-center justify-center shrink-0 transition-colors",
+                          done
+                            ? "bg-accent border-accent text-white"
+                            : "border-line hover:border-ink-3 bg-surface",
+                        )}
+                      >
+                        {done && <Icon name="check" size={13} strokeWidth={2.5} />}
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className={cn(
+                            "text-[14px] text-ink",
+                            done && "line-through text-ink-3",
+                          )}
+                        >
+                          {step.title}
+                        </div>
+                        {step.description && (
+                          <p className="text-small mt-0.5">{step.description}</p>
+                        )}
+                        {step.dueDate && (
+                          <div className="mt-1.5">
+                            <Pill tone="neutral" icon="calendar">
+                              {`${t("reservation.steps.due")} ${new Date(
+                                step.dueDate,
+                              ).toLocaleDateString(locale, {
+                                day: "numeric",
+                                month: "long",
+                              })}`}
+                            </Pill>
+                          </div>
+                        )}
+                      </div>
+                      {done && (
+                        <Pill tone="success" icon="check">
+                          {t("reservation.steps.doneBadge")}
+                        </Pill>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Card>
+          </section>
+        )}
 
         {/* Optional forms */}
         <section ref={formsRef} className="mt-6 scroll-mt-24">

@@ -9,13 +9,11 @@ import { Toggle } from "@/components/ui/Toggle";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
-import { FORM_PURPOSE } from "@/lib/status-maps";
 import { makeId } from "@/lib/id";
 import { listServices } from "@/services/services.service";
 import type {
   FormField,
   FormFieldType,
-  FormPurpose,
   FormTemplateInput,
 } from "@/types/form";
 import type { Service } from "@/types/service";
@@ -45,11 +43,6 @@ const FIELD_TYPE_OPTIONS: { value: FormFieldType; label: string }[] = [
   { value: "yes_no", label: "Yes / No" },
   { value: "consent_checkbox", label: "Consent checkbox" },
 ];
-
-const PURPOSE_OPTIONS = (Object.keys(FORM_PURPOSE) as FormPurpose[]).map((p) => ({
-  value: p,
-  label: FORM_PURPOSE[p],
-}));
 
 function hasOptions(type: FormFieldType): boolean {
   return type === "single_select" || type === "multi_select";
@@ -139,7 +132,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
         <Input
           value={value.name}
           onChange={(e) => patch({ name: e.target.value })}
-          placeholder="e.g. Pet pre-visit information"
+          placeholder="e.g. Discovery Call prep"
         />
       </Field>
 
@@ -151,14 +144,6 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
           value={value.description}
           rows={2}
           onChange={(e) => patch({ description: e.target.value })}
-        />
-      </Field>
-
-      <Field label="Purpose">
-        <Select
-          value={value.purpose}
-          onChange={(e) => patch({ purpose: e.target.value as FormPurpose })}
-          options={PURPOSE_OPTIONS}
         />
       </Field>
 

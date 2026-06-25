@@ -4,20 +4,15 @@ import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Icon } from "@/components/ui/Icon";
-import { PACKAGE_KIND, PACKAGE_STATUS } from "@/lib/status-maps";
+import { PACKAGE_STATUS } from "@/lib/status-maps";
 import { formatMoney } from "@/lib/money";
 import { plural } from "@/lib/text";
-import type { PackageProgram } from "@/types/package-program";
+import type { ServicePackage } from "@/types/package";
 
-type Props = { item: PackageProgram; onClick: () => void };
+type Props = { item: ServicePackage; onClick: () => void };
 
-export function PackageProgramCard({ item, onClick }: Props) {
-  const kind = PACKAGE_KIND[item.kind];
+export function PackageCard({ item, onClick }: Props) {
   const status = PACKAGE_STATUS[item.status];
-  const sessionsLabel =
-    item.includedSessionCount != null
-      ? plural(item.includedSessionCount, "session")
-      : item.durationLabel || "—";
 
   return (
     <Card
@@ -28,16 +23,13 @@ export function PackageProgramCard({ item, onClick }: Props) {
     >
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <Pill tone="neutral" icon={kind.icon}>
-              {kind.label}
+          {item.featured ? (
+            <Pill tone="accent" icon="star">
+              Featured
             </Pill>
-            {item.featured && (
-              <Pill tone="accent" icon="star">
-                Featured
-              </Pill>
-            )}
-          </div>
+          ) : (
+            <span />
+          )}
           <Pill tone={status.tone}>{status.label}</Pill>
         </div>
         <h3
@@ -47,17 +39,16 @@ export function PackageProgramCard({ item, onClick }: Props) {
           {item.name}
         </h3>
         <p className="text-small mt-2 line-clamp-2">{item.description}</p>
-        <div className="grid grid-cols-3 gap-3 mt-5 pt-4 border-t border-line-soft">
+        <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-line-soft">
           <Stat
             icon="card"
             label="Price"
             value={formatMoney(item.priceCents, item.currency)}
           />
-          <Stat icon="clock" label="Includes" value={sessionsLabel} />
           <Stat
             icon="layers"
-            label="Services"
-            value={String(item.attachedServiceIds.length)}
+            label="Includes"
+            value={plural(item.items.length, "session")}
           />
         </div>
       </div>

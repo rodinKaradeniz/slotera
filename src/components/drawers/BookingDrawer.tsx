@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { DrawerShell } from "@/components/ui/DrawerShell";
+import { Icon } from "@/components/ui/Icon";
 import { Field } from "@/components/ui/Field";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
@@ -203,6 +205,18 @@ export function BookingDrawer({
           </>
         ) : (
           <>
+            {isEdit && (
+              <Button
+                variant="danger"
+                size="sm"
+                icon="x"
+                onClick={() => setConfirmCancel(true)}
+                disabled={busy}
+                className="mr-auto"
+              >
+                Cancel booking
+              </Button>
+            )}
             <Button variant="ghost" onClick={onClose} disabled={busy}>
               Close
             </Button>
@@ -317,17 +331,20 @@ export function BookingDrawer({
           />
         </Field>
 
-        {isEdit && !isView && (
-          <div className="pt-5 border-t border-line-soft flex justify-end">
-            <Button
-              variant="danger"
-              size="sm"
-              icon="x"
-              onClick={() => setConfirmCancel(true)}
-              disabled={busy}
+        {isEdit && (
+          <div className="pt-1">
+            <Link
+              href="/reservation/demo"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 text-[13px] text-accent hover:underline"
             >
-              Cancel booking
-            </Button>
+              <Icon name="eye" size={15} />
+              View reservation workspace
+            </Link>
+            <p className="text-micro text-ink-3 mt-1">
+              Preview the post-booking page your client could see (demo).
+            </p>
           </div>
         )}
       </fieldset>

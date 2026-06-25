@@ -2,9 +2,7 @@
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
-import { Pill } from "@/components/ui/Pill";
 import { FormFieldInput } from "./FormFieldInput";
-import { FORM_PURPOSE } from "@/lib/status-maps";
 import type { FormAnswer, FormTemplate } from "@/types/form";
 
 type Props = {
@@ -31,19 +29,16 @@ export function StepForms({ forms, responses, onChange }: Props) {
     <div className="flex flex-col gap-5">
       {forms.map((form) => (
         <Card key={form.id} padded>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3
-                className="font-serif text-ink"
-                style={{ fontSize: 20, fontWeight: 400 }}
-              >
-                {form.name}
-              </h3>
-              {form.description && (
-                <p className="text-small mt-1">{form.description}</p>
-              )}
-            </div>
-            <Pill tone="neutral">{FORM_PURPOSE[form.purpose]}</Pill>
+          <div className="min-w-0">
+            <h3
+              className="font-serif text-ink"
+              style={{ fontSize: 20, fontWeight: 400 }}
+            >
+              {form.name}
+            </h3>
+            {form.description && (
+              <p className="text-small mt-1">{form.description}</p>
+            )}
           </div>
 
           <div className="flex flex-col gap-4 mt-5">

@@ -66,7 +66,7 @@ export const en = {
     "Go from inbox tag-team to a real booking flow in an afternoon.",
   "landing.how.step1.title": "Set up your services",
   "landing.how.step1.body":
-    "Add the services you offer with duration, capacity and price — 1:1 or group. Bundle sessions into packages or multi-week programs, and attach intake forms where you need context before the session.",
+    "Add the services you offer with duration, capacity and price — 1:1 or group. Bundle sessions into multi-session packages, and attach intake forms where you need context before the session.",
   "landing.how.step2.title": "Share one booking link",
   "landing.how.step2.body":
     "Clients pick a time, answer your pre-session questions, and pay by card or bank transfer. No account needed.",
@@ -269,17 +269,16 @@ export const en = {
   "booking.field.no": "No",
   "booking.field.select": "Select…",
 
-  // Booking — package/program hint (informational only; no package checkout)
-  "booking.packages.hintTitle": "Also available in packages",
+  // Booking — package hint (informational only; no package checkout)
+  "booking.packages.hintTitle": "Available in packages",
   "booking.packages.hintBody":
-    "This session can be booked as part of a multi-session package or program.",
+    "This session is included in one or more multi-session packages.",
   "booking.packages.viewOptions": "View package options",
   "booking.packages.modalTitle": "Package options",
   "booking.packages.modalBody":
-    "These multi-session offers include this session. Buying a package isn't part of this demo — book a single session to continue.",
+    "These packages include this session. Buying a package isn't part of this demo — book a single session to continue.",
   "booking.packages.featured": "Featured",
   "booking.packages.sessionsSuffix": "sessions",
-  "booking.packages.validFor": "Valid for {days} days",
 
   // Booking — billing step
   "booking.billing.line1": "Address line 1",
@@ -396,6 +395,17 @@ export const en = {
   "reservation.actions.rescheduleHint": "Need another time? Ask for a new slot.",
   "reservation.actions.cancelLabel": "Request cancellation",
   "reservation.actions.cancelHint": "Let the provider know you can't make it.",
+  "reservation.actions.stepsLabel": "Review your next steps",
+  "reservation.actions.stepsHint": "A short checklist shared by your provider.",
+  "reservation.steps.title": "Your next steps",
+  "reservation.steps.note":
+    "Shared by your provider to help you prepare. Tick items off as you go — this is just for your own tracking.",
+  "reservation.steps.due": "Due",
+  "reservation.steps.doneBadge": "Done",
+  "reservation.steps.markDone": "Mark as done",
+  "reservation.steps.markTodo": "Mark as to do",
+  "reservation.steps.marked": "Marked as done",
+  "reservation.steps.markedDesc": "Nice — this is just for your own tracking (mocked).",
   "reservation.forms.title": "Optional forms",
   "reservation.forms.note":
     "These weren't required before payment. You can complete them now or any time before your session.",
