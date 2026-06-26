@@ -35,7 +35,7 @@ export async function getDashboard(): Promise<DashboardData> {
 /**
  * Surfaces "review N open session action items" when any real session has
  * `todo` action items. Demo-only sessions (not present in the sessions list,
- * e.g. the reservation-workspace seed) are excluded.
+ * e.g. the booking-workspace seed) are excluded.
  */
 function computeActionItemsPending(
   actionItems: SessionActionItem[],

@@ -47,7 +47,7 @@ const NAV_RESULTS: SearchResult[] = [
     id: "nav-bookings",
     group: "Navigation",
     title: "Bookings",
-    subtitle: "All client reservations",
+    subtitle: "All client bookings",
     href: "/admin/bookings",
     icon: "clipboard",
     keywords: "bookings reservations clients",

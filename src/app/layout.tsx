@@ -29,7 +29,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Slotera — Booking software for consultants & coaches",
   description:
-    "Paid reservation and session management for individual service providers.",
+    "Paid booking and session management for individual service providers.",
 };
 
 export default function RootLayout({

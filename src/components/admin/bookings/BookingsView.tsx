@@ -105,7 +105,7 @@ export function BookingsView() {
       <PageHeader
         eyebrow="Operations"
         title="Bookings"
-        description="All client reservations across 1:1 calls, group classes and workshops."
+        description="All client bookings across 1:1 calls, group classes and workshops."
         meta={
           bookings
             ? `${plural(bookings.length, "booking")} · ${

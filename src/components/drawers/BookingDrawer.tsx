@@ -334,13 +334,13 @@ export function BookingDrawer({
         {isEdit && (
           <div className="pt-1">
             <Link
-              href="/reservation/demo"
+              href="/booking/manage/demo"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 text-[13px] text-accent hover:underline"
             >
               <Icon name="eye" size={15} />
-              View reservation workspace
+              View booking workspace
             </Link>
             <p className="text-micro text-ink-3 mt-1">
               Preview the post-booking page your client could see (demo).

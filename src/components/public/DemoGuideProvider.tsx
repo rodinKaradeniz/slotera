@@ -14,7 +14,7 @@ import { DemoGuidelinesModal } from "./DemoGuidelinesModal";
  *
  * Auto-open / sessionStorage behaviour is owned by `DemoGuideAutoOpen`, which
  * the landing page renders — keeping the once-per-session prompt landing-only
- * even though the provider also wraps the booking/reservation routes.
+ * even though the provider also wraps the booking routes.
  */
 const AUTOOPEN_KEY = "slotera.demoGuideSeen";
 

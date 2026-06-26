@@ -63,7 +63,7 @@ export function Greeting({ firstName = "Lena", subtitle }: Props) {
       setSettings(next);
       if (confirmTarget) {
         toast.success("Bookings live", {
-          description: "Your public page is accepting reservations again.",
+          description: "Your public page is accepting bookings again.",
         });
       } else {
         toast.info("Bookings paused", {
@@ -147,7 +147,7 @@ export function Greeting({ firstName = "Lena", subtitle }: Props) {
         description={
           confirmTarget === false
             ? "Your public booking page will show a 'currently paused' notice. Existing bookings stay on your calendar."
-            : "Your public booking page will start accepting new reservations again."
+            : "Your public booking page will start accepting new bookings again."
         }
         size="sm"
         footer={

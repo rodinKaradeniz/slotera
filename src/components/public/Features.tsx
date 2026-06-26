@@ -11,7 +11,7 @@ import type { Messages } from "@/i18n/messages/en";
 const FEATURES: { icon: IconName; titleKey: keyof Messages; bodyKey: keyof Messages }[] = [
   { icon: "card", titleKey: "landing.features.bookings.title", bodyKey: "landing.features.bookings.body" },
   { icon: "clipboard", titleKey: "landing.features.forms.title", bodyKey: "landing.features.forms.body" },
-  { icon: "eye", titleKey: "landing.features.reservation.title", bodyKey: "landing.features.reservation.body" },
+  { icon: "eye", titleKey: "landing.features.bookingPage.title", bodyKey: "landing.features.bookingPage.body" },
   { icon: "calendar", titleKey: "landing.features.sessions.title", bodyKey: "landing.features.sessions.body" },
   { icon: "globe", titleKey: "landing.features.languages.title", bodyKey: "landing.features.languages.body" },
   { icon: "grid", titleKey: "landing.features.workspace.title", bodyKey: "landing.features.workspace.body" },

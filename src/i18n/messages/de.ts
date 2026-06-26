@@ -60,7 +60,7 @@ export const de: Partial<Messages> = {
     "Kunden wählen einen Termin, beantworten Ihre Fragen vor der Sitzung und zahlen per Karte oder Überweisung. Kein Konto nötig.",
   "landing.how.step3.title": "Termin durchführen, in Verbindung bleiben",
   "landing.how.step3.body":
-    "Neue Buchungen landen in Ihrem Dashboard. Kunden erhalten eine Reservierungsseite, um sich vorzubereiten, Ihnen zu schreiben oder eine Änderung anzufragen.",
+    "Neue Buchungen landen in Ihrem Dashboard. Kunden erhalten eine Buchungsseite, um sich vorzubereiten, Ihnen zu schreiben oder eine Änderung anzufragen.",
 
   "landing.features.eyebrow": "Funktionen",
   "landing.features.title":
@@ -71,8 +71,8 @@ export const de: Partial<Messages> = {
   "landing.features.forms.title": "Intake- & Vorbereitungsformulare",
   "landing.features.forms.body":
     "Sammeln Sie den nötigen Kontext vor einem Termin. Machen Sie wichtige Fragen vor der Zahlung verpflichtend oder danach optional.",
-  "landing.features.reservation.title": "Kunden-Reservierungsseite",
-  "landing.features.reservation.body":
+  "landing.features.bookingPage.title": "Kunden-Buchungsseite",
+  "landing.features.bookingPage.body":
     "Nach der Buchung erhalten Kunden eine Seite, um Details zu prüfen, optionale Formulare auszufüllen, Ihnen zu schreiben oder eine Verschiebung anzufragen.",
   "landing.features.sessions.title": "Termine & Kalender",
   "landing.features.sessions.body":
@@ -311,7 +311,7 @@ export const de: Partial<Messages> = {
   "booking.confirm.copyLink": "Meeting-Link kopieren",
   "booking.confirm.copied": "Kopiert",
   "booking.confirm.bookAnother": "Weiteren Termin buchen",
-  "booking.confirm.manage": "Reservierung verwalten",
+  "booking.confirm.manage": "Buchung verwalten",
   "booking.confirm.addCalendar.title": "Zum Kalender hinzufügen",
   "booking.confirm.addCalendar.body": "Google · Apple · Outlook · ICS",
   "booking.confirm.invoice.title": "Rechnung herunterladen",
@@ -327,113 +327,107 @@ export const de: Partial<Messages> = {
 
   "booking.paused.title": "Buchungen sind pausiert",
   "booking.paused.body":
-    "Diese Buchungsseite nimmt derzeit keine neuen Reservierungen an. Wenn Sie Kontakt aufnehmen möchten, schreiben Sie uns und wir antworten.",
+    "Diese Buchungsseite nimmt derzeit keine neuen Buchungen an. Wenn Sie Kontakt aufnehmen möchten, schreiben Sie uns und wir antworten.",
   "booking.paused.cta": "Kontakt aufnehmen",
 
-  "reservation.badge": "Demo",
-  "reservation.title": "Ihre Reservierung",
-  "reservation.subtitle":
-    "Eine Vorschau dessen, was Ihre Kunden nach der Buchung sehen könnten — Details prüfen, optionale Formulare ausfüllen und in Kontakt bleiben. Dies ist eine Demo mit nachgebildeten Daten.",
-  "reservation.summary.title": "Reservierungsübersicht",
-  "reservation.summary.service": "Leistung",
-  "reservation.summary.provider": "Anbieter",
-  "reservation.summary.when": "Datum & Uhrzeit",
-  "reservation.summary.status": "Status",
-  "reservation.summary.location": "Ort",
-  "reservation.summary.payment": "Zahlung",
-  "reservation.summary.reference": "Referenz",
-  "reservation.summary.package": "Paket",
-  "reservation.package.session": "Sitzung {n} von {total}",
-  "reservation.status.confirmed": "Bestätigt",
-  "reservation.status.pendingPayment": "Zahlung ausstehend",
-  "reservation.location.online": "Online — Meeting-Link per E-Mail gesendet",
-  "reservation.payment.manualLabel": "Manuelle Zahlung",
-  "reservation.payment.instructionsLabel": "Zahlungshinweise",
-  "reservation.actions.title": "Wie geht es weiter",
-  "reservation.actions.formsLabel": "Optionale Formulare ausfüllen",
-  "reservation.actions.formsHint": "Ein paar kurze Fragen vor Ihrem Termin.",
-  "reservation.actions.messageLabel": "Nachricht senden",
-  "reservation.actions.messageHint": "Fragen Sie den Anbieter alles zu Ihrer Buchung.",
-  "reservation.actions.rescheduleLabel": "Verschiebung anfragen",
-  "reservation.actions.rescheduleHint": "Andere Zeit nötig? Fragen Sie nach einem neuen Termin.",
-  "reservation.actions.cancelLabel": "Stornierung anfragen",
-  "reservation.actions.cancelHint": "Teilen Sie dem Anbieter mit, dass Sie nicht können.",
-  "reservation.actions.stepsLabel": "Ihre nächsten Schritte ansehen",
-  "reservation.actions.stepsHint": "Eine kurze Checkliste, die Ihr Anbieter geteilt hat.",
-  "reservation.steps.title": "Ihre nächsten Schritte",
-  "reservation.steps.note":
-    "Von Ihrem Anbieter geteilt, damit Sie sich vorbereiten können. Haken Sie ab, was Sie erledigt haben — nur für Ihre eigene Übersicht.",
-  "reservation.steps.due": "Fällig",
-  "reservation.steps.doneBadge": "Erledigt",
-  "reservation.steps.markDone": "Als erledigt markieren",
-  "reservation.steps.markTodo": "Als offen markieren",
-  "reservation.steps.marked": "Als erledigt markiert",
-  "reservation.steps.markedDesc": "Schön — das dient nur Ihrer eigenen Übersicht (Demo).",
-  "reservation.forms.title": "Optionale Formulare",
-  "reservation.forms.note":
-    "Diese waren vor der Zahlung nicht erforderlich. Sie können sie jetzt oder jederzeit vor Ihrem Termin ausfüllen.",
-  "reservation.forms.completedBadge": "Ausgefüllt",
-  "reservation.forms.optionalBadge": "Optional",
-  "reservation.forms.save": "Formular speichern",
-  "reservation.forms.saved": "Formular gespeichert",
-  "reservation.forms.savedDesc": "Danke — Ihre Antworten wurden gespeichert (nachgebildet).",
-  "reservation.form.notes.name": "Zusätzliche Notizen vor Ihrem Termin",
-  "reservation.form.notes.desc": "Alles, was der Anbieter vorab wissen sollte.",
-  "reservation.form.notes.field": "Ihre Notizen",
-  "reservation.form.notes.placeholder": "z. B. Kontext, Ziele, Fragen, die Sie besprechen möchten…",
-  "reservation.form.update.name": "Update vor der Sitzung",
-  "reservation.form.update.desc": "Ein kurzes Update, damit sich der Anbieter vorbereiten kann.",
-  "reservation.form.update.field": "Hat sich seit der Buchung etwas geändert?",
-  "reservation.message.title": "Anbieter benachrichtigen",
-  "reservation.message.placeholder": "Schreiben Sie dem Anbieter eine kurze Nachricht…",
-  "reservation.message.send": "Nachricht senden",
-  "reservation.message.sent": "Nachricht gesendet",
-  "reservation.message.sentDesc": "Danke — der Anbieter meldet sich bei Ihnen (nachgebildet).",
-  "reservation.reschedule.title": "Verschiebung anfragen",
-  "reservation.reschedule.body":
-    "Wir teilen dem Anbieter mit, dass Sie eine andere Zeit wünschen. Er meldet sich, um einen neuen Termin zu bestätigen. (Nachgebildet — es wird nichts tatsächlich gesendet.)",
-  "reservation.reschedule.confirm": "Verschiebung anfragen",
-  "reservation.reschedule.sent": "Verschiebung angefragt",
-  "reservation.reschedule.sentDesc":
-    "Der Anbieter meldet sich wegen einer neuen Zeit (nachgebildet).",
-  "reservation.cancel.title": "Stornierung anfragen",
-  "reservation.cancel.body":
-    "Wir teilen dem Anbieter mit, dass Sie stornieren möchten. Eine etwaige Erstattung richtet sich nach seiner Stornorichtlinie. (Nachgebildet — es wird nichts tatsächlich storniert.)",
-  "reservation.cancel.confirm": "Stornierung anfragen",
-  "reservation.cancel.sent": "Stornierung angefragt",
-  "reservation.cancel.sentDesc":
-    "Der Anbieter meldet sich wegen Ihrer Stornierung (nachgebildet).",
-  "reservation.back": "Zurück zur Buchungsseite",
-  "reservation.backHome": "Zurück zur Startseite",
-  "reservation.disclaimer":
-    "Dies ist eine Demo-Seite. Kunden haben keine Konten — in der Produktion würde diese Seite über einen sicheren, per E-Mail gesendeten Reservierungslink geöffnet.",
-  "reservation.hero.context.none":
-    "Alles erledigt — vor Ihrer Sitzung ist nichts mehr zu tun.",
-  "reservation.hero.context.one":
-    "1 Sache vor Ihrer Sitzung zu erledigen.",
-  "reservation.hero.context.many":
-    "{n} Dinge vor Ihrer Sitzung zu erledigen.",
-  "reservation.hero.reviewSteps": "Nächste Schritte ansehen",
-  "reservation.hero.message": "Anbieter benachrichtigen",
-  "reservation.reminder":
+  // Demo-Buchungsverwaltung (/booking/manage/demo)
+  "bookingManage.badge": "Demo",
+  "bookingManage.title": "Ihre Buchung",
+  "bookingManage.subtitle":
+    "Eine Vorschau dessen, was Ihre Kunden nach der Buchung sehen könnten — Details prüfen, optionale Formulare ausfüllen, die Buchung verwalten und in Kontakt bleiben. Dies ist eine Demo mit nachgebildeten Daten.",
+  "bookingManage.tabsLabel": "Buchungsbereiche",
+  "bookingManage.tab.info": "Buchungsinfo",
+  "bookingManage.tab.manage": "Buchung verwalten",
+  "bookingManage.tab.forms": "Formulare",
+  "bookingManage.tab.payment": "Zahlung",
+  "bookingManage.tab.package": "Paket",
+  "bookingManage.status.confirmed": "Bestätigt",
+  "bookingManage.location.online": "Online — Meeting-Link per E-Mail gesendet",
+  "bookingManage.reminder":
     "Sie erhalten 24 Stunden vor Ihrer Sitzung eine Erinnerung.",
-  "reservation.details.title": "Reservierungsdetails",
-  "reservation.payment.title": "Zahlung",
-  "reservation.package.title": "Paket",
-  "reservation.manage.title": "Reservierung verwalten",
-  "reservation.manage.note":
+  "bookingManage.disclaimer":
+    "Dies ist eine Demo-Seite. Kunden haben keine Konten — in der Produktion würde diese Seite über einen sicheren, per E-Mail gesendeten Buchungslink geöffnet.",
+  "bookingManage.back": "Zurück zur Buchungsseite",
+  "bookingManage.backHome": "Zurück zur Startseite",
+  "bookingManage.info.title": "Buchungsinfo",
+  "bookingManage.info.service": "Leistung",
+  "bookingManage.info.provider": "Anbieter",
+  "bookingManage.info.when": "Datum & Uhrzeit",
+  "bookingManage.info.location": "Ort",
+  "bookingManage.info.reference": "Buchungsreferenz",
+  "bookingManage.info.context.none":
+    "Alles erledigt — vor Ihrer Sitzung ist nichts mehr zu tun.",
+  "bookingManage.info.context.one":
+    "1 optionales Formular vor Ihrer Sitzung auszufüllen.",
+  "bookingManage.info.context.many":
+    "{n} optionale Formulare vor Ihrer Sitzung auszufüllen.",
+  "bookingManage.message.title": "Anbieter benachrichtigen",
+  "bookingManage.message.note":
+    "Fragen Sie den Anbieter alles zu Ihrer Buchung. Er meldet sich per E-Mail.",
+  "bookingManage.message.placeholder": "Schreiben Sie dem Anbieter eine kurze Nachricht…",
+  "bookingManage.message.send": "Nachricht senden",
+  "bookingManage.message.sent": "Nachricht gesendet",
+  "bookingManage.message.sentDesc": "Danke — der Anbieter meldet sich bei Ihnen (nachgebildet).",
+  "bookingManage.manage.title": "Buchung verwalten",
+  "bookingManage.manage.note":
     "Möchten Sie etwas ändern? Senden Sie eine Anfrage und Ihr Anbieter meldet sich.",
-  "reservation.resources.title": "Geteilte Ressourcen",
-  "reservation.resources.note":
-    "Materialien, die Ihr Anbieter geteilt hat, um Sie bei der Vorbereitung und Nachbereitung zu unterstützen.",
-  "reservation.resources.open": "Öffnen",
-  "reservation.resources.opened": "Demo-Ressource",
-  "reservation.resources.openedDesc":
-    "Ressourcen-Links sind in dieser Demo nicht aktiv.",
-  "reservation.resources.kind.guide": "Leitfaden",
-  "reservation.resources.kind.worksheet": "Arbeitsblatt",
-  "reservation.resources.kind.document": "Dokument",
-  "reservation.resources.kind.link": "Link",
+  "bookingManage.actions.reschedule": "Verschiebung anfragen",
+  "bookingManage.actions.cancel": "Stornierung anfragen",
+  "bookingManage.reschedule.title": "Verschiebung anfragen",
+  "bookingManage.reschedule.body":
+    "Wir teilen dem Anbieter mit, dass Sie eine andere Zeit wünschen. Er meldet sich, um einen neuen Termin zu bestätigen. (Nachgebildet — es wird nichts tatsächlich gesendet.)",
+  "bookingManage.reschedule.confirm": "Verschiebung anfragen",
+  "bookingManage.reschedule.sent": "Verschiebung angefragt",
+  "bookingManage.reschedule.sentDesc":
+    "Der Anbieter meldet sich wegen einer neuen Zeit (nachgebildet).",
+  "bookingManage.cancel.title": "Stornierung anfragen",
+  "bookingManage.cancel.body":
+    "Wir teilen dem Anbieter mit, dass Sie stornieren möchten. Eine etwaige Erstattung richtet sich nach seiner Stornorichtlinie. (Nachgebildet — es wird nichts tatsächlich storniert.)",
+  "bookingManage.cancel.confirm": "Stornierung anfragen",
+  "bookingManage.cancel.sent": "Stornierung angefragt",
+  "bookingManage.cancel.sentDesc":
+    "Der Anbieter meldet sich wegen Ihrer Stornierung (nachgebildet).",
+  "bookingManage.forms.title": "Formulare",
+  "bookingManage.forms.note":
+    "Formulare, die Ihr Anbieter dieser Buchung beigefügt hat. Erforderliche Formulare wurden vor der Zahlung ausgefüllt; optionale können Sie jederzeit vor Ihrer Sitzung ausfüllen.",
+  "bookingManage.forms.required": "Erforderlich",
+  "bookingManage.forms.optional": "Optional",
+  "bookingManage.forms.completed": "Ausgefüllt",
+  "bookingManage.forms.notCompleted": "Nicht ausgefüllt",
+  "bookingManage.forms.open": "Ausfüllen",
+  "bookingManage.forms.view": "Ansehen",
+  "bookingManage.forms.save": "Formular speichern",
+  "bookingManage.forms.saved": "Formular gespeichert",
+  "bookingManage.forms.savedDesc": "Danke — Ihre Antworten wurden gespeichert (nachgebildet).",
+  "bookingManage.forms.readonlyNote":
+    "Sie haben dieses Formular vor der Zahlung ausgefüllt. Ihre Antworten sind schreibgeschützt.",
+  "bookingManage.form.intake.name": "Discovery-Fragebogen",
+  "bookingManage.form.intake.desc": "Vor der Zahlung ausgefüllt.",
+  "bookingManage.form.intake.field": "Worauf möchten Sie sich konzentrieren?",
+  "bookingManage.form.intake.answer":
+    "Unseren Onboarding-Prozess skalieren und die Aktivierung in den ersten 30 Tagen verbessern.",
+  "bookingManage.form.notes.name": "Zusätzliche Notizen vor Ihrem Termin",
+  "bookingManage.form.notes.desc": "Alles, was der Anbieter vorab wissen sollte.",
+  "bookingManage.form.notes.field": "Ihre Notizen",
+  "bookingManage.form.notes.placeholder": "z. B. Kontext, Ziele, Fragen, die Sie besprechen möchten…",
+  "bookingManage.form.update.name": "Update vor der Sitzung",
+  "bookingManage.form.update.desc": "Ein kurzes Update, damit sich der Anbieter vorbereiten kann.",
+  "bookingManage.form.update.field": "Hat sich seit der Buchung etwas geändert?",
+  "bookingManage.payment.title": "Zahlung",
+  "bookingManage.payment.method": "Zahlungsart",
+  "bookingManage.payment.manualLabel": "Manuelle Zahlung",
+  "bookingManage.payment.statusLabel": "Status",
+  "bookingManage.payment.statusValue": "Manuelle Zahlung ausstehend",
+  "bookingManage.payment.subtotal": "Zwischensumme",
+  "bookingManage.payment.tax": "Steuer",
+  "bookingManage.payment.total": "Gesamt",
+  "bookingManage.payment.instructionsLabel": "Zahlungshinweise",
+  "bookingManage.package.title": "Paket",
+  "bookingManage.package.session": "Sitzung {n} von {total}",
+  "bookingManage.package.note":
+    "Diese Buchung ist Teil eines von Ihrem Anbieter eingerichteten Pakets mit mehreren Sitzungen.",
+  "bookingManage.package.included": "Enthaltene Sitzungen",
+  "bookingManage.package.thisSession": "Diese Sitzung",
 
   "auth.login.submit": "Anmelden",
   "auth.register.submit": "Konto erstellen",
@@ -460,10 +454,10 @@ export const de: Partial<Messages> = {
   "demoGuide.persona.consultant": "Berater",
   "demoGuide.persona.coach": "Coach",
   "demoGuide.persona.instructor": "Kursleiter",
-  "demoGuide.step.reservation.title": "Die Kunden-Reservierungsseite ansehen",
-  "demoGuide.step.reservation.body":
-    "Sehen Sie das Erlebnis nach der Buchung: Reservierungsdetails, optionale Formulare, Nachrichten an den Anbieter sowie Anfragen zur Umbuchung oder Stornierung.",
-  "demoGuide.step.reservation.cta": "Reservierungsseite öffnen",
+  "demoGuide.step.manage.title": "Die Kunden-Buchungsseite ansehen",
+  "demoGuide.step.manage.body":
+    "Sehen Sie das Erlebnis nach der Buchung: Buchungsdetails, optionale Formulare, Nachrichten an den Anbieter sowie Anfragen zur Umbuchung oder Stornierung.",
+  "demoGuide.step.manage.cta": "Buchungsseite öffnen",
   "demoGuide.noteLabel": "Hinweis:",
   "demoGuide.note":
     "Dies ist eine Demo-Umgebung, daher verwenden einige Abläufe nachgebildete Daten, während das Produkt noch entwickelt wird. Falls etwas nicht stimmt, Sie einen Fehler oder einen defekten Ablauf entdecken, eine geschäftliche Anfrage oder einen Funktionswunsch haben oder Slotera besprechen möchten, melden Sie sich gern.",

@@ -13,7 +13,7 @@ type Props = {
   onClose: () => void;
 };
 
-type StepId = "dashboard" | "booking" | "reservation";
+type StepId = "dashboard" | "booking" | "manage";
 
 type Item = {
   id: StepId;
@@ -24,7 +24,7 @@ type Item = {
 const ITEMS: Item[] = [
   { id: "dashboard", icon: "grid", href: "/admin/dashboard" },
   { id: "booking", icon: "eye", href: "/booking" },
-  { id: "reservation", icon: "clipboard", href: "/reservation/demo" },
+  { id: "manage", icon: "clipboard", href: "/booking/manage/demo" },
 ];
 
 // Public demo personas lead with Slotera's first ICP — consultant, coach,

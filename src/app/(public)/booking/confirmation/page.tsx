@@ -92,8 +92,8 @@ export default function ConfirmationPage() {
             <Button variant="primary" icon="copy" onClick={copy}>
               {copied ? t("booking.confirm.copied") : t("booking.confirm.copyLink")}
             </Button>
-            {/* Demo-only preview of the future customer reservation page. */}
-            <Link href="/reservation/demo">
+            {/* Demo-only preview of the future customer booking page. */}
+            <Link href="/booking/manage/demo">
               <Button variant="secondary" icon="eye">
                 {t("booking.confirm.manage")}
               </Button>

@@ -43,8 +43,8 @@ const EMPTY_DRAFT: DraftFields = {
 /**
  * Admin-side action-item manager rendered inside SessionDrawer's "Notes &
  * Actions" tab. Lightweight by design: add / edit / mark done / delete and an
- * optional due date + "Visible to client" toggle. `clientVisible` items may
- * appear as shared next steps on the customer reservation workspace. No
+ * optional due date + "Visible to client" toggle. `clientVisible` flags an
+ * item for a future client-facing surface; it is admin-only today. No
  * assignees, comments, reminders, or recurrence.
  */
 export function SessionActionItems({ sessionId, items, onChange, loading }: Props) {
@@ -184,8 +184,8 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       <div>
         <h4 className="text-[13px] font-semibold text-ink">Action items</h4>
         <p className="text-micro text-ink-3 mt-0.5">
-          Track pre/post-session tasks. Items marked “Visible to client” appear
-          as shared next steps on the reservation page.
+          Track pre/post-session tasks. “Visible to client” flags an item for a
+          future client-facing surface — it stays admin-only for now.
         </p>
       </div>
 

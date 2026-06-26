@@ -4,7 +4,7 @@
  * back to English at runtime, so partial translations are safe.
  *
  * Covers high-visibility public surfaces: landing page, the public booking
- * flow, the demo reservation page, demo guide, and common action labels — not
+ * flow, the demo booking page, demo guide, and common action labels — not
  * every seeded string.
  */
 export const en = {
@@ -72,7 +72,7 @@ export const en = {
     "Clients pick a time, answer your pre-session questions, and pay by card or bank transfer. No account needed.",
   "landing.how.step3.title": "Run the session, stay in sync",
   "landing.how.step3.body":
-    "New bookings land in your dashboard. Clients get a reservation page to prep, message you, or request a change.",
+    "New bookings land in your dashboard. Clients get a booking page to prep, message you, or request a change.",
 
   // Landing — features
   "landing.features.eyebrow": "Features",
@@ -84,8 +84,8 @@ export const en = {
   "landing.features.forms.title": "Client intake & prep forms",
   "landing.features.forms.body":
     "Collect the context you need before a session. Make key questions required before payment, or optional afterwards.",
-  "landing.features.reservation.title": "Customer reservation page",
-  "landing.features.reservation.body":
+  "landing.features.bookingPage.title": "Customer booking page",
+  "landing.features.bookingPage.body":
     "After booking, clients get a page to review details, finish optional forms, message you, or request a reschedule.",
   "landing.features.sessions.title": "Sessions & calendar",
   "landing.features.sessions.body":
@@ -345,7 +345,7 @@ export const en = {
   "booking.confirm.copyLink": "Copy meeting link",
   "booking.confirm.copied": "Copied",
   "booking.confirm.bookAnother": "Book another session",
-  "booking.confirm.manage": "Manage reservation",
+  "booking.confirm.manage": "Manage booking",
   "booking.confirm.addCalendar.title": "Add to calendar",
   "booking.confirm.addCalendar.body": "Google · Apple · Outlook · ICS",
   "booking.confirm.invoice.title": "Download invoice",
@@ -363,114 +363,112 @@ export const en = {
   // Booking — paused card
   "booking.paused.title": "Bookings are paused",
   "booking.paused.body":
-    "This booking page isn't currently accepting new reservations. If you need to get in touch, send a message and we'll reply.",
+    "This booking page isn't currently accepting new bookings. If you need to get in touch, send a message and we'll reply.",
   "booking.paused.cta": "Get in touch",
 
-  // Demo reservation page (/reservation/demo)
-  "reservation.badge": "Demo",
-  "reservation.title": "Your reservation",
-  "reservation.subtitle":
-    "A preview of what your clients could see after booking — review details, complete optional forms, and stay in touch. This is a demo with mocked data.",
-  "reservation.summary.title": "Reservation summary",
-  "reservation.summary.service": "Service",
-  "reservation.summary.provider": "Provider",
-  "reservation.summary.when": "Date & time",
-  "reservation.summary.status": "Status",
-  "reservation.summary.location": "Location",
-  "reservation.summary.payment": "Payment",
-  "reservation.summary.reference": "Reference",
-  "reservation.summary.package": "Package",
-  "reservation.package.session": "Session {n} of {total}",
-  "reservation.status.confirmed": "Confirmed",
-  "reservation.status.pendingPayment": "Pending payment",
-  "reservation.location.online": "Online — meeting link sent by email",
-  "reservation.payment.manualLabel": "Manual payment",
-  "reservation.payment.instructionsLabel": "Payment instructions",
-  "reservation.actions.title": "What's next",
-  "reservation.actions.formsLabel": "Complete optional forms",
-  "reservation.actions.formsHint": "A couple of quick questions before your session.",
-  "reservation.actions.messageLabel": "Send a message",
-  "reservation.actions.messageHint": "Ask the provider anything about your booking.",
-  "reservation.actions.rescheduleLabel": "Request reschedule",
-  "reservation.actions.rescheduleHint": "Need another time? Ask for a new slot.",
-  "reservation.actions.cancelLabel": "Request cancellation",
-  "reservation.actions.cancelHint": "Let the provider know you can't make it.",
-  "reservation.actions.stepsLabel": "Review your next steps",
-  "reservation.actions.stepsHint": "A short checklist shared by your provider.",
-  "reservation.steps.title": "Your next steps",
-  "reservation.steps.note":
-    "Shared by your provider to help you prepare. Tick items off as you go — this is just for your own tracking.",
-  "reservation.steps.due": "Due",
-  "reservation.steps.doneBadge": "Done",
-  "reservation.steps.markDone": "Mark as done",
-  "reservation.steps.markTodo": "Mark as to do",
-  "reservation.steps.marked": "Marked as done",
-  "reservation.steps.markedDesc": "Nice — this is just for your own tracking (mocked).",
-  "reservation.forms.title": "Optional forms",
-  "reservation.forms.note":
-    "These weren't required before payment. You can complete them now or any time before your session.",
-  "reservation.forms.completedBadge": "Completed",
-  "reservation.forms.optionalBadge": "Optional",
-  "reservation.forms.save": "Save form",
-  "reservation.forms.saved": "Form saved",
-  "reservation.forms.savedDesc": "Thanks — your answers were saved (mocked).",
-  "reservation.form.notes.name": "Additional notes before your session",
-  "reservation.form.notes.desc": "Anything you'd like the provider to know in advance.",
-  "reservation.form.notes.field": "Your notes",
-  "reservation.form.notes.placeholder": "e.g. context, goals, questions you'd like to cover…",
-  "reservation.form.update.name": "Pre-session update",
-  "reservation.form.update.desc": "A quick check-in so the provider can prepare.",
-  "reservation.form.update.field": "Anything changed since you booked?",
-  "reservation.message.title": "Message the provider",
-  "reservation.message.placeholder": "Write a short message to the provider…",
-  "reservation.message.send": "Send message",
-  "reservation.message.sent": "Message sent",
-  "reservation.message.sentDesc": "Thanks — the provider will get back to you (mocked).",
-  "reservation.reschedule.title": "Request a reschedule",
-  "reservation.reschedule.body":
-    "We'll let the provider know you'd like a different time. They'll follow up to confirm a new slot. (Mocked — nothing is actually sent.)",
-  "reservation.reschedule.confirm": "Request reschedule",
-  "reservation.reschedule.sent": "Reschedule requested",
-  "reservation.reschedule.sentDesc":
-    "The provider will follow up about a new time (mocked).",
-  "reservation.cancel.title": "Request a cancellation",
-  "reservation.cancel.body":
-    "We'll let the provider know you'd like to cancel. Any refund follows their cancellation policy. (Mocked — nothing is actually cancelled.)",
-  "reservation.cancel.confirm": "Request cancellation",
-  "reservation.cancel.sent": "Cancellation requested",
-  "reservation.cancel.sentDesc":
-    "The provider will follow up about your cancellation (mocked).",
-  "reservation.back": "Back to booking page",
-  "reservation.backHome": "Back to home",
-  "reservation.disclaimer":
-    "This is a demo page. Customers don't have accounts — in production this page would open from a secure reservation link sent by email.",
-  // Reservation workspace — hero + layout
-  "reservation.hero.context.none":
-    "You're all set — nothing to complete before your session.",
-  "reservation.hero.context.one": "1 thing to complete before your session.",
-  "reservation.hero.context.many":
-    "{n} things to complete before your session.",
-  "reservation.hero.reviewSteps": "Review next steps",
-  "reservation.hero.message": "Message provider",
-  "reservation.reminder":
+  // Demo booking management workspace (/booking/manage/demo)
+  "bookingManage.badge": "Demo",
+  "bookingManage.title": "Your booking",
+  "bookingManage.subtitle":
+    "A preview of what your clients could see after booking — review the details, complete optional forms, manage the booking, and stay in touch. This is a demo with mocked data.",
+  "bookingManage.tabsLabel": "Booking sections",
+  "bookingManage.tab.info": "Booking info",
+  "bookingManage.tab.manage": "Manage booking",
+  "bookingManage.tab.forms": "Forms",
+  "bookingManage.tab.payment": "Payment",
+  "bookingManage.tab.package": "Package",
+  "bookingManage.status.confirmed": "Confirmed",
+  "bookingManage.location.online": "Online — meeting link sent by email",
+  "bookingManage.reminder":
     "You'll receive a reminder 24 hours before your session.",
-  "reservation.details.title": "Reservation details",
-  "reservation.payment.title": "Payment",
-  "reservation.package.title": "Package",
-  "reservation.manage.title": "Manage reservation",
-  "reservation.manage.note":
+  "bookingManage.disclaimer":
+    "This is a demo page. Customers don't have accounts — in production this page would open from a secure booking link sent by email.",
+  "bookingManage.back": "Back to booking page",
+  "bookingManage.backHome": "Back to home",
+  // Booking info tab
+  "bookingManage.info.title": "Booking info",
+  "bookingManage.info.service": "Service",
+  "bookingManage.info.provider": "Provider",
+  "bookingManage.info.when": "Date & time",
+  "bookingManage.info.location": "Location",
+  "bookingManage.info.reference": "Booking reference",
+  "bookingManage.info.context.none":
+    "You're all set — nothing to complete before your session.",
+  "bookingManage.info.context.one":
+    "1 optional form to complete before your session.",
+  "bookingManage.info.context.many":
+    "{n} optional forms to complete before your session.",
+  // Manage booking tab
+  "bookingManage.message.title": "Message your provider",
+  "bookingManage.message.note":
+    "Ask the provider anything about your booking. They'll follow up by email.",
+  "bookingManage.message.placeholder": "Write a short message to the provider…",
+  "bookingManage.message.send": "Send message",
+  "bookingManage.message.sent": "Message sent",
+  "bookingManage.message.sentDesc": "Thanks — the provider will get back to you (mocked).",
+  "bookingManage.manage.title": "Manage booking",
+  "bookingManage.manage.note":
     "Need to make a change? Send a request and your provider will follow up.",
-  // Shared resources
-  "reservation.resources.title": "Shared resources",
-  "reservation.resources.note":
-    "Materials your provider shared to help you prepare and follow up.",
-  "reservation.resources.open": "Open",
-  "reservation.resources.opened": "Demo resource",
-  "reservation.resources.openedDesc": "Resource links aren't live in this demo.",
-  "reservation.resources.kind.guide": "Guide",
-  "reservation.resources.kind.worksheet": "Worksheet",
-  "reservation.resources.kind.document": "Document",
-  "reservation.resources.kind.link": "Link",
+  "bookingManage.actions.reschedule": "Request reschedule",
+  "bookingManage.actions.cancel": "Request cancellation",
+  "bookingManage.reschedule.title": "Request a reschedule",
+  "bookingManage.reschedule.body":
+    "We'll let the provider know you'd like a different time. They'll follow up to confirm a new slot. (Mocked — nothing is actually sent.)",
+  "bookingManage.reschedule.confirm": "Request reschedule",
+  "bookingManage.reschedule.sent": "Reschedule requested",
+  "bookingManage.reschedule.sentDesc":
+    "The provider will follow up about a new time (mocked).",
+  "bookingManage.cancel.title": "Request a cancellation",
+  "bookingManage.cancel.body":
+    "We'll let the provider know you'd like to cancel. Any refund follows their cancellation policy. (Mocked — nothing is actually cancelled.)",
+  "bookingManage.cancel.confirm": "Request cancellation",
+  "bookingManage.cancel.sent": "Cancellation requested",
+  "bookingManage.cancel.sentDesc":
+    "The provider will follow up about your cancellation (mocked).",
+  // Forms tab
+  "bookingManage.forms.title": "Forms",
+  "bookingManage.forms.note":
+    "Forms your provider attached to this booking. Required forms were completed before payment; optional ones you can complete any time before your session.",
+  "bookingManage.forms.required": "Required",
+  "bookingManage.forms.optional": "Optional",
+  "bookingManage.forms.completed": "Completed",
+  "bookingManage.forms.notCompleted": "Not completed",
+  "bookingManage.forms.open": "Complete",
+  "bookingManage.forms.view": "View",
+  "bookingManage.forms.save": "Save form",
+  "bookingManage.forms.saved": "Form saved",
+  "bookingManage.forms.savedDesc": "Thanks — your answers were saved (mocked).",
+  "bookingManage.forms.readonlyNote":
+    "You completed this form before payment. Your answers are read-only.",
+  "bookingManage.form.intake.name": "Discovery questionnaire",
+  "bookingManage.form.intake.desc": "Completed before payment.",
+  "bookingManage.form.intake.field": "What would you like to focus on?",
+  "bookingManage.form.intake.answer":
+    "Scaling our onboarding process and improving activation in the first 30 days.",
+  "bookingManage.form.notes.name": "Additional notes before your session",
+  "bookingManage.form.notes.desc": "Anything you'd like the provider to know in advance.",
+  "bookingManage.form.notes.field": "Your notes",
+  "bookingManage.form.notes.placeholder": "e.g. context, goals, questions you'd like to cover…",
+  "bookingManage.form.update.name": "Pre-session update",
+  "bookingManage.form.update.desc": "A quick check-in so the provider can prepare.",
+  "bookingManage.form.update.field": "Anything changed since you booked?",
+  // Payment tab
+  "bookingManage.payment.title": "Payment",
+  "bookingManage.payment.method": "Payment method",
+  "bookingManage.payment.manualLabel": "Manual payment",
+  "bookingManage.payment.statusLabel": "Status",
+  "bookingManage.payment.statusValue": "Awaiting manual payment",
+  "bookingManage.payment.subtotal": "Subtotal",
+  "bookingManage.payment.tax": "Tax",
+  "bookingManage.payment.total": "Total",
+  "bookingManage.payment.instructionsLabel": "Payment instructions",
+  // Package tab
+  "bookingManage.package.title": "Package",
+  "bookingManage.package.session": "Session {n} of {total}",
+  "bookingManage.package.note":
+    "This booking is part of a multi-session package set up by your provider.",
+  "bookingManage.package.included": "Included sessions",
+  "bookingManage.package.thisSession": "This session",
 
   // Auth
   "auth.login.submit": "Sign in",
@@ -500,10 +498,10 @@ export const en = {
   "demoGuide.persona.consultant": "Consultant",
   "demoGuide.persona.coach": "Coach",
   "demoGuide.persona.instructor": "Instructor",
-  "demoGuide.step.reservation.title": "View the customer reservation page",
-  "demoGuide.step.reservation.body":
-    "See the post-booking experience: reservation details, optional forms, messaging the provider, and requesting a reschedule or cancellation.",
-  "demoGuide.step.reservation.cta": "Open reservation page",
+  "demoGuide.step.manage.title": "View the customer booking page",
+  "demoGuide.step.manage.body":
+    "See the post-booking experience: booking details, optional forms, messaging the provider, and requesting a reschedule or cancellation.",
+  "demoGuide.step.manage.cta": "Open booking page",
   "demoGuide.noteLabel": "Note:",
   "demoGuide.note":
     "This is a demo environment, so some flows use mocked data while the product is still in progress. If anything looks off, you spot a bug or a broken flow, have a business inquiry or feature request, or would like to book time to discuss Slotera — feel free to reach out.",

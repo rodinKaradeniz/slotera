@@ -11,8 +11,8 @@ import { NotFoundError, NotImplementedError } from "./_errors";
 /**
  * Session action items. Mirrors the mock-first conventions of the other
  * services (see CLAUDE.md → Data layer). Lightweight admin tasks attached to a
- * session; `clientVisible` items may surface as shared next steps on the
- * customer reservation workspace. Internal-only items stay admin-side.
+ * session; `clientVisible` is retained for a future customer-facing surface
+ * (admin-only today). Internal-only items stay admin-side.
  */
 let mock: SessionActionItem[] = JSON.parse(
   JSON.stringify(actionItemsJson),
@@ -34,8 +34,9 @@ export async function listActionItemsForSession(
 }
 
 /**
- * Client-visible action items for a session — the shared "next steps" surfaced
- * on the customer reservation workspace. Internal-only items are never returned.
+ * Client-visible action items for a session. Retained for a future
+ * customer-facing surface; not consumed by any current page. Internal-only
+ * items are never returned.
  */
 export async function listClientActionItemsForSession(
   sessionId: string,
