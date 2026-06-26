@@ -314,16 +314,36 @@ Lightweight Phase 1 demo entities for selling/presenting **multi-session offers*
 
 `/reservation/demo` (`src/app/(public)/reservation/demo/page.tsx`) is a **mocked, public, no-auth Phase 1 preview** of a lightweight post-booking **reservation workspace** — what a customer could see/do *after* booking. User-facing copy may call it a **"reservation workspace"** / **"your reservation"**; it is **not a customer account, and never call it a "Customer Portal" or "Client Portal"** (don't use those terms in UI copy). Customers still do not have accounts. It surfaces from the booking confirmation page's "Manage reservation" link and uses a single fixed demo reservation (no IDs, tokens, secure links, persistence, or email).
 
-It is deliberately **not** a full client portal, CRM, project-management app, course platform, or messaging platform.
+It is deliberately **not** a full client portal, CRM, project-management app, course platform, messaging platform, or file-management system.
+
+**Layout — a clean two-column workspace** (not a long stack of cards). The page answers three questions fast: *what did I book / what do I need to do before the session / how do I message or manage it.*
+- **Priority summary hero** at the top: service name, status, date/time, provider, a short context line (e.g. "2 things to complete before your session", derived from open client steps + un-completed optional forms), and one or two primary actions (review next steps / message provider).
+- **Left/main column (wider):** next steps → preparation/optional forms → resources → message provider.
+- **Right/sidebar column (narrower):** reservation details (+ a display-only reminder line) → payment/manual instructions → package context → manage-reservation actions.
+- **Mobile** stacks the columns naturally (main column first, then sidebar) with no nested scroll. Keep the hero compact.
 
 What it demonstrates, all mocked (ConfirmDialog + toast only, no real logic):
-- **Reservation overview** — service, provider, date/time, status, location/online, package context, payment + manual instructions, reservation reference.
+- **Priority summary hero** — service, status, date/time, provider, derived "what's left to do" line.
+- **Reservation details + payment** — service, provider, date/time, location/online, reference, payment method + manual instructions, package context. A small **display-only reminder line** ("You'll receive a reminder 24 hours before your session") represents future email reminders without building them.
 - **Optional/post-booking forms** that weren't required before payment (fill + "save" → toast, marks completed in local state).
+- **Shared resources** — `clientVisible` **resource links** for the demo session, loaded via `listClientResourcesForSession("ses-demo")` (see Resources below). Display-only cards; clicking is a mocked toast, not a real download/navigation.
 - **Message the provider** — textarea + mocked send (toast). No real messaging/inbox/thread model.
 - **Shared next steps** — `clientVisible` **session action items** (see below) for the demo session, loaded via `listClientActionItemsForSession("ses-demo")`. The client can tick an item done **locally only** (local state + toast); nothing is persisted back. Item titles/descriptions are provider-authored mock content (English, like the provider/service names) — only the surrounding chrome is translated.
 - **Reservation actions** — request-reschedule / request-cancellation (ConfirmDialog + toast).
 
-A production version would use **secure magic links/tokens sent by email + backend persistence**, and could additionally show address/meeting details. Keep copy non-clinical/non-legal; **no medical-record or compliance claims**. **Internal session notes are never exposed here** — only `clientVisible` action items. Don't promote this page in the public Demo Guide modal unless it stays uncrowded.
+A production version would use **secure magic links/tokens sent by email + backend persistence**, and could additionally show address/meeting details. Keep copy non-clinical/non-legal; **no medical-record or compliance claims**. **Internal session notes are never exposed here** — only `clientVisible` action items and resources. Don't promote this page in the public Demo Guide modal unless it stays uncrowded.
+
+**Future backend-heavy ideas are represented, not built.** Email reminders/follow-ups (the display-only reminder line), real customer magic-link access (the soft disclaimer copy), approval-before-booking (a future *service-level* workflow only — do **not** change the public booking step sequence), and package checkout/credits (package context stays display-only) are all documented as future work. Don't implement any of them in this surface.
+
+### Resources
+
+Lightweight **shared materials** a provider can attach to a session — a worksheet, a prep guide, a follow-up checklist, an external link. Phase 1 is **display-only/mock**: cards/links only, no uploads, no file storage, no permissions model, no real download/navigation, no backend. **Do not call this a file manager.**
+
+- Type `ResourceLink` (`src/types/resource-link.ts`): `{ id, sessionId, title, description?, url, kind?: "guide" | "worksheet" | "document" | "link", clientVisible, createdAtISO }`. `url` is a placeholder (`#`) in the demo; clicking fires a mocked toast, never a real download.
+- Seeded in `src/data/mock/resources.json`, served by `src/services/resources.service.ts` (`listResourcesForSession`, `listClientResourcesForSession`) — same mock-first pattern as session action items.
+- Surfaces as **"Shared resources"** on `/reservation/demo` via `listClientResourcesForSession("ses-demo")` (only `clientVisible` resources; internal ones never leave the admin side). Resource titles/descriptions are provider-authored mock content (English, like service/provider names) — only the chrome and the kind label are translated.
+- Use labels like **Resources / Shared resources / prep materials** — not "file manager", "uploads", or "downloads center".
+- **Future production** may attach resources to services, sessions, or packages with real upload/storage/permissions. Don't build any of that now.
 
 ### Calendar
 

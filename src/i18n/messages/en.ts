@@ -443,7 +443,34 @@ export const en = {
   "reservation.back": "Back to booking page",
   "reservation.backHome": "Back to home",
   "reservation.disclaimer":
-    "This is a demo page. Customers don't have accounts — a production version would use a secure link sent by email.",
+    "This is a demo page. Customers don't have accounts — in production this page would open from a secure reservation link sent by email.",
+  // Reservation workspace — hero + layout
+  "reservation.hero.context.none":
+    "You're all set — nothing to complete before your session.",
+  "reservation.hero.context.one": "1 thing to complete before your session.",
+  "reservation.hero.context.many":
+    "{n} things to complete before your session.",
+  "reservation.hero.reviewSteps": "Review next steps",
+  "reservation.hero.message": "Message provider",
+  "reservation.reminder":
+    "You'll receive a reminder 24 hours before your session.",
+  "reservation.details.title": "Reservation details",
+  "reservation.payment.title": "Payment",
+  "reservation.package.title": "Package",
+  "reservation.manage.title": "Manage reservation",
+  "reservation.manage.note":
+    "Need to make a change? Send a request and your provider will follow up.",
+  // Shared resources
+  "reservation.resources.title": "Shared resources",
+  "reservation.resources.note":
+    "Materials your provider shared to help you prepare and follow up.",
+  "reservation.resources.open": "Open",
+  "reservation.resources.opened": "Demo resource",
+  "reservation.resources.openedDesc": "Resource links aren't live in this demo.",
+  "reservation.resources.kind.guide": "Guide",
+  "reservation.resources.kind.worksheet": "Worksheet",
+  "reservation.resources.kind.document": "Document",
+  "reservation.resources.kind.link": "Link",
 
   // Auth
   "auth.login.submit": "Sign in",

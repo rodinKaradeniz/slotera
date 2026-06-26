@@ -406,7 +406,34 @@ export const de: Partial<Messages> = {
   "reservation.back": "Zurück zur Buchungsseite",
   "reservation.backHome": "Zurück zur Startseite",
   "reservation.disclaimer":
-    "Dies ist eine Demo-Seite. Kunden haben keine Konten — eine Produktionsversion würde einen sicheren, per E-Mail gesendeten Link verwenden.",
+    "Dies ist eine Demo-Seite. Kunden haben keine Konten — in der Produktion würde diese Seite über einen sicheren, per E-Mail gesendeten Reservierungslink geöffnet.",
+  "reservation.hero.context.none":
+    "Alles erledigt — vor Ihrer Sitzung ist nichts mehr zu tun.",
+  "reservation.hero.context.one":
+    "1 Sache vor Ihrer Sitzung zu erledigen.",
+  "reservation.hero.context.many":
+    "{n} Dinge vor Ihrer Sitzung zu erledigen.",
+  "reservation.hero.reviewSteps": "Nächste Schritte ansehen",
+  "reservation.hero.message": "Anbieter benachrichtigen",
+  "reservation.reminder":
+    "Sie erhalten 24 Stunden vor Ihrer Sitzung eine Erinnerung.",
+  "reservation.details.title": "Reservierungsdetails",
+  "reservation.payment.title": "Zahlung",
+  "reservation.package.title": "Paket",
+  "reservation.manage.title": "Reservierung verwalten",
+  "reservation.manage.note":
+    "Möchten Sie etwas ändern? Senden Sie eine Anfrage und Ihr Anbieter meldet sich.",
+  "reservation.resources.title": "Geteilte Ressourcen",
+  "reservation.resources.note":
+    "Materialien, die Ihr Anbieter geteilt hat, um Sie bei der Vorbereitung und Nachbereitung zu unterstützen.",
+  "reservation.resources.open": "Öffnen",
+  "reservation.resources.opened": "Demo-Ressource",
+  "reservation.resources.openedDesc":
+    "Ressourcen-Links sind in dieser Demo nicht aktiv.",
+  "reservation.resources.kind.guide": "Leitfaden",
+  "reservation.resources.kind.worksheet": "Arbeitsblatt",
+  "reservation.resources.kind.document": "Dokument",
+  "reservation.resources.kind.link": "Link",
 
   "auth.login.submit": "Anmelden",
   "auth.register.submit": "Konto erstellen",

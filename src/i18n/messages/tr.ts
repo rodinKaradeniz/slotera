@@ -406,7 +406,34 @@ export const tr: Partial<Messages> = {
   "reservation.back": "Rezervasyon sayfasına dön",
   "reservation.backHome": "Ana sayfaya dön",
   "reservation.disclaimer":
-    "Bu bir demo sayfasıdır. Müşterilerin hesabı yoktur — üretim sürümü e-postayla gönderilen güvenli bir bağlantı kullanırdı.",
+    "Bu bir demo sayfasıdır. Müşterilerin hesabı yoktur — üretimde bu sayfa, e-postayla gönderilen güvenli bir rezervasyon bağlantısından açılırdı.",
+  "reservation.hero.context.none":
+    "Her şey hazır — seansınızdan önce tamamlamanız gereken bir şey yok.",
+  "reservation.hero.context.one":
+    "Seansınızdan önce tamamlanacak 1 madde var.",
+  "reservation.hero.context.many":
+    "Seansınızdan önce tamamlanacak {n} madde var.",
+  "reservation.hero.reviewSteps": "Sonraki adımları gör",
+  "reservation.hero.message": "Sağlayıcıya mesaj gönder",
+  "reservation.reminder":
+    "Seansınızdan 24 saat önce bir hatırlatma alacaksınız.",
+  "reservation.details.title": "Rezervasyon ayrıntıları",
+  "reservation.payment.title": "Ödeme",
+  "reservation.package.title": "Paket",
+  "reservation.manage.title": "Rezervasyonu yönet",
+  "reservation.manage.note":
+    "Bir değişiklik mi gerekiyor? Bir talep gönderin, sağlayıcınız sizinle iletişime geçsin.",
+  "reservation.resources.title": "Paylaşılan kaynaklar",
+  "reservation.resources.note":
+    "Sağlayıcınızın hazırlanmanıza ve sonrasını takip etmenize yardımcı olmak için paylaştığı materyaller.",
+  "reservation.resources.open": "Aç",
+  "reservation.resources.opened": "Demo kaynağı",
+  "reservation.resources.openedDesc":
+    "Bu demoda kaynak bağlantıları etkin değildir.",
+  "reservation.resources.kind.guide": "Rehber",
+  "reservation.resources.kind.worksheet": "Çalışma sayfası",
+  "reservation.resources.kind.document": "Belge",
+  "reservation.resources.kind.link": "Bağlantı",
 
   "auth.login.submit": "Giriş yap",
   "auth.register.submit": "Hesap oluştur",
