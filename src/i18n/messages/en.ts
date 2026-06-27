@@ -51,7 +51,7 @@ export const en = {
   "landing.hero.eyebrow": "For independent consultants, coaches & instructors",
   "landing.hero.title": "Paid bookings, without the calendar chaos.",
   "landing.hero.subtitle":
-    "Slotera is the paid booking and client-prep workspace for independent experts — take card or bank-transfer payments, collect the intake you need before each session, and run it all without a heavy CRM.",
+    "Slotera is a lightweight client workspace for independent experts — take card or bank-transfer payments, send prep forms, bundle sessions into packages, and keep client context and follow-up in one place. No heavy CRM.",
   "landing.hero.badge.noCard": "No credit card required",
   "landing.hero.badge.cancel": "Cancel anytime",
   "landing.hero.badge.gdpr": "UK GDPR-aware",
@@ -93,9 +93,9 @@ export const en = {
   "landing.features.languages.title": "Multilingual booking",
   "landing.features.languages.body":
     "Your clients can book in English, Turkish or German — the whole flow follows their language.",
-  "landing.features.workspace.title": "A lightweight workspace",
+  "landing.features.workspace.title": "A lightweight client workspace",
   "landing.features.workspace.body":
-    "A focused admin for bookings, clients, services and settings — built to run your practice, not a heavy CRM.",
+    "A focused admin for bookings, clients, packages and client notes — built to run your practice, not a heavy CRM.",
 
   // Landing — demo strip
   "landing.demoStrip.eyebrow": "See it in action",
@@ -171,7 +171,7 @@ export const en = {
 
   // Footer
   "footer.tagline":
-    "Slotera helps independent consultants, coaches and instructors run paid bookings and client prep — without juggling spreadsheets, calendars and invoices.",
+    "Slotera is a lightweight client workspace for independent consultants, coaches and instructors — paid bookings, prep forms, packages and follow-up, without a heavy CRM.",
   "footer.col.product": "Product",
   "footer.col.company": "Company",
   "footer.col.legal": "Legal",

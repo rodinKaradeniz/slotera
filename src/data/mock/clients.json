@@ -14,8 +14,7 @@
     "totalBookings": 7,
     "completedBookings": 6,
     "cancelledBookings": 1,
-    "totalSpentCents": 196000,
-    "notes": "Working on Series A pitch. Prefers morning sessions."
+    "totalSpentCents": 196000
   },
   {
     "id": "cli-002",

@@ -8,7 +8,7 @@ Slotera is a paid booking and session-management product for **individual** serv
 
 ### Positioning / first ICP (important)
 
-Slotera's **first ICP is independent consultants, coaches, instructors, and small expert-led studios/workshops.** Default public positioning: *"a paid booking and client-prep workspace for independent consultants, coaches, and instructors."* Themes to lead with: paid bookings, client intake/prep forms, session management, the customer booking page, manual/card payment readiness, the multilingual booking experience, and a lightweight admin workspace — explicitly **not a heavy CRM and not a generic calendar-only tool.**
+Slotera's **first ICP is independent consultants, coaches, instructors, and small expert-led studios/workshops.** Default public positioning: *"a lightweight client workspace for independent consultants, coaches, and instructors — paid bookings, prep forms, packages, and follow-up."* Themes to lead with: paid bookings, client intake/prep forms, packages, session management, client context/notes and follow-up, the customer booking page, manual/card payment readiness, the multilingual booking experience, and a lightweight admin workspace — explicitly **not a heavy CRM, not a generic calendar-only tool, and not a generic "reservation app."** Frame Slotera as a *lightweight client workspace*, not a reservation/appointment app. Avoid medical/clinical/patient wording unless a specialized demo is explicitly added later.
 
 - The **underlying product model stays generic and flexible** (services, sessions, bookings, forms, payments, clients, calendar, settings, customer booking page). Don't hardcode a vertical into the data model — refine *positioning and defaults*, not architecture. See the "**No `type` field, ever**" rule under Services.
 - **Public/default surfaces should not try to speak to every vertical at once.** The standard `/booking` default and the public Demo Guide lead with consultant/coach/instructor. Specialised verticals (vet, therapist) may exist as flexible mock examples but are **not** promoted in the public positioning.
@@ -396,18 +396,35 @@ type WorkspaceLocation = { id; label; address };
 
 `AddressForm` is the controlled-field component; `AddressPicker` is the dashed-card empty state + quick-fill dropdown + AddressForm + Remove combination. Both live in `src/components/shared/forms/`. The picker is used in `ServiceForm` (when locationType isn't online) and `SessionDrawer` (likewise). On save, sessions with `locationType: "online"` drop their address so the data stays clean.
 
+### Clients
+
+The client detail page (`/admin/clients/[id]`) is a focused two-tab workspace, **not** a CRM:
+
+- **Overview** and **Notes** tabs only (shared `Tabs` primitive). Don't add more tabs in this pass.
+- **Overview** is a two-column layout: **Recent bookings** on the left (wider), **Contact info** on the right (narrower); on mobile they stack with Recent bookings first. The "Booking history" card was renamed to "Recent bookings" and the old single-textarea notes card was removed from Overview.
+- **Recent bookings** shows a compact list (service, date/time, amount, status) and a **"View all bookings"** action that navigates to `/admin/bookings?client=<clientId>`. The main **Bookings page stays the canonical place to manage all bookings** — don't duplicate the booking table or add a full Bookings tab inside client details. `BookingsView` reads the `client` query param, filters to that client, and shows a removable filter chip.
+- **Notes** tab → see Client notes below.
+
+### Client notes
+
+Client notes are **separate internal note entries**, not one big textarea (the old `Client.notes?: string` field was removed). Type `ClientNote` (`src/types/client-note.ts`): `{ id, clientId, title, body, createdAtISO, updatedAtISO }`. Seeded in `src/data/mock/client-notes.json`, served by `src/services/client-notes.service.ts` (`listClientNotes`, `createClientNote`, `updateClientNote`, `deleteClientNote`). The Notes tab (`src/components/admin/clients/ClientNotes.tsx`) lists notes (title + body + created/updated date), with add/edit via a `Modal` (title + body, both required) and delete via `ConfirmDialog`; all mutations toast.
+
+- **Admin-only by default — never shown to clients** and **never surfaced on the customer booking workspace**. A small `info` affordance + muted helper text on the tab makes the internal-only intent explicit.
+- Notes are for **client context, follow-up reminders, preferences, and details useful before future sessions** — the operator has full freedom in the text.
+- Keep it lightweight: **not a full CRM activity log, audit timeline, assignees, comments, or reminders.** If a multi-author/audit-log shape becomes useful later, promote intentionally — don't fork it ad hoc.
+
 ### Notes
 
-Every top-level entity has a single optional `notes?: string` textarea — Service (internal), Session (internal), Booking (booking note), Client (notes). Single textarea per entity for now, not a timestamped log. If a multi-author/audit-log shape becomes useful, promote each `notes?: string` to `notes: NoteEntry[]` together — don't fork the shape per entity.
+Service (internal), Session (internal), and Booking (booking note) each carry a single optional `notes?: string` textarea — not a timestamped log. (Client notes are the exception: they are separate `ClientNote` entries — see Client notes above.) If a multi-author/audit-log shape becomes useful, promote each `notes?: string` to `notes: NoteEntry[]` together — don't fork the shape per entity.
 
 ### Session notes & action items
 
 A session carries two distinct admin surfaces, both in the shared `SessionDrawer` under a **"Notes & Actions"** tab (rendered for existing sessions; the tab label shows the open-item count, e.g. `Notes & Actions (2)`):
 
 - **Internal note** — the existing `SessionItem.notes` single string. **Admin/internal by default and never shown to clients.** While *creating* a session the note stays inline on the Details tab; for an *existing* session it moves into the Notes & Actions tab with its own "Save note" button (`updateSession` is a patch-merge, so this stays consistent with the Details "Save"). Don't build a note history/audit log.
-- **Action items** — lightweight admin tasks attached to a session. Type `SessionActionItem` (`src/types/session-action-item.ts`): `{ id, sessionId, title, description?, status: "todo"|"done", dueDate?, clientVisible?, createdAtISO, updatedAtISO }`. Seeded in `src/data/mock/session-action-items.json`, served by `src/services/session-action-items.service.ts` (`listActionItems`, `listActionItemsForSession`, `listClientActionItemsForSession`, `createActionItem`, `updateActionItem`, `toggleActionItemStatus`, `deleteActionItem`). The admin manager (`src/components/drawers/SessionActionItems.tsx`) supports add / edit / mark todo↔done / delete + optional due date + a **"Visible to client"** toggle.
+- **Action items** — lightweight admin tasks attached to a session. Type `SessionActionItem` (`src/types/session-action-item.ts`): `{ id, sessionId, title, description?, status: "todo"|"done", dueDate?, clientVisible?, createdAtISO, updatedAtISO }`. Seeded in `src/data/mock/session-action-items.json`, served by `src/services/session-action-items.service.ts` (`listActionItems`, `listActionItemsForSession`, `createActionItem`, `updateActionItem`, `toggleActionItemStatus`, `deleteActionItem`). The admin manager (`src/components/drawers/SessionActionItems.tsx`) supports add / edit / mark todo↔done / delete + optional due date + a **"Visible to client"** toggle.
 
-`clientVisible` is retained for a possible **future** client-facing surface (`listClientActionItemsForSession` still exists), but action items are **admin-only today** — they are **not** shown on the customer booking workspace. **Internal-only items (the default) never leave the admin surface, and internal notes are never exposed to clients.** Keep this lightweight — **no assignees, comments, reminders, notifications, recurrence, project boards, or messaging.**
+`clientVisible` is retained for a possible **future** client-facing surface, but action items are **admin-only today** — they are **not** shown on the customer booking workspace. (The previously-exported `listClientActionItemsForSession` helper was removed as unused once client-facing next steps were dropped from the booking workspace; re-add it if/when a real client surface needs it.) **Internal-only items (the default) never leave the admin surface, and internal notes are never exposed to clients.** Keep this lightweight — **no assignees, comments, reminders, notifications, recurrence, project boards, or messaging.**
 
 Derived surfaces: the Dashboard "Needs your attention" list prepends a live **"Review N open session action items"** entry (computed in `dashboard.service.ts` from `todo` items on real sessions; the `ses-demo` seed is excluded). `BookingDrawer` carries a small **"View booking workspace"** link to `/booking/manage/demo`.
 

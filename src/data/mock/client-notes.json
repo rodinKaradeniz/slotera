@@ -1,0 +1,26 @@
+[
+  {
+    "id": "cnote-001",
+    "clientId": "cli-001",
+    "title": "Prefers morning sessions",
+    "body": "Mila is sharpest before midday — try to keep her bookings before 12:00 where possible. Avoid late-afternoon slots.",
+    "createdAtISO": "2025-09-06T09:12:00.000Z",
+    "updatedAtISO": "2025-09-06T09:12:00.000Z"
+  },
+  {
+    "id": "cnote-002",
+    "clientId": "cli-001",
+    "title": "Series A prep — follow up",
+    "body": "Working towards a Series A raise. Bring the positioning notes from the last strategy session and check in on the updated deck before the next call.",
+    "createdAtISO": "2025-10-02T15:40:00.000Z",
+    "updatedAtISO": "2025-10-18T11:05:00.000Z"
+  },
+  {
+    "id": "cnote-003",
+    "clientId": "cli-002",
+    "title": "Quiet on email",
+    "body": "Jonas tends to go quiet between sessions. A short reminder the day before usually gets a confirmation.",
+    "createdAtISO": "2025-11-11T08:30:00.000Z",
+    "updatedAtISO": "2025-11-11T08:30:00.000Z"
+  }
+]

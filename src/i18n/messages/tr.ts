@@ -41,7 +41,7 @@ export const tr: Partial<Messages> = {
   "landing.hero.eyebrow": "Bağımsız danışmanlar, koçlar ve eğitmenler için",
   "landing.hero.title": "Takvim karmaşası olmadan, ücretli rezervasyonlar.",
   "landing.hero.subtitle":
-    "Slotera, bağımsız uzmanlar için ücretli rezervasyon ve müşteri hazırlık çalışma alanıdır — kartla veya banka havalesiyle ödeme alın, her seanstan önce gereken bilgileri toplayın ve tüm bunları ağır bir CRM olmadan yönetin.",
+    "Slotera, bağımsız uzmanlar için hafif bir müşteri çalışma alanıdır — kartla veya banka havalesiyle ödeme alın, hazırlık formları gönderin, seansları paketler hâlinde sunun ve müşteri bağlamı ile takibi tek yerde tutun. Ağır bir CRM değil.",
   "landing.hero.badge.noCard": "Kredi kartı gerekmez",
   "landing.hero.badge.cancel": "İstediğiniz zaman iptal edin",
   "landing.hero.badge.gdpr": "UK GDPR'a duyarlı",
@@ -80,9 +80,9 @@ export const tr: Partial<Messages> = {
   "landing.features.languages.title": "Çok dilli rezervasyon",
   "landing.features.languages.body":
     "Müşterileriniz İngilizce, Türkçe veya Almanca rezervasyon yapabilir — tüm akış onların diline uyar.",
-  "landing.features.workspace.title": "Hafif bir çalışma alanı",
+  "landing.features.workspace.title": "Hafif bir müşteri çalışma alanı",
   "landing.features.workspace.body":
-    "Rezervasyonlar, müşteriler, hizmetler ve ayarlar için sade bir yönetim — işinizi yürütmek için tasarlandı, ağır bir CRM değil.",
+    "Rezervasyonlar, müşteriler, paketler ve müşteri notları için sade bir yönetim — işinizi yürütmek için tasarlandı, ağır bir CRM değil.",
 
   "landing.demoStrip.eyebrow": "İş başında görün",
   "landing.demoStrip.title": "Gerçek bir rezervasyon akışını deneyin. Kayıt gerekmez.",
@@ -153,7 +153,7 @@ export const tr: Partial<Messages> = {
     "Rezervasyon sayfanızı 10 dakikadan kısa sürede kurun. 14 gün ücretsiz, kredi kartı gerekmez.",
 
   "footer.tagline":
-    "Slotera; bağımsız danışmanların, koçların ve eğitmenlerin ücretli rezervasyonları ve müşteri hazırlığını yürütmesine yardımcı olur — tablolar, takvimler ve faturalarla boğuşmadan.",
+    "Slotera; bağımsız danışmanlar, koçlar ve eğitmenler için hafif bir müşteri çalışma alanıdır — ücretli rezervasyonlar, hazırlık formları, paketler ve takip; ağır bir CRM olmadan.",
   "footer.col.product": "Ürün",
   "footer.col.company": "Şirket",
   "footer.col.legal": "Yasal",

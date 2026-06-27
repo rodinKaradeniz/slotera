@@ -33,20 +33,6 @@ export async function listActionItemsForSession(
   return mock.filter((a) => a.sessionId === sessionId);
 }
 
-/**
- * Client-visible action items for a session. Retained for a future
- * customer-facing surface; not consumed by any current page. Internal-only
- * items are never returned.
- */
-export async function listClientActionItemsForSession(
-  sessionId: string,
-): Promise<SessionActionItem[]> {
-  if (dataSource !== "mock")
-    throw new NotImplementedError("listClientActionItemsForSession");
-  await sleep(50);
-  return mock.filter((a) => a.sessionId === sessionId && a.clientVisible === true);
-}
-
 export async function createActionItem(
   input: SessionActionItemInput,
 ): Promise<SessionActionItem> {

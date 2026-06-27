@@ -41,7 +41,7 @@ export const de: Partial<Messages> = {
   "landing.hero.eyebrow": "Für unabhängige Beratende, Coaches & Trainer:innen",
   "landing.hero.title": "Bezahlte Buchungen, ohne Kalender-Chaos.",
   "landing.hero.subtitle":
-    "Slotera ist der Workspace für bezahlte Buchungen und Klienten-Vorbereitung für unabhängige Expert:innen — kassieren Sie per Karte oder Banküberweisung, sammeln Sie die nötigen Angaben vor jedem Termin und führen Sie alles ohne schweres CRM.",
+    "Slotera ist ein schlanker Klienten-Workspace für unabhängige Expert:innen — kassieren Sie per Karte oder Banküberweisung, versenden Sie Vorbereitungsformulare, bündeln Sie Sitzungen zu Paketen und behalten Sie Klienten-Kontext und Nachfassen an einem Ort. Kein schweres CRM.",
   "landing.hero.badge.noCard": "Keine Kreditkarte nötig",
   "landing.hero.badge.cancel": "Jederzeit kündbar",
   "landing.hero.badge.gdpr": "UK-DSGVO-bewusst",
@@ -80,9 +80,9 @@ export const de: Partial<Messages> = {
   "landing.features.languages.title": "Mehrsprachige Buchung",
   "landing.features.languages.body":
     "Ihre Kunden können auf Englisch, Türkisch oder Deutsch buchen — der gesamte Ablauf folgt ihrer Sprache.",
-  "landing.features.workspace.title": "Ein schlanker Workspace",
+  "landing.features.workspace.title": "Ein schlanker Klienten-Workspace",
   "landing.features.workspace.body":
-    "Eine fokussierte Verwaltung für Buchungen, Kunden, Leistungen und Einstellungen — für Ihren Arbeitsalltag gemacht, kein schweres CRM.",
+    "Eine fokussierte Verwaltung für Buchungen, Kunden, Pakete und Kundennotizen — für Ihren Arbeitsalltag gemacht, kein schweres CRM.",
 
   "landing.demoStrip.eyebrow": "In Aktion erleben",
   "landing.demoStrip.title": "Testen Sie einen echten Buchungsablauf. Ohne Anmeldung.",
@@ -153,7 +153,7 @@ export const de: Partial<Messages> = {
     "Richten Sie Ihre Buchungsseite in unter 10 Minuten ein. 14 Tage kostenlos, keine Kreditkarte nötig.",
 
   "footer.tagline":
-    "Slotera hilft unabhängigen Beratenden, Coaches und Trainer:innen, bezahlte Buchungen und Klienten-Vorbereitung zu führen — ohne Tabellen, Kalender und Rechnungen zu jonglieren.",
+    "Slotera ist ein schlanker Klienten-Workspace für unabhängige Beratende, Coaches und Trainer:innen — bezahlte Buchungen, Vorbereitungsformulare, Pakete und Nachfassen, ohne schweres CRM.",
   "footer.col.product": "Produkt",
   "footer.col.company": "Unternehmen",
   "footer.col.legal": "Rechtliches",

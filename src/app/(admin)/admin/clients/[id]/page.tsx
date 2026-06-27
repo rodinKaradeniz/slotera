@@ -6,7 +6,7 @@ import { useSetCrumbs } from "@/components/layout/PageMeta";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
-import { Textarea } from "@/components/ui/Textarea";
+import { Tabs } from "@/components/ui/Tabs";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { CardHead } from "@/components/shared/CardHead";
 import { DetailLine } from "@/components/shared/DetailLine";
@@ -14,10 +14,10 @@ import { Stat } from "@/components/shared/Stat";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ClientNotes } from "@/components/admin/clients/ClientNotes";
 import { plural } from "@/lib/text";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
-import { useToast } from "@/components/ui/Toast";
-import { getClient, updateClient } from "@/services/clients.service";
+import { getClient } from "@/services/clients.service";
 import { listBookingsByClient } from "@/services/bookings.service";
 import { listSessions } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
@@ -28,17 +28,17 @@ import type { Booking } from "@/types/booking";
 import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
 
+type Tab = "overview" | "notes";
+
 export default function ClientDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { openBookingDrawer } = useDrawers();
-  const { toast } = useToast();
   const [client, setClient] = React.useState<Client | null>(null);
   const [bookings, setBookings] = React.useState<Booking[]>([]);
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
-  const [notesEditing, setNotesEditing] = React.useState(false);
-  const [notesDraft, setNotesDraft] = React.useState("");
+  const [tab, setTab] = React.useState<Tab>("overview");
   const [reload, setReload] = React.useState(0);
 
   React.useEffect(() => {
@@ -55,26 +55,11 @@ export default function ClientDetailPage() {
       setBookings(b);
       setSessions(s);
       setServices(sv);
-      setNotesDraft(c?.notes ?? "");
     });
     return () => {
       live = false;
     };
   }, [params?.id, reload]);
-
-  const saveNotes = async () => {
-    if (!client) return;
-    try {
-      await updateClient(client.id, { notes: notesDraft });
-      setReload((k) => k + 1);
-      setNotesEditing(false);
-      toast.success("Notes saved");
-    } catch (err) {
-      toast.error("Couldn't save notes", {
-        description: err instanceof Error ? err.message : undefined,
-      });
-    }
-  };
 
   useSetCrumbs([
     { label: "Clients", href: "/admin/clients" },
@@ -82,84 +67,108 @@ export default function ClientDetailPage() {
   ]);
 
   return (
-    <>
-      <PageContainer>
-        {!client ? (
-          <LoadingRows count={3} />
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={() => router.push("/admin/clients")}
-              className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1"
-            >
-              ← All clients
-            </button>
+    <PageContainer>
+      {!client ? (
+        <LoadingRows count={3} />
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => router.push("/admin/clients")}
+            className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1"
+          >
+            ← All clients
+          </button>
 
-            <PageHeader
-              eyebrow="Client"
-              title={
-                <span className="inline-flex items-center gap-4">
-                  <Avatar name={client.name} size={48} />
-                  {client.name}
-                </span>
-              }
-              description={
-                client.role
-                  ? `${client.role} · ${client.company ?? client.email}`
-                  : (client.company ?? client.email)
-              }
-              meta={
-                <span className="inline-flex items-center gap-2 flex-wrap">
-                  <StatusBadge kind="client" status={client.tag} />
-                  <span aria-hidden>·</span>
-                  <span>Since {fmtDate(new Date(client.joinedISO))}</span>
-                  <span aria-hidden>·</span>
-                  <span>{plural(client.totalBookings, "booking")}</span>
-                </span>
-              }
-              actions={
-                <>
-                  <Button variant="secondary" size="md" icon="mail">
-                    Email
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    icon="plus"
-                    onClick={() =>
-                      openBookingDrawer({
-                        defaultClientId: client.id,
-                        onSaved: () => setReload((k) => k + 1),
-                      })
-                    }
-                  >
-                    Book a session
-                  </Button>
-                </>
-              }
+          <PageHeader
+            eyebrow="Client"
+            title={
+              <span className="inline-flex items-center gap-4">
+                <Avatar name={client.name} size={48} />
+                {client.name}
+              </span>
+            }
+            description={
+              client.role
+                ? `${client.role} · ${client.company ?? client.email}`
+                : (client.company ?? client.email)
+            }
+            meta={
+              <span className="inline-flex items-center gap-2 flex-wrap">
+                <StatusBadge kind="client" status={client.tag} />
+                <span aria-hidden>·</span>
+                <span>Since {fmtDate(new Date(client.joinedISO))}</span>
+                <span aria-hidden>·</span>
+                <span>{plural(client.totalBookings, "booking")}</span>
+              </span>
+            }
+            actions={
+              <>
+                <Button variant="secondary" size="md" icon="mail">
+                  Email
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
+                  icon="plus"
+                  onClick={() =>
+                    openBookingDrawer({
+                      defaultClientId: client.id,
+                      onSaved: () => setReload((k) => k + 1),
+                    })
+                  }
+                >
+                  Book a session
+                </Button>
+              </>
+            }
+          />
+
+          <Card padded={false} className="mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-line-soft">
+              <PadStat label="Total bookings" value={String(client.totalBookings)} />
+              <PadStat label="Completed" value={String(client.completedBookings)} />
+              <PadStat label="Cancelled" value={String(client.cancelledBookings)} />
+              <PadStat label="Total spent" value={gbp(client.totalSpentCents)} />
+              <PadStat
+                label="Avg per session"
+                value={
+                  client.completedBookings > 0
+                    ? gbp(Math.round(client.totalSpentCents / client.completedBookings))
+                    : "—"
+                }
+              />
+            </div>
+          </Card>
+
+          <div className="mb-5">
+            <Tabs
+              value={tab}
+              onChange={(v) => setTab(v as Tab)}
+              tabs={[
+                { value: "overview", label: "Overview" },
+                { value: "notes", label: "Notes" },
+              ]}
             />
+          </div>
 
-            <Card padded={false} className="mb-4">
-              <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-line-soft">
-                <PadStat label="Total bookings" value={String(client.totalBookings)} />
-                <PadStat label="Completed" value={String(client.completedBookings)} />
-                <PadStat label="Cancelled" value={String(client.cancelledBookings)} />
-                <PadStat label="Total spent" value={gbp(client.totalSpentCents)} />
-                <PadStat
-                  label="Avg per session"
-                  value={
-                    client.completedBookings > 0
-                      ? gbp(Math.round(client.totalSpentCents / client.completedBookings))
-                      : "—"
+          {tab === "overview" ? (
+            <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
+              <Card padded={false}>
+                <CardHead
+                  title="Recent bookings"
+                  right={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        router.push(`/admin/bookings?client=${client.id}`)
+                      }
+                    >
+                      View all bookings
+                    </Button>
                   }
                 />
-              </div>
-            </Card>
-
-            <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
-              <Card padded={false}>
-                <CardHead title="Booking history" />
                 {bookings.length === 0 ? (
                   <div className="px-5 py-8 text-small text-center">
                     No bookings yet.
@@ -193,80 +202,42 @@ export default function ClientDetailPage() {
                 )}
               </Card>
 
-              <div className="flex flex-col gap-6 lg:sticky lg:top-24">
-                <Card padded={false}>
-                  <CardHead title="Contact" />
-                  <div className="p-2">
-                    <DetailLine icon="mail" label="Email" value={client.email} />
-                    {client.phone && (
-                      <DetailLine icon="phone" label="Phone" value={client.phone} />
-                    )}
-                    {client.timezone && (
-                      <DetailLine
-                        icon="globe"
-                        label="Timezone"
-                        value={client.timezone}
-                      />
-                    )}
-                    {client.address && (
-                      <DetailLine icon="map-pin" label="Address" value={client.address} />
-                    )}
-                    {client.vatId && (
-                      <DetailLine icon="file" label="VAT ID" value={client.vatId} />
-                    )}
-                  </div>
-                </Card>
-
-                <Card padded>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-h3 text-ink" style={{ fontSize: 16 }}>Notes</h3>
-                    {!notesEditing ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon="edit"
-                        onClick={() => setNotesEditing(true)}
-                      >
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setNotesEditing(false);
-                            setNotesDraft(client.notes ?? "");
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button variant="primary" size="sm" onClick={saveNotes}>
-                          Save
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  {notesEditing ? (
-                    <Textarea
-                      value={notesDraft}
-                      rows={4}
-                      onChange={(e) => setNotesDraft(e.target.value)}
-                    />
-                  ) : (
-                    <p className="text-body whitespace-pre-wrap">
-                      {client.notes || (
-                        <span className="text-ink-3">No notes yet.</span>
-                      )}
-                    </p>
+              <Card padded={false}>
+                <CardHead title="Contact info" />
+                <div className="p-2">
+                  <DetailLine icon="mail" label="Email" value={client.email} />
+                  {client.phone && (
+                    <DetailLine icon="phone" label="Phone" value={client.phone} />
                   )}
-                </Card>
-              </div>
+                  {client.company && (
+                    <DetailLine
+                      icon="building"
+                      label="Company"
+                      value={client.company}
+                    />
+                  )}
+                  {client.timezone && (
+                    <DetailLine
+                      icon="globe"
+                      label="Timezone"
+                      value={client.timezone}
+                    />
+                  )}
+                  {client.address && (
+                    <DetailLine icon="map-pin" label="Address" value={client.address} />
+                  )}
+                  {client.vatId && (
+                    <DetailLine icon="file" label="VAT ID" value={client.vatId} />
+                  )}
+                </div>
+              </Card>
             </div>
-          </>
-        )}
-      </PageContainer>
-    </>
+          ) : (
+            <ClientNotes clientId={client.id} />
+          )}
+        </>
+      )}
+    </PageContainer>
   );
 }
 

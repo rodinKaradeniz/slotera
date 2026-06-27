@@ -16,7 +16,6 @@ export type Client = {
   completedBookings: number;
   cancelledBookings: number;
   totalSpentCents: number;
-  notes?: string;
 };
 
 export type ClientInput = Omit<Client, "id" | "joinedISO">;

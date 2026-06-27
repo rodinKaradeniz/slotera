@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { plural } from "@/lib/text";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { LoadingRows } from "@/components/shared/LoadingRows";
@@ -40,6 +42,9 @@ function whenFromSession(s: SessionItem): string {
 
 export function BookingsView() {
   const { openBookingDrawer } = useDrawers();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const clientFilterId = searchParams.get("client");
   const [bookings, setBookings] = React.useState<Booking[] | null>(null);
   const [clients, setClients] = React.useState<Client[]>([]);
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
@@ -47,6 +52,12 @@ export function BookingsView() {
   const [query, setQuery] = React.useState("");
   const [serviceFilter, setServiceFilter] = React.useState("all");
   const [reload, setReload] = React.useState(0);
+
+  const clientFilter = clientFilterId
+    ? (clients.find((c) => c.id === clientFilterId) ?? null)
+    : null;
+
+  const clearClientFilter = () => router.replace("/admin/bookings");
 
   React.useEffect(() => {
     Promise.all([
@@ -89,7 +100,8 @@ export function BookingsView() {
     const session = sessions.find((s) => s.id === r.booking.sessionId);
     const sOk =
       serviceFilter === "all" || session?.serviceId === serviceFilter;
-    return qOk && sOk;
+    const cOk = !clientFilterId || r.booking.clientId === clientFilterId;
+    return qOk && sOk && cOk;
   });
 
   const byStatus = STATUS_ORDER.reduce<Record<BookingStatus, BookingRowData[]>>(
@@ -154,6 +166,20 @@ export function BookingsView() {
           />
         </div>
       </div>
+
+      {clientFilterId && (
+        <div className="flex items-center gap-2 mb-6 -mt-2">
+          <span className="text-small text-ink-3">Filtered by client:</span>
+          <button
+            type="button"
+            onClick={clearClientFilter}
+            className="inline-flex items-center gap-1.5 rounded-full bg-surface-warm border border-line px-3 py-1 text-[13px] text-ink hover:bg-paper-2"
+          >
+            {clientFilter?.name ?? clientFilterId}
+            <Icon name="x" size={13} />
+          </button>
+        </div>
+      )}
 
       {!bookings ? (
         <LoadingRows count={4} />
