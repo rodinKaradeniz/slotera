@@ -365,6 +365,7 @@ Intentionally more editorial than generic SaaS. **Keep:**
 - Row-level edit/cancel icons stay removed. Use the `BookingDrawer` for everything.
 - `BookingStatus` includes `"noshow"`. Its `BOOKING_STATUS` entry uses tone `warning` and icon `alert` so it's visually distinct from `cancelled` (tone `danger`, icon `x`). Don't make them look the same.
 - Per-booking attendance — `Booking.attendance?: "present" | "late" | "absent"` — is set via the SessionDrawer's **Attendance** tab (renders only when `capacity > 1`). Recorded per row with a `SegGroup`. "Mark all present" quick action saves a batch with one toast.
+- **Booking detail page (`/admin/bookings/[id]`)** is a focused two-column layout: **left = Session + Location** (+ the optional booking note), **right = Payment**. It deliberately does **not** duplicate the full client info card — the Session section shows the client **name as a link to `/admin/clients/<clientId>`** instead. Payment shows status, subtotal/tax/total, and the workspace manual payment instructions when enabled — display-only, no real payment actions or Stripe workflow.
 
 ### Settings
 
@@ -412,6 +413,7 @@ Client notes are **separate internal note entries**, not one big textarea (the o
 - **Admin-only by default — never shown to clients** and **never surfaced on the customer booking workspace**. A small `info` affordance + muted helper text on the tab makes the internal-only intent explicit.
 - Notes are for **client context, follow-up reminders, preferences, and details useful before future sessions** — the operator has full freedom in the text.
 - Keep it lightweight: **not a full CRM activity log, audit timeline, assignees, comments, or reminders.** If a multi-author/audit-log shape becomes useful later, promote intentionally — don't fork it ad hoc.
+- **Rich text via lightweight Tiptap.** The note body is edited with a small Tiptap editor (`NoteEditor.tsx`, `@tiptap/react` + `@tiptap/starter-kit` + the `Placeholder` extension from `@tiptap/extensions`) — admins format **visually** while typing, not with markdown markers. Toolbar is deliberately minimal: **Bold, Italic, Heading, Bullet list, Numbered list, Quote, Undo/Redo** only. Do **not** add images, uploads, embeds, tables, colors, font/size pickers, slash commands, AI writing, comments, or collaboration. `ClientNote.body` stores **safe HTML** produced by the editor (StarterKit tags only) and is rendered read-only via `NoteContent.tsx` (contained `dangerouslySetInnerHTML` — acceptable **only** because the content is controlled/admin-authored, never client- or network-supplied). The previous markdown-marker toolbar + `NoteBody.tsx` parser were removed; don't reintroduce them.
 
 ### Notes
 

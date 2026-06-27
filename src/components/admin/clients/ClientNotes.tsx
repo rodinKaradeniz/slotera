@@ -3,15 +3,15 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { useToast } from "@/components/ui/Toast";
 import { fmtDate } from "@/lib/time";
+import { NoteContent } from "./NoteContent";
+import { NoteEditor } from "./NoteEditor";
 import {
   listClientNotes,
   createClientNote,
@@ -19,9 +19,6 @@ import {
   deleteClientNote,
 } from "@/services/client-notes.service";
 import type { ClientNote } from "@/types/client-note";
-
-const NOTES_HELP =
-  "Use notes for internal context, follow-up reminders, preferences, or details you want to remember before future sessions. Notes are internal and are not shown to clients.";
 
 export function ClientNotes({ clientId }: { clientId: string }) {
   const { toast } = useToast();
@@ -83,13 +80,13 @@ export function ClientNotes({ clientId }: { clientId: string }) {
         await createClientNote({
           clientId,
           title: title.trim(),
-          body: body.trim(),
+          body,
         });
         toast.success("Note added");
       } else {
         await updateClientNote(editing.id, {
           title: title.trim(),
-          body: body.trim(),
+          body,
         });
         toast.success("Note saved");
       }
@@ -123,29 +120,14 @@ export function ClientNotes({ clientId }: { clientId: string }) {
   return (
     <>
       <Card padded>
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <div className="flex items-center gap-1.5">
-            <h3 className="text-h3 text-ink" style={{ fontSize: 16 }}>
-              Notes
-            </h3>
-            <span
-              className="text-ink-3 inline-flex"
-              tabIndex={0}
-              role="note"
-              aria-label={NOTES_HELP}
-              title={NOTES_HELP}
-            >
-              <Icon name="info" size={15} />
-            </span>
-          </div>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h3 className="text-h3 text-ink" style={{ fontSize: 16 }}>
+            Notes
+          </h3>
           <Button variant="secondary" size="sm" icon="plus" onClick={openNew}>
             Add note
           </Button>
         </div>
-        <p className="text-small text-ink-3 mb-4 max-w-prose">
-          Internal context only — notes are never shown to clients. Use them for
-          follow-up reminders, preferences, and prep details.
-        </p>
 
         {!notes ? (
           <LoadingRows count={2} />
@@ -166,11 +148,9 @@ export function ClientNotes({ clientId }: { clientId: string }) {
                     <div className="text-[15px] font-medium text-ink">
                       {note.title}
                     </div>
-                    <p className="text-body text-ink-2 whitespace-pre-wrap mt-1">
-                      {note.body}
-                    </p>
+                    <NoteContent html={note.body} className="mt-1" />
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -202,7 +182,6 @@ export function ClientNotes({ clientId }: { clientId: string }) {
         open={editing !== null}
         onClose={closeModal}
         title={editing === "new" ? "Add note" : "Edit note"}
-        description="Internal note — not shown to clients."
         size="md"
         footer={
           <div className="flex justify-end gap-2">
@@ -229,12 +208,18 @@ export function ClientNotes({ clientId }: { clientId: string }) {
             />
           </Field>
           <Field label="Note" required error={bodyError}>
-            <Textarea
-              value={body}
-              rows={5}
-              placeholder="Context, reminders, or details to remember before the next session…"
-              onChange={(e) => setBody(e.target.value)}
-            />
+            <div className="flex flex-col gap-1.5">
+              <NoteEditor
+                value={body}
+                onChange={setBody}
+                invalid={!!bodyError}
+                placeholder="Write a note about this client…"
+              />
+              <p className="text-micro text-ink-3">
+                Format visually as you type — bold, italic, headings, lists, and
+                quotes. Notes are internal and never shown to clients.
+              </p>
+            </div>
           </Field>
         </div>
       </Modal>

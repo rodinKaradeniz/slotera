@@ -3,7 +3,7 @@
     "id": "cnote-001",
     "clientId": "cli-001",
     "title": "Prefers morning sessions",
-    "body": "Mila is sharpest before midday — try to keep her bookings before 12:00 where possible. Avoid late-afternoon slots.",
+    "body": "<p>Mila is sharpest before midday — try to keep her bookings before <strong>12:00</strong> where possible. Avoid late-afternoon slots.</p>",
     "createdAtISO": "2025-09-06T09:12:00.000Z",
     "updatedAtISO": "2025-09-06T09:12:00.000Z"
   },
@@ -11,7 +11,7 @@
     "id": "cnote-002",
     "clientId": "cli-001",
     "title": "Series A prep — follow up",
-    "body": "Working towards a Series A raise. Bring the positioning notes from the last strategy session and check in on the updated deck before the next call.",
+    "body": "<p>Working towards a <strong>Series A</strong> raise. Before the next call:</p><ul><li>Bring the positioning notes from the last strategy session</li><li>Check in on the updated deck</li></ul>",
     "createdAtISO": "2025-10-02T15:40:00.000Z",
     "updatedAtISO": "2025-10-18T11:05:00.000Z"
   },
@@ -19,7 +19,7 @@
     "id": "cnote-003",
     "clientId": "cli-002",
     "title": "Quiet on email",
-    "body": "Jonas tends to go quiet between sessions. A short reminder the day before usually gets a confirmation.",
+    "body": "<p>Jonas tends to go quiet between sessions. A short reminder the day before usually gets a confirmation.</p>",
     "createdAtISO": "2025-11-11T08:30:00.000Z",
     "updatedAtISO": "2025-11-11T08:30:00.000Z"
   }

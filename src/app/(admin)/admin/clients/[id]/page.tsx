@@ -124,24 +124,7 @@ export default function ClientDetailPage() {
             }
           />
 
-          <Card padded={false} className="mb-4">
-            <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-line-soft">
-              <PadStat label="Total bookings" value={String(client.totalBookings)} />
-              <PadStat label="Completed" value={String(client.completedBookings)} />
-              <PadStat label="Cancelled" value={String(client.cancelledBookings)} />
-              <PadStat label="Total spent" value={gbp(client.totalSpentCents)} />
-              <PadStat
-                label="Avg per session"
-                value={
-                  client.completedBookings > 0
-                    ? gbp(Math.round(client.totalSpentCents / client.completedBookings))
-                    : "—"
-                }
-              />
-            </div>
-          </Card>
-
-          <div className="mb-5">
+          <div className="mb-6 mt-1">
             <Tabs
               value={tab}
               onChange={(v) => setTab(v as Tab)}
@@ -153,84 +136,110 @@ export default function ClientDetailPage() {
           </div>
 
           {tab === "overview" ? (
-            <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
+            <div className="space-y-4">
               <Card padded={false}>
-                <CardHead
-                  title="Recent bookings"
-                  right={
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        router.push(`/admin/bookings?client=${client.id}`)
-                      }
-                    >
-                      View all bookings
-                    </Button>
-                  }
-                />
-                {bookings.length === 0 ? (
-                  <div className="px-5 py-8 text-small text-center">
-                    No bookings yet.
-                  </div>
-                ) : (
-                  bookings.map((b) => {
-                    const session = sessions.find((s) => s.id === b.sessionId);
-                    const service = services.find((s) => s.id === session?.serviceId);
-                    return (
-                      <button
-                        key={b.id}
-                        type="button"
-                        onClick={() => router.push(`/admin/bookings/${b.id}`)}
-                        className="w-full grid grid-cols-[2fr_2fr_1fr_auto] items-center gap-4 px-5 py-3.5 border-b border-line-soft last:border-b-0 hover:bg-surface-warm text-left"
-                      >
-                        <div className="text-[14px] text-ink truncate">
-                          {service?.name ?? "Service"}
-                        </div>
-                        <div className="text-small whitespace-nowrap">
-                          {session
-                            ? `${fmtDate(new Date(session.startISO), "short")} · ${session.startISO.slice(11, 16)}`
-                            : "—"}
-                        </div>
-                        <div className="text-[14px] font-medium text-ink whitespace-nowrap">
-                          {b.amountCents === 0 ? "Free" : gbp(b.amountCents)}
-                        </div>
-                        <StatusBadge kind="booking" status={b.status} />
-                      </button>
-                    );
-                  })
-                )}
-              </Card>
-
-              <Card padded={false}>
-                <CardHead title="Contact info" />
-                <div className="p-2">
-                  <DetailLine icon="mail" label="Email" value={client.email} />
-                  {client.phone && (
-                    <DetailLine icon="phone" label="Phone" value={client.phone} />
-                  )}
-                  {client.company && (
-                    <DetailLine
-                      icon="building"
-                      label="Company"
-                      value={client.company}
-                    />
-                  )}
-                  {client.timezone && (
-                    <DetailLine
-                      icon="globe"
-                      label="Timezone"
-                      value={client.timezone}
-                    />
-                  )}
-                  {client.address && (
-                    <DetailLine icon="map-pin" label="Address" value={client.address} />
-                  )}
-                  {client.vatId && (
-                    <DetailLine icon="file" label="VAT ID" value={client.vatId} />
-                  )}
+                <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-line-soft">
+                  <PadStat label="Total bookings" value={String(client.totalBookings)} />
+                  <PadStat label="Completed" value={String(client.completedBookings)} />
+                  <PadStat label="Cancelled" value={String(client.cancelledBookings)} />
+                  <PadStat label="Total spent" value={gbp(client.totalSpentCents)} />
+                  <PadStat
+                    label="Avg per session"
+                    value={
+                      client.completedBookings > 0
+                        ? gbp(Math.round(client.totalSpentCents / client.completedBookings))
+                        : "—"
+                    }
+                  />
                 </div>
               </Card>
+
+              <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6 items-stretch">
+                <Card padded={false} className="flex flex-col lg:min-h-[22rem]">
+                  <CardHead
+                    title="Recent bookings"
+                    right={
+                      bookings.length > 0 ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            router.push(`/admin/bookings?client=${client.id}`)
+                          }
+                        >
+                          View all bookings
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                  {bookings.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center px-5 py-10">
+                      <p className="text-small text-ink-2">No recent bookings yet.</p>
+                      <p className="text-micro text-ink-3 mt-1">
+                        New bookings will appear here once scheduled.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 lg:min-h-0 lg:overflow-y-auto">
+                      {bookings.map((b) => {
+                        const session = sessions.find((s) => s.id === b.sessionId);
+                        const service = services.find((s) => s.id === session?.serviceId);
+                        return (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => router.push(`/admin/bookings/${b.id}`)}
+                            className="w-full grid grid-cols-[2fr_2fr_1fr_auto] items-center gap-4 px-5 py-3.5 border-b border-line-soft last:border-b-0 hover:bg-surface-warm text-left"
+                          >
+                            <div className="text-[14px] text-ink truncate">
+                              {service?.name ?? "Service"}
+                            </div>
+                            <div className="text-small whitespace-nowrap">
+                              {session
+                                ? `${fmtDate(new Date(session.startISO), "short")} · ${session.startISO.slice(11, 16)}`
+                                : "—"}
+                            </div>
+                            <div className="text-[14px] font-medium text-ink whitespace-nowrap">
+                              {b.amountCents === 0 ? "Free" : gbp(b.amountCents)}
+                            </div>
+                            <StatusBadge kind="booking" status={b.status} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Card>
+
+                <Card padded={false} className="flex flex-col lg:min-h-[22rem]">
+                  <CardHead title="Contact info" />
+                  <div className="px-4 py-2">
+                    <DetailLine icon="mail" label="Email" value={client.email} />
+                    {client.phone && (
+                      <DetailLine icon="phone" label="Phone" value={client.phone} />
+                    )}
+                    {client.company && (
+                      <DetailLine
+                        icon="building"
+                        label="Company"
+                        value={client.company}
+                      />
+                    )}
+                    {client.timezone && (
+                      <DetailLine
+                        icon="globe"
+                        label="Timezone"
+                        value={client.timezone}
+                      />
+                    )}
+                    {client.address && (
+                      <DetailLine icon="map-pin" label="Address" value={client.address} />
+                    )}
+                    {client.vatId && (
+                      <DetailLine icon="file" label="VAT ID" value={client.vatId} />
+                    )}
+                  </div>
+                </Card>
+              </div>
             </div>
           ) : (
             <ClientNotes clientId={client.id} />

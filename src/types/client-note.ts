@@ -8,6 +8,11 @@ export type ClientNote = {
   id: string;
   clientId: string;
   title: string;
+  /**
+   * Safe HTML produced by the lightweight Tiptap note editor (StarterKit tags
+   * only). Admin-authored, controlled content — rendered read-only via
+   * `NoteContent`. Not markdown, not arbitrary user/network HTML.
+   */
   body: string;
   createdAtISO: string;
   updatedAtISO: string;

@@ -120,6 +120,17 @@ html, body {
 
 ::selection { background: var(--accent); color: #fff; }
 
+/* Tiptap (client-note editor) placeholder. The Placeholder extension tags the
+   empty first paragraph with `.is-editor-empty` + `data-placeholder`; render it
+   as muted ghost text without affecting layout. */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--ink-3);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 /* ── type scale (utility classes) ───────────────────────────────────────────
    Names intentionally avoid `.h-{n}` because Tailwind v4 already generates
    `.h-1`/`.h-2`/`.h-3` as height utilities (height: 0.25rem / 0.5rem / 0.75rem),
