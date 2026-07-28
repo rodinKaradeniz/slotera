@@ -577,6 +577,48 @@ There is intentionally no root npm workspace or proxy script. Frontend commands 
 toolchain independently reproducible and avoid a root abstraction with only two commands
 behind it.
 
+### Entry 023 — Identity persistence establishes the tenant boundary before HTTP auth
+
+*2026-07-28.* The first model-backed revision adds global users, opaque auth sessions,
+password-reset tokens, workspaces, workspace memberships, retired-slug history, reserved
+slugs, and tenant audit events. `operator_admin` is a membership role; `superadmin` is a
+global platform role and does not acquire a synthetic Slotera HQ membership. This keeps
+platform authority separate from ownership inside a customer workspace.
+
+**RLS is the enforceable boundary, not a repository convention.** Workspaces,
+memberships, slug history, and audit events have forced PostgreSQL row-level security.
+`Database.tenant_transaction(workspace_id)` applies `app.current_workspace_id`
+transaction-locally on the same SQLAlchemy session/connection; a normal unscoped runtime
+transaction sees no tenant rows. Cross-workspace inserts fail. A live schema test
+discovers every table with `workspace_id` (plus the root `workspaces` table) and fails if
+any lacks forced RLS or a policy, so forgetting to update a handwritten allow-list cannot
+silently weaken isolation.
+
+**Global identity storage is closed until its repository exists.** The restricted
+runtime role has no direct privilege on users, auth sessions, or password-reset tokens.
+The later auth bundle must introduce a narrow identity repository/boundary rather than
+grant broad table access as a shortcut. Only SHA-256 digests of opaque tokens are stored;
+raw credentials are returned to a caller once and never persisted. Seeded Lena and Avery
+rows deliberately have no password hash, so adding tables cannot accidentally turn the
+mock credentials into real accounts.
+
+Slug history remains tenant-protected even though public routing will eventually need to
+resolve an old slug before tenant context exists. That later lookup must be a narrow,
+audited database function or equivalent repository boundary; making the entire routing
+table globally readable was rejected. Audit events similarly allow tenant-scoped insert
+and select but no update/delete policies, making them append-only to the runtime role.
+
+The seed importer lands with these natural keys and conflict rules rather than as generic
+foundation scaffolding. It deterministically maps the existing Lena operator, Avery
+superadmin, Hartmann Strategy workspace (`lena`, EUR, Europe/Berlin), membership,
+provisioning event, and reserved platform slugs. It runs only in local/test environments
+through the migration-owner connection; the first import inserts the model set and an
+immediate repeat inserts nothing.
+
+No HTTP login, registration, reset, cookie/CSRF handling, notification, settings, or
+services endpoint is part of this milestone. Those form the next coherent API bundle so
+the mock-backed Vercel demo remains isolated and no half-real frontend mode is created.
+
 ---
 
 ## Thematic sections

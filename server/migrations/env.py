@@ -7,6 +7,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from slotera_api.config import get_migration_settings
+from slotera_api.db import models as _models  # noqa: F401
 from slotera_api.db.base import Base
 
 config = context.config

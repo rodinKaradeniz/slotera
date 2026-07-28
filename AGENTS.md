@@ -44,7 +44,8 @@ calendar-only tool, and not a generic "reservation app." The product frontend re
 service call still resolves against mock JSON in-process, with no real authentication,
 payment provider, or email. Phase 2 has started as a separate, local-only FastAPI +
 PostgreSQL foundation under `server/`; it currently exposes infrastructure health checks
-but no product/domain endpoints. See `docs/PRODUCT.md` for the full positioning rules and
+and persists the identity/tenancy model, but has no product/domain endpoints yet. See
+`docs/PRODUCT.md` for the full positioning rules and
 phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
 Phase 3 adds Stripe, scheduled email, and calendar integrations).
 
@@ -75,6 +76,7 @@ cp .env.example .env
 uv sync
 docker compose up -d db           # PostgreSQL on 127.0.0.1:55432
 uv run alembic upgrade head
+uv run slotera-seed                # idempotent local demo identity/workspace seed
 uv run uvicorn slotera_api.main:app --reload --port 8000
 
 uv run pytest                     # isolated tests; integration tests excluded by default
@@ -127,8 +129,8 @@ resolves the role from the email address:
 | Auth | fake token in `localStorage` under `slotera.session` | no server-side auth or verification |
 | i18n | hand-rolled flat dictionary, EN / TR / DE | `web/src/lib/i18n.ts` + `web/src/i18n/messages/*.ts` |
 | Lint | ESLint `^9` + `eslint-config-next` (flat config) | `web/eslint.config.mjs` |
-| Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | local foundation only; no domain endpoints |
-| Backend data | PostgreSQL 17 via Docker Compose | owner migrations + restricted application role; host port `55432` |
+| Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | identity/tenancy persistence; no domain endpoints yet |
+| Backend data | PostgreSQL 17 via Docker Compose | owner migrations, restricted application role, forced tenant RLS; host port `55432` |
 | Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; no CI yet |
 | Frontend tests | none | no runner, no test files, no CI |
 
@@ -168,10 +170,10 @@ server/
   pyproject.toml       uv project + pytest/Ruff/mypy configuration
   uv.lock              reproducible Python dependency lock
   compose.yaml         local PostgreSQL 17 (`slotera` Compose project)
-  migrations/          async Alembic environment + baseline revision
+  migrations/          async Alembic environment + baseline and identity/tenancy revisions
   docker/postgres/     restricted application-role bootstrap
-  src/slotera_api/     FastAPI app, config, DB lifecycle, errors, logging, health API
-  tests/               isolated contract tests + opt-in PostgreSQL integration tests
+  src/slotera_api/     FastAPI app, identity/tenant models, seed importer, DB lifecycle, health API
+  tests/               isolated contracts + opt-in PostgreSQL/RLS integration tests
 ```
 
 ---
@@ -209,7 +211,7 @@ Current services: `auth`, `billing`, `bookings`, `client-notes`, `clients`, `das
 `demo`, `forms`, `notifications`, `packages`, `platform`, `services`,
 `session-action-items`, `sessions`, `settings`.
 
-### Backend foundation
+### Backend persistence
 
 `server/src/slotera_api/main.py` builds the local FastAPI application. It currently has no
 product resources and is not wired to `web/src/services/`; the public demo therefore remains
@@ -226,13 +228,23 @@ restricted to configured exact origins; wildcard origins are rejected by configu
 
 SQLAlchemy uses an async engine/session factory. Alembic connects separately as
 `slotera_owner`; the API uses `slotera_app`, which has data-operation defaults but cannot
-create tables. The baseline migration is intentionally empty because no domain model has
-landed. The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used
-host `5432` port.
+create tables. The first domain revision adds users, opaque auth sessions, password-reset
+tokens, workspaces, memberships, slug history/reservations, and append-only audit events.
+Only SHA-256 token digests are stored. Seeded users have no password hash and therefore
+cannot authenticate accidentally before real auth is implemented.
+
+Tenant transactions call PostgreSQL `set_config(..., true)` on the same connection and
+transaction that performs the query. Forced RLS applies to workspaces, memberships, slug
+history, and audit events; unscoped tenant reads return no rows and cross-workspace writes
+fail. The runtime role has no direct privileges on users, auth sessions, or reset tokens.
+The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used host
+`5432` port. `uv run slotera-seed` imports the Hartmann workspace, operator, platform
+superadmin, audit event, and reserved slugs idempotently through the owner connection.
 
 ### Auth and session
 
-No real authentication exists. `auth.service.ts` writes a fabricated token to
+No real HTTP authentication exists. The backend persistence shape is present, but no
+credential/session endpoint can issue a session yet. The mock `auth.service.ts` writes a fabricated token to
 `localStorage`; `web/src/lib/session.ts` is the **only** module that touches the
 `slotera.session` and `slotera.onboarding` keys. `AuthGuard`
 (`web/src/components/layout/AuthGuard.tsx`) takes an optional `requireRole` and redirects to
@@ -395,12 +407,16 @@ Present tense — what exists in the working tree today.
   (read/unread only — no ticket statuses) with a preview modal that can promote a business
   inquiry into a provisioned workspace.
 
-**Backend foundation**
+**Backend persistence**
 - Local FastAPI app with liveness/readiness, OpenAPI docs, structured errors and request
-  logging, exact-origin CORS, async PostgreSQL lifecycle, and an Alembic baseline.
-- Docker Compose PostgreSQL with separate owner/application roles. Pytest covers the HTTP
-  contract and failure paths; opt-in integration tests prove readiness and the restricted
-  role boundary.
+  logging, exact-origin CORS, async PostgreSQL lifecycle, and Alembic migrations.
+- Identity/tenancy schema for users, sessions/reset tokens, workspaces, memberships,
+  slug history/reservations, and audit events. Tenant tables use forced PostgreSQL RLS;
+  identity tables are withheld from the runtime role until the auth repository lands.
+- A deterministic local seed importer maps the Lena/Avery identity fixture into UUID-backed
+  rows and is repeatable. Pytest covers HTTP contracts and negative security paths;
+  opt-in integration tests exercise live readiness, privileges, tenant isolation, RLS
+  coverage, append-only audit events, and seed idempotency.
 
 **Mock data set** — 5 services, 4 form templates, 2 packages, 8 clients, 11 bookings,
 10 sessions, 3 client notes, 9 session action items, 8 platform workspaces, 6 inquiries,
@@ -456,3 +472,9 @@ On 2026-07-28 the complete Next.js workspace moved under `web/`. From that direc
 `127.0.0.1:3344`, `/`, `/booking`, `/login`, and `/booking/manage/demo` return 200, and an
 unknown route returns 404. Backend isolated pytest, Ruff, mypy, and Compose configuration
 also remain clean after the workspace move.
+
+Later on 2026-07-28, identity/tenancy persistence landed under `server/`. Isolated pytest
+reports 13 passed and PostgreSQL integration pytest reports 7 passed; Ruff and strict
+mypy are clean. Alembic upgrades to `20260728_0002`, reports no model drift, and completes
+a downgrade/upgrade round trip. The seed CLI inserts 16 rows on a fresh schema and zero
+on its immediate repeat. Frontend checks were not rerun because no `web/` files changed.

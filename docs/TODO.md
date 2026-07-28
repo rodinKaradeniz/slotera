@@ -247,11 +247,15 @@ built and exercised separately.
    conventions.~~ DONE.** Built under `server/` with a uv lockfile, separate migration
    owner and restricted application roles, an empty baseline migration, exact-origin
    CORS, and isolated plus live-database tests. The demo/frontend remains mock-backed.
-2. **Seed importer:** add it with the first model-backed identity/tenancy resources. A
-   generic importer before tables and conflict semantics exist would be an untestable
-   placeholder rather than infrastructure.
-3. Identity and tenancy: users, workspaces, memberships, auth sessions, RLS, audit events,
-   slug history, and reserved slugs.
+2. **~~Seed importer: add it with the first model-backed identity/tenancy resources.~~
+   DONE.** `uv run slotera-seed` imports deterministic UUID-backed demo identities, the
+   Hartmann workspace/membership, its provisioning audit event, and reserved slugs. It is
+   disabled in production and repeat imports insert no duplicate rows.
+3. **~~Identity and tenancy persistence: users, workspaces, memberships, auth sessions,
+   password-reset tokens, RLS, audit events, slug history, and reserved slugs.~~ DONE.**
+   Migration `20260728_0002` adds the schema, forces RLS on every tenant table, withholds
+   identity tables from the runtime role, and adds schema/negative-path integration tests.
+   HTTP credential/session commands remain part of the coherent bundle below.
 4. First coherent frontend/API bundle: auth/session, notification baseline, business
    settings, and services.
 5. Scheduling: availability, sessions, recurrence, conflict/capacity enforcement.

@@ -1,5 +1,7 @@
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Protocol
+from uuid import UUID
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -32,8 +34,18 @@ class Database:
         async with self.engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
 
-    async def sessions(self) -> AsyncIterator[AsyncSession]:
+    @asynccontextmanager
+    async def transaction(self) -> AsyncIterator[AsyncSession]:
         async with self.session_factory() as session, session.begin():
+            yield session
+
+    @asynccontextmanager
+    async def tenant_transaction(self, workspace_id: UUID) -> AsyncIterator[AsyncSession]:
+        async with self.session_factory() as session, session.begin():
+            await session.execute(
+                text("SELECT set_config('app.current_workspace_id', :workspace_id, true)"),
+                {"workspace_id": str(workspace_id)},
+            )
             yield session
 
     async def dispose(self) -> None:
