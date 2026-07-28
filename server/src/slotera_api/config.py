@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal, Self
 
-from pydantic import field_validator, model_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LOCAL_APPLICATION_DATABASE_URL = (
@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     database_url: str = LOCAL_APPLICATION_DATABASE_URL
     cors_origins: list[str] = ["http://localhost:3344"]
+    session_cookie_name: str = "slotera_session"
+    csrf_cookie_name: str = "slotera_csrf"
+    csrf_cookie_domain: str | None = None
+    session_ttl_hours: int = 12
+    remembered_session_ttl_days: int = 30
 
     @field_validator("cors_origins")
     @classmethod
@@ -38,7 +43,15 @@ class Settings(BaseSettings):
     def reject_local_credentials_in_production(self) -> Self:
         if self.environment == "production" and "_local" in self.database_url:
             raise ValueError("local database credentials cannot be used in production")
+        if self.environment == "production" and not self.csrf_cookie_domain:
+            raise ValueError("production requires a shared CSRF cookie domain")
+        if self.session_ttl_hours < 1 or self.remembered_session_ttl_days < 1:
+            raise ValueError("session lifetimes must be positive")
         return self
+
+    @property
+    def secure_cookies(self) -> bool:
+        return self.environment == "production"
 
 
 class MigrationSettings(BaseSettings):
@@ -50,6 +63,7 @@ class MigrationSettings(BaseSettings):
 
     environment: Literal["local", "test", "production"] = "local"
     migration_database_url: str = LOCAL_MIGRATION_DATABASE_URL
+    demo_seed_password: SecretStr | None = None
 
     @model_validator(mode="after")
     def reject_local_credentials_in_production(self) -> Self:

@@ -250,8 +250,18 @@ async def test_demo_seed_is_repeatable() -> None:
     database = Database(get_migration_settings().migration_database_url)
 
     try:
-        first = await import_demo_seed(database)
-        second = await import_demo_seed(database)
+        async with database.transaction() as session:
+            await session.execute(
+                text(
+                    """
+                    UPDATE users
+                    SET password_hash = NULL
+                    WHERE email IN ('hello@slotera.app', 'admin@slotera.app')
+                    """
+                )
+            )
+        first = await import_demo_seed(database, demo_password="slotera-local-only")
+        second = await import_demo_seed(database, demo_password="slotera-local-only")
         async with database.transaction() as session:
             workspace_count = await session.scalar(
                 text("SELECT count(*) FROM workspaces WHERE slug = 'lena'")
@@ -262,7 +272,7 @@ async def test_demo_seed_is_repeatable() -> None:
     finally:
         await database.dispose()
 
-    assert first.total_inserted >= 0
+    assert first.passwords_set == 2
     assert second.total_inserted == 0
     assert workspace_count == 1
     assert operator_count == 1

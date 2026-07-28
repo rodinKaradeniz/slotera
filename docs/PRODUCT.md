@@ -42,8 +42,9 @@ presence.
 
 **Phase 2 — underway, local-only first.** Build a Python/FastAPI modular monolith with
 PostgreSQL, SQLAlchemy, Alembic, and Docker Compose under `server/`. The infrastructure
-foundation and identity/tenancy persistence exist; the first coherent auth/settings/
-services API bundle is the next product-bearing milestone. The
+foundation, identity/tenancy persistence, and the backend auth/session boundary exist;
+business settings and services are the next resources in the first coherent API bundle.
+The
 public portfolio/demo deployment stays mock-backed; the API is developed and exercised in
 a separate local/API environment. Real public bookings include durable transactional
 confirmation + booking-workspace magic-link email through a PostgreSQL outbox worker.

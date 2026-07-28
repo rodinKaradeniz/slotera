@@ -73,3 +73,9 @@ async def test_openapi_exposes_stable_health_operation_ids() -> None:
     document = response.json()
     assert document["paths"]["/health/live"]["get"]["operationId"] == "getLiveness"
     assert document["paths"]["/health/ready"]["get"]["operationId"] == "getReadiness"
+    assert document["paths"]["/auth/login"]["post"]["operationId"] == "login"
+    assert (
+        document["paths"]["/auth/session"]["get"]["operationId"]
+        == "getCurrentSession"
+    )
+    assert document["paths"]["/auth/logout"]["post"]["operationId"] == "logout"

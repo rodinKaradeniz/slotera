@@ -1,0 +1,92 @@
+from dataclasses import dataclass
+from hmac import compare_digest
+from http import HTTPStatus
+from typing import Annotated, cast
+
+from fastapi import Depends, Request
+
+from slotera_api.auth.service import AuthServiceProtocol, AuthSession
+from slotera_api.config import Settings
+from slotera_api.errors import ApiError
+
+
+@dataclass(frozen=True)
+class AuthenticatedRequest:
+    session_token: str
+    session: AuthSession
+
+
+def get_auth_service(request: Request) -> AuthServiceProtocol:
+    return cast(AuthServiceProtocol, request.app.state.auth_service)
+
+
+def get_settings(request: Request) -> Settings:
+    return cast(Settings, request.app.state.settings)
+
+
+AuthServiceDependency = Annotated[AuthServiceProtocol, Depends(get_auth_service)]
+SettingsDependency = Annotated[Settings, Depends(get_settings)]
+
+
+def require_trusted_origin(request: Request, settings: Settings) -> None:
+    if request.headers.get("origin") not in settings.cors_origins:
+        raise ApiError(
+            status_code=HTTPStatus.FORBIDDEN,
+            code="untrusted_origin",
+            message="Request origin is not allowed",
+        )
+
+
+def authentication_required() -> ApiError:
+    return ApiError(
+        status_code=HTTPStatus.UNAUTHORIZED,
+        code="authentication_required",
+        message="Authentication is required",
+    )
+
+
+async def require_authenticated_request(
+    request: Request,
+    service: AuthServiceDependency,
+    settings: SettingsDependency,
+) -> AuthenticatedRequest:
+    session_token = request.cookies.get(settings.session_cookie_name, "")
+    if not session_token:
+        raise authentication_required()
+    session = await service.authenticate(session_token)
+    if session is None:
+        raise authentication_required()
+    return AuthenticatedRequest(session_token=session_token, session=session)
+
+
+AuthenticatedRequestDependency = Annotated[
+    AuthenticatedRequest, Depends(require_authenticated_request)
+]
+
+
+async def require_csrf_protected_request(
+    request: Request,
+    authenticated: AuthenticatedRequestDependency,
+    service: AuthServiceDependency,
+    settings: SettingsDependency,
+) -> AuthenticatedRequest:
+    require_trusted_origin(request, settings)
+    csrf_cookie = request.cookies.get(settings.csrf_cookie_name, "")
+    csrf_header = request.headers.get("x-csrf-token", "")
+    if (
+        not csrf_cookie
+        or not csrf_header
+        or not compare_digest(csrf_cookie, csrf_header)
+        or not service.csrf_matches(authenticated.session, csrf_cookie)
+    ):
+        raise ApiError(
+            status_code=HTTPStatus.FORBIDDEN,
+            code="csrf_validation_failed",
+            message="CSRF validation failed",
+        )
+    return authenticated
+
+
+CsrfProtectedRequestDependency = Annotated[
+    AuthenticatedRequest, Depends(require_csrf_protected_request)
+]

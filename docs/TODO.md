@@ -256,8 +256,13 @@ built and exercised separately.
    Migration `20260728_0002` adds the schema, forces RLS on every tenant table, withholds
    identity tables from the runtime role, and adds schema/negative-path integration tests.
    HTTP credential/session commands remain part of the coherent bundle below.
-4. First coherent frontend/API bundle: auth/session, notification baseline, business
-   settings, and services.
+4. First coherent frontend/API bundle:
+   - **~~Backend auth/session boundary.~~ DONE.** Argon2id login, opaque revocable
+     sessions, exact-Origin validation, session-bound CSRF, no-store current-session DTOs,
+     secure production-cookie policy, and narrow database functions are implemented.
+   - Notification baseline, business settings, services, generated OpenAPI transport
+     types, and coherent frontend wiring remain. The Vercel demo stays mock-backed until
+     the bundle is complete.
 5. Scheduling: availability, sessions, recurrence, conflict/capacity enforcement.
 6. Operator core: clients, bookings, forms/responses, notes, action items, attendance, and
    operator-created manual bookings.
@@ -268,6 +273,13 @@ built and exercised separately.
 9. Derived/platform resources: dashboard, server-side search, notifications, superadmin,
    subscriptions, and inquiries.
 10. Production-readiness gate, then later hosting/deployment selection.
+
+Before any live auth deployment, add shared login throttling, expired/revoked-session
+cleanup, password reset delivery/consumption, password-change session revocation, and
+operational security monitoring. In-process rate limiting is deliberately not being used:
+it would reset on deploy and disagree across multiple workers. Multi-workspace login
+already fails closed with `workspace_selection_required`; the workspace chooser waits for
+the Team/member product surface.
 
 ## 5. Phase 3 — external integrations
 

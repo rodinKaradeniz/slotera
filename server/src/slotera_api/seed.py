@@ -4,9 +4,10 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from uuid import UUID, uuid5
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
+from slotera_api.auth.passwords import PasswordHasher, create_password_hasher
 from slotera_api.config import get_migration_settings
 from slotera_api.database import Database
 from slotera_api.db.models import (
@@ -77,6 +78,7 @@ class DemoSeed:
 @dataclass(frozen=True)
 class SeedSummary:
     users_inserted: int
+    passwords_set: int
     workspaces_inserted: int
     memberships_inserted: int
     audit_events_inserted: int
@@ -121,7 +123,12 @@ DEMO_SEED = DemoSeed(
 )
 
 
-async def import_demo_seed(database: Database) -> SeedSummary:
+async def import_demo_seed(
+    database: Database,
+    *,
+    demo_password: str | None = None,
+    password_hasher: PasswordHasher | None = None,
+) -> SeedSummary:
     async with database.transaction() as session:
         inserted_users = 0
         for user in (DEMO_SEED.operator, DEMO_SEED.superadmin):
@@ -144,6 +151,21 @@ async def import_demo_seed(database: Database) -> SeedSummary:
                     )
                 ).all()
             )
+
+        passwords_set = 0
+        if demo_password is not None:
+            hasher = password_hasher or create_password_hasher()
+            for user in (DEMO_SEED.operator, DEMO_SEED.superadmin):
+                passwords_set += len(
+                    (
+                        await session.scalars(
+                            update(User)
+                            .where(User.email == user.email, User.password_hash.is_(None))
+                            .values(password_hash=hasher.hash(demo_password))
+                            .returning(User.id)
+                        )
+                    ).all()
+                )
 
         workspace = DEMO_SEED.workspace
         inserted_workspaces = len(
@@ -231,6 +253,7 @@ async def import_demo_seed(database: Database) -> SeedSummary:
 
     return SeedSummary(
         users_inserted=inserted_users,
+        passwords_set=passwords_set,
         workspaces_inserted=inserted_workspaces,
         memberships_inserted=inserted_memberships,
         audit_events_inserted=inserted_audit_events,
@@ -245,7 +268,12 @@ async def _run_seed() -> SeedSummary:
 
     database = Database(settings.migration_database_url)
     try:
-        return await import_demo_seed(database)
+        configured_password = (
+            settings.demo_seed_password.get_secret_value()
+            if settings.demo_seed_password is not None
+            else "slotera-local-only"
+        )
+        return await import_demo_seed(database, demo_password=configured_password)
     finally:
         await database.dispose()
 

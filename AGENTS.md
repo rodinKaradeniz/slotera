@@ -44,7 +44,8 @@ calendar-only tool, and not a generic "reservation app." The product frontend re
 service call still resolves against mock JSON in-process, with no real authentication,
 payment provider, or email. Phase 2 has started as a separate, local-only FastAPI +
 PostgreSQL foundation under `server/`; it currently exposes infrastructure health checks
-and persists the identity/tenancy model, but has no product/domain endpoints yet. See
+and real auth/session endpoints over the identity/tenancy model, but has no operator
+product/domain endpoints yet. See
 `docs/PRODUCT.md` for the full positioning rules and
 phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
 Phase 3 adds Stripe, scheduled email, and calendar integrations).
@@ -76,7 +77,7 @@ cp .env.example .env
 uv sync
 docker compose up -d db           # PostgreSQL on 127.0.0.1:55432
 uv run alembic upgrade head
-uv run slotera-seed                # idempotent local demo identity/workspace seed
+uv run slotera-seed                # local password: slotera-local-only
 uv run uvicorn slotera_api.main:app --reload --port 8000
 
 uv run pytest                     # isolated tests; integration tests excluded by default
@@ -126,10 +127,10 @@ resolves the role from the email address:
 | Rich text | Tiptap `^3.27` (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm`) | one usage: client notes editor |
 | Fonts | `next/font/google` — Fraunces, Inter Tight, JetBrains Mono | exposed as `--font-serif` / `--font-sans` / `--font-mono` |
 | Data | JSON fixtures in `web/src/data/mock/`, mutated in module-level memory | switchable via `NEXT_PUBLIC_DATA_SOURCE` |
-| Auth | fake token in `localStorage` under `slotera.session` | no server-side auth or verification |
+| Frontend auth | fake token in `localStorage` under `slotera.session` | mock demo remains disconnected from backend auth |
 | i18n | hand-rolled flat dictionary, EN / TR / DE | `web/src/lib/i18n.ts` + `web/src/i18n/messages/*.ts` |
 | Lint | ESLint `^9` + `eslint-config-next` (flat config) | `web/eslint.config.mjs` |
-| Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | identity/tenancy persistence; no domain endpoints yet |
+| Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | real auth/session boundary + identity/tenancy persistence |
 | Backend data | PostgreSQL 17 via Docker Compose | owner migrations, restricted application role, forced tenant RLS; host port `55432` |
 | Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; no CI yet |
 | Frontend tests | none | no runner, no test files, no CI |
@@ -214,11 +215,14 @@ Current services: `auth`, `billing`, `bookings`, `client-notes`, `clients`, `das
 ### Backend persistence
 
 `server/src/slotera_api/main.py` builds the local FastAPI application. It currently has no
-product resources and is not wired to `web/src/services/`; the public demo therefore remains
+operator product resources and is not wired to `web/src/services/`; the public demo therefore remains
 deterministically mock-backed. The implemented HTTP surface is deliberately limited to:
 
 - `/health/live` — process liveness and no database access;
 - `/health/ready` — verifies PostgreSQL through the restricted `slotera_app` role;
+- `POST /auth/login` — verifies Argon2id credentials and issues an opaque session;
+- `GET /auth/session` — resolves the current user, role, and workspace;
+- `POST /auth/logout` — CSRF-protected immediate session revocation;
 - `/openapi.json` and `/docs` — the future generated-transport contract.
 
 Every response receives a generated `X-Request-ID`. HTTP, validation, application, and
@@ -230,21 +234,30 @@ SQLAlchemy uses an async engine/session factory. Alembic connects separately as
 `slotera_owner`; the API uses `slotera_app`, which has data-operation defaults but cannot
 create tables. The first domain revision adds users, opaque auth sessions, password-reset
 tokens, workspaces, memberships, slug history/reservations, and append-only audit events.
-Only SHA-256 token digests are stored. Seeded users have no password hash and therefore
-cannot authenticate accidentally before real auth is implemented.
+Only SHA-256 session/CSRF token digests are stored. The local seed gives Lena and Avery an
+Argon2id hash for `slotera-local-only`; the seed command is disabled in production.
 
 Tenant transactions call PostgreSQL `set_config(..., true)` on the same connection and
 transaction that performs the query. Forced RLS applies to workspaces, memberships, slug
 history, and audit events; unscoped tenant reads return no rows and cross-workspace writes
 fail. The runtime role has no direct privileges on users, auth sessions, or reset tokens.
+Four fixed-search-path `SECURITY DEFINER` functions expose only login lookup, session
+creation, session lookup, and revocation to that role.
 The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used host
 `5432` port. `uv run slotera-seed` imports the Hartmann workspace, operator, platform
 superadmin, audit event, and reserved slugs idempotently through the owner connection.
 
 ### Auth and session
 
-No real HTTP authentication exists. The backend persistence shape is present, but no
-credential/session endpoint can issue a session yet. The mock `auth.service.ts` writes a fabricated token to
+Real backend HTTP authentication exists locally. Passwords use Argon2id behind one local
+wrapper; login rotates opaque session and CSRF credentials. The session cookie is
+host-only, HttpOnly, and SameSite=Lax. The readable CSRF cookie must match both the
+`X-CSRF-Token` header and the digest bound to that session. Unsafe authenticated requests
+also require an exact configured `Origin`. Production marks both cookies Secure and
+requires an explicit shared sibling-domain CSRF cookie. Reusable FastAPI dependencies
+provide authenticated and CSRF-protected request contexts to future resource routers.
+
+The frontend is deliberately not connected yet. Its mock `auth.service.ts` writes a fabricated token to
 `localStorage`; `web/src/lib/session.ts` is the **only** module that touches the
 `slotera.session` and `slotera.onboarding` keys. `AuthGuard`
 (`web/src/components/layout/AuthGuard.tsx`) takes an optional `requireRole` and redirects to
@@ -412,9 +425,12 @@ Present tense — what exists in the working tree today.
   logging, exact-origin CORS, async PostgreSQL lifecycle, and Alembic migrations.
 - Identity/tenancy schema for users, sessions/reset tokens, workspaces, memberships,
   slug history/reservations, and audit events. Tenant tables use forced PostgreSQL RLS;
-  identity tables are withheld from the runtime role until the auth repository lands.
+  identity tables remain withheld from the runtime role behind four narrow auth functions.
 - A deterministic local seed importer maps the Lena/Avery identity fixture into UUID-backed
-  rows and is repeatable. Pytest covers HTTP contracts and negative security paths;
+  rows, including local-only Argon2id credentials, and is repeatable.
+- Real `/auth/login`, `/auth/session`, and `/auth/logout` resources with revocable cookies,
+  exact-Origin checks, session-bound CSRF, and no-store identity responses. Pytest covers
+  HTTP contracts and negative security paths;
   opt-in integration tests exercise live readiness, privileges, tenant isolation, RLS
   coverage, append-only audit events, and seed idempotency.
 
@@ -478,3 +494,11 @@ reports 13 passed and PostgreSQL integration pytest reports 7 passed; Ruff and s
 mypy are clean. Alembic upgrades to `20260728_0002`, reports no model drift, and completes
 a downgrade/upgrade round trip. The seed CLI inserts 16 rows on a fresh schema and zero
 on its immediate repeat. Frontend checks were not rerun because no `web/` files changed.
+
+The local auth/session HTTP boundary followed on 2026-07-28. Isolated pytest reports 22
+passed and PostgreSQL integration pytest reports 12 passed; Ruff and strict mypy are
+clean. Alembic is at `20260728_0003`, has no model drift, and the auth revision completes
+a downgrade/upgrade round trip. Live tests cover operator and superadmin sessions, raw-
+token non-persistence, revocation, expiry, generic credential failures, RLS/privileges,
+and repeatable password seeding. No frontend files changed, so frontend checks were not
+rerun.

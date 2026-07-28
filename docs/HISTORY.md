@@ -619,6 +619,46 @@ No HTTP login, registration, reset, cookie/CSRF handling, notification, settings
 services endpoint is part of this milestone. Those form the next coherent API bundle so
 the mock-backed Vercel demo remains isolated and no half-real frontend mode is created.
 
+### Entry 024 — Real auth uses a narrow database capability, not broad identity grants
+
+*2026-07-28.* The backend now exposes `POST /auth/login`, `GET /auth/session`, and
+`POST /auth/logout`. Passwords use Argon2id through a local `PasswordHasher` interface;
+opaque session and CSRF values are generated independently and only their SHA-256 digests
+reach PostgreSQL. Login responses and current-session responses are marked `no-store`.
+The local demo seed sets the Lena/Avery password `slotera-local-only`, can be overridden
+by local environment, and remains disabled in production.
+
+**Identity access is capability-shaped.** The restricted application role still has no
+direct table privilege on users, auth sessions, or reset tokens. Four
+`SECURITY DEFINER` functions with `search_path` fixed to `pg_catalog` expose only login
+identity lookup, membership-validated session creation, active-session lookup, and
+revocation. Broad runtime table grants were rejected because one accidental repository
+query could dump credentials or all active sessions. A second privileged auth connection
+was rejected because it adds another production secret/pool without improving isolation
+inside the same process. Revisit the latter only if identity becomes an independently
+deployed service or database role boundary.
+
+**CSRF is bound to the server session.** The browser session is a host-only HttpOnly
+SameSite=Lax cookie. A separate readable CSRF cookie is checked against both
+`X-CSRF-Token` and the digest stored on that exact session, and every unsafe cookie-auth
+request requires an exact configured `Origin`. This is stronger than an unbound
+double-submit cookie, which a compromised sibling origin could replace. Production marks
+both cookies Secure and refuses to start without an explicit shared CSRF cookie domain;
+the planned `app.slotera.app` / `api.slotera.app` topology uses `.slotera.app` so the web
+client can read the CSRF value while the session credential remains API-host-only.
+
+Authentication and CSRF checks live in reusable FastAPI dependencies. Future tenant
+resource routes receive user, role, and workspace only from the verified database
+session, never a request body or the frontend `AuthGuard`. Superadmin sessions carry no
+synthetic workspace; an operator with multiple memberships must explicitly select one,
+and otherwise fails closed.
+
+This remains a local backend slice. Registration, password-reset delivery/consumption,
+password changes, notifications, settings/services resources, generated TypeScript
+transport types, and frontend wiring are not included. Shared login throttling and session
+cleanup are production-gate work; an in-process limiter was rejected because it resets on
+deploy and diverges across workers.
+
 ---
 
 ## Thematic sections

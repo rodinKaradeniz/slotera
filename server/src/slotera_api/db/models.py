@@ -125,6 +125,10 @@ class AuthSession(Base):
     __tablename__ = "auth_sessions"
     __table_args__ = (
         CheckConstraint("octet_length(token_hash) = 32", name="token_hash_sha256"),
+        CheckConstraint(
+            "octet_length(csrf_token_hash) = 32", name="csrf_token_hash_sha256"
+        ),
+        CheckConstraint("expires_at > created_at", name="expires_after_creation"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -135,6 +139,7 @@ class AuthSession(Base):
         ForeignKey("workspaces.id", ondelete="SET NULL"), index=True
     )
     token_hash: Mapped[bytes] = mapped_column(LargeBinary, unique=True)
+    csrf_token_hash: Mapped[bytes] = mapped_column(LargeBinary)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
