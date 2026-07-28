@@ -73,6 +73,261 @@
         "title": "Address",
         "type": "object"
       },
+      "AvailabilityBlackoutInput": {
+        "additionalProperties": false,
+        "properties": {
+          "endsAt": {
+            "format": "date-time",
+            "title": "Endsat",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "title": "Startsat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "startsAt",
+          "endsAt"
+        ],
+        "title": "AvailabilityBlackoutInput",
+        "type": "object"
+      },
+      "AvailabilityBlackoutResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "endsAt": {
+            "format": "date-time",
+            "title": "Endsat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "title": "Startsat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "startsAt",
+          "endsAt",
+          "id"
+        ],
+        "title": "AvailabilityBlackoutResponse",
+        "type": "object"
+      },
+      "AvailabilityResponse": {
+        "properties": {
+          "blackouts": {
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityBlackoutResponse"
+            },
+            "title": "Blackouts",
+            "type": "array"
+          },
+          "bufferAfterMin": {
+            "title": "Bufferaftermin",
+            "type": "integer"
+          },
+          "bufferBeforeMin": {
+            "title": "Bufferbeforemin",
+            "type": "integer"
+          },
+          "maximumAdvanceDays": {
+            "title": "Maximumadvancedays",
+            "type": "integer"
+          },
+          "minimumNoticeMin": {
+            "title": "Minimumnoticemin",
+            "type": "integer"
+          },
+          "slotIntervalMin": {
+            "title": "Slotintervalmin",
+            "type": "integer"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "weeklyHours": {
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityWindowInput-Output"
+            },
+            "title": "Weeklyhours",
+            "type": "array"
+          }
+        },
+        "required": [
+          "timezone",
+          "weeklyHours",
+          "slotIntervalMin",
+          "bufferBeforeMin",
+          "bufferAfterMin",
+          "minimumNoticeMin",
+          "maximumAdvanceDays",
+          "blackouts",
+          "updatedAt"
+        ],
+        "title": "AvailabilityResponse",
+        "type": "object"
+      },
+      "AvailabilityUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "blackouts": {
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityBlackoutInput"
+            },
+            "maxItems": 500,
+            "title": "Blackouts",
+            "type": "array"
+          },
+          "bufferAfterMin": {
+            "maximum": 1440.0,
+            "minimum": 0.0,
+            "title": "Bufferaftermin",
+            "type": "integer"
+          },
+          "bufferBeforeMin": {
+            "maximum": 1440.0,
+            "minimum": 0.0,
+            "title": "Bufferbeforemin",
+            "type": "integer"
+          },
+          "maximumAdvanceDays": {
+            "maximum": 730.0,
+            "minimum": 1.0,
+            "title": "Maximumadvancedays",
+            "type": "integer"
+          },
+          "minimumNoticeMin": {
+            "maximum": 525600.0,
+            "minimum": 0.0,
+            "title": "Minimumnoticemin",
+            "type": "integer"
+          },
+          "slotIntervalMin": {
+            "maximum": 1440.0,
+            "minimum": 5.0,
+            "title": "Slotintervalmin",
+            "type": "integer"
+          },
+          "timezone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "weeklyHours": {
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityWindowInput-Input"
+            },
+            "maxItems": 35,
+            "title": "Weeklyhours",
+            "type": "array"
+          }
+        },
+        "required": [
+          "timezone",
+          "weeklyHours",
+          "slotIntervalMin",
+          "bufferBeforeMin",
+          "bufferAfterMin",
+          "minimumNoticeMin",
+          "maximumAdvanceDays",
+          "blackouts"
+        ],
+        "title": "AvailabilityUpdate",
+        "type": "object"
+      },
+      "AvailabilityWindowInput-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "dayOfWeek": {
+            "maximum": 7.0,
+            "minimum": 1.0,
+            "title": "Dayofweek",
+            "type": "integer"
+          },
+          "endLocal": {
+            "format": "time",
+            "title": "Endlocal",
+            "type": "string"
+          },
+          "startLocal": {
+            "format": "time",
+            "title": "Startlocal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dayOfWeek",
+          "startLocal",
+          "endLocal"
+        ],
+        "title": "AvailabilityWindowInput",
+        "type": "object"
+      },
+      "AvailabilityWindowInput-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "dayOfWeek": {
+            "maximum": 7.0,
+            "minimum": 1.0,
+            "title": "Dayofweek",
+            "type": "integer"
+          },
+          "endLocal": {
+            "title": "Endlocal",
+            "type": "string"
+          },
+          "startLocal": {
+            "title": "Startlocal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dayOfWeek",
+          "startLocal",
+          "endLocal"
+        ],
+        "title": "AvailabilityWindowInput",
+        "type": "object"
+      },
       "BookingConfirmedNotification": {
         "properties": {
           "id": {
@@ -656,6 +911,44 @@
         "title": "ReadinessResponse",
         "type": "object"
       },
+      "RecurrenceInput": {
+        "additionalProperties": false,
+        "properties": {
+          "endsOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endson"
+          },
+          "intervalWeeks": {
+            "default": 1,
+            "maximum": 52.0,
+            "minimum": 1.0,
+            "title": "Intervalweeks",
+            "type": "integer"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Weekdays",
+            "type": "array"
+          }
+        },
+        "required": [
+          "weekdays"
+        ],
+        "title": "RecurrenceInput",
+        "type": "object"
+      },
       "RescheduleRequestedNotification": {
         "properties": {
           "id": {
@@ -746,6 +1039,138 @@
           "requestedFor"
         ],
         "title": "RescheduleRequestedPayload",
+        "type": "object"
+      },
+      "SchedulingSessionResponse": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Address"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bookedCount": {
+            "default": 0,
+            "title": "Bookedcount",
+            "type": "integer"
+          },
+          "calendarOwnerId": {
+            "format": "uuid",
+            "title": "Calendarownerid",
+            "type": "string"
+          },
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "endAt": {
+            "format": "date-time",
+            "title": "Endat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "locationType": {
+            "enum": [
+              "online",
+              "physical",
+              "hybrid"
+            ],
+            "title": "Locationtype",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "recurring": {
+            "enum": [
+              "one-off",
+              "weekly",
+              "custom"
+            ],
+            "title": "Recurring",
+            "type": "string"
+          },
+          "seriesId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seriesid"
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "live",
+              "done",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "seriesId",
+          "serviceId",
+          "calendarOwnerId",
+          "startAt",
+          "endAt",
+          "capacity",
+          "status",
+          "locationType",
+          "location",
+          "address",
+          "recurring",
+          "notes",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "SchedulingSessionResponse",
         "type": "object"
       },
       "ServiceCreate": {
@@ -1150,6 +1575,268 @@
           "updatedAt"
         ],
         "title": "ServiceResponse",
+        "type": "object"
+      },
+      "SessionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Address"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "calendarOwnerId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendarownerid"
+          },
+          "capacity": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "endAt": {
+            "format": "date-time",
+            "title": "Endat",
+            "type": "string"
+          },
+          "location": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Location",
+            "type": "string"
+          },
+          "locationType": {
+            "enum": [
+              "online",
+              "physical",
+              "hybrid"
+            ],
+            "title": "Locationtype",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "recurrence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecurrenceInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "serviceId",
+          "startAt",
+          "endAt",
+          "capacity",
+          "locationType",
+          "location"
+        ],
+        "title": "SessionCreate",
+        "type": "object"
+      },
+      "SessionListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SchedulingSessionResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "SessionListResponse",
+        "type": "object"
+      },
+      "SessionPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Address"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "calendarOwnerId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendarownerid"
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity"
+          },
+          "endAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endat"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "locationType": {
+            "anyOf": [
+              {
+                "enum": [
+                  "online",
+                  "physical",
+                  "hybrid"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locationtype"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "serviceId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serviceid"
+          },
+          "startAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startat"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "scheduled",
+                  "live",
+                  "done",
+                  "cancelled"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "SessionPatch",
         "type": "object"
       },
       "SessionResponse": {
@@ -1578,6 +2265,66 @@
         ]
       }
     },
+    "/availability": {
+      "get": {
+        "operationId": "getAvailability",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Availability",
+        "tags": [
+          "availability"
+        ]
+      },
+      "put": {
+        "operationId": "replaceAvailability",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replace Availability",
+        "tags": [
+          "availability"
+        ]
+      }
+    },
     "/health/live": {
       "get": {
         "operationId": "getLiveness",
@@ -1958,6 +2705,294 @@
         "summary": "Update Service",
         "tags": [
           "services"
+        ]
+      }
+    },
+    "/sessions": {
+      "get": {
+        "operationId": "listSessions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "startsFrom",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Startsfrom"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startsBefore",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Startsbefore"
+            }
+          },
+          {
+            "in": "query",
+            "name": "serviceId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Serviceid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "calendarOwnerId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Calendarownerid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "seriesId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Seriesid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Sessions",
+        "tags": [
+          "sessions"
+        ]
+      },
+      "post": {
+        "operationId": "createSession",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/sessions/{session_id}": {
+      "get": {
+        "operationId": "getSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session",
+        "tags": [
+          "sessions"
+        ]
+      },
+      "patch": {
+        "operationId": "updateSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "this",
+              "enum": [
+                "this",
+                "this_and_following"
+              ],
+              "title": "Scope",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Session",
+        "tags": [
+          "sessions"
         ]
       }
     },

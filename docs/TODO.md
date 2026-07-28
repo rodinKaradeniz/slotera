@@ -273,7 +273,20 @@ built and exercised separately.
      shared credentialed client maps auth/session, business settings/locations, services,
      and notifications to existing UI types. `./scripts/dev --api` enables only the wired
      operator routes; the default/Vercel demo remains mock-backed.
-5. Scheduling: availability, sessions, recurrence, conflict/capacity enforcement.
+5. Scheduling:
+   - **~~Backend availability, sessions, recurrence, and conflict baseline.~~ DONE.**
+     Workspace-wide policy/windows/blackouts and authenticated session resources now
+     persist under forced RLS. Recurrence materialises a DST-aware rolling six-month
+     horizon, item edits use explicit `this` / `this_and_following` scope, and PostgreSQL
+     rejects same-owner active overlaps with a partial GiST exclusion constraint.
+   - **Scheduling frontend bundle.** Map the generated availability/session DTOs through
+     the service layer and opt the calendar plus Calendar Settings into coherent API mode.
+   - **Recurrence horizon maintenance.** Add the database-backed worker that extends
+     active series and split series metadata when `this_and_following` edits must survive
+     beyond the currently materialised horizon.
+   - **Capacity consumption.** Session capacity is range-validated now; locking and
+     counting capacity-consuming bookings/holds lands with the booking schema because no
+     such rows exist yet.
 6. Operator core: clients, bookings, forms/responses, notes, action items, attendance, and
    operator-created manual bookings.
 7. Public booking: public catalog/availability, free/manual booking transactions, tax

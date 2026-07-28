@@ -767,6 +767,33 @@ Maintainability and the operator/client data boundary outweighed route count. Th
 expands when scheduling and operator-core resources land as their next coherent bundle;
 until then, unimplemented services continue to throw rather than fall back.
 
+### Entry 029 — Recurrence is a validated series over materialised sessions
+
+*2026-07-28.* The first scheduling backend stores workspace availability as one policy,
+normalized split working-hour windows, and blackout ranges; the IANA timezone remains
+single-sourced on the workspace. `PUT /availability` replaces that aggregate atomically,
+so clients cannot leave a half-updated policy across multiple requests.
+
+Sessions are occurrence rows whether one-off or recurring. A recurring create adds a
+validated weekly-rule series and materialises a DST-aware rolling six-month horizon;
+ordinary list/get behavior remains occurrence-oriented for web and future native clients.
+Patches explicitly choose `this` or `this_and_following`. The latter updates already-
+materialised future occurrences; a database-backed horizon worker and series splitting
+remain deferred until worker infrastructure exists.
+
+**Alternative rejected:** persisting an opaque recurrence JSON blob and deriving every
+calendar view dynamically. It costs fewer tables now, but weakens validation, makes
+exception edits ambiguous, and prevents bookings from locking a concrete occurrence.
+Materialisation costs more rows but gives every booking a stable lock target.
+
+The final overlap decision lives in PostgreSQL: `btree_gist` plus a deferrable partial
+exclusion constraint on calendar owner and half-open time range. Adjacent sessions and
+times occupied only by cancelled sessions are allowed; concurrent active overlap is not.
+Composite workspace foreign keys prevent a session from referencing another tenant's
+service, series, or calendar owner even if an application predicate regresses. Capacity
+is validated on the session row, while booked/held capacity remains with the future
+booking transaction because no capacity-consuming table exists yet.
+
 ---
 
 ## Thematic sections

@@ -51,7 +51,7 @@ history table.
 
 `slotera-seed` is local/test-only and idempotently imports the Hartmann Strategy operator
 workspace, business profile, saved locations, services, platform superadmin, and reserved
-workspace slugs. It uses the
+workspace slugs, plus the workspace's default weekday availability. It uses the
 migration-owner connection because the runtime role is deliberately unable to read or
 write global identity tables directly. Both seeded users receive the local password
 `slotera-local-only` unless `SLOTERA_DEMO_SEED_PASSWORD` overrides it.
@@ -80,6 +80,10 @@ raw session/CSRF credentials are never stored.
   plus the total unread count;
 - `POST /notifications/mark-all-read` — acknowledges that operator's unread events and
   requires the normal Origin/session-bound CSRF checks.
+- `GET/PUT /availability` — reads or atomically replaces workspace timezone, weekly
+  windows, slot/buffer/notice policy, and blackout ranges.
+- `GET/POST /sessions` and `GET/PATCH /sessions/{id}` — manages one-off and recurring
+  materialised sessions; patches choose `scope=this` or `scope=this_and_following`.
 
 All operator mutations use the same Origin and session-bound CSRF checks as logout.
 Superadmin sessions do not implicitly enter an operator workspace. Authenticated resource

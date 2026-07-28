@@ -1,7 +1,7 @@
 import asyncio
 import json
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from uuid import UUID, uuid5
 
 from sqlalchemy import select, update
@@ -12,6 +12,8 @@ from slotera_api.config import get_migration_settings
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
+    AvailabilityPolicy,
+    AvailabilityWindow,
     MembershipRole,
     Notification,
     PlatformRole,
@@ -91,6 +93,8 @@ class SeedSummary:
     locations_inserted: int
     services_inserted: int
     notifications_inserted: int
+    availability_policies_inserted: int
+    availability_windows_inserted: int
 
     @property
     def total_inserted(self) -> int:
@@ -315,6 +319,16 @@ DEMO_NOTIFICATIONS = (
     },
 )
 
+DEMO_AVAILABILITY_WINDOWS = tuple(
+    {
+        "id": _seed_id(f"availability-window:hartmann-strategy:{day}"),
+        "day_of_week": day,
+        "start_local": time(9),
+        "end_local": time(17),
+    }
+    for day in range(1, 6)
+)
+
 
 async def import_demo_seed(
     database: Database,
@@ -473,6 +487,41 @@ async def import_demo_seed(
                 ).all()
             )
 
+        inserted_availability_policies = len(
+            (
+                await session.scalars(
+                    insert(AvailabilityPolicy)
+                    .values(
+                        workspace_id=workspace_id,
+                        slot_interval_min=30,
+                        buffer_before_min=0,
+                        buffer_after_min=0,
+                        minimum_notice_min=1440,
+                        maximum_advance_days=90,
+                        created_at=workspace.created_at,
+                        updated_at=workspace.created_at,
+                    )
+                    .on_conflict_do_nothing()
+                    .returning(AvailabilityPolicy.workspace_id)
+                )
+            ).all()
+        )
+        inserted_availability_windows = len(
+            (
+                await session.scalars(
+                    insert(AvailabilityWindow)
+                    .values(
+                        [
+                            {**window, "workspace_id": workspace_id}
+                            for window in DEMO_AVAILABILITY_WINDOWS
+                        ]
+                    )
+                    .on_conflict_do_nothing()
+                    .returning(AvailabilityWindow.id)
+                )
+            ).all()
+        )
+
         inserted_notifications = 0
         for notification in DEMO_NOTIFICATIONS:
             key = str(notification["key"])
@@ -544,6 +593,8 @@ async def import_demo_seed(
         locations_inserted=inserted_locations,
         services_inserted=inserted_services,
         notifications_inserted=inserted_notifications,
+        availability_policies_inserted=inserted_availability_policies,
+        availability_windows_inserted=inserted_availability_windows,
     )
 
 

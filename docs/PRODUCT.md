@@ -43,8 +43,9 @@ requirement. Phase 2's explicit local `api` mode is separate from this demo cont
 PostgreSQL, SQLAlchemy, Alembic, and Docker Compose under `server/`. The infrastructure
 foundation, identity/tenancy persistence, backend auth/session, business settings, saved
 locations, services, the structured notification baseline, generated OpenAPI transport
-types, and the first coherent operator frontend wiring exist.
-The
+types, the first coherent operator frontend wiring, and the backend scheduling foundation
+(workspace availability, materialised recurrence, sessions, and database overlap
+enforcement) exist. The
 public portfolio/demo deployment stays mock-backed; the API is developed and exercised in
 a separate local/API environment. Real public bookings include durable transactional
 confirmation + booking-workspace magic-link email through a PostgreSQL outbox worker.

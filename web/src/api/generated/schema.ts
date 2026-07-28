@@ -55,6 +55,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Availability */
+        get: operations["getAvailability"];
+        /** Replace Availability */
+        put: operations["replaceAvailability"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -160,6 +178,42 @@ export interface paths {
         patch: operations["updateService"];
         trace?: never;
     };
+    "/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sessions */
+        get: operations["listSessions"];
+        put?: never;
+        /** Create Session */
+        post: operations["createSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session */
+        get: operations["getSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Session */
+        patch: operations["updateSession"];
+        trace?: never;
+    };
     "/settings/business": {
         parameters: {
             query?: never;
@@ -234,6 +288,108 @@ export interface components {
             street: string;
             /** Street2 */
             street2?: string | null;
+        };
+        /** AvailabilityBlackoutInput */
+        AvailabilityBlackoutInput: {
+            /**
+             * Endsat
+             * Format: date-time
+             */
+            endsAt: string;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Startsat
+             * Format: date-time
+             */
+            startsAt: string;
+        };
+        /** AvailabilityBlackoutResponse */
+        AvailabilityBlackoutResponse: {
+            /**
+             * Endsat
+             * Format: date-time
+             */
+            endsAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Startsat
+             * Format: date-time
+             */
+            startsAt: string;
+        };
+        /** AvailabilityResponse */
+        AvailabilityResponse: {
+            /** Blackouts */
+            blackouts: components["schemas"]["AvailabilityBlackoutResponse"][];
+            /** Bufferaftermin */
+            bufferAfterMin: number;
+            /** Bufferbeforemin */
+            bufferBeforeMin: number;
+            /** Maximumadvancedays */
+            maximumAdvanceDays: number;
+            /** Minimumnoticemin */
+            minimumNoticeMin: number;
+            /** Slotintervalmin */
+            slotIntervalMin: number;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /** Weeklyhours */
+            weeklyHours: components["schemas"]["AvailabilityWindowInput-Output"][];
+        };
+        /** AvailabilityUpdate */
+        AvailabilityUpdate: {
+            /** Blackouts */
+            blackouts: components["schemas"]["AvailabilityBlackoutInput"][];
+            /** Bufferaftermin */
+            bufferAfterMin: number;
+            /** Bufferbeforemin */
+            bufferBeforeMin: number;
+            /** Maximumadvancedays */
+            maximumAdvanceDays: number;
+            /** Minimumnoticemin */
+            minimumNoticeMin: number;
+            /** Slotintervalmin */
+            slotIntervalMin: number;
+            /** Timezone */
+            timezone: string;
+            /** Weeklyhours */
+            weeklyHours: components["schemas"]["AvailabilityWindowInput-Input"][];
+        };
+        /** AvailabilityWindowInput */
+        "AvailabilityWindowInput-Input": {
+            /** Dayofweek */
+            dayOfWeek: number;
+            /**
+             * Endlocal
+             * Format: time
+             */
+            endLocal: string;
+            /**
+             * Startlocal
+             * Format: time
+             */
+            startLocal: string;
+        };
+        /** AvailabilityWindowInput */
+        "AvailabilityWindowInput-Output": {
+            /** Dayofweek */
+            dayOfWeek: number;
+            /** Endlocal */
+            endLocal: string;
+            /** Startlocal */
+            startLocal: string;
         };
         /** BookingConfirmedNotification */
         BookingConfirmedNotification: {
@@ -435,6 +591,18 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** RecurrenceInput */
+        RecurrenceInput: {
+            /** Endson */
+            endsOn?: string | null;
+            /**
+             * Intervalweeks
+             * @default 1
+             */
+            intervalWeeks: number;
+            /** Weekdays */
+            weekdays: number[];
+        };
         /** RescheduleRequestedNotification */
         RescheduleRequestedNotification: {
             /**
@@ -471,6 +639,73 @@ export interface components {
             requestedFor: string;
             /** Servicename */
             serviceName: string;
+        };
+        /** SchedulingSessionResponse */
+        SchedulingSessionResponse: {
+            address: components["schemas"]["Address"] | null;
+            /**
+             * Bookedcount
+             * @default 0
+             */
+            bookedCount: number;
+            /**
+             * Calendarownerid
+             * Format: uuid
+             */
+            calendarOwnerId: string;
+            /** Capacity */
+            capacity: number;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Endat
+             * Format: date-time
+             */
+            endAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Location */
+            location: string;
+            /**
+             * Locationtype
+             * @enum {string}
+             */
+            locationType: "online" | "physical" | "hybrid";
+            /** Notes */
+            notes: string | null;
+            /**
+             * Recurring
+             * @enum {string}
+             */
+            recurring: "one-off" | "weekly" | "custom";
+            /** Seriesid */
+            seriesId: string | null;
+            /**
+             * Serviceid
+             * Format: uuid
+             */
+            serviceId: string;
+            /**
+             * Startat
+             * Format: date-time
+             */
+            startAt: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "live" | "done" | "cancelled";
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
         };
         /** ServiceCreate */
         ServiceCreate: {
@@ -598,6 +833,72 @@ export interface components {
              * Format: date-time
              */
             updatedAt: string;
+        };
+        /** SessionCreate */
+        SessionCreate: {
+            address?: components["schemas"]["Address"] | null;
+            /** Calendarownerid */
+            calendarOwnerId?: string | null;
+            /** Capacity */
+            capacity: number;
+            /**
+             * Endat
+             * Format: date-time
+             */
+            endAt: string;
+            /** Location */
+            location: string;
+            /**
+             * Locationtype
+             * @enum {string}
+             */
+            locationType: "online" | "physical" | "hybrid";
+            /** Notes */
+            notes?: string | null;
+            recurrence?: components["schemas"]["RecurrenceInput"] | null;
+            /**
+             * Serviceid
+             * Format: uuid
+             */
+            serviceId: string;
+            /**
+             * Startat
+             * Format: date-time
+             */
+            startAt: string;
+        };
+        /** SessionListResponse */
+        SessionListResponse: {
+            /** Items */
+            items: components["schemas"]["SchedulingSessionResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** SessionPatch */
+        SessionPatch: {
+            address?: components["schemas"]["Address"] | null;
+            /** Calendarownerid */
+            calendarOwnerId?: string | null;
+            /** Capacity */
+            capacity?: number | null;
+            /** Endat */
+            endAt?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Locationtype */
+            locationType?: ("online" | "physical" | "hybrid") | null;
+            /** Notes */
+            notes?: string | null;
+            /** Serviceid */
+            serviceId?: string | null;
+            /** Startat */
+            startAt?: string | null;
+            /** Status */
+            status?: ("scheduled" | "live" | "done" | "cancelled") | null;
         };
         /** SessionResponse */
         SessionResponse: {
@@ -811,6 +1112,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+        };
+    };
+    getAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityResponse"];
+                };
+            };
+        };
+    };
+    replaceAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvailabilityUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1063,6 +1417,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ServiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listSessions: {
+        parameters: {
+            query?: {
+                startsFrom?: string | null;
+                startsBefore?: string | null;
+                serviceId?: string | null;
+                calendarOwnerId?: string | null;
+                seriesId?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulingSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulingSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateSession: {
+        parameters: {
+            query?: {
+                scope?: "this" | "this_and_following";
+            };
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulingSessionResponse"];
                 };
             };
             /** @description Validation Error */

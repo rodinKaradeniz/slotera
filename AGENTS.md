@@ -46,7 +46,8 @@ now wires the first operator bundle to FastAPI without changing that deployment 
 Phase 2 continues as a local-only FastAPI + PostgreSQL backend under `server/`; it
 currently exposes infrastructure health checks,
 real auth/session endpoints, operator business-settings/saved-location/service resources,
-and a user-targeted notification baseline over the identity/tenancy model. See
+workspace availability, session/recurrence resources, database-enforced calendar
+conflicts, and a user-targeted notification baseline over the identity/tenancy model. See
 `docs/PRODUCT.md` for the full positioning rules and
 phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
 Phase 3 adds Stripe, scheduled email, and calendar integrations).
@@ -261,6 +262,10 @@ implemented HTTP surface is deliberately limited to:
 - `GET/POST /services` plus item `GET/PATCH/DELETE` — operator service management;
 - `GET /notifications` and `POST /notifications/mark-all-read` — structured, user-
   targeted operator notifications and read acknowledgement;
+- `GET/PUT /availability` — workspace timezone, split weekly hours, booking-window policy,
+  buffers, notice/advance limits, and blackout ranges;
+- `GET/POST /sessions` plus item `GET/PATCH` — one-off and recurring materialised
+  sessions, including explicit `this` / `this_and_following` edit scope;
 - `/openapi.json` and `/docs` — the future generated-transport contract.
 
 Every response receives a generated `X-Request-ID`. HTTP, validation, application, and
@@ -275,6 +280,9 @@ tokens, workspaces, memberships, slug history/reservations, append-only audit ev
 business profiles, saved locations, and services.
 The notification revision adds membership-backed recipients, structured event payloads,
 and a separate principal transaction context for workspace-and-user RLS.
+The scheduling revision adds normalized availability, recurrence series, materialised
+occurrences, composite tenant foreign keys, and a partial GiST exclusion constraint that
+allows adjacent/cancelled time ranges but rejects active overlap per calendar owner.
 Only SHA-256 session/CSRF token digests are stored. The local seed gives Lena and Avery an
 Argon2id hash for `slotera-local-only`; the seed command is disabled in production.
 
@@ -289,7 +297,8 @@ creation, session lookup, and revocation to that role.
 The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used host
 `5432` port. `uv run slotera-seed` imports the Hartmann workspace, operator, business
 profile, two locations, five EUR-derived services, four notifications, platform
-superadmin, audit event, and reserved slugs idempotently through the owner connection.
+superadmin, default weekday availability, audit event, and reserved slugs idempotently
+through the owner connection.
 
 ### Auth and session
 
@@ -494,6 +503,9 @@ Present tense — what exists in the working tree today.
   local operator UI for auth, services, business settings/locations, and notifications.
   API-mode navigation deliberately excludes routes whose related resources are still mock-
   only, and the public/Vercel experience continues to default to mock mode.
+- Workspace availability and authenticated session APIs persist one-off or rolling six-
+  month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant;
+  session capacity is validated, while booked-count consumption waits for bookings.
 
 **Mock data set** — 5 services, 4 form templates, 2 packages, 8 clients, 11 bookings,
 10 sessions, 3 client notes, 9 session action items, 8 platform workspaces, 6 inquiries,
@@ -594,3 +606,11 @@ integration pytest reports 20 passed, and Ruff/strict mypy are clean. Live cooki
 session restore, all wired reads, CSRF rejection, and CSRF-protected logout were exercised.
 The pre-existing listeners on ports 8000/3344 prevented starting a second API-mode UI
 process, so the affected API-mode pages were not browser-walked in that run.
+
+The scheduling backend foundation followed on 2026-07-28. Alembic revision
+`20260728_0006` adds workspace availability policies/windows/blackouts, recurrence series,
+materialised sessions, composite tenant references, and the partial GiST owner/time
+exclusion constraint. Isolated pytest reports 28 passed; PostgreSQL integration pytest
+reports 23 passed; Ruff and strict mypy are clean. The migration applies through real
+PostgreSQL and generated OpenAPI/TypeScript transport declarations include availability
+and session contracts. Frontend calendar/settings adapters remain deliberately unwired.
