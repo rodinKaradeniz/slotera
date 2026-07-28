@@ -5,3 +5,6 @@ export const dataSource: DataSource =
 
 export const apiBaseUrl: string =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+export const csrfCookieName: string =
+  process.env.NEXT_PUBLIC_CSRF_COOKIE_NAME ?? "slotera_csrf";

@@ -20,11 +20,21 @@ import { ManualPaymentForm } from "@/components/shared/forms/ManualPaymentForm";
 import { WorkingHoursForm } from "@/components/shared/forms/WorkingHoursForm";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
-import { getSettings, updateSettings } from "@/services/settings.service";
+import {
+  createWorkspaceLocation,
+  deleteWorkspaceLocation,
+  getBusinessSettings,
+  getSettings,
+  updateBusinessSettings,
+  updateSettings,
+  updateWorkspaceLocation,
+  type BusinessSettings,
+} from "@/services/settings.service";
 import { BillingPanel } from "./BillingPanel";
 import { EMPTY_ADDRESS, type WorkspaceLocation } from "@/types/address";
 import type { SettingsData, WorkingDay } from "@/types/settings";
 import { cn } from "@/lib/cn";
+import { dataSource } from "@/lib/env";
 
 type SectionId =
   | "business"
@@ -48,12 +58,32 @@ const NAV: { id: SectionId; label: string; icon: IconName }[] = [
 export function SettingsView() {
   const [section, setSection] = React.useState<SectionId>("business");
   const [data, setData] = React.useState<SettingsData | null>(null);
+  const [business, setBusiness] = React.useState<BusinessSettings | null>(null);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    getSettings().then(setData);
+    const load = async () => {
+      try {
+        if (dataSource === "api") {
+          setBusiness(await getBusinessSettings());
+          return;
+        }
+        const settings = await getSettings();
+        setData(settings);
+        setBusiness(settings.business);
+      } catch (error) {
+        setLoadError(error instanceof Error ? error.message : "Settings could not be loaded.");
+      }
+    };
+    void load();
   }, []);
 
-  const activeMeta = NAV.find((n) => n.id === section);
+  const visibleNav = dataSource === "api" ? NAV.filter((item) => item.id === "business") : NAV;
+  const activeMeta = visibleNav.find((n) => n.id === section);
+  const handleBusinessChange = (next: BusinessSettings) => {
+    setBusiness(next);
+    setData((current) => (current ? { ...current, business: next } : current));
+  };
   return (
     <PageContainer>
       <div className="grid lg:grid-cols-[280px_1fr] gap-10 items-start">
@@ -64,7 +94,7 @@ export function SettingsView() {
             Configure your booking workflow, branding, and notifications.
           </p>
           <nav className="flex flex-col gap-1 mt-8">
-            {NAV.map((n) => {
+            {visibleNav.map((n) => {
               const active = section === n.id;
               return (
                 <button
@@ -98,22 +128,26 @@ export function SettingsView() {
               </h2>
             </div>
           )}
-          {!data ? (
+          {loadError ? (
+            <Card padded>
+              <p className="text-small text-danger">{loadError}</p>
+            </Card>
+          ) : !business || (dataSource === "mock" && !data) ? (
             <LoadingRows count={2} />
           ) : (
             <div className="flex flex-col gap-6">
               {section === "business" && (
                 <>
-                  <BusinessPanel data={data} onChange={setData} />
-                  <LocationsCard data={data} onChange={setData} />
+                  <BusinessPanel business={business} onChange={handleBusinessChange} />
+                  <LocationsCard business={business} onChange={handleBusinessChange} />
                 </>
               )}
-              {section === "branding" && <BrandingPanel data={data} onChange={setData} />}
-              {section === "payments" && <PaymentsPanel data={data} onChange={setData} />}
+              {section === "branding" && data && <BrandingPanel data={data} onChange={setData} />}
+              {section === "payments" && data && <PaymentsPanel data={data} onChange={setData} />}
               {section === "billing" && <BillingPanel />}
-              {section === "calendar" && <CalendarPanel data={data} onChange={setData} />}
-              {section === "emails" && <EmailsPanel data={data} onChange={setData} />}
-              {section === "account" && <AccountPanel data={data} onChange={setData} />}
+              {section === "calendar" && data && <CalendarPanel data={data} onChange={setData} />}
+              {section === "emails" && data && <EmailsPanel data={data} onChange={setData} />}
+              {section === "account" && data && <AccountPanel data={data} onChange={setData} />}
             </div>
           )}
         </section>
@@ -154,10 +188,25 @@ function PanelCard({
   );
 }
 
-function BusinessPanel({ data, onChange }: PanelProps) {
-  const [local, setLocal] = React.useState(data.business);
+function BusinessPanel({
+  business,
+  onChange,
+}: {
+  business: BusinessSettings;
+  onChange: (next: BusinessSettings) => void;
+}) {
+  const [local, setLocal] = React.useState(business);
   const save = async () => {
-    const next = await updateSettings({ business: local });
+    const next = await updateBusinessSettings({
+      name: local.name,
+      displayName: local.displayName,
+      bio: local.bio,
+      email: local.email,
+      phone: local.phone,
+      address: local.address,
+      bookingPageUrl: local.bookingPageUrl,
+      bookingPageEnabled: local.bookingPageEnabled,
+    });
     onChange(next);
   };
   return (
@@ -198,9 +247,13 @@ function BusinessPanel({ data, onChange }: PanelProps) {
             onChange={(e) => setLocal({ ...local, phone: e.target.value })}
           />
         </Field>
-        <Field label="Booking page URL" className="sm:col-span-2">
+        <Field
+          label={dataSource === "api" ? "Workspace slug" : "Booking page URL"}
+          className="sm:col-span-2"
+        >
           <Input
             value={local.bookingPageUrl}
+            disabled={dataSource === "api"}
             onChange={(e) =>
               setLocal({ ...local, bookingPageUrl: e.target.value })
             }
@@ -629,13 +682,15 @@ function AccountPanel({ data, onChange }: PanelProps) {
    session in SessionDrawer (so they don't retype the address every time).
    ────────────────────────────────────────────────────────────────────────── */
 
-function newLocationId(): string {
-  return `loc-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function LocationsCard({ data, onChange }: PanelProps) {
+function LocationsCard({
+  business,
+  onChange,
+}: {
+  business: BusinessSettings;
+  onChange: (next: BusinessSettings) => void;
+}) {
   const { toast } = useToast();
-  const locations = data.business.locations ?? [];
+  const locations = business.locations ?? [];
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState<WorkspaceLocation | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -644,7 +699,7 @@ function LocationsCard({ data, onChange }: PanelProps) {
 
   const startNew = () => {
     setDraft({
-      id: newLocationId(),
+      id: "",
       label: "",
       address: { ...EMPTY_ADDRESS },
     });
@@ -661,18 +716,6 @@ function LocationsCard({ data, onChange }: PanelProps) {
     setEditingId(null);
   };
 
-  const persist = async (next: WorkspaceLocation[]) => {
-    setBusy(true);
-    try {
-      const updated = await updateSettings({
-        business: { ...data.business, locations: next },
-      });
-      onChange(updated);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const save = async () => {
     if (!draft) return;
     if (draft.label.trim().length === 0) {
@@ -683,20 +726,51 @@ function LocationsCard({ data, onChange }: PanelProps) {
       toast.error("Address line 1 is required.");
       return;
     }
-    const exists = locations.some((l) => l.id === draft.id);
-    const next = exists
-      ? locations.map((l) => (l.id === draft.id ? draft : l))
-      : [...locations, draft];
-    await persist(next);
-    toast.success(exists ? "Location updated" : "Location added");
-    cancelEdit();
+    const exists = editingId !== "__new__";
+    setBusy(true);
+    try {
+      const saved = exists
+        ? await updateWorkspaceLocation(draft.id, {
+            label: draft.label,
+            address: draft.address,
+          })
+        : await createWorkspaceLocation({
+            label: draft.label,
+            address: draft.address,
+          });
+      const next = exists
+        ? locations.map((location) => (location.id === saved.id ? saved : location))
+        : [...locations, saved];
+      onChange({ ...business, locations: next });
+      toast.success(exists ? "Location updated" : "Location added");
+      cancelEdit();
+    } catch (error) {
+      toast.error("Couldn't save location", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const remove = async (loc: WorkspaceLocation) => {
-    await persist(locations.filter((l) => l.id !== loc.id));
-    toast.success("Location deleted");
-    if (editingId === loc.id) cancelEdit();
-    setPendingDelete(null);
+    setBusy(true);
+    try {
+      await deleteWorkspaceLocation(loc.id);
+      onChange({
+        ...business,
+        locations: locations.filter((location) => location.id !== loc.id),
+      });
+      toast.success("Location deleted");
+      if (editingId === loc.id) cancelEdit();
+      setPendingDelete(null);
+    } catch (error) {
+      toast.error("Couldn't delete location", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

@@ -5,9 +5,8 @@ description: Use when touching auth, data access, external input, rendering of s
 
 # Security Review
 
-Defensive review for a codebase whose backend currently has infrastructure controls but
-**no real identity or domain authorisation yet**. The job is to keep Phase 1's shortcuts
-from hardening into Phase 2's vulnerabilities.
+Defensive review for a codebase with a mock-default public demo and an opt-in local API
+mode. The job is to keep Phase 1 shortcuts out of real Phase 2 trust boundaries.
 
 > Skills are the workflow layer; **`docs/RULES.md` is the always-on convention layer and
 > wins on any conflict.**
@@ -16,16 +15,17 @@ from hardening into Phase 2's vulnerabilities.
 
 State this plainly rather than reviewing as if it weren't:
 
-- **Authentication is fabricated.** `auth.service.ts` mints a `mock.<random>.<timestamp>`
-  token client-side, writes it to `localStorage`, and nothing ever verifies it. Role is
-  derived from an **email pattern** (`/^(admin|super(admin)?)@/i`). Anyone can hand-edit
-  `localStorage` into a superadmin session.
-- **Every route protection is cosmetic.** `AuthGuard` trusts what it reads. It is a UX
-  affordance, not a boundary — and must be described that way, never as access control.
-- **The server is foundation-only.** It exposes health/OpenAPI, exact-origin CORS,
-  structured safe errors, and separate migration/application database roles. It has no
-  auth, CSRF, rate limiting, domain input, or production secrets. Frontend
-  `web/.env.local` still holds two non-sensitive `NEXT_PUBLIC_*` values only.
+- **Mock authentication is fabricated.** In the default demo, `auth.service.ts` mints a
+  client-side token and role heuristics remain editable through `localStorage`.
+- **Local API authentication is real.** Opt-in API mode uses an opaque HttpOnly session
+  cookie, server-derived role/workspace, exact-Origin checks, and a session-bound readable
+  CSRF cookie/header. `AuthGuard` restores that session but remains only a UX affordance;
+  FastAPI dependencies and PostgreSQL policies are the authorisation boundary.
+- **The wired frontend scope is deliberately narrow.** Auth/session, operator business
+  settings, saved locations, services, and user notifications are API-backed. Other
+  service methods fail explicitly; public booking and superadmin resources are not wired.
+- **Public environment values are non-sensitive.** API base URL, data-source mode, and
+  CSRF cookie name may be `NEXT_PUBLIC_*`; secrets must never use that prefix.
 - **No real payment data exists.** Card forms are formatting-only; nothing is transmitted
   or stored.
 
@@ -78,10 +78,10 @@ As backend work expands beyond health infrastructure, check these on every chang
 
 - **Authorisation is server-side.** Every endpoint re-derives the actor's identity and
   workspace from a verified token. `AuthGuard` stays a UX affordance.
-- **Tenancy isolation.** Every query is scoped by workspace. This has no representation in
-  the codebase today, which means there is exactly one chance to get it right — and the
-  superadmin surface is the one place a cross-workspace read is legitimate, which makes it
-  the place to look hardest.
+- **Tenancy isolation.** Every query is scoped by workspace and tenant tables use forced
+  PostgreSQL RLS. User-targeted notifications add recipient context. The superadmin
+  surface is the one place a future cross-workspace read is legitimate, which makes it
+  the place to look hardest when those resources arrive.
 - **Validate on the server, always.** Client-side validation is currently the only
   validation on every form (booking, contact, forms step, registration). It becomes a UX
   nicety the moment a server exists, not a control.

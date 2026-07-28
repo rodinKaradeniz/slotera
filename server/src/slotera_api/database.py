@@ -48,5 +48,22 @@ class Database:
             )
             yield session
 
+    @asynccontextmanager
+    async def principal_transaction(
+        self, workspace_id: UUID, user_id: UUID
+    ) -> AsyncIterator[AsyncSession]:
+        async with self.session_factory() as session, session.begin():
+            await session.execute(
+                text(
+                    """
+                    SELECT
+                      set_config('app.current_workspace_id', :workspace_id, true),
+                      set_config('app.current_user_id', :user_id, true)
+                    """
+                ),
+                {"workspace_id": str(workspace_id), "user_id": str(user_id)},
+            )
+            yield session
+
     async def dispose(self) -> None:
         await self.engine.dispose()

@@ -3,7 +3,8 @@
 import * as React from "react";
 import { AppShell } from "./AppShell";
 import type { Crumb } from "./Topbar";
-import { OPERATOR_NAV } from "@/lib/nav";
+import { navForRole } from "@/lib/nav";
+import { dataSource } from "@/lib/env";
 
 type Props = {
   crumbs?: Crumb[];
@@ -15,10 +16,10 @@ export function AdminShell({ crumbs, topbarRight, children }: Props) {
   return (
     <AppShell
       role="operator_admin"
-      nav={OPERATOR_NAV}
+      nav={navForRole("operator_admin")}
       crumbs={crumbs}
       topbarRight={topbarRight}
-      enableCommandPalette
+      enableCommandPalette={dataSource === "mock"}
     >
       {children}
     </AppShell>

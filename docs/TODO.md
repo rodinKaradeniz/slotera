@@ -96,9 +96,10 @@ dependencies. The backend runner is not implicitly the frontend runner.
 
 ## 3. Security & data-handling invariants to enforce later
 
-None of these domain findings are exploitable today: the backend currently exposes health
-and OpenAPI infrastructure only, with no domain input path or real credential. Each
-becomes real as the corresponding Phase 2 resource lands.
+The local backend now accepts authenticated operator input for business settings,
+locations, and services, while the deployed frontend remains disconnected and mock-
+backed. The findings below become security requirements as their corresponding API and
+frontend integration lands.
 
 - **`NoteContent.tsx` renders stored HTML with `dangerouslySetInnerHTML`.** Safe **only**
   because the body is produced by the local Tiptap StarterKit editor and authored by the
@@ -123,10 +124,11 @@ becomes real as the corresponding Phase 2 resource lands.
   Rendered as text today. If that ever becomes rich text, the sanitisation note above
   applies with a *lower* trust level — this content reaches unauthenticated visitors.
 
-- **No domain rate limiting, CSRF, or server-side form validation yet.** The foundation
-  has exact-origin credentialed CORS and Pydantic configuration validation, but nothing
-  submits product data to it. Every public form (booking, contact, forms step) needs
-  server-side validation in Phase 2; client-side validation remains only a UX check.
+- **Public flows still need rate limiting and server-side validation.** Operator resource
+  mutations now have exact-Origin, session-bound CSRF, strict Pydantic validation, and
+  tenant authorization. Login throttling remains a production gate. Every future public
+  form (booking, contact, forms step) needs endpoint-specific server-side validation and
+  abuse controls; client-side validation remains only a UX check.
 
 ---
 
@@ -140,11 +142,10 @@ built and exercised separately.
 
 ### Migration and contract
 
-- **The `api` branch of every service is unwritten.** `NEXT_PUBLIC_DATA_SOURCE` and
-  `apiBaseUrl` exist in `web/src/lib/env.ts`; every service method currently throws
-  `NotImplementedError` when `dataSource !== "mock"`. Fill those explicit branches rather
-  than adding automatic per-method fallback: mixing API services with related mock
-  services would produce incompatible ids and broken form/package/session relationships.
+- **The first coherent API branch is wired.** Auth/session, business settings, saved
+  locations, services, and notifications use generated DTO adapters through the shared
+  HTTP/CSRF client in opt-in local API mode. All other service methods continue to throw
+  `NotImplementedError`; fill them as coherent bundles without automatic mock fallback.
 - **Keep two coherent environments.** The public demo stays `mock`; an API-backed local or
   preview environment uses `api`. Integrate complete route bundles (public catalog,
   operator baseline, scheduling) rather than silently falling back method by method.
@@ -260,9 +261,18 @@ built and exercised separately.
    - **~~Backend auth/session boundary.~~ DONE.** Argon2id login, opaque revocable
      sessions, exact-Origin validation, session-bound CSRF, no-store current-session DTOs,
      secure production-cookie policy, and narrow database functions are implemented.
-   - Notification baseline, business settings, services, generated OpenAPI transport
-     types, and coherent frontend wiring remain. The Vercel demo stays mock-backed until
-     the bundle is complete.
+   - **~~Backend business settings, saved locations, and services.~~ DONE.** Resource-
+     shaped operator APIs now persist under forced tenant RLS, require operator sessions
+     and CSRF on mutations, derive service currency from the EUR workspace, keep service
+     notes private, and emit append-only audit events.
+   - **~~Notification baseline.~~ DONE.** Structured, membership-backed, user-targeted
+     notifications now support authenticated listing with unread count and CSRF-protected
+     mark-all-read. Real booking/session/payment producers remain with their domains.
+   - **~~Generated OpenAPI transport types and coherent frontend wiring.~~ DONE.** FastAPI
+     exports a repeatable contract, `openapi-typescript` generates committed DTOs, and the
+     shared credentialed client maps auth/session, business settings/locations, services,
+     and notifications to existing UI types. `./scripts/dev --api` enables only the wired
+     operator routes; the default/Vercel demo remains mock-backed.
 5. Scheduling: availability, sessions, recurrence, conflict/capacity enforcement.
 6. Operator core: clients, bookings, forms/responses, notes, action items, attendance, and
    operator-created manual bookings.
@@ -270,8 +280,8 @@ built and exercised separately.
    snapshots, idempotency, and expiry.
 8. Transactional email and booking workspace: outbox worker, confirmation/magic links,
    post-booking forms, reschedule/cancel requests, and client messages.
-9. Derived/platform resources: dashboard, server-side search, notifications, superadmin,
-   subscriptions, and inquiries.
+9. Derived/platform resources: dashboard, server-side search, notification producers,
+   superadmin, subscriptions, and inquiries.
 10. Production-readiness gate, then later hosting/deployment selection.
 
 Before any live auth deployment, add shared login throttling, expired/revoked-session

@@ -39,13 +39,14 @@ providers — independent consultants, coaches, instructors, and small expert-le
 studios/workshops. It is positioned as a *lightweight client workspace*: paid bookings,
 client intake/prep forms, multi-session packages, session management, client context and
 notes, and a public customer booking page — deliberately not a heavy CRM, not a
-calendar-only tool, and not a generic "reservation app." The product frontend remains a
-**mock-backed Next.js prototype** built for portfolio and client demos: every frontend
-service call still resolves against mock JSON in-process, with no real authentication,
-payment provider, or email. Phase 2 has started as a separate, local-only FastAPI +
-PostgreSQL foundation under `server/`; it currently exposes infrastructure health checks
-and real auth/session endpoints over the identity/tenancy model, but has no operator
-product/domain endpoints yet. See
+calendar-only tool, and not a generic "reservation app." The public/default product
+frontend remains a **mock-backed Next.js prototype** built for portfolio and client demos,
+with no real authentication, payment provider, or email. A separate opt-in local API mode
+now wires the first operator bundle to FastAPI without changing that deployment default.
+Phase 2 continues as a local-only FastAPI + PostgreSQL backend under `server/`; it
+currently exposes infrastructure health checks,
+real auth/session endpoints, operator business-settings/saved-location/service resources,
+and a user-targeted notification baseline over the identity/tenancy model. See
 `docs/PRODUCT.md` for the full positioning rules and
 phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
 Phase 3 adds Stripe, scheduled email, and calendar integrations).
@@ -53,6 +54,23 @@ Phase 3 adds Stripe, scheduled email, and calendar integrations).
 ---
 
 ## Running it locally
+
+**Complete development stack** — from the repository root:
+
+```bash
+./scripts/dev                 # prepare everything, then run API + frontend
+./scripts/dev --api           # same stack, with the frontend using the local API bundle
+./scripts/dev --prepare-only  # prepare dependencies/database without running apps
+```
+
+The script requires Docker, uv, and npm. It creates missing local env files from their
+examples without overwriting existing ones, synchronizes both dependency sets, regenerates
+TypeScript transport types from FastAPI OpenAPI, starts and waits for PostgreSQL, runs
+`alembic upgrade head`, imports the idempotent demo seed, then
+starts FastAPI on `8000` and Next.js on `3344`. Ctrl-C stops both application processes
+but deliberately leaves PostgreSQL running with its named volume intact. Alembic tracks
+the applied revision in PostgreSQL's `alembic_version` table, so repeated starts apply
+only pending migrations.
 
 **Frontend** — from `web/`:
 
@@ -89,15 +107,16 @@ uv run mypy
 The backend exposes `/health/live`, `/health/ready`, `/docs`, and `/openapi.json`. See
 `server/README.md` and `docs/RULES.md` for what may and may not be claimed as verification.
 
-**Frontend environment** — `web/.env.local` (and `web/.env.example`) carry two public
+**Frontend environment** — `web/.env.local` (and `web/.env.example`) carry three public
 variables:
 
 ```
 NEXT_PUBLIC_DATA_SOURCE=mock          # "mock" | "api"; read once in web/src/lib/env.ts
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000   # backend exists; frontend API branches remain unwritten
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_CSRF_COOKIE_NAME=slotera_csrf
 ```
 
-**Signing in** — auth is mocked; any password works. `web/src/services/auth.service.ts`
+**Signing in (mock mode)** — any password works. `web/src/services/auth.service.ts`
 resolves the role from the email address:
 
 | Email | Lands on |
@@ -107,6 +126,12 @@ resolves the role from the email address:
 | anything starting `admin@` / `super@` / `superadmin@` | `/superadmin/overview` |
 | any other address | `/admin/dashboard` (ad-hoc operator) |
 | `wrong@example.com` | throws — the seeded failure case for testing error states |
+
+**Signing in (local API mode)** — use `hello@slotera.app` / `slotera-local-only`.
+Authentication is cookie-backed and the operator lands on `/admin/services`; only Services
+and Business Settings are exposed in API-mode navigation until related resource bundles
+land. Superadmin resource pages, public booking, registration/reset, and the remaining
+operator routes are not API-wired yet.
 
 **Public routes needing no session:** `/` (landing), `/booking`,
 `/booking/confirmation`, `/booking/failure`, `/booking/manage/demo`.
@@ -126,11 +151,11 @@ resolves the role from the email address:
 | Charts | `recharts` `^3.8` | one usage: `TrendChart` on the dashboard |
 | Rich text | Tiptap `^3.27` (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm`) | one usage: client notes editor |
 | Fonts | `next/font/google` — Fraunces, Inter Tight, JetBrains Mono | exposed as `--font-serif` / `--font-sans` / `--font-mono` |
-| Data | JSON fixtures in `web/src/data/mock/`, mutated in module-level memory | switchable via `NEXT_PUBLIC_DATA_SOURCE` |
-| Frontend auth | fake token in `localStorage` under `slotera.session` | mock demo remains disconnected from backend auth |
+| Data | mock JSON by default; generated OpenAPI DTOs + HTTP adapters for the local operator bundle | switchable via `NEXT_PUBLIC_DATA_SOURCE` |
+| Frontend auth | mock token in mock mode; HttpOnly cookie + CSRF in API mode | `localStorage` holds only the UI session snapshot |
 | i18n | hand-rolled flat dictionary, EN / TR / DE | `web/src/lib/i18n.ts` + `web/src/i18n/messages/*.ts` |
 | Lint | ESLint `^9` + `eslint-config-next` (flat config) | `web/eslint.config.mjs` |
-| Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | real auth/session boundary + identity/tenancy persistence |
+| Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | auth/session + operator settings/locations/services/notifications |
 | Backend data | PostgreSQL 17 via Docker Compose | owner migrations, restricted application role, forced tenant RLS; host port `55432` |
 | Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; no CI yet |
 | Frontend tests | none | no runner, no test files, no CI |
@@ -149,6 +174,7 @@ docs/
   RULES.md             always-on working conventions
 skills/<name>/SKILL.md on-demand workflow modules (canonical location)
 .claude/skills/        symlinks into skills/ for native skill discovery
+scripts/dev            one-command local dependency/database/application startup
 
 web/
   package.json         Next.js dependencies and npm scripts
@@ -160,6 +186,7 @@ web/
   public/              static assets (currently empty)
   src/
     app/               App Router routes, route groups, layouts, global CSS
+    api/               shared HTTP/CSRF client + generated OpenAPI document/types
     components/        UI, shared, layout, drawer, admin, booking, and public components
     data/mock/         21 JSON fixtures — the entire frontend data set
     i18n/messages/     en.ts source keys plus TR/DE partial translations
@@ -171,9 +198,9 @@ server/
   pyproject.toml       uv project + pytest/Ruff/mypy configuration
   uv.lock              reproducible Python dependency lock
   compose.yaml         local PostgreSQL 17 (`slotera` Compose project)
-  migrations/          async Alembic environment + baseline and identity/tenancy revisions
+  migrations/          async Alembic environment + versioned schema revisions
   docker/postgres/     restricted application-role bootstrap
-  src/slotera_api/     FastAPI app, identity/tenant models, seed importer, DB lifecycle, health API
+  src/slotera_api/     FastAPI app, auth, operator resources, models, seed, DB lifecycle
   tests/               isolated contracts + opt-in PostgreSQL/RLS integration tests
 ```
 
@@ -183,7 +210,8 @@ server/
 
 ### Data layer — the mock/api switch
 
-Every module in `web/src/services/` follows one shape:
+Every module in `web/src/services/` keeps mock and API behavior behind the same component-
+facing function. Unwired functions still fail explicitly:
 
 ```ts
 let mock: T[] = JSON.parse(JSON.stringify(json)) as T[];   // module-level in-memory copy
@@ -196,8 +224,12 @@ export async function listThings(): Promise<T[]> {
 ```
 
 - `dataSource` comes from `NEXT_PUBLIC_DATA_SOURCE` via `web/src/lib/env.ts` and defaults to
-  `"mock"`. The `api` branch is deliberately unwritten — every method throws
-  `NotImplementedError` until Phase 2 fills it in.
+  `"mock"`. Auth/session, business settings, saved locations, services, and notifications
+  have API adapters; other methods still throw `NotImplementedError` in API mode.
+- FastAPI OpenAPI is exported to `web/src/api/generated/` by `npm run generate:api`.
+  Generated DTOs stay inside the API/service boundary and are mapped to `web/src/types/`.
+- `web/src/api/client.ts` owns credentialed fetch, no-store requests, structured API
+  errors, and readable-cookie CSRF headers for unsafe methods.
 - Mutations persist for the lifetime of the dev process and reset on reload/HMR.
   Cross-reload persistence is not a Phase 1 requirement.
 - **Components must go through the service layer.** Importing `web/src/data/mock/*.json`
@@ -214,15 +246,21 @@ Current services: `auth`, `billing`, `bookings`, `client-notes`, `clients`, `das
 
 ### Backend persistence
 
-`server/src/slotera_api/main.py` builds the local FastAPI application. It currently has no
-operator product resources and is not wired to `web/src/services/`; the public demo therefore remains
-deterministically mock-backed. The implemented HTTP surface is deliberately limited to:
+`server/src/slotera_api/main.py` builds the local FastAPI application. The opt-in local API
+mode wires its first operator bundle through `web/src/services/`; the public/default demo
+remains deterministically mock-backed. The
+implemented HTTP surface is deliberately limited to:
 
 - `/health/live` — process liveness and no database access;
 - `/health/ready` — verifies PostgreSQL through the restricted `slotera_app` role;
 - `POST /auth/login` — verifies Argon2id credentials and issues an opaque session;
 - `GET /auth/session` — resolves the current user, role, and workspace;
 - `POST /auth/logout` — CSRF-protected immediate session revocation;
+- `GET/PATCH /settings/business` — operator-owned workspace/profile settings;
+- `GET/POST /settings/locations` plus item `PATCH/DELETE` — saved locations;
+- `GET/POST /services` plus item `GET/PATCH/DELETE` — operator service management;
+- `GET /notifications` and `POST /notifications/mark-all-read` — structured, user-
+  targeted operator notifications and read acknowledgement;
 - `/openapi.json` and `/docs` — the future generated-transport contract.
 
 Every response receives a generated `X-Request-ID`. HTTP, validation, application, and
@@ -233,18 +271,24 @@ restricted to configured exact origins; wildcard origins are rejected by configu
 SQLAlchemy uses an async engine/session factory. Alembic connects separately as
 `slotera_owner`; the API uses `slotera_app`, which has data-operation defaults but cannot
 create tables. The first domain revision adds users, opaque auth sessions, password-reset
-tokens, workspaces, memberships, slug history/reservations, and append-only audit events.
+tokens, workspaces, memberships, slug history/reservations, append-only audit events,
+business profiles, saved locations, and services.
+The notification revision adds membership-backed recipients, structured event payloads,
+and a separate principal transaction context for workspace-and-user RLS.
 Only SHA-256 session/CSRF token digests are stored. The local seed gives Lena and Avery an
 Argon2id hash for `slotera-local-only`; the seed command is disabled in production.
 
 Tenant transactions call PostgreSQL `set_config(..., true)` on the same connection and
 transaction that performs the query. Forced RLS applies to workspaces, memberships, slug
-history, and audit events; unscoped tenant reads return no rows and cross-workspace writes
-fail. The runtime role has no direct privileges on users, auth sessions, or reset tokens.
+history, audit events, business profiles, locations, and services; repositories also
+scope resource queries explicitly. Unscoped tenant reads return no rows and cross-
+workspace writes fail. The runtime role has no direct privileges on users, auth sessions,
+or reset tokens.
 Four fixed-search-path `SECURITY DEFINER` functions expose only login lookup, session
 creation, session lookup, and revocation to that role.
 The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used host
-`5432` port. `uv run slotera-seed` imports the Hartmann workspace, operator, platform
+`5432` port. `uv run slotera-seed` imports the Hartmann workspace, operator, business
+profile, two locations, five EUR-derived services, four notifications, platform
 superadmin, audit event, and reserved slugs idempotently through the owner connection.
 
 ### Auth and session
@@ -255,10 +299,16 @@ host-only, HttpOnly, and SameSite=Lax. The readable CSRF cookie must match both 
 `X-CSRF-Token` header and the digest bound to that session. Unsafe authenticated requests
 also require an exact configured `Origin`. Production marks both cookies Secure and
 requires an explicit shared sibling-domain CSRF cookie. Reusable FastAPI dependencies
-provide authenticated and CSRF-protected request contexts to future resource routers.
+provide authenticated, CSRF-protected, and operator-workspace request contexts. Operator
+mutations emit audit events in the same transaction as their resource change.
+Notification queries additionally derive the recipient from the verified session and set
+both workspace and user database context. The runtime role can select notifications and
+update only `read_at`; it cannot insert/delete rows or rewrite structured payloads.
 
-The frontend is deliberately not connected yet. Its mock `auth.service.ts` writes a fabricated token to
-`localStorage`; `web/src/lib/session.ts` is the **only** module that touches the
+In mock mode, `auth.service.ts` writes a fabricated token to `localStorage`. In API mode,
+it exchanges credentials for server cookies, restores the verified session from
+`GET /auth/session`, and sends the readable CSRF cookie through the shared client on
+logout. `web/src/lib/session.ts` remains the **only** module that touches the
 `slotera.session` and `slotera.onboarding` keys. `AuthGuard`
 (`web/src/components/layout/AuthGuard.tsx`) takes an optional `requireRole` and redirects to
 `/login?next=…` when there is no session, or to `homePathForRole(session.role)` on a role
@@ -433,6 +483,17 @@ Present tense — what exists in the working tree today.
   HTTP contracts and negative security paths;
   opt-in integration tests exercise live readiness, privileges, tenant isolation, RLS
   coverage, append-only audit events, and seed idempotency.
+- Operator business-profile, saved-location, and service CRUD. Service currency is
+  inherited from the workspace, inputs cannot override it, and service notes are exposed
+  only on authenticated operator endpoints. Resource queries are application-scoped and
+  backed by forced PostgreSQL RLS.
+- Structured operator notifications with a typed event/payload response, aggregate unread
+  count, and CSRF-protected mark-all-read command. Both repository predicates and forced
+  PostgreSQL RLS isolate workspace and recipient; no email or event producers exist yet.
+- Generated OpenAPI transport types and a shared credentialed HTTP client back an opt-in
+  local operator UI for auth, services, business settings/locations, and notifications.
+  API-mode navigation deliberately excludes routes whose related resources are still mock-
+  only, and the public/Vercel experience continues to default to mock mode.
 
 **Mock data set** — 5 services, 4 form templates, 2 packages, 8 clients, 11 bookings,
 10 sessions, 3 client notes, 9 session action items, 8 platform workspaces, 6 inquiries,
@@ -502,3 +563,34 @@ a downgrade/upgrade round trip. Live tests cover operator and superadmin session
 token non-persistence, revocation, expiry, generic credential failures, RLS/privileges,
 and repeatable password seeding. No frontend files changed, so frontend checks were not
 rerun.
+
+Later on 2026-07-28, the first operator resources landed. Business settings, saved
+locations, and services now persist through authenticated resource-shaped APIs under
+forced RLS, CSRF-protected mutations, and append-only audit events. Isolated pytest
+reports 25 passed and PostgreSQL integration pytest reports 18 passed; Ruff and strict
+mypy are clean, and Alembic is at `20260728_0004` with no model drift. No frontend files
+changed, so frontend checks were not rerun.
+
+The root `./scripts/dev` workflow was then exercised end to end on 2026-07-28. Its
+preparation mode synchronized both dependency sets, waited for the real Compose database,
+reported Alembic `20260728_0004 (head)`, and confirmed a zero-change repeat seed. Default
+mode started both development servers; `/`, `/docs`, and `/health/ready` returned 200,
+with readiness reporting PostgreSQL `ok`. Ctrl-C stopped both application processes with
+status 130 and left PostgreSQL running as designed.
+
+The notification baseline followed on 2026-07-28. `GET /notifications` and the CSRF-
+protected mark-all-read command use structured payloads, membership-backed recipients,
+and workspace-plus-user RLS. The runtime role has column-level update permission only for
+`read_at`. Isolated pytest reports 26 passed and PostgreSQL integration pytest reports 20
+passed; Ruff and strict mypy are clean, and Alembic is at `20260728_0005` with no model
+drift. No frontend files changed, so frontend checks were not rerun.
+
+The first frontend/API bundle followed on 2026-07-28. `npm run generate:api` now exports
+the FastAPI contract and regenerates TypeScript DTOs; a shared browser client owns cookies,
+CSRF, no-store requests, and structured errors. Local `--api` mode wires operator auth,
+services, business settings/locations, and notifications while mock remains the default.
+Frontend type-check and lint pass; backend isolated pytest reports 26 passed, PostgreSQL
+integration pytest reports 20 passed, and Ruff/strict mypy are clean. Live cookie login,
+session restore, all wired reads, CSRF rejection, and CSRF-protected logout were exercised.
+The pre-existing listeners on ports 8000/3344 prevented starting a second API-mode UI
+process, so the affected API-mode pages were not browser-walked in that run.

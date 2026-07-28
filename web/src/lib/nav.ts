@@ -1,5 +1,6 @@
 import type { IconName } from "@/components/ui/Icon";
 import type { UserRole } from "@/types/auth";
+import { dataSource } from "@/lib/env";
 
 export type NavItem = {
   id: string;
@@ -19,6 +20,10 @@ export const OPERATOR_NAV: NavItem[] = [
   { id: "settings",  label: "Settings",  icon: "cog",       href: "/admin/settings" },
 ];
 
+export const API_OPERATOR_NAV: NavItem[] = OPERATOR_NAV.filter((item) =>
+  ["services", "settings"].includes(item.id),
+);
+
 export const SUPERADMIN_NAV: NavItem[] = [
   { id: "overview",      label: "Overview",      icon: "grid",     href: "/superadmin/overview" },
   { id: "workspaces",    label: "Workspaces",    icon: "building", href: "/superadmin/workspaces" },
@@ -28,11 +33,13 @@ export const SUPERADMIN_NAV: NavItem[] = [
 ];
 
 export function navForRole(role: UserRole): NavItem[] {
-  return role === "superadmin" ? SUPERADMIN_NAV : OPERATOR_NAV;
+  if (role === "superadmin") return SUPERADMIN_NAV;
+  return dataSource === "api" ? API_OPERATOR_NAV : OPERATOR_NAV;
 }
 
 export function homePathForRole(role: UserRole): string {
-  return role === "superadmin" ? "/superadmin/overview" : "/admin/dashboard";
+  if (role === "superadmin") return "/superadmin/overview";
+  return dataSource === "api" ? "/admin/services" : "/admin/dashboard";
 }
 
 export function eyebrowForRole(role: UserRole): string {

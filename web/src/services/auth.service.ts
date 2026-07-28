@@ -1,6 +1,8 @@
 "use client";
 
 import authJson from "@/data/mock/auth.json";
+import { apiRequest } from "@/api/client";
+import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import {
@@ -11,7 +13,10 @@ import {
   writeSession,
 } from "@/lib/session";
 import type { OnboardingState, Operator, Session, UserRole } from "@/types/auth";
-import { NotImplementedError } from "./_errors";
+import { ApiRequestError, NotImplementedError } from "./_errors";
+
+type LoginRequestDto = components["schemas"]["LoginRequest"];
+type SessionResponseDto = components["schemas"]["SessionResponse"];
 
 const SEED_OPERATOR = authJson.operator as Operator;
 const SEED_SUPERADMIN = authJson.superadmin as Operator;
@@ -36,6 +41,22 @@ function initialsFor(firstNames: string, lastName: string): string {
   const first = firstNames.trim().split(/\s+/)[0]?.[0] ?? "";
   const last = lastName.trim()[0] ?? "";
   return `${first}${last}`.toUpperCase() || "OP";
+}
+
+function mapApiSession(response: SessionResponseDto): Session {
+  const { user, workspace } = response;
+  const operator: Operator = {
+    id: user.id,
+    title: user.title ?? undefined,
+    firstNames: user.firstNames,
+    lastName: user.lastName,
+    name: user.name,
+    email: user.email,
+    workspaceName: workspace?.name ?? "Slotera HQ",
+    avatarInitials: initialsFor(user.firstNames, user.lastName),
+    role: user.role,
+  };
+  return { operator, role: user.role };
 }
 
 function resolveSeedForEmail(email: string): {
@@ -76,8 +97,25 @@ function resolveSeedForEmail(email: string): {
   };
 }
 
-export async function login(email: string, _password: string): Promise<Session> {
-  if (dataSource !== "mock") throw new NotImplementedError("login");
+export async function login(
+  email: string,
+  password: string,
+  rememberMe = false,
+): Promise<Session> {
+  if (dataSource === "api") {
+    const payload: LoginRequestDto = {
+      email: email.trim().toLowerCase(),
+      password,
+      rememberMe,
+    };
+    const response = await apiRequest<SessionResponseDto, LoginRequestDto>(
+      "/auth/login",
+      { method: "POST", body: payload },
+    );
+    const session = mapApiSession(response);
+    writeSession(session);
+    return session;
+  }
   await sleep(220);
   const normalized = email.trim().toLowerCase();
   if (normalized === "wrong@example.com") {
@@ -129,8 +167,32 @@ export async function register(input: {
 }
 
 export async function logout(): Promise<void> {
+  if (dataSource === "api") {
+    try {
+      await apiRequest<void>("/auth/logout", { method: "POST", csrf: true });
+    } finally {
+      clearSession();
+    }
+    return;
+  }
   await sleep(60);
   clearSession();
+}
+
+export async function restoreSession(): Promise<Session | null> {
+  if (dataSource === "mock") return currentSession();
+  try {
+    const response = await apiRequest<SessionResponseDto>("/auth/session");
+    const session = mapApiSession(response);
+    writeSession(session);
+    return session;
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 401) {
+      clearSession();
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function requestPasswordReset(_email: string): Promise<void> {

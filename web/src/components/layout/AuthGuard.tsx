@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { currentSession } from "@/services/auth.service";
+import { restoreSession } from "@/services/auth.service";
 import { homePathForRole } from "@/lib/nav";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { UserRole } from "@/types/auth";
+import { dataSource } from "@/lib/env";
 
 type Props = {
   children: React.ReactNode;
@@ -19,17 +20,38 @@ export function AuthGuard({ children, requireRole }: Props) {
   const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
-    const session = currentSession();
-    if (!session) {
-      const next = encodeURIComponent(pathname || "/admin/dashboard");
-      router.replace(`/login?next=${next}`);
-      return;
-    }
-    if (requireRole && session.role !== requireRole) {
-      router.replace(homePathForRole(session.role));
-      return;
-    }
-    setReady(true);
+    let cancelled = false;
+    restoreSession()
+      .then((session) => {
+        if (cancelled) return;
+        if (!session) {
+          const next = encodeURIComponent(pathname || "/admin/dashboard");
+          router.replace(`/login?next=${next}`);
+          return;
+        }
+        if (requireRole && session.role !== requireRole) {
+          router.replace(homePathForRole(session.role));
+          return;
+        }
+        if (
+          dataSource === "api" &&
+          requireRole === "operator_admin" &&
+          pathname !== "/admin/services" &&
+          !pathname.startsWith("/admin/services/") &&
+          pathname !== "/admin/settings" &&
+          !pathname.startsWith("/admin/settings/")
+        ) {
+          router.replace(homePathForRole("operator_admin"));
+          return;
+        }
+        setReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) router.replace("/login");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [router, pathname, requireRole]);
 
   if (!ready) {

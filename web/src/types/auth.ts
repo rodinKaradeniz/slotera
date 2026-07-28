@@ -9,12 +9,13 @@ export type Operator = {
   email: string;
   workspaceName: string;
   avatarInitials: string;
-  createdAtISO: string;
+  createdAtISO?: string;
   role?: UserRole;
 };
 
 export type Session = {
-  token: string;
+  /** Present only for the mock data source; API auth is carried by an HttpOnly cookie. */
+  token?: string;
   operator: Operator;
   role: UserRole;
 };

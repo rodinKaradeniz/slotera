@@ -10,10 +10,13 @@ import { cn } from "@/lib/cn";
 export function NotificationsButton() {
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState<Notification[]>([]);
+  const [error, setError] = React.useState<string | null>(null);
   const ref = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    listNotifications().then(setItems);
+    listNotifications().then(setItems).catch((cause) => {
+      setError(cause instanceof Error ? cause.message : "Notifications could not be loaded.");
+    });
   }, []);
 
   React.useEffect(() => {
@@ -28,8 +31,13 @@ export function NotificationsButton() {
   const unread = items.filter((n) => n.unread).length;
 
   const handleMarkAll = async () => {
-    await markAllRead();
-    setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
+    try {
+      await markAllRead();
+      setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Notifications could not be updated.");
+    }
   };
 
   return (
@@ -62,7 +70,9 @@ export function NotificationsButton() {
             )}
           </div>
           <div className="max-h-96 overflow-y-auto">
-            {items.length === 0 ? (
+            {error ? (
+              <div className="p-6 text-small text-center text-danger">{error}</div>
+            ) : items.length === 0 ? (
               <div className="p-6 text-small text-center">No notifications.</div>
             ) : (
               items.map((n) => (

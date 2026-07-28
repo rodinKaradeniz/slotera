@@ -18,6 +18,7 @@ import {
   removeService,
 } from "@/services/services.service";
 import type { Service } from "@/types/service";
+import { dataSource } from "@/lib/env";
 
 export type ServiceDrawerProps = {
   open: boolean;
@@ -32,7 +33,7 @@ const DEFAULTS: ServiceFormValue = {
   description: "",
   durationMin: 60,
   priceCents: 12000,
-  currency: "GBP",
+  currency: dataSource === "api" ? "EUR" : "GBP",
   capacity: 1,
   locationType: "online",
   location: "Zoom · link sent on confirmation",

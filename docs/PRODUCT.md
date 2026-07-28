@@ -19,7 +19,7 @@ Companion documents cover the other lanes:
 
 ## Product
 
-Slotera is a paid booking and session-management product for **individual** service providers (consultants, coaches, instructors, workshop hosts). The current product experience is a mock-backed Next.js prototype intended for portfolio/client demos — not production. A separate local-only backend foundation now exists, but it has no product endpoints and does not change that demo boundary.
+Slotera is a paid booking and session-management product for **individual** service providers (consultants, coaches, instructors, workshop hosts). The default/public product experience is a mock-backed Next.js prototype intended for portfolio/client demos — not production. An opt-in local API mode now connects the first operator bundle to the local backend without changing that deployment boundary.
 
 ### Positioning / first ICP (important)
 
@@ -34,16 +34,16 @@ Slotera's **first ICP is independent consultants, coaches, instructors, and smal
 
 ### Phase scope (important)
 
-**Phase 1 — current frontend/demo.** Next.js + TypeScript + Tailwind + mock JSON only. No
-real auth, Stripe, email provider, or Google Calendar/Meet reaches the frontend. Local
-component state is fine; persistence across reload is not a requirement. The Phase 2
-backend foundation runs separately and does not make a frontend flow "real" by its mere
-presence.
+**Phase 1 — default frontend/demo.** Next.js + TypeScript + Tailwind + mock JSON only. No
+real auth, Stripe, email provider, or Google Calendar/Meet reaches the public/Vercel
+environment. Local component state is fine; persistence across reload is not a
+requirement. Phase 2's explicit local `api` mode is separate from this demo contract.
 
 **Phase 2 — underway, local-only first.** Build a Python/FastAPI modular monolith with
 PostgreSQL, SQLAlchemy, Alembic, and Docker Compose under `server/`. The infrastructure
-foundation, identity/tenancy persistence, and the backend auth/session boundary exist;
-business settings and services are the next resources in the first coherent API bundle.
+foundation, identity/tenancy persistence, backend auth/session, business settings, saved
+locations, services, the structured notification baseline, generated OpenAPI transport
+types, and the first coherent operator frontend wiring exist.
 The
 public portfolio/demo deployment stays mock-backed; the API is developed and exercised in
 a separate local/API environment. Real public bookings include durable transactional
@@ -95,7 +95,8 @@ No test runner is configured.
 
 ### Data layer — mock vs api switch
 
-Every service in `web/src/services/*.service.ts` follows the same pattern:
+Every service in `web/src/services/*.service.ts` keeps mock and API behavior behind one
+component-facing contract. An unwired API branch follows this explicit pattern:
 
 ```ts
 if (dataSource !== "mock") throw new NotImplementedError("methodName");
@@ -103,13 +104,18 @@ await sleep(N);                 // simulated latency
 return ...                      // returns from / mutates an in-memory copy of web/src/data/mock/*.json
 ```
 
-`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). When the Phase 2 API exists, each service method needs an `else` branch that calls `apiBaseUrl`. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
+`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The first API bundle implements auth/session, business settings, saved locations, services, and notifications through `web/src/api/client.ts`; every other API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
 
 `getDashboard()` is the only service that composes from other services live: it imports `listBookings()` and `listSessions()` to compute the "Record attendance for N sessions" pending action and prepend it to the seeded `pendingActions`. Other services should stay self-contained unless they need similar live-derived state.
 
 ### Auth and session
 
-There is no real auth. `web/src/services/auth.service.ts` writes a fake token to `localStorage` under `slotera.session`; `web/src/lib/session.ts` is the only place that touches that key. `AuthGuard` (`web/src/components/layout/AuthGuard.tsx`) accepts an optional `requireRole` prop and:
+Mock mode writes a fake token to `localStorage` under `slotera.session`. Local API mode
+uses the backend's HttpOnly session cookie, restores the verified session through
+`GET /auth/session`, and sends the readable CSRF cookie on unsafe requests.
+`web/src/lib/session.ts` remains the only place that touches the local UI snapshot key.
+`AuthGuard` (`web/src/components/layout/AuthGuard.tsx`) accepts an optional `requireRole`
+prop and:
 - redirects to `/login?next=...` when no session,
 - redirects to `homePathForRole(session.role)` when the role mismatches (so an operator hitting `/superadmin/*` lands back on `/admin/dashboard`).
 
@@ -168,7 +174,9 @@ The visual target is the Claude Design handoff (warm cream paper, deep forest gr
 
 - Path alias `@/*` → `web/src/*`.
 - `"use client"` is the default for anything that imports services or session; the only server components are static admin/auth/public layouts and the landing page.
-- Errors thrown by services are either `NotImplementedError` (api branch not built) or `NotFoundError` (`web/src/services/_errors.ts`); components generally surface `error.message` directly, usually via `toast.error("...", { description: err.message })`.
+- Service errors are `NotImplementedError` (API branch not built), `NotFoundError` (mock
+  resource missing), or `ApiRequestError` (status/code/request id/details from the backend
+  envelope); components generally surface `error.message`, usually through a toast.
 - The eslint config disables `react-hooks/set-state-in-effect` project-wide — mount-once data fetches and SSR-portal mount flags both legitimately setState in effects here.
 - Status badge / payment-status mappings live in `web/src/lib/status-maps.ts` — extend that file rather than re-deriving colors per page.
 

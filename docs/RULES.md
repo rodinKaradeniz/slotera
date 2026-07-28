@@ -74,10 +74,10 @@ adds 4. Planning adds 5.
    - no negative margins, no absolute positioning for layout, no fixed heights that can
      overlap.
 
-5. **Keep the mock/api switch intact.** Every new service method follows the shape:
-   `if (dataSource !== "mock") throw new NotImplementedError("methodName")`, then
-   `await sleep(N)`, then operate on the module-level copy. That guard is the Phase 2
-   migration seam — a method without it becomes an invisible gap later.
+5. **Keep the mock/api switch intact.** Every new service method must implement its mock
+   path and either map through the shared API client/generated transport DTOs or throw
+   `NotImplementedError` explicitly in API mode. Never fall back automatically from API
+   to mock. That explicit branch is the Phase 2 migration seam.
 
 6. **Preserve single-sourced relationships.** Form↔service lives on
    `FormTemplate.attachedServiceIds`; package↔service on `ServicePackage.items[].serviceId`.
@@ -174,11 +174,11 @@ adds 4. Planning adds 5.
    an inquiry status enum; shared resources or client-facing next steps on the booking
    workspace; a redirect-only `page.tsx`; markdown-marker note editing.
 
-9. **Don't let Phase 2 work silently change the Phase 1 demo.** The backend is developed
-   separately under `server/`; no frontend API calls, real auth, Stripe, email provider,
-   or calendar integration enter the mock-backed demo unless a coherent migration bundle
-   is explicitly requested. Representing a future capability in the UI (a reminder line,
-   a placeholder link) remains the established Phase 1 pattern.
+9. **Don't let Phase 2 work silently change the Phase 1 demo.** The default and Vercel
+   frontend remain mock-backed. API calls and real auth enter only opt-in API mode in
+   coherent route bundles; Stripe, email, and calendar integrations remain separate future
+   work. Representing a future capability in the UI (a reminder line, a placeholder link)
+   remains the established Phase 1 pattern.
 
 10. **Don't expose internal data to client-facing surfaces.** Service notes, session notes,
     client notes, and session action items are operator-only. The public booking flow and

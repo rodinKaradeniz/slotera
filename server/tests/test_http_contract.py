@@ -79,3 +79,17 @@ async def test_openapi_exposes_stable_health_operation_ids() -> None:
         == "getCurrentSession"
     )
     assert document["paths"]["/auth/logout"]["post"]["operationId"] == "logout"
+    assert (
+        document["paths"]["/settings/business"]["get"]["operationId"]
+        == "getBusinessSettings"
+    )
+    assert document["paths"]["/services"]["get"]["operationId"] == "listServices"
+    assert document["paths"]["/services"]["post"]["operationId"] == "createService"
+    assert (
+        document["paths"]["/notifications"]["get"]["operationId"]
+        == "listNotifications"
+    )
+    assert (
+        document["paths"]["/notifications/mark-all-read"]["post"]["operationId"]
+        == "markAllNotificationsRead"
+    )

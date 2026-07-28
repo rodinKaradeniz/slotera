@@ -16,10 +16,17 @@ import type { Service } from "@/types/service";
 export function ServicesView() {
   const { openServiceDrawer } = useDrawers();
   const [services, setServices] = React.useState<Service[] | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
   const [reload, setReload] = React.useState(0);
 
   React.useEffect(() => {
-    listServices().then(setServices);
+    setError(null);
+    listServices()
+      .then(setServices)
+      .catch((cause) => {
+        setError(cause instanceof Error ? cause.message : "Services could not be loaded.");
+        setServices([]);
+      });
   }, [reload]);
 
   const refresh = () => setReload((k) => k + 1);
@@ -49,7 +56,11 @@ export function ServicesView() {
         }
       />
 
-      {!services ? (
+      {error ? (
+        <Card padded>
+          <p className="text-small text-danger">{error}</p>
+        </Card>
+      ) : !services ? (
         <LoadingRows count={4} />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -11,6 +11,10 @@ def test_every_declared_tenant_table_carries_workspace_identity() -> None:
         "workspace_memberships",
         "workspace_slug_history",
         "workspaces",
+        "workspace_business_profiles",
+        "workspace_locations",
+        "services",
+        "notifications",
     } == TENANT_TABLES
     assert tables.keys() >= TENANT_TABLES
     for table_name in TENANT_TABLES - {"workspaces"}:

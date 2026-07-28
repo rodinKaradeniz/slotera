@@ -11,16 +11,22 @@ import { Icon } from "@/components/ui/Icon";
 import { login } from "@/services/auth.service";
 import { homePathForRole } from "@/lib/nav";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { dataSource } from "@/lib/env";
 
 function LoginForm() {
   const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const nextParam = params?.get("next");
-  const next = nextParam ? decodeURIComponent(nextParam) : null;
+  const next =
+    nextParam?.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : null;
 
   const [email, setEmail] = React.useState("hello@slotera.app");
-  const [password, setPassword] = React.useState("•••••••••");
+  const [password, setPassword] = React.useState(
+    dataSource === "api" ? "slotera-local-only" : "•••••••••",
+  );
   const [remember, setRemember] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -30,7 +36,7 @@ function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      const session = await login(email, password);
+      const session = await login(email, password, remember);
       router.push(next ?? homePathForRole(session.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
@@ -90,10 +96,16 @@ function LoginForm() {
       <Button type="submit" loading={loading} size="lg" iconRight="arrow-right">
         {t("auth.login.submit")}
       </Button>
-      <p className="text-micro text-center">
-        Demo: any password works. Use <code>admin@slotera.app</code> to enter
-        the superadmin area, or <code>wrong@example.com</code> to see an error.
-      </p>
+      {dataSource === "mock" ? (
+        <p className="text-micro text-center">
+          Demo: any password works. Use <code>admin@slotera.app</code> to enter
+          the superadmin area, or <code>wrong@example.com</code> to see an error.
+        </p>
+      ) : (
+        <p className="text-micro text-center">
+          Local seed: <code>hello@slotera.app</code> / <code>slotera-local-only</code>
+        </p>
+      )}
     </form>
   );
 }

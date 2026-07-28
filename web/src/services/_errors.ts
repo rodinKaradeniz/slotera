@@ -11,3 +11,22 @@ export class NotFoundError extends Error {
     this.name = "NotFoundError";
   }
 }
+
+export type ApiErrorDetail = {
+  location: (string | number)[];
+  message: string;
+  type: string;
+};
+
+export class ApiRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    message: string,
+    public readonly requestId?: string,
+    public readonly details?: ApiErrorDetail[],
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}

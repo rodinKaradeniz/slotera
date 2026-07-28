@@ -2,11 +2,13 @@ from dataclasses import dataclass
 from hmac import compare_digest
 from http import HTTPStatus
 from typing import Annotated, cast
+from uuid import UUID
 
 from fastapi import Depends, Request
 
 from slotera_api.auth.service import AuthServiceProtocol, AuthSession
 from slotera_api.config import Settings
+from slotera_api.database import Database
 from slotera_api.errors import ApiError
 
 
@@ -14,6 +16,16 @@ from slotera_api.errors import ApiError
 class AuthenticatedRequest:
     session_token: str
     session: AuthSession
+
+
+@dataclass(frozen=True)
+class OperatorWorkspaceRequest:
+    authenticated: AuthenticatedRequest
+    workspace_id: UUID
+
+    @property
+    def user_id(self) -> UUID:
+        return self.authenticated.session.user_id
 
 
 def get_auth_service(request: Request) -> AuthServiceProtocol:
@@ -24,8 +36,13 @@ def get_settings(request: Request) -> Settings:
     return cast(Settings, request.app.state.settings)
 
 
+def get_database(request: Request) -> Database:
+    return cast(Database, request.app.state.database)
+
+
 AuthServiceDependency = Annotated[AuthServiceProtocol, Depends(get_auth_service)]
 SettingsDependency = Annotated[Settings, Depends(get_settings)]
+DatabaseDependency = Annotated[Database, Depends(get_database)]
 
 
 def require_trusted_origin(request: Request, settings: Settings) -> None:
@@ -89,4 +106,38 @@ async def require_csrf_protected_request(
 
 CsrfProtectedRequestDependency = Annotated[
     AuthenticatedRequest, Depends(require_csrf_protected_request)
+]
+
+
+def _operator_workspace(authenticated: AuthenticatedRequest) -> OperatorWorkspaceRequest:
+    session = authenticated.session
+    if session.role != "operator_admin" or session.workspace_id is None:
+        raise ApiError(
+            status_code=HTTPStatus.FORBIDDEN,
+            code="operator_workspace_required",
+            message="An operator workspace is required",
+        )
+    return OperatorWorkspaceRequest(
+        authenticated=authenticated,
+        workspace_id=session.workspace_id,
+    )
+
+
+async def require_operator_workspace(
+    authenticated: AuthenticatedRequestDependency,
+) -> OperatorWorkspaceRequest:
+    return _operator_workspace(authenticated)
+
+
+async def require_csrf_operator_workspace(
+    authenticated: CsrfProtectedRequestDependency,
+) -> OperatorWorkspaceRequest:
+    return _operator_workspace(authenticated)
+
+
+OperatorWorkspaceDependency = Annotated[
+    OperatorWorkspaceRequest, Depends(require_operator_workspace)
+]
+CsrfOperatorWorkspaceDependency = Annotated[
+    OperatorWorkspaceRequest, Depends(require_csrf_operator_workspace)
 ]

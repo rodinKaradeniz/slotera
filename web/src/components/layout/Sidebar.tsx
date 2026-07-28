@@ -10,6 +10,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { logout } from "@/services/auth.service";
 import { cn } from "@/lib/cn";
 import type { NavItem } from "@/lib/nav";
+import { dataSource } from "@/lib/env";
 
 type Props = {
   collapsed: boolean;
@@ -47,7 +48,7 @@ export function Sidebar({
   }, [menuOpen]);
 
   const handleLogout = async () => {
-    await logout();
+    await logout().catch(() => undefined);
     router.replace("/login");
   };
 
@@ -134,24 +135,28 @@ export function Sidebar({
               collapsed && "left-2 right-auto w-44",
             )}
           >
-            <Link
-              href="/booking"
-              target="_blank"
-              className="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2"
-              onClick={() => setMenuOpen(false)}
-            >
-              <Icon name="eye" size={14} /> View page
-            </Link>
-            <button
-              type="button"
-              className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2 text-left"
-              onClick={() => {
-                setMenuOpen(false);
-                setReportOpen(true);
-              }}
-            >
-              <Icon name="alert" size={14} /> Report a problem
-            </button>
+            {dataSource === "mock" && (
+              <>
+                <Link
+                  href="/booking"
+                  target="_blank"
+                  className="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Icon name="eye" size={14} /> View page
+                </Link>
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2 text-left"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setReportOpen(true);
+                  }}
+                >
+                  <Icon name="alert" size={14} /> Report a problem
+                </button>
+              </>
+            )}
             <button
               type="button"
               className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2 text-left text-danger"

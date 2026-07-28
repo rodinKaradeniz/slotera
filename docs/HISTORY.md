@@ -659,6 +659,114 @@ transport types, and frontend wiring are not included. Shared login throttling a
 cleanup are production-gate work; an in-process limiter was rejected because it resets on
 deploy and diverges across workers.
 
+### Entry 025 — Operator settings and services stay resource-shaped and tenant-owned
+
+*2026-07-28.* The first authenticated operator domain slice adds business-profile
+settings, structured saved locations, and services. The API mirrors durable resources:
+`/settings/business`, `/settings/locations`, and `/services`; it does not expose one
+page-shaped settings payload. The frontend can later compose those resources into its
+existing `SettingsData` view without making that screen layout an API contract.
+
+**Workspace currency is the single source of truth.** A service row has no currency
+column. Authenticated service responses derive EUR from the owning workspace, and strict
+request schemas reject a client-supplied currency. This prevents internally inconsistent
+aggregates while leaving bookings and payments free to snapshot currency when they land.
+Workspace slug and currency are intentionally read-only in the business-settings API.
+
+**Tenant isolation is layered.** Operator dependencies require an authenticated
+`operator_admin` with a workspace; a superadmin does not gain implicit tenant access.
+Repositories scope every query by workspace and execute through a tenant transaction,
+while PostgreSQL forces RLS on profiles, locations, and services. Mutations additionally
+require the session-bound CSRF token and exact Origin, and write an append-only audit event
+inside the same transaction. Cross-workspace ids resolve as not found, avoiding resource
+enumeration.
+
+Saved locations are normalized because they are independently managed and reused.
+Service default addresses remain JSONB because they are value snapshots attached to one
+service, not shared ownership links; normalize them only if address-field querying or
+shared lifecycle becomes a demonstrated requirement. Service deletion is a hard delete
+for this pre-booking slice. Future booking/package foreign keys must restrict deletion or
+promote archival once services can have history.
+
+There is deliberately no public service catalog here, so operator-only service notes
+cannot leak through a reused response. The seed imports the current five-service demo but
+derives their response currency from the EUR workspace even though the disconnected Phase
+1 mock frontend still displays GBP. Notification baseline, generated OpenAPI transport
+types, and coherent frontend wiring remain before any API-mode cutover.
+
+### Entry 026 — Local startup is one idempotent root command
+
+*2026-07-28.* `./scripts/dev` is the canonical full-stack local entry point. It checks
+Docker/uv/npm, creates missing untracked env files from the committed examples, syncs both
+dependency sets, starts PostgreSQL with Compose health waiting, advances Alembic to head,
+imports the idempotent demo seed, and runs the FastAPI and Next.js development servers.
+The preparation steps intentionally run on every start: each is idempotent, and this
+prevents a branch switch from leaving dependencies or schema silently stale.
+
+Alembic's own `alembic_version` table remains the migration ledger; a second Slotera-
+specific table was rejected because it would duplicate framework state and could drift.
+`--prepare-only` exposes the same setup path without long-running application processes,
+which is useful for verification and database preparation rather than a second workflow.
+
+The script owns only the two application processes it launches. Ctrl-C stops them and
+returns status 130, while PostgreSQL deliberately remains running and its named volume is
+never removed. This keeps subsequent starts fast and avoids making a development-stop
+command destructive. Docker lifecycle beyond starting the `db` service remains explicit.
+
+### Entry 027 — Notifications store events, not rendered UI copy
+
+*2026-07-28.* The operator notification baseline adds `GET /notifications` and
+`POST /notifications/mark-all-read`. Notifications persist a stable event kind, a typed
+JSON payload, optional resource reference, occurrence time, and nullable read time. They
+do not store icon, tone, title, detail, relative-age text, or a redundant unread boolean.
+Those values depend on client presentation, locale, and the current clock; generated
+transport adapters will map structured events into the existing frontend display model.
+
+**A notification belongs to both a workspace and one recipient.** The database requires
+the `(workspace_id, recipient_user_id)` pair to exist as a workspace membership. Requests
+derive both values from the verified session, repositories predicate on both, and a
+principal transaction sets both values for forced RLS. This adds defense against accidental
+same-workspace disclosure rather than treating workspace isolation as sufficient for
+personal notifications.
+
+**Acknowledgement is a narrow database capability.** The runtime role receives `SELECT`
+and column-level `UPDATE(read_at)` only. It has no insert/delete permission and cannot
+rewrite the kind, payload, recipient, or resource reference. Notification creation stays
+with future booking/session/payment domain transactions; no generic operator-facing
+create endpoint or premature producer abstraction was added. Mark-all-read is not written
+to the audit log because it is low-value UI acknowledgement rather than a business record.
+
+The list response includes a total unread count independent of its 50-item default/100-
+item maximum window. Individual read/unread mutation was rejected for now because the
+current UI exposes only mark-all-read; add it when a real interaction requires it. Four
+deterministic structured events seed the contract until their actual domain producers
+land. This baseline is in-app state only and has no relationship to transactional email,
+outbox processing, or scheduled reminders.
+
+### Entry 028 — The first API cutover is an opt-in operator island
+
+*2026-07-28.* FastAPI's OpenAPI document now generates committed TypeScript transport
+types under `web/src/api/generated/`. A small local HTTP client owns credentialed fetch,
+no-store semantics, the readable-cookie CSRF header, and the structured backend error
+envelope. Service adapters map those DTOs into the established component-facing types;
+generated transport shapes do not escape into components.
+
+The opt-in `./scripts/dev --api` environment wires cookie login/session restoration and
+logout, operator services, business settings, saved locations, and structured
+notifications. The default command and Vercel environment remain mock-backed. API-mode
+operator navigation exposes only Services and Business Settings, sends operators there
+after login, disables the mock-derived command palette, hides mock-only account actions,
+and redirects direct visits to other operator routes. The public booking resolver also
+fails explicitly in API mode so an authenticated operator response—including private
+service notes—can never be repurposed as a public catalog.
+
+**Alternative rejected:** composing real settings/services with mocked dashboard,
+bookings, forms, packages, or public-booking relationships. It would make the UI look more
+complete but silently combine UUIDs and server persistence with incompatible fixture ids.
+Maintainability and the operator/client data boundary outweighed route count. The island
+expands when scheduling and operator-core resources land as their next coherent bundle;
+until then, unimplemented services continue to throw rather than fall back.
+
 ---
 
 ## Thematic sections

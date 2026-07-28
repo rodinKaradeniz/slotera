@@ -8,7 +8,8 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { AddressPicker } from "./AddressPicker";
 import { AttachedFormsField } from "./AttachedFormsField";
-import { getSettings } from "@/services/settings.service";
+import { listWorkspaceLocations } from "@/services/settings.service";
+import { dataSource } from "@/lib/env";
 import type { Service } from "@/types/service";
 import type { Currency, LocationType } from "@/types/common";
 import type { WorkspaceLocation } from "@/types/address";
@@ -45,7 +46,10 @@ export function ServiceForm({
   );
 
   React.useEffect(() => {
-    getSettings().then((s) => setSavedLocations(s.business.locations ?? []));
+    listWorkspaceLocations().then(setSavedLocations).catch((error) => {
+      console.error("saved_locations_load_failed", error);
+      setSavedLocations([]);
+    });
   }, []);
 
   return (
@@ -95,10 +99,11 @@ export function ServiceForm({
         <Field label="Currency">
           <Select
             value={value.currency}
+            disabled={dataSource === "api"}
             onChange={(e) =>
               onChange({ ...value, currency: e.target.value as Currency })
             }
-            options={["EUR", "USD", "GBP"]}
+            options={dataSource === "api" ? ["EUR"] : ["EUR", "USD", "GBP"]}
           />
         </Field>
       </div>
@@ -175,7 +180,9 @@ export function ServiceForm({
         />
       </Field>
 
-      <AttachedFormsField serviceId={serviceId} disabled={disabled} />
+      {dataSource === "mock" && (
+        <AttachedFormsField serviceId={serviceId} disabled={disabled} />
+      )}
 
       {showActiveToggle && (
         <div className="flex items-center justify-between rounded-md border border-line bg-surface-warm p-4">

@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+REPOSITORY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SERVER_DIR="${REPOSITORY_DIR}/server"
+WEB_DIR="${REPOSITORY_DIR}/web"
+PREPARE_ONLY=false
+API_MODE=false
+API_PID=""
+WEB_PID=""
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/dev [--api] [--prepare-only]
+
+Prepare and run the complete local Slotera development stack.
+
+  --api           Run the frontend against the local FastAPI backend. The
+                  default remains the deterministic mock data source.
+  --prepare-only  Install dependencies, start PostgreSQL, migrate, and seed;
+                  do not start the API or frontend processes.
+  -h, --help      Show this help.
+EOF
+}
+
+log() {
+  printf '\n[slotera] %s\n' "$1"
+}
+
+fail() {
+  printf '\n[slotera] error: %s\n' "$1" >&2
+  exit 1
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
+}
+
+cleanup() {
+  local status=$?
+  trap - EXIT INT TERM HUP
+
+  if [[ -n "${API_PID}" ]] && kill -0 "${API_PID}" 2>/dev/null; then
+    kill "${API_PID}" 2>/dev/null || true
+  fi
+  if [[ -n "${WEB_PID}" ]] && kill -0 "${WEB_PID}" 2>/dev/null; then
+    kill "${WEB_PID}" 2>/dev/null || true
+  fi
+
+  [[ -z "${API_PID}" ]] || wait "${API_PID}" 2>/dev/null || true
+  [[ -z "${WEB_PID}" ]] || wait "${WEB_PID}" 2>/dev/null || true
+
+  if [[ -n "${API_PID}" || -n "${WEB_PID}" ]]; then
+    log "Application processes stopped; PostgreSQL remains running."
+  fi
+  exit "${status}"
+}
+
+handle_signal() {
+  exit 130
+}
+
+for argument in "$@"; do
+  case "${argument}" in
+    --prepare-only)
+      PREPARE_ONLY=true
+      ;;
+    --api)
+      API_MODE=true
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage >&2
+      fail "unknown argument: ${argument}"
+      ;;
+  esac
+done
+
+require_command docker
+require_command npm
+require_command uv
+
+docker info >/dev/null 2>&1 || fail "Docker is not running"
+
+if [[ ! -f "${SERVER_DIR}/.env" ]]; then
+  cp "${SERVER_DIR}/.env.example" "${SERVER_DIR}/.env"
+  log "Created server/.env from server/.env.example."
+fi
+
+if [[ ! -f "${WEB_DIR}/.env.local" ]]; then
+  cp "${WEB_DIR}/.env.example" "${WEB_DIR}/.env.local"
+  log "Created web/.env.local from web/.env.example."
+fi
+
+log "Synchronizing backend dependencies..."
+(
+  cd "${SERVER_DIR}"
+  uv sync --locked
+)
+
+log "Synchronizing frontend dependencies..."
+npm install --no-audit --no-fund --prefix "${WEB_DIR}"
+
+log "Generating frontend transport types from FastAPI OpenAPI..."
+npm run generate:api --prefix "${WEB_DIR}"
+
+log "Starting PostgreSQL and waiting for it to become healthy..."
+docker compose --project-directory "${SERVER_DIR}" up -d --wait db
+
+log "Applying pending Alembic migrations..."
+(
+  cd "${SERVER_DIR}"
+  .venv/bin/alembic upgrade head
+  .venv/bin/alembic current
+)
+
+log "Importing the idempotent local demo seed..."
+(
+  cd "${SERVER_DIR}"
+  .venv/bin/slotera-seed
+)
+
+if [[ "${PREPARE_ONLY}" == true ]]; then
+  log "Local dependencies, database, migrations, and seed are ready."
+  exit 0
+fi
+
+trap cleanup EXIT
+trap handle_signal INT TERM HUP
+
+log "Starting API at http://localhost:8000 (docs: http://localhost:8000/docs)..."
+(
+  cd "${SERVER_DIR}"
+  exec .venv/bin/uvicorn slotera_api.main:app --reload --port 8000
+) &
+API_PID=$!
+
+log "Starting frontend at http://localhost:3344..."
+(
+  cd "${WEB_DIR}"
+  if [[ "${API_MODE}" == true ]]; then
+    NEXT_PUBLIC_DATA_SOURCE=api PORT=3344 exec npm run dev
+  fi
+  PORT=3344 exec npm run dev
+) &
+WEB_PID=$!
+
+log "Slotera is running. Press Ctrl-C to stop the API and frontend."
+
+while kill -0 "${API_PID}" 2>/dev/null && kill -0 "${WEB_PID}" 2>/dev/null; do
+  sleep 1
+done
+
+if ! kill -0 "${API_PID}" 2>/dev/null; then
+  set +e
+  wait "${API_PID}"
+  PROCESS_STATUS=$?
+  set -e
+  [[ ${PROCESS_STATUS} -ne 0 ]] || PROCESS_STATUS=1
+  fail "API process stopped unexpectedly (exit ${PROCESS_STATUS})"
+fi
+
+set +e
+wait "${WEB_PID}"
+PROCESS_STATUS=$?
+set -e
+[[ ${PROCESS_STATUS} -ne 0 ]] || PROCESS_STATUS=1
+fail "frontend process stopped unexpectedly (exit ${PROCESS_STATUS})"

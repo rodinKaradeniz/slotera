@@ -33,6 +33,7 @@ export const STANDARD_BOOKING_SERVICE_IDS = [
 export async function listBookingServices(
   persona: DemoPersona | null,
 ): Promise<Service[]> {
+  if (dataSource !== "mock") throw new NotImplementedError("listBookingServices");
   const active = (await listServices()).filter((s) => s.active);
   const ids = persona ? persona.serviceIds : STANDARD_BOOKING_SERVICE_IDS;
   return ids
