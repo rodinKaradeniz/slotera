@@ -19,7 +19,7 @@ Companion documents cover the other lanes:
 
 ## Product
 
-Slotera is a paid booking and session-management product for **individual** service providers (consultants, coaches, instructors, workshop hosts). The current build is a frontend-only Next.js prototype intended for portfolio/client demos — not production.
+Slotera is a paid booking and session-management product for **individual** service providers (consultants, coaches, instructors, workshop hosts). The current product experience is a mock-backed Next.js prototype intended for portfolio/client demos — not production. A separate local-only backend foundation now exists, but it has no product endpoints and does not change that demo boundary.
 
 ### Positioning / first ICP (important)
 
@@ -29,20 +29,25 @@ Slotera's **first ICP is independent consultants, coaches, instructors, and smal
 - **Public/default surfaces should not try to speak to every vertical at once.** The standard `/booking` default and the public Demo Guide lead with consultant/coach/instructor. Specialised verticals (vet, therapist) may exist as flexible mock examples but are **not** promoted in the public positioning.
 - **Never claim Slotera is veterinary-clinic software, therapy practice-management software, healthcare software, or a medical-records/patient-management system. No medical/clinical/compliance claims.** Keep privacy/legal wording soft ("UK GDPR-aware", never "GDPR compliant" — see Landing copy).
 - Prefer non-clinical language: *client intake, pre-session questions, booking forms, session prep, client notes, customer booking page.*
-- **Standard `/booking` default story** is the curated consultant/coach/instructor set in `STANDARD_BOOKING_SERVICE_IDS` (`src/services/demo.service.ts`) — Discovery Call, Strategy Session, Coaching Session, Group Workshop. Keep it focused (3–5 services, 4 is the sweet spot) and curate it in the **resolver/data**, never via render-time slicing. Persona demos (`?demo=<slug>`) and the admin Services list can carry richer sets.
+- **Standard `/booking` default story** is the curated consultant/coach/instructor set in `STANDARD_BOOKING_SERVICE_IDS` (`web/src/services/demo.service.ts`) — Discovery Call, Strategy Session, Coaching Session, Group Workshop. Keep it focused (3–5 services, 4 is the sweet spot) and curate it in the **resolver/data**, never via render-time slicing. Persona demos (`?demo=<slug>`) and the admin Services list can carry richer sets.
 - **Demo Guide personas** (`DemoGuidelinesModal.tsx` + `demo-personas.json`) lead with `consultant`, `coach`, `instructor`. Adjust labels/order/copy here freely; if reintroducing vet/therapist demos, keep them secondary and out of the main public pitch.
 
 ### Phase scope (important)
 
-**Phase 1 — now.** Next.js + TypeScript + Tailwind + mock JSON only. No backend, no real auth, no Stripe, no email provider, no Google Calendar/Meet. Local component state is fine; persistence across reload is not a requirement. Do not add any of those integrations unless explicitly asked.
+**Phase 1 — current frontend/demo.** Next.js + TypeScript + Tailwind + mock JSON only. No
+real auth, Stripe, email provider, or Google Calendar/Meet reaches the frontend. Local
+component state is fine; persistence across reload is not a requirement. The Phase 2
+backend foundation runs separately and does not make a frontend flow "real" by its mere
+presence.
 
-**Phase 2 — approved next phase, local-only first.** Build a Python/FastAPI modular
-monolith with PostgreSQL, SQLAlchemy, Alembic, and Docker Compose under `server/`. The
+**Phase 2 — underway, local-only first.** Build a Python/FastAPI modular monolith with
+PostgreSQL, SQLAlchemy, Alembic, and Docker Compose under `server/`. The infrastructure
+foundation exists; identity/tenancy is the next product-bearing milestone. The
 public portfolio/demo deployment stays mock-backed; the API is developed and exercised in
 a separate local/API environment. Real public bookings include durable transactional
 confirmation + booking-workspace magic-link email through a PostgreSQL outbox worker.
 Hosting is deliberately undecided (Railway is a later candidate, not a current dependency).
-The mock/api switch in `src/lib/env.ts` remains the transition seam (see Data layer below).
+The mock/api switch in `web/src/lib/env.ts` remains the transition seam (see Data layer below).
 
 **Phase 3 — later and deliberately de-prioritised.** Stripe connected-account onboarding,
 Checkout/Elements + webhooks, advanced email reminders/follow-ups, and Google
@@ -68,15 +73,17 @@ Use these terms consistently in code, types, and copy:
   default is **EUR**; services and packages inherit it, while bookings/payments snapshot
   it. The Phase 1 mock remains GBP until its deliberate frontend/data migration. Platform
   billing is a separate payment domain and does not share this invariant accidentally.
-- **Roles** — `UserRole = "operator_admin" | "superadmin"`. Customers don't have accounts; only operators/admins authenticate. Overlapping sessions on the same operator's calendar must be treated as a conflict (see `src/components/shared/ConflictWarning.tsx`).
+- **Roles** — `UserRole = "operator_admin" | "superadmin"`. Customers don't have accounts; only operators/admins authenticate. Overlapping sessions on the same operator's calendar must be treated as a conflict (see `web/src/components/shared/ConflictWarning.tsx`).
 
 ## Commands
+
+Run frontend commands from `web/`:
 
 ```bash
 npm run dev      # next dev (defaults to port 3000; PORT=3344 npm run dev is the convention here)
 npm run build    # next build
 npm run start    # next start (after build)
-npm run lint     # eslint (config: eslint.config.mjs)
+npm run lint     # eslint (config: web/eslint.config.mjs)
 npx tsc --noEmit # type-check; tsconfig has noEmit:true so this is the type-check command
 ```
 
@@ -86,36 +93,36 @@ No test runner is configured.
 
 ### Data layer — mock vs api switch
 
-Every service in `src/services/*.service.ts` follows the same pattern:
+Every service in `web/src/services/*.service.ts` follows the same pattern:
 
 ```ts
 if (dataSource !== "mock") throw new NotImplementedError("methodName");
 await sleep(N);                 // simulated latency
-return ...                      // returns from / mutates an in-memory copy of src/data/mock/*.json
+return ...                      // returns from / mutates an in-memory copy of web/src/data/mock/*.json
 ```
 
-`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `src/lib/env.ts` (defaults to `"mock"`). When the Phase 2 API exists, each service method needs an `else` branch that calls `apiBaseUrl`. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `src/data/mock/*.json` directly from a component.
+`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). When the Phase 2 API exists, each service method needs an `else` branch that calls `apiBaseUrl`. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
 
 `getDashboard()` is the only service that composes from other services live: it imports `listBookings()` and `listSessions()` to compute the "Record attendance for N sessions" pending action and prepend it to the seeded `pendingActions`. Other services should stay self-contained unless they need similar live-derived state.
 
 ### Auth and session
 
-There is no real auth. `src/services/auth.service.ts` writes a fake token to `localStorage` under `slotera.session`; `src/lib/session.ts` is the only place that touches that key. `AuthGuard` (`src/components/layout/AuthGuard.tsx`) accepts an optional `requireRole` prop and:
+There is no real auth. `web/src/services/auth.service.ts` writes a fake token to `localStorage` under `slotera.session`; `web/src/lib/session.ts` is the only place that touches that key. `AuthGuard` (`web/src/components/layout/AuthGuard.tsx`) accepts an optional `requireRole` prop and:
 - redirects to `/login?next=...` when no session,
 - redirects to `homePathForRole(session.role)` when the role mismatches (so an operator hitting `/superadmin/*` lands back on `/admin/dashboard`).
 
-`homePathForRole()` lives in `src/lib/nav.ts` and is the single source of truth for where each role goes home.
+`homePathForRole()` lives in `web/src/lib/nav.ts` and is the single source of truth for where each role goes home.
 
 ### Route groups
 
-`src/app` uses four Next.js route groups, each with its own layout and shell:
+`web/src/app` uses four Next.js route groups, each with its own layout and shell:
 
 - `(public)` — marketing landing + the public booking flow (`/booking`, `/booking/confirmation`, `/booking/failure`). No auth.
 - `(auth)` — `/login`, `/register`, `/register/plan`, `/register/payment`, `/forgot-password`, `/reset-password`, `/onboarding`. Uses `AuthShell`. Size is set by pathname in `(auth)/layout.tsx` (`/onboarding` → wide, `/register*` → medium, others → default).
 - `(admin)` — everything under `/admin/*`. Wrapped by `AuthGuard requireRole="operator_admin"` + `DrawersProvider`. Uses `AdminShell` (sidebar + topbar).
-- `(superadmin)` — everything under `/superadmin/*`. Wrapped by `AuthGuard requireRole="superadmin"`. Uses the same `AppShell` as admin but with the platform nav from `SUPERADMIN_NAV` in `src/lib/nav.ts`.
+- `(superadmin)` — everything under `/superadmin/*`. Wrapped by `AuthGuard requireRole="superadmin"`. Uses the same `AppShell` as admin but with the platform nav from `SUPERADMIN_NAV` in `web/src/lib/nav.ts`.
 
-`/admin` → `/admin/dashboard` and `/superadmin` → `/superadmin/overview` are handled by `redirects()` in `next.config.ts`, not by `redirect()` page bodies — Next 16 + Turbopack tripped a Performance.measure race on the page-body pattern. **Never reintroduce `page.tsx` files at the root of a route segment whose only job is to call `redirect()`.** Add a config redirect instead.
+`/admin` → `/admin/dashboard` and `/superadmin` → `/superadmin/overview` are handled by `redirects()` in `web/next.config.ts`, not by `redirect()` page bodies — Next 16 + Turbopack tripped a Performance.measure race on the page-body pattern. **Never reintroduce `page.tsx` files at the root of a route segment whose only job is to call `redirect()`.** Add a config redirect instead.
 
 ### Drawers are global (admin only)
 
@@ -125,19 +132,19 @@ Admin pages don't render `BookingDrawer`/`SessionDrawer`/`ServiceDrawer` inline.
 
 ### Toasts are global
 
-`ToastProvider` is mounted once at the root layout (`src/app/layout.tsx`) so every route group inherits it via context. Use `const { toast } = useToast()` from any client component and call `toast.success(msg, { description? })` / `toast.error(...)` / `toast.info(...)`. Auto-dismiss is 3.5s; stack is top-right. Animations are gated on `prefers-reduced-motion`. **Never reach for `window.alert()` or `window.confirm()` — use a toast for ambient feedback or `ConfirmDialog` for blocking confirmation.**
+`ToastProvider` is mounted once at the root layout (`web/src/app/layout.tsx`) so every route group inherits it via context. Use `const { toast } = useToast()` from any client component and call `toast.success(msg, { description? })` / `toast.error(...)` / `toast.info(...)`. Auto-dismiss is 3.5s; stack is top-right. Animations are gated on `prefers-reduced-motion`. **Never reach for `window.alert()` or `window.confirm()` — use a toast for ambient feedback or `ConfirmDialog` for blocking confirmation.**
 
 ### Styling system
 
-Tailwind v4 with design tokens defined in `src/app/globals.css` via `@theme inline { --color-*: ... }`. Custom semantic colors: `paper`, `paper-2`, `ink`/`ink-2/3/4`, `line`, `accent` (forest green), `surface`. Shadows are `shadow-card`/`shadow-pop`/`shadow-overlay` (numeric aliases `shadow-1/2/3` also exist).
+Tailwind v4 with design tokens defined in `web/src/app/globals.css` via `@theme inline { --color-*: ... }`. Custom semantic colors: `paper`, `paper-2`, `ink`/`ink-2/3/4`, `line`, `accent` (forest green), `surface`. Shadows are `shadow-card`/`shadow-pop`/`shadow-overlay` (numeric aliases `shadow-1/2/3` also exist).
 
 **Heading classes are `.text-display` / `.text-h1` / `.text-h2` / `.text-h3`, NOT `.h-1`.** Tailwind v4 generates `.h-1`/`.h-2`/`.h-3` as height utilities (0.25rem, 0.5rem, 0.75rem) which silently collapses heading boxes — this is documented in `globals.css` itself.
 
-`src/lib/cn.ts` extends `tailwind-merge` so that the custom typography classes register as the `font-size` group; without this, `cn("text-h1", "text-ink")` would dedupe down to just `text-ink` and every heading would lose its class. Always use `cn(...)` (not raw `clsx`) when composing classes that include the custom `text-*` typography utilities.
+`web/src/lib/cn.ts` extends `tailwind-merge` so that the custom typography classes register as the `font-size` group; without this, `cn("text-h1", "text-ink")` would dedupe down to just `text-ink` and every heading would lose its class. Always use `cn(...)` (not raw `clsx`) when composing classes that include the custom `text-*` typography utilities.
 
 **Element-selector resets must be wrapped in `@layer base`.** In Tailwind v4, unlayered rules win over any layered rule regardless of specificity — so a bare `button { color: inherit }` in `globals.css` will silently override `.text-white` (which lives in `@layer utilities`) and primary buttons end up inheriting the dark page ink. The button/input/textarea/select/a resets in `globals.css` are wrapped in `@layer base` for exactly this reason.
 
-Fonts are loaded in `src/app/layout.tsx` via `next/font/google`: Fraunces (serif/display), Inter Tight (sans), JetBrains Mono — exposed as `--font-serif`/`--font-sans`/`--font-mono`.
+Fonts are loaded in `web/src/app/layout.tsx` via `next/font/google`: Fraunces (serif/display), Inter Tight (sans), JetBrains Mono — exposed as `--font-serif`/`--font-sans`/`--font-mono`.
 
 `<html>` carries `data-scroll-behavior="smooth"` so Next 16 can suppress smooth scrolling during route transitions; don't remove it.
 
@@ -157,11 +164,11 @@ The visual target is the Claude Design handoff (warm cream paper, deep forest gr
 
 ### Conventions
 
-- Path alias `@/*` → `src/*`.
+- Path alias `@/*` → `web/src/*`.
 - `"use client"` is the default for anything that imports services or session; the only server components are static admin/auth/public layouts and the landing page.
-- Errors thrown by services are either `NotImplementedError` (api branch not built) or `NotFoundError` (`src/services/_errors.ts`); components generally surface `error.message` directly, usually via `toast.error("...", { description: err.message })`.
+- Errors thrown by services are either `NotImplementedError` (api branch not built) or `NotFoundError` (`web/src/services/_errors.ts`); components generally surface `error.message` directly, usually via `toast.error("...", { description: err.message })`.
 - The eslint config disables `react-hooks/set-state-in-effect` project-wide — mount-once data fetches and SSR-portal mount flags both legitimately setState in effects here.
-- Status badge / payment-status mappings live in `src/lib/status-maps.ts` — extend that file rather than re-deriving colors per page.
+- Status badge / payment-status mappings live in `web/src/lib/status-maps.ts` — extend that file rather than re-deriving colors per page.
 
 ---
 
@@ -180,7 +187,7 @@ The sections below capture decisions that go beyond the code's structure — wha
   mock shape. In the real data model currency belongs to the workspace; service API DTOs
   may include the inherited value for display, but the service row does not become an
   independent currency source.
-- **Curated mock set.** `src/data/mock/services.json` is intentionally small and ICP-aligned: 4 active (Discovery Call, Strategy Session, Coaching Session, Group Workshop) + 1 inactive (Monthly Office Hours). Group Workshop is the only `capacity > 1` service and carries the group/attendance/calendar story. Don't re-add broad profession-specific services (yoga/vet/therapy/trainer) unless explicitly reintroduced.
+- **Curated mock set.** `web/src/data/mock/services.json` is intentionally small and ICP-aligned: 4 active (Discovery Call, Strategy Session, Coaching Session, Group Workshop) + 1 inactive (Monthly Office Hours). Group Workshop is the only `capacity > 1` service and carries the group/attendance/calendar story. Don't re-add broad profession-specific services (yoga/vet/therapy/trainer) unless explicitly reintroduced.
 
 ### Payment domains
 
@@ -202,7 +209,7 @@ Slotera has two completely separate payment domains. Keep them separate in code,
 Manual payment instructions are **global** workspace-level settings, not per-service. Use the wording: *Manual payment*, *Payment instructions*, *Manual payment instructions*. Examples: "Bank transfer to this account: …", "Interac transfer to this email: …".
 
 ```ts
-// src/types/settings.ts
+// web/src/types/settings.ts
 payments: {
   manualPaymentEnabled: boolean;
   manualPaymentInstructions: string;
@@ -226,13 +233,13 @@ type SubscriptionStatus =
   | "cancelled";
 ```
 
-Mock files: `src/data/mock/plans.json`, `subscription.json`, `invoices.json`. Service: `src/services/billing.service.ts` exporting `listPlans()`, `getSubscription()`, `changePlan(planId, cycle)`, `cancelSubscription()`, `reactivateSubscription()`, `listInvoices()`, `updateMockPaymentMethod(input)`, `setSubscriptionStatus(status)`. **Keep this mocked in Phase 1; no real Stripe Billing yet.**
+Mock files: `web/src/data/mock/plans.json`, `subscription.json`, `invoices.json`. Service: `web/src/services/billing.service.ts` exporting `listPlans()`, `getSubscription()`, `changePlan(planId, cycle)`, `cancelSubscription()`, `reactivateSubscription()`, `listInvoices()`, `updateMockPaymentMethod(input)`, `setSubscriptionStatus(status)`. **Keep this mocked in Phase 1; no real Stripe Billing yet.**
 
 **Change-plan → Custom diverts to contact.** Picking the Custom card in the Change-plan modal does NOT call `changePlan()` — it opens the persisting `ContactModal` (`persist`-mode) pre-filled with the operator's name/email and reason `business`. The submission lands in `/superadmin/inquiries` where staff can promote it to a manually-onboarded Custom workspace. The current subscription is unchanged until the contact is followed up.
 
 ### Superadmin area
 
-Slotera has a separate mocked superadmin area at `/superadmin/*` for internal/platform management. **Do not mix operator-admin and superadmin navigation into one visible sidebar.** Both share the shell components (`AppShell`, `Sidebar`, `Topbar`) but with separate `OPERATOR_NAV` / `SUPERADMIN_NAV` in `src/lib/nav.ts` and separate mental models.
+Slotera has a separate mocked superadmin area at `/superadmin/*` for internal/platform management. **Do not mix operator-admin and superadmin navigation into one visible sidebar.** Both share the shell components (`AppShell`, `Sidebar`, `Topbar`) but with separate `OPERATOR_NAV` / `SUPERADMIN_NAV` in `web/src/lib/nav.ts` and separate mental models.
 
 Routes:
 
@@ -242,11 +249,11 @@ Routes:
 
 Mock auth routes by role via `homePathForRole()`. `/superadmin/*` is protected by `AuthGuard requireRole="superadmin"`.
 
-Mock files under `src/data/mock/`: `platform-workspaces.json`, `platform-subscriptions.json`, `platform-inquiries.json`, `platform-overview.json`. **Everything platform-side lives in `src/services/platform.service.ts`** — workspaces, subscriptions, and inquiries together. There is no separate `platform-billing.service.ts`; both share `setSubscriptionStatus` (with different semantics from `billing.service.ts`'s same-name method — different import sites).
+Mock files under `web/src/data/mock/`: `platform-workspaces.json`, `platform-subscriptions.json`, `platform-inquiries.json`, `platform-overview.json`. **Everything platform-side lives in `web/src/services/platform.service.ts`** — workspaces, subscriptions, and inquiries together. There is no separate `platform-billing.service.ts`; both share `setSubscriptionStatus` (with different semantics from `billing.service.ts`'s same-name method — different import sites).
 
 `createInquiry()` powers the Custom-plan persist flow. `createWorkspace()` provisions a workspace + matching `PlatformSubscription` in one call; used by the `NewWorkspaceDrawer` (the "New workspace" button on `/superadmin/workspaces` and the "Promote to workspace" action surfaced inside the inquiry preview modal). Real impersonation is not implemented; "View as operator" is a placeholder that fires `toast.info(...)`.
 
-**Inquiries are an inbox, not a ticketing system.** `PlatformInquiry` carries a single `read: boolean` field — no `new | in_review | resolved` enum, no per-row status dropdowns or badges. `INQUIRY_STATUS` no longer exists in `src/lib/status-maps.ts`; only `INQUIRY_TYPE` remains. Rows on `/superadmin/inquiries` are slim and single-line: a small accent dot + warm tint marks unread; columns are `name+email · type pill · truncated 1-line message · date (right-aligned)`. Click a row to open the preview modal which auto-marks read on open, lets the operator flip back to unread, and surfaces **"Promote to workspace"** only for `type === "business"` inquiries (which forwards into `NewWorkspaceDrawer`). The `setInquiryRead(id, read)` service method (renamed from the previous `setInquiryStatus`) is the only mutation. `PlatformOverview.totals.openInquiries` is kept as the JSON field name but now semantically means "unread" — the overview KPI label is **"Unread inquiries"**.
+**Inquiries are an inbox, not a ticketing system.** `PlatformInquiry` carries a single `read: boolean` field — no `new | in_review | resolved` enum, no per-row status dropdowns or badges. `INQUIRY_STATUS` no longer exists in `web/src/lib/status-maps.ts`; only `INQUIRY_TYPE` remains. Rows on `/superadmin/inquiries` are slim and single-line: a small accent dot + warm tint marks unread; columns are `name+email · type pill · truncated 1-line message · date (right-aligned)`. Click a row to open the preview modal which auto-marks read on open, lets the operator flip back to unread, and surfaces **"Promote to workspace"** only for `type === "business"` inquiries (which forwards into `NewWorkspaceDrawer`). The `setInquiryRead(id, read)` service method (renamed from the previous `setInquiryStatus`) is the only mutation. `PlatformOverview.totals.openInquiries` is kept as the JSON field name but now semantically means "unread" — the overview KPI label is **"Unread inquiries"**.
 
 ### Auth / Register flow
 
@@ -265,7 +272,7 @@ Registration is now a three-route flow that defers account creation until after 
 
 The form data lives in `slotera.register.draft` (sessionStorage) until either:
 - payment succeeds — draft is cleared, account is created, plan + card persisted, lands on `/onboarding`; or
-- the user picks Custom — draft stays, no account created, contact inquiry persisted. Helpers live in `src/lib/register-draft.ts`.
+- the user picks Custom — draft stays, no account created, contact inquiry persisted. Helpers live in `web/src/lib/register-draft.ts`.
 
 Register form fields: title (Dr./Mr./Ms./Mrs./Mx./Prof./Other), name(s), last name, email, password, confirm password (frontend-only validation), workspace name, what-do-you-offer dropdown. **Use the first word of `firstNames` in the dashboard greeting** (e.g. "Lena Maria" → "Welcome back, Lena"). Full display name composes title + names + last name (e.g. "Dr. Lena Maria Hartmann").
 
@@ -289,14 +296,14 @@ Step 1's button reads **"Add and continue"** unconditionally — no "Add another
 
 Two surfaces share the same index:
 
-- Inline navbar dropdown (`src/components/admin/search/NavbarSearch.tsx`)
-- Command-K palette (`src/components/admin/search/CommandPalette.tsx`)
+- Inline navbar dropdown (`web/src/components/admin/search/NavbarSearch.tsx`)
+- Command-K palette (`web/src/components/admin/search/CommandPalette.tsx`)
 
-Both consume `useSearch()` from `src/lib/search.ts` which indexes bookings, clients, services, sessions, and a fixed nav list. Cmd/Ctrl+K is wired in `AppShell`. **No separate search results page in Phase 1.** Keep search mocked and frontend-only.
+Both consume `useSearch()` from `web/src/lib/search.ts` which indexes bookings, clients, services, sessions, and a fixed nav list. Cmd/Ctrl+K is wired in `AppShell`. **No separate search results page in Phase 1.** Keep search mocked and frontend-only.
 
 ### Contact feature
 
-`src/components/public/ContactModal.tsx` is the single contact form. Default behavior is mocked-success-only (no persistence, no email), used from landing/footer/demo guide/paused-booking-page. Pass `persist={true}` for paths where the submission should land as a `PlatformInquiry` in superadmin — the Custom-plan registration flow (`/register/plan`) and the Custom-plan upgrade flow (Settings → Billing → Change plan → Custom) both use this.
+`web/src/components/public/ContactModal.tsx` is the single contact form. Default behavior is mocked-success-only (no persistence, no email), used from landing/footer/demo guide/paused-booking-page. Pass `persist={true}` for paths where the submission should land as a `PlatformInquiry` in superadmin — the Custom-plan registration flow (`/register/plan`) and the Custom-plan upgrade flow (Settings → Billing → Change plan → Custom) both use this.
 
 Optional pre-fill props: `presetName`, `presetEmail`, `presetMessage`, `defaultReason`, plus `eyebrow` / `title` / `description` overrides. The title uses the prominent eyebrow + large-serif pattern shared with `DemoGuidelinesModal`. Four reason types only (`business / development / feature / general`) — do not add more.
 
@@ -331,12 +338,12 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
   professional review. The customer receives a booking/payment summary, not a legally
   numbered tax invoice.
 - When `settings.business.bookingPageEnabled === false`, the page renders `BookingsPausedCard` (operator name + Get in touch button) instead of the stepper. The route still returns 200 — don't 404 it, that would break shared links silently.
-- Card inputs are auto-formatted via `src/lib/card.ts` (`formatCardNumber` → `"4242 4242 4242 4242"`, `formatCardExpiry` → `"12 / 30"`, `formatCardCvc` digits-only). Apply these in every card form (booking, register payment, billing update card).
+- Card inputs are auto-formatted via `web/src/lib/card.ts` (`formatCardNumber` → `"4242 4242 4242 4242"`, `formatCardExpiry` → `"12 / 30"`, `formatCardCvc` digits-only). Apply these in every card form (booking, register payment, billing update card).
 - **Address surfacing** — `SessionItem.address` is stored but not yet shown to the public client. The booking flow's date/time picker doesn't resolve to a specific `SessionItem` (free-form slots), so there's no plumbed-through session reference at confirmation. Surfacing the address publicly is the natural pairing with the `bookingMode: "scheduled"` flow when it gets built — the "scheduled" mode resolves the chosen session and can pass its address to the receipt and confirmation.
 
 ### Forms
 
-- Reusable `FormTemplate`s (`src/types/form.ts`) are created under `/admin/forms` and attached to services. Attachment is **single-sourced on `FormTemplate.attachedServiceIds`** — there is no `Service.attachedFormIds` field. The public flow resolves attachment via `listFormsForService(serviceId)`. Don't reintroduce a dual-write relationship.
+- Reusable `FormTemplate`s (`web/src/types/form.ts`) are created under `/admin/forms` and attached to services. Attachment is **single-sourced on `FormTemplate.attachedServiceIds`** — there is no `Service.attachedFormIds` field. The public flow resolves attachment via `listFormsForService(serviceId)`. Don't reintroduce a dual-write relationship.
 - **Simplified shape (no `purpose`).** A `FormTemplate` is `{ id, name, description, status, fields, attachedServiceIds, requiredBeforePayment, createdAtISO }`. There is **no `purpose`/`FormPurpose` field, category, or filter** — don't reintroduce one. Mock forms are curated around the consultant/coach/instructor ICP (Discovery Call prep, Business context questions, Workshop intake, Mutual NDA acknowledgement). Don't add back profession-specific forms (pet/therapy/trainer).
 - Forms attach at the **service** level only; sessions inherit, they are not attached per-session.
 - The booking flow handles **pre-payment** form completion: a conditional Forms step (one step, all attached active forms stacked) appears between Details and Billing when the chosen service has attached forms, and is gated on required fields before payment. `FormTemplate.requiredBeforePayment` already exists for this.
@@ -344,7 +351,7 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 
 ### Packages
 
-Lightweight Phase 1 demo entities for selling/presenting **multi-session offers** — the kind an independent consultant/coach/instructor runs: a 4-session coaching package, a strategy sprint package. `ServicePackage` (`src/types/package.ts`), seeded in `src/data/mock/packages.json`, served by `src/services/packages.service.ts` (`listPackages`, `getPackage`, `create`/`update`, `deactivate`/`activate`, `removePackage`, `listActivePackages`, `listPackagesForService`).
+Lightweight Phase 1 demo entities for selling/presenting **multi-session offers** — the kind an independent consultant/coach/instructor runs: a 4-session coaching package, a strategy sprint package. `ServicePackage` (`web/src/types/package.ts`), seeded in `web/src/data/mock/packages.json`, served by `web/src/services/packages.service.ts` (`listPackages`, `getPackage`, `create`/`update`, `deactivate`/`activate`, `removePackage`, `listActivePackages`, `listPackagesForService`).
 
 - **Use "Packages" only — there is no separate "Programs" concept.** No `kind` enum, no package/program distinction, no `durationLabel`/`validityDays`/`includedSessionCount` fields. Don't reintroduce them.
 - **A package is an ordered bundle of existing services.** Shape: `ServicePackage { id, name, description, status, priceCents, currency, items: PackageItem[], notes?, featured?, createdAtISO, updatedAtISO }`. `PackageItem { id, serviceId, title?, description?, order }`. Each item points to an existing `Service`; multiple items may share a `serviceId`; the operator arranges them in a custom order (the editor manages `items` as an array and recomputes `order` from position).
@@ -359,7 +366,7 @@ Lightweight Phase 1 demo entities for selling/presenting **multi-session offers*
 
 **Naming: use "Booking" consistently for this customer-facing concept — never "reservation".** The core domain model stays `Booking`; this is the post-booking *management* layer on top of it. User-facing copy: **"booking workspace"** / **"your booking"** / **"manage booking"**. It is **not a customer account, and never call it a "Customer Portal" or "Client Portal"** (don't use those terms in UI copy). Customers still do not have accounts.
 
-`/booking/manage/demo` (`src/app/(public)/booking/manage/demo/page.tsx`) is a **mocked, public, no-auth Phase 1 preview** of a lightweight post-booking **booking workspace** — what a customer could see/do *after* booking. It surfaces from the booking confirmation page's "Manage booking" link and from a `BookingDrawer` "View booking workspace" link, and uses a single fixed demo booking (no IDs, tokens, secure links, persistence, or email). There is **no redirect** from the old `/reservation/demo` route — it was removed and all internal links were repointed.
+`/booking/manage/demo` (`web/src/app/(public)/booking/manage/demo/page.tsx`) is a **mocked, public, no-auth Phase 1 preview** of a lightweight post-booking **booking workspace** — what a customer could see/do *after* booking. It surfaces from the booking confirmation page's "Manage booking" link and from a `BookingDrawer` "View booking workspace" link, and uses a single fixed demo booking (no IDs, tokens, secure links, persistence, or email). There is **no redirect** from the old `/reservation/demo` route — it was removed and all internal links were repointed.
 
 It is deliberately **not** a full client portal, CRM, project-management app, course platform, messaging platform, or file-management system.
 
@@ -388,7 +395,7 @@ A production version would use **secure magic links/tokens sent by email + backe
 - Day / Week / Month views supported.
 - Selected-view titles: Day → "Monday, 11 May 2026", Week → "Week of 11 – 17 May 2026", Month → "May 2026".
 - Cells stay compact: primary = service name, secondary = client name for 1:1 (`capacity === 1`) or `"X / Y booked"` for groups (`capacity > 1`). There is no separate "session title" field — don't reference one.
-- Spots wording: `1 spot open`, `X spots open` (via `plural()` in `src/lib/text.ts`).
+- Spots wording: `1 spot open`, `X spots open` (via `plural()` in `web/src/lib/text.ts`).
 - Session details open in the shared `SessionDrawer`. Do not reserve permanent right-side space for them.
 
 ### Dashboard
@@ -431,7 +438,7 @@ Keep Settings simple and not enterprise-heavy.
 ### Addresses
 
 ```ts
-// src/types/address.ts
+// web/src/types/address.ts
 type Address = { street; street2?; city; region?; postalCode; country; notes? };
 type WorkspaceLocation = { id; label; address };
 ```
@@ -440,7 +447,7 @@ type WorkspaceLocation = { id; label; address };
 - `Service.address?: Address` — default address inherited by new sessions of that service.
 - `SessionItem.address?: Address` — per-session override (or one-off venue).
 
-`AddressForm` is the controlled-field component; `AddressPicker` is the dashed-card empty state + quick-fill dropdown + AddressForm + Remove combination. Both live in `src/components/shared/forms/`. The picker is used in `ServiceForm` (when locationType isn't online) and `SessionDrawer` (likewise). On save, sessions with `locationType: "online"` drop their address so the data stays clean.
+`AddressForm` is the controlled-field component; `AddressPicker` is the dashed-card empty state + quick-fill dropdown + AddressForm + Remove combination. Both live in `web/src/components/shared/forms/`. The picker is used in `ServiceForm` (when locationType isn't online) and `SessionDrawer` (likewise). On save, sessions with `locationType: "online"` drop their address so the data stays clean.
 
 ### Clients
 
@@ -458,7 +465,7 @@ The client detail page (`/admin/clients/[id]`) is a focused two-tab workspace, *
 
 ### Client notes
 
-Client notes are **separate internal note entries**, not one big textarea (the old `Client.notes?: string` field was removed). Type `ClientNote` (`src/types/client-note.ts`): `{ id, clientId, title, body, createdAtISO, updatedAtISO }`. Seeded in `src/data/mock/client-notes.json`, served by `src/services/client-notes.service.ts` (`listClientNotes`, `createClientNote`, `updateClientNote`, `deleteClientNote`). The Notes tab (`src/components/admin/clients/ClientNotes.tsx`) lists notes (title + body + created/updated date), with add/edit via a `Modal` (title + body, both required) and delete via `ConfirmDialog`; all mutations toast.
+Client notes are **separate internal note entries**, not one big textarea (the old `Client.notes?: string` field was removed). Type `ClientNote` (`web/src/types/client-note.ts`): `{ id, clientId, title, body, createdAtISO, updatedAtISO }`. Seeded in `web/src/data/mock/client-notes.json`, served by `web/src/services/client-notes.service.ts` (`listClientNotes`, `createClientNote`, `updateClientNote`, `deleteClientNote`). The Notes tab (`web/src/components/admin/clients/ClientNotes.tsx`) lists notes (title + body + created/updated date), with add/edit via a `Modal` (title + body, both required) and delete via `ConfirmDialog`; all mutations toast.
 
 - **Admin-only by default — never shown to clients** and **never surfaced on the customer booking workspace**. A small `info` affordance + muted helper text on the tab makes the internal-only intent explicit.
 - Notes are for **client context, follow-up reminders, preferences, and details useful before future sessions** — the operator has full freedom in the text.
@@ -474,7 +481,7 @@ Service (internal), Session (internal), and Booking (booking note) each carry a 
 A session carries two distinct admin surfaces, both in the shared `SessionDrawer` under a **"Notes & Actions"** tab (rendered for existing sessions; the tab label shows the open-item count, e.g. `Notes & Actions (2)`):
 
 - **Internal note** — the existing `SessionItem.notes` single string. **Admin/internal by default and never shown to clients.** While *creating* a session the note stays inline on the Details tab; for an *existing* session it moves into the Notes & Actions tab with its own "Save note" button (`updateSession` is a patch-merge, so this stays consistent with the Details "Save"). Don't build a note history/audit log.
-- **Action items** — lightweight admin tasks attached to a session. Type `SessionActionItem` (`src/types/session-action-item.ts`): `{ id, sessionId, title, description?, status: "todo"|"done", dueDate?, clientVisible?, createdAtISO, updatedAtISO }`. Seeded in `src/data/mock/session-action-items.json`, served by `src/services/session-action-items.service.ts` (`listActionItems`, `listActionItemsForSession`, `createActionItem`, `updateActionItem`, `toggleActionItemStatus`, `deleteActionItem`). The admin manager (`src/components/drawers/SessionActionItems.tsx`) supports add / edit / mark todo↔done / delete + optional due date + a **"Visible to client"** toggle.
+- **Action items** — lightweight admin tasks attached to a session. Type `SessionActionItem` (`web/src/types/session-action-item.ts`): `{ id, sessionId, title, description?, status: "todo"|"done", dueDate?, clientVisible?, createdAtISO, updatedAtISO }`. Seeded in `web/src/data/mock/session-action-items.json`, served by `web/src/services/session-action-items.service.ts` (`listActionItems`, `listActionItemsForSession`, `createActionItem`, `updateActionItem`, `toggleActionItemStatus`, `deleteActionItem`). The admin manager (`web/src/components/drawers/SessionActionItems.tsx`) supports add / edit / mark todo↔done / delete + optional due date + a **"Visible to client"** toggle.
 
 `clientVisible` is retained for a possible **future** client-facing surface, but action items are **admin-only today** — they are **not** shown on the customer booking workspace. (The previously-exported `listClientActionItemsForSession` helper was removed as unused once client-facing next steps were dropped from the booking workspace; re-add it if/when a real client surface needs it.) **Internal-only items (the default) never leave the admin surface, and internal notes are never exposed to clients.** Keep this lightweight — **no assignees, comments, reminders, notifications, recurrence, project boards, or messaging.**
 
@@ -482,27 +489,27 @@ Derived surfaces: the Dashboard "Needs your attention" list prepends a live **"R
 
 ---
 
-## Shared primitives (`src/components/ui/` and `src/components/shared/forms/`)
+## Shared primitives (`web/src/components/ui/` and `web/src/components/shared/forms/`)
 
 These are the components new work should reuse before rolling its own. Re-listing them with a one-liner each so the planning agent doesn't reinvent them.
 
 ### Modal & dialogs
 
-- **`Modal`** (`src/components/ui/Modal.tsx`) — base portal modal. `children` is **optional**: when omitted, the dividing line under title/description is suppressed and no padded body region is rendered. Always pass buttons via the `footer` prop (not inside the body). Sizes: `"sm"` (`max-w-md`), `"md"` (`max-w-xl`, default), `"lg"` (`max-w-3xl`), `"xl"` (`max-w-5xl`).
-- **`ConfirmDialog`** (`src/components/ui/ConfirmDialog.tsx`) — thin Modal wrapper for destructive/significant actions. Props: `title`, `description`, `confirmLabel`, `cancelLabel`, `destructive`, `busy`. **Replaces `window.confirm()` everywhere.** Pattern: caller tracks a `pendingX` state (or just a boolean), opens the dialog, runs the action inside `onConfirm` with try/catch + toast, closes on success.
-- **`ContactModal`** (`src/components/public/ContactModal.tsx`) — described above. Pass `persist` to route through `createInquiry()`.
+- **`Modal`** (`web/src/components/ui/Modal.tsx`) — base portal modal. `children` is **optional**: when omitted, the dividing line under title/description is suppressed and no padded body region is rendered. Always pass buttons via the `footer` prop (not inside the body). Sizes: `"sm"` (`max-w-md`), `"md"` (`max-w-xl`, default), `"lg"` (`max-w-3xl`), `"xl"` (`max-w-5xl`).
+- **`ConfirmDialog`** (`web/src/components/ui/ConfirmDialog.tsx`) — thin Modal wrapper for destructive/significant actions. Props: `title`, `description`, `confirmLabel`, `cancelLabel`, `destructive`, `busy`. **Replaces `window.confirm()` everywhere.** Pattern: caller tracks a `pendingX` state (or just a boolean), opens the dialog, runs the action inside `onConfirm` with try/catch + toast, closes on success.
+- **`ContactModal`** (`web/src/components/public/ContactModal.tsx`) — described above. Pass `persist` to route through `createInquiry()`.
 
 ### Toast
 
-- **`ToastProvider`** + **`useToast()`** (`src/components/ui/Toast.tsx`) — mounted at root. `toast.success / error / info(message, { description?, durationMs? })`. Top-right stack, 3.5s auto-dismiss, `prefers-reduced-motion` aware.
+- **`ToastProvider`** + **`useToast()`** (`web/src/components/ui/Toast.tsx`) — mounted at root. `toast.success / error / info(message, { description?, durationMs? })`. Top-right stack, 3.5s auto-dismiss, `prefers-reduced-motion` aware.
 
 ### Drawer
 
-- **`DrawerShell`** (`src/components/ui/DrawerShell.tsx`) — base for `BookingDrawer` / `SessionDrawer` / `ServiceDrawer` / `NewWorkspaceDrawer`. Right-sheet on desktop, bottom-sheet on mobile. Uses `data-state="open"|"closed"` for enter/exit transitions; respects `prefers-reduced-motion`.
+- **`DrawerShell`** (`web/src/components/ui/DrawerShell.tsx`) — base for `BookingDrawer` / `SessionDrawer` / `ServiceDrawer` / `NewWorkspaceDrawer`. Right-sheet on desktop, bottom-sheet on mobile. Uses `data-state="open"|"closed"` for enter/exit transitions; respects `prefers-reduced-motion`.
 
 ### Shared forms
 
-All live in `src/components/shared/forms/`. Controlled — caller owns state and persistence:
+All live in `web/src/components/shared/forms/`. Controlled — caller owns state and persistence:
 
 | Component | Used by | Notes |
 |---|---|---|
@@ -514,10 +521,10 @@ All live in `src/components/shared/forms/`. Controlled — caller owns state and
 
 ### Helper libraries
 
-- **`src/lib/card.ts`** — `detectCardBrand`, `formatCardNumber`, `formatCardExpiry`, `formatCardCvc`, `isValidCardExpiry`, `parseCardExpiry`. All pure, all client-side. Use these for every card input across the codebase; do not roll new formatters.
-- **`src/lib/register-draft.ts`** — sessionStorage helpers for the deferred-account registration flow. `slotera.register.draft` key is owned exclusively here.
-- **`src/lib/status-maps.ts`** — single source of truth for status tone + label + icon. Always extend this rather than hardcoding tones per page.
-- **`src/lib/nav.ts`** — `OPERATOR_NAV`, `SUPERADMIN_NAV`, `navForRole`, `homePathForRole`, `eyebrowForRole`. The role-routing source of truth.
+- **`web/src/lib/card.ts`** — `detectCardBrand`, `formatCardNumber`, `formatCardExpiry`, `formatCardCvc`, `isValidCardExpiry`, `parseCardExpiry`. All pure, all client-side. Use these for every card input across the codebase; do not roll new formatters.
+- **`web/src/lib/register-draft.ts`** — sessionStorage helpers for the deferred-account registration flow. `slotera.register.draft` key is owned exclusively here.
+- **`web/src/lib/status-maps.ts`** — single source of truth for status tone + label + icon. Always extend this rather than hardcoding tones per page.
+- **`web/src/lib/nav.ts`** — `OPERATOR_NAV`, `SUPERADMIN_NAV`, `navForRole`, `homePathForRole`, `eyebrowForRole`. The role-routing source of truth.
 
 ---
 
@@ -542,8 +549,8 @@ Good: GET /dashboard/summary, GET /sessions, GET /bookings, GET /clients,
 Backend should serve both Next.js web and a future React Native client without separate "mobile-only" endpoints unless there's a clear reason.
 
 FastAPI's OpenAPI document is also the transport contract. Generated TypeScript request /
-response DTOs live under `src/api/generated/` and are used only inside the service/API
-boundary, which maps them to the existing component-facing types under `src/types/`.
+response DTOs live under `web/src/api/generated/` and are used only inside the service/API
+boundary, which maps them to the existing component-facing types under `web/src/types/`.
 Generated transport types are not database entities and do not create a second domain
 vocabulary for components.
 

@@ -21,7 +21,7 @@ Items are grouped by kind, then roughly by how soon they matter.
 
 ## 1. Correctness & hygiene — small, worth doing soon
 
-- **`src/types/index.ts` is an incomplete barrel.** It re-exports `common`, `address`,
+- **`web/src/types/index.ts` is an incomplete barrel.** It re-exports `common`, `address`,
   `service`, `session`, `booking`, `client`, `dashboard`, `notification`, `settings`,
   `auth`, `billing`, and `platform` — but **not** `form`, `package`, `client-note`,
   `session-action-item`, or `demo`. Those five are imported from their modules directly
@@ -59,16 +59,21 @@ Items are grouped by kind, then roughly by how soon they matter.
 
 ---
 
-## 2. Testing — the largest structural gap
+## 2. Testing — the largest frontend structural gap
 
-There is **no test runner, no test files, and no CI**. "Verified" currently means
-type-check clean, lint clean, and routes exercised by hand in a dev server. That is
-adequate for a mocked prototype and inadequate the moment real data or real money is
-involved.
+- **~~Introduce a backend test and quality-check baseline before domain data lands.~~
+  DONE.** `server/` now uses pytest, pytest-asyncio, Ruff, and strict mypy. Isolated tests
+  cover configuration, health/error contracts, request ids, safe 500 responses, and
+  OpenAPI operation ids; opt-in PostgreSQL integration tests cover live readiness and the
+  restricted application role. CI remains deferred.
+
+The **frontend still has no test runner or test files**, and the repository has no CI.
+Frontend verification currently means type-check clean, lint clean, and routes exercised
+by hand in a dev server. The highest-value frontend targets remain:
 
 When tests arrive, the highest-value targets — the places where a bug is silent — are:
 
-- **`src/lib/` pure helpers**, which are trivially testable and already correctness-critical:
+- **`web/src/lib/` pure helpers**, which are trivially testable and already correctness-critical:
   `card.ts` (formatting and expiry validation), `money.ts`, `time.ts`, `calendar.ts`
   (overlap/conflict detection), `text.ts` (`plural()`), `status-maps.ts` completeness
   (every union member has an entry), and `cn.ts` (the typography merge group — the
@@ -84,14 +89,16 @@ When tests arrive, the highest-value targets — the places where a bug is silen
   action items, including the `ses-demo` exclusion.
 - **Role routing**: `homePathForRole()` and `AuthGuard`'s two redirect paths.
 
-Choosing a runner is itself deferred — see `docs/RULES.md` on introducing dependencies.
+Choosing a frontend runner is itself deferred — see `docs/RULES.md` on introducing
+dependencies. The backend runner is not implicitly the frontend runner.
 
 ---
 
 ## 3. Security & data-handling invariants to enforce later
 
-None of these are exploitable today, because there is no backend, no untrusted input path,
-and no real credential. Each becomes real the moment Phase 2 lands.
+None of these domain findings are exploitable today: the backend currently exposes health
+and OpenAPI infrastructure only, with no domain input path or real credential. Each
+becomes real as the corresponding Phase 2 resource lands.
 
 - **`NoteContent.tsx` renders stored HTML with `dangerouslySetInnerHTML`.** Safe **only**
   because the body is produced by the local Tiptap StarterKit editor and authored by the
@@ -116,9 +123,10 @@ and no real credential. Each becomes real the moment Phase 2 lands.
   Rendered as text today. If that ever becomes rich text, the sanitisation note above
   applies with a *lower* trust level — this content reaches unauthenticated visitors.
 
-- **No rate limiting, CSRF, or input validation anywhere**, because nothing is submitted
-  to a server. Every public form (booking, contact, forms step) needs server-side
-  validation in Phase 2 — client-side validation is currently the only validation.
+- **No domain rate limiting, CSRF, or server-side form validation yet.** The foundation
+  has exact-origin credentialed CORS and Pydantic configuration validation, but nothing
+  submits product data to it. Every public form (booking, contact, forms step) needs
+  server-side validation in Phase 2; client-side validation remains only a UX check.
 
 ---
 
@@ -133,7 +141,7 @@ built and exercised separately.
 ### Migration and contract
 
 - **The `api` branch of every service is unwritten.** `NEXT_PUBLIC_DATA_SOURCE` and
-  `apiBaseUrl` exist in `src/lib/env.ts`; every service method currently throws
+  `apiBaseUrl` exist in `web/src/lib/env.ts`; every service method currently throws
   `NotImplementedError` when `dataSource !== "mock"`. Fill those explicit branches rather
   than adding automatic per-method fallback: mixing API services with related mock
   services would produce incompatible ids and broken form/package/session relationships.
@@ -145,8 +153,8 @@ built and exercised separately.
   `/settings/billing` — never `/admin/dashboard-card-left`. A future mobile client must be
   able to use the same API without mobile-only endpoints.
 - **Generate transport types from FastAPI's OpenAPI document** into
-  `src/api/generated/`. Only the service/transport layer imports them; it maps them to the
-  existing domain/UI types in `src/types/`. Generated HTTP DTOs do not become a second set
+  `web/src/api/generated/`. Only the service/transport layer imports them; it maps them to the
+  existing domain/UI types in `web/src/types/`. Generated HTTP DTOs do not become a second set
   of component-facing domain types.
 - **Browser/API topology:** plan for `app.slotera.app` and `api.slotera.app` as same-site
   sibling origins. Web auth uses a Secure, HttpOnly, SameSite=Lax cookie with exact
@@ -234,22 +242,28 @@ built and exercised separately.
 
 ### Delivery order
 
-1. Backend skeleton: package/config layout, health endpoint, PostgreSQL connection,
-   Alembic, Docker Compose, pytest, lint/type-check, structured errors, and seed importer.
-2. Identity and tenancy: users, workspaces, memberships, auth sessions, RLS, audit events,
+1. **~~Backend foundation: package/config layout, liveness/readiness, PostgreSQL,
+   Alembic, Docker Compose, pytest, lint/type-check, structured errors/logs, and OpenAPI
+   conventions.~~ DONE.** Built under `server/` with a uv lockfile, separate migration
+   owner and restricted application roles, an empty baseline migration, exact-origin
+   CORS, and isolated plus live-database tests. The demo/frontend remains mock-backed.
+2. **Seed importer:** add it with the first model-backed identity/tenancy resources. A
+   generic importer before tables and conflict semantics exist would be an untestable
+   placeholder rather than infrastructure.
+3. Identity and tenancy: users, workspaces, memberships, auth sessions, RLS, audit events,
    slug history, and reserved slugs.
-3. First coherent frontend/API bundle: auth/session, notification baseline, business
+4. First coherent frontend/API bundle: auth/session, notification baseline, business
    settings, and services.
-4. Scheduling: availability, sessions, recurrence, conflict/capacity enforcement.
-5. Operator core: clients, bookings, forms/responses, notes, action items, attendance, and
+5. Scheduling: availability, sessions, recurrence, conflict/capacity enforcement.
+6. Operator core: clients, bookings, forms/responses, notes, action items, attendance, and
    operator-created manual bookings.
-6. Public booking: public catalog/availability, free/manual booking transactions, tax
+7. Public booking: public catalog/availability, free/manual booking transactions, tax
    snapshots, idempotency, and expiry.
-7. Transactional email and booking workspace: outbox worker, confirmation/magic links,
+8. Transactional email and booking workspace: outbox worker, confirmation/magic links,
    post-booking forms, reschedule/cancel requests, and client messages.
-8. Derived/platform resources: dashboard, server-side search, notifications, superadmin,
+9. Derived/platform resources: dashboard, server-side search, notifications, superadmin,
    subscriptions, and inquiries.
-9. Production-readiness gate, then later hosting/deployment selection.
+10. Production-readiness gate, then later hosting/deployment selection.
 
 ## 5. Phase 3 — external integrations
 

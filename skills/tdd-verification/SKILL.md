@@ -13,8 +13,7 @@ something works without evidence you can point at.
 
 ## This project's real commands
 
-There is no test runner (`docs/TODO.md` §2). The verification vocabulary available today
-is exactly this:
+Frontend verification, from `web/`, remains:
 
 ```bash
 npx tsc --noEmit        # type-check — tsconfig sets noEmit, so this is the check
@@ -23,19 +22,30 @@ PORT=3344 npm run dev   # dev server on the project's conventional port
 npm run build           # production build — catches what dev mode tolerates
 ```
 
+Backend verification, from `server/`, is:
+
+```bash
+uv run pytest                     # isolated suite; integration excluded by default
+uv run pytest -m integration      # live local PostgreSQL
+uv run ruff check .
+uv run mypy
+uv run alembic upgrade head
+```
+
 Route probes, for confirming a route still resolves:
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3344/booking
 ```
 
-Nothing else exists. Do not describe a check you did not run, and do not invent an
-`npm test`.
+The frontend still has no `npm test`. Do not describe a check you did not run or treat a
+backend test as coverage of a frontend flow.
 
 ## The red/green cycle, adapted
 
-Even without a runner, the cycle is what makes a fix trustworthy — because it proves the
-check can fail.
+Even where the frontend lacks a runner, the cycle is what makes a fix trustworthy —
+because it proves the check can fail. Backend work should use a literal failing pytest
+first whenever the behaviour can be expressed at that boundary.
 
 **1. Red — reproduce first.** Before changing anything, produce the failure and record
 it. Depending on the bug that's a type error, a lint error, a console message, a wrong
@@ -46,10 +56,11 @@ change fixed it, and that uncertainty goes in the summary.
 same edit; you lose the causal link between change and outcome.
 
 **3. Confirm — re-run the exact same check.** Same command, same route, same input. Then
-run the full gate: `npx tsc --noEmit`, `npm run lint`, and reload the affected routes.
+run the relevant full gate: frontend type-check/lint/routes, or backend pytest/Ruff/mypy
+plus migrations/integration when the database boundary changed.
 
-**4. Regress — check what shares the code.** If the fix was in `src/components/ui/` or
-`src/lib/`, list the consumers (`grep -rn "<name>" src/`) and load at least one page per
+**4. Regress — check what shares the code.** If the fix was in `web/src/components/ui/` or
+`web/src/lib/`, list the consumers (`grep -rn "<name>" web/src/`) and load at least one page per
 distinct usage. A change to a primitive is never a one-page change.
 
 For a *new* feature, the equivalent of red is: define the observable success criteria
@@ -72,6 +83,9 @@ What "loaded it" should mean, per area:
 - **Anything touching styling primitives** — check both a page that uses the default and
   one that composes extra classes over it, because `cn()`'s merge behaviour is where these
   regressions live.
+- **Backend HTTP/database** — exercise the endpoint through ASGI or a running server, and
+  use the real Compose PostgreSQL for connection, migration, permission, constraint, and
+  transaction claims. A stub proves HTTP behaviour, not PostgreSQL behaviour.
 
 ## Evidence-backed "done"
 

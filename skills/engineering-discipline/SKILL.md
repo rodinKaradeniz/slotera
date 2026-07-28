@@ -24,7 +24,7 @@ Write down — in the response, not just internally — three things:
    check. "The Notes tab shows entries sorted newest-first and an empty state when there
    are none" is checkable. "Improve the notes UX" is not.
 2. **The blast radius.** Which files, which shared primitives, which mock fixtures. If the
-   answer includes a file in `src/components/ui/` or `src/lib/`, every consumer of that
+   answer includes a file in `web/src/components/ui/` or `web/src/lib/`, every consumer of that
    file is in scope for regression — name them.
 3. **What you are explicitly not doing.** The adjacent thing you noticed and are leaving
    alone. This is what keeps scope from drifting mid-task.
@@ -35,7 +35,7 @@ If any of the three can't be filled in without guessing, that's the question to 
 
 Three assumptions are cheap to make here and expensive to be wrong about:
 
-- **The type or export exists where you expect.** `src/types/index.ts` is an incomplete
+- **The type or export exists where you expect.** `web/src/types/index.ts` is an incomplete
   barrel — `form`, `package`, `client-note`, `session-action-item`, and `demo` are not in
   it. `setSubscriptionStatus` exists in two services with different semantics. Read the
   module; don't infer it from the name.
@@ -53,8 +53,10 @@ assumption is the problem; a stated one is a decision the user can correct in on
 
 ## No over-engineering
 
-Calibrate to what this build is: a frontend-only prototype whose value is that it works
-end to end and demos well. That makes some things *worth less* than they'd normally be:
+Calibrate to what this build is: a mock-backed frontend prototype plus a separate local
+backend foundation. The frontend's value is that it works end to end and demos well; the
+backend's value is that its boundaries are proven before domain code lands. That makes
+some things *worth less* than they'd normally be:
 
 - Abstractions with one call site. Two similar components are cheaper than a premature
   shared one — extract on the third.
@@ -89,10 +91,10 @@ it. Specifically:
 
 Before reporting completion:
 
-- `npx tsc --noEmit` — clean.
-- `npm run lint` — clean.
-- The affected route(s) loaded in `PORT=3344 npm run dev`, including at least one failure
-  or empty state, not just the happy path.
+- Frontend changes: from `web/`, `npx tsc --noEmit` and `npm run lint` clean; affected
+  routes loaded in `PORT=3344 npm run dev`, including at least one failure or empty state.
+- Backend changes: pytest, Ruff, and mypy clean; affected HTTP/database boundary exercised
+  against real PostgreSQL when relevant, including its rejection or failure path.
 - Docs updated per `docs/RULES.md` Do #8 — feature snapshot, history entry, or TODO item
   as applicable.
 - The summary says what you **ran** versus what you **read**, and ends with a

@@ -1,0 +1,1 @@
+"""Slotera backend application package."""

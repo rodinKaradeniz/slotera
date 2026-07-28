@@ -17,7 +17,7 @@ change is noise.
 
 ## When it earns its keep here
 
-- Modelling decisions that touch `src/types/` — a field added to a shared type is
+- Modelling decisions that touch `web/src/types/` — a field added to a shared type is
   load-bearing across services, fixtures, forms, and three translation files.
 - Anything that will outlive Phase 1: the API surface, the service-layer boundary, the
   shape of a relationship.
@@ -35,7 +35,9 @@ sequence?" Write the question you're answering; if it differs from the one asked
 **2. Surface the constraints, separating hard from soft.**
 
 Hard constraints on this project, which are not yours to trade away:
-- Phase 1 is frontend-only — no backend, no real auth, no payment provider, no email.
+- The Phase 1 frontend/demo remains mock-backed — the separate backend foundation does not
+  make its auth, payments, or email real, and API integration happens only in coherent
+  bundles.
 - Product rules in `docs/PRODUCT.md` — vocabulary, positioning, the "never reintroduce" list.
 - Single-sourced relationships; no dual-write.
 - Internal notes and action items never reach client-facing surfaces.

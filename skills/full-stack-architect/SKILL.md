@@ -14,11 +14,12 @@ this*.
 
 ## The situation you're designing inside
 
-This is a **frontend-only prototype with a real backend planned**. That single fact drives
-most architectural calls here:
+This is a **mock-backed frontend prototype plus an independently developed local backend
+foundation**. No product endpoint is wired to the frontend yet. That boundary drives most
+architectural calls here:
 
-- Every service module in `src/services/` has an unwritten `api` branch. Today it throws
-  `NotImplementedError`; in Phase 2 it calls FastAPI + PostgreSQL. **That boundary is the
+- Every service module in `web/src/services/` has an unwritten `api` branch. Today it throws
+  `NotImplementedError`; coherent Phase 2 bundles will call FastAPI + PostgreSQL. **That boundary is the
   most valuable structure in the codebase** — decisions that respect it are cheap to
   migrate, decisions that bypass it are rewrites.
 - Mock state lives in module-level arrays and resets on reload. Anything that quietly
@@ -32,11 +33,11 @@ database, real tenancy, and a second client?**
 
 | Layer | Owns | Must not |
 |---|---|---|
-| `src/app/**` routes | composition, route groups, guards | contain business logic or reach fixtures |
-| `src/components/**` | rendering, local interaction state | import `src/data/mock/*.json`; hardcode status tones |
-| `src/services/*.service.ts` | all data access, simulated latency, the mock/api guard | know about pages or components |
-| `src/lib/**` | pure helpers, storage-key ownership, routing constants | import services or components |
-| `src/types/**` | the domain vocabulary | carry UI concerns |
+| `web/src/app/**` routes | composition, route groups, guards | contain business logic or reach fixtures |
+| `web/src/components/**` | rendering, local interaction state | import `web/src/data/mock/*.json`; hardcode status tones |
+| `web/src/services/*.service.ts` | all data access, simulated latency, the mock/api guard | know about pages or components |
+| `web/src/lib/**` | pure helpers, storage-key ownership, routing constants | import services or components |
+| `web/src/types/**` | the domain vocabulary | carry UI concerns |
 
 A change that blurs one of these is the one to push back on. The most common blur:
 business logic drifting into a page component because it was faster than adding a service
@@ -85,7 +86,7 @@ client-side warning, tomorrow a server-side invariant.
 
 Anything swappable goes behind a local interface and a **single factory**, so the choice
 stays a one-file decision. Existing examples: `lucide-react` behind `Icon.tsx`, and the
-entire data layer behind the service modules plus `src/lib/env.ts`.
+entire data layer behind the service modules plus `web/src/lib/env.ts`.
 
 Phase 2's real-booking milestone brings the minimum transactional-email vendor decision;
 Phase 3 brings payments (Stripe), scheduled email/reminders, and calendar (Google). Each

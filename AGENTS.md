@@ -39,17 +39,20 @@ providers — independent consultants, coaches, instructors, and small expert-le
 studios/workshops. It is positioned as a *lightweight client workspace*: paid bookings,
 client intake/prep forms, multi-session packages, session management, client context and
 notes, and a public customer booking page — deliberately not a heavy CRM, not a
-calendar-only tool, and not a generic "reservation app." The repository currently holds a
-**frontend-only Next.js prototype** built for portfolio and client demos: every service
-call resolves against mock JSON in-process, there is no backend, no real authentication,
-no payment provider, and no email. See `docs/PRODUCT.md` for the full positioning rules and the
-phase plan (Phase 1 = this build; Phase 2 = local FastAPI + PostgreSQL plus the minimum
-transactional email required by real bookings; Phase 3 = Stripe, scheduled email, and
-calendar integrations).
+calendar-only tool, and not a generic "reservation app." The product frontend remains a
+**mock-backed Next.js prototype** built for portfolio and client demos: every frontend
+service call still resolves against mock JSON in-process, with no real authentication,
+payment provider, or email. Phase 2 has started as a separate, local-only FastAPI +
+PostgreSQL foundation under `server/`; it currently exposes infrastructure health checks
+but no product/domain endpoints. See `docs/PRODUCT.md` for the full positioning rules and
+phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
+Phase 3 adds Stripe, scheduled email, and calendar integrations).
 
 ---
 
 ## Running it locally
+
+**Frontend** — from `web/`:
 
 ```bash
 npm install
@@ -61,19 +64,37 @@ npm run lint            # eslint
 npx tsc --noEmit        # type-check (tsconfig sets noEmit, so this is the type-check)
 ```
 
-There is **no test runner configured** — `npm test` does not exist. "Verified" on this
-project currently means: type-check clean, lint clean, and the affected route(s)
-exercised in a running dev server. See `docs/RULES.md` for what may and may not be
-claimed as verification.
+The frontend still has **no test runner configured** — `npm test` does not exist.
+Frontend verification remains type-check, lint, and affected routes exercised in a
+running dev server. The backend has its own pytest/Ruff/mypy gates below.
 
-**Environment** — `.env.local` (and `.env.example`) carry two public variables:
+**Backend foundation** — from `server/`:
+
+```bash
+cp .env.example .env
+uv sync
+docker compose up -d db           # PostgreSQL on 127.0.0.1:55432
+uv run alembic upgrade head
+uv run uvicorn slotera_api.main:app --reload --port 8000
+
+uv run pytest                     # isolated tests; integration tests excluded by default
+uv run pytest -m integration      # requires the Compose database
+uv run ruff check .
+uv run mypy
+```
+
+The backend exposes `/health/live`, `/health/ready`, `/docs`, and `/openapi.json`. See
+`server/README.md` and `docs/RULES.md` for what may and may not be claimed as verification.
+
+**Frontend environment** — `web/.env.local` (and `web/.env.example`) carry two public
+variables:
 
 ```
-NEXT_PUBLIC_DATA_SOURCE=mock          # "mock" | "api"; read once in src/lib/env.ts
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000   # unused until the Phase 2 backend exists
+NEXT_PUBLIC_DATA_SOURCE=mock          # "mock" | "api"; read once in web/src/lib/env.ts
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000   # backend exists; frontend API branches remain unwritten
 ```
 
-**Signing in** — auth is mocked; any password works. `src/services/auth.service.ts`
+**Signing in** — auth is mocked; any password works. `web/src/services/auth.service.ts`
 resolves the role from the email address:
 
 | Email | Lands on |
@@ -94,19 +115,22 @@ resolves the role from the email address:
 | Layer | Choice | Notes |
 |---|---|---|
 | Framework | Next.js `16.2.6`, App Router, Turbopack | four route groups, one root layout |
-| Language | TypeScript `^5`, `strict: true`, `noEmit: true` | path alias `@/*` → `src/*` |
+| Language | TypeScript `^5`, `strict: true`, `noEmit: true` | path alias `@/*` → `web/src/*` |
 | UI runtime | React `19.2.4` | most components are `"use client"` |
-| Styling | Tailwind CSS `v4` via `@tailwindcss/postcss` | design tokens in `src/app/globals.css` under `@theme inline` |
-| Class composition | `clsx` + `tailwind-merge` (extended) | always via `src/lib/cn.ts` |
-| Icons | `lucide-react` | never imported directly — wrapped by `src/components/ui/Icon.tsx` as a named `IconName` union |
+| Styling | Tailwind CSS `v4` via `@tailwindcss/postcss` | design tokens in `web/src/app/globals.css` under `@theme inline` |
+| Class composition | `clsx` + `tailwind-merge` (extended) | always via `web/src/lib/cn.ts` |
+| Icons | `lucide-react` | never imported directly — wrapped by `web/src/components/ui/Icon.tsx` as a named `IconName` union |
 | Charts | `recharts` `^3.8` | one usage: `TrendChart` on the dashboard |
 | Rich text | Tiptap `^3.27` (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm`) | one usage: client notes editor |
 | Fonts | `next/font/google` — Fraunces, Inter Tight, JetBrains Mono | exposed as `--font-serif` / `--font-sans` / `--font-mono` |
-| Data | JSON fixtures in `src/data/mock/`, mutated in module-level memory | switchable via `NEXT_PUBLIC_DATA_SOURCE` |
-| Auth | fake token in `localStorage` under `slotera.session` | no server, no verification |
-| i18n | hand-rolled flat dictionary, EN / TR / DE | `src/lib/i18n.ts` + `src/i18n/messages/*.ts` |
-| Lint | ESLint `^9` + `eslint-config-next` (flat config) | `eslint.config.mjs` |
-| Tests | none | no runner, no fixtures, no CI |
+| Data | JSON fixtures in `web/src/data/mock/`, mutated in module-level memory | switchable via `NEXT_PUBLIC_DATA_SOURCE` |
+| Auth | fake token in `localStorage` under `slotera.session` | no server-side auth or verification |
+| i18n | hand-rolled flat dictionary, EN / TR / DE | `web/src/lib/i18n.ts` + `web/src/i18n/messages/*.ts` |
+| Lint | ESLint `^9` + `eslint-config-next` (flat config) | `web/eslint.config.mjs` |
+| Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | local foundation only; no domain endpoints |
+| Backend data | PostgreSQL 17 via Docker Compose | owner migrations + restricted application role; host port `55432` |
+| Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; no CI yet |
+| Frontend tests | none | no runner, no test files, no CI |
 
 ---
 
@@ -122,35 +146,32 @@ docs/
   RULES.md             always-on working conventions
 skills/<name>/SKILL.md on-demand workflow modules (canonical location)
 .claude/skills/        symlinks into skills/ for native skill discovery
-next.config.ts         section-root redirects live here, not in page bodies
-eslint.config.mjs      flat ESLint config
-public/                empty
 
-src/
-  app/
-    layout.tsx         root layout: fonts + I18nProvider > ToastProvider > DemoGuideProvider
-    globals.css        design tokens, typography classes, base-layer resets, animations
-    (public)/          landing + public booking flow + booking workspace demo
-    (auth)/            login, register (3 routes), password reset, onboarding
-    (admin)/           /admin/* — operator workspace (AuthGuard + DrawersProvider)
-    (superadmin)/      /superadmin/* — platform management (AuthGuard)
-  components/
-    ui/                primitives: Button, Card, Modal, ConfirmDialog, DrawerShell, Toast, …
-    shared/            cross-surface pieces: PageHeader, SectionHeader, StatusBadge, …
-    shared/forms/      controlled form bodies reused across drawers/settings/onboarding
-    layout/            AppShell, AdminShell, AuthShell, Sidebar, Topbar, PublicNav, AuthGuard
-    drawers/           DrawersProvider + Booking/Session/Service/Form/Package drawers
-    admin/<area>/      per-area admin views (dashboard, bookings, calendar, clients, …)
-    superadmin/        platform views + NewWorkspaceDrawer
-    booking/           public booking steps + receipt + legal modal
-    public/            landing sections, contact modal, demo guide
-    auth/              AuthCard
-    i18n/              I18nProvider
-  data/mock/           21 JSON fixtures — the entire data set
-  i18n/messages/       en.ts (source of truth for keys), tr.ts, de.ts
-  lib/                 pure helpers: cn, env, nav, session, status-maps, card, money, time, …
-  services/            16 *.service.ts modules — the only path to data
-  types/               domain types; index.ts is a partial barrel
+web/
+  package.json         Next.js dependencies and npm scripts
+  package-lock.json    reproducible frontend dependency lock
+  next.config.ts       section-root redirects live here, not in page bodies
+  eslint.config.mjs    flat ESLint config
+  postcss.config.mjs   Tailwind/PostCSS integration
+  tsconfig.json        strict TypeScript config; `@/*` → `web/src/*`
+  public/              static assets (currently empty)
+  src/
+    app/               App Router routes, route groups, layouts, global CSS
+    components/        UI, shared, layout, drawer, admin, booking, and public components
+    data/mock/         21 JSON fixtures — the entire frontend data set
+    i18n/messages/     en.ts source keys plus TR/DE partial translations
+    lib/               pure helpers and client storage/env owners
+    services/          16 service modules — the only frontend path to data
+    types/             frontend domain types; index.ts is a partial barrel
+
+server/
+  pyproject.toml       uv project + pytest/Ruff/mypy configuration
+  uv.lock              reproducible Python dependency lock
+  compose.yaml         local PostgreSQL 17 (`slotera` Compose project)
+  migrations/          async Alembic environment + baseline revision
+  docker/postgres/     restricted application-role bootstrap
+  src/slotera_api/     FastAPI app, config, DB lifecycle, errors, logging, health API
+  tests/               isolated contract tests + opt-in PostgreSQL integration tests
 ```
 
 ---
@@ -159,7 +180,7 @@ src/
 
 ### Data layer — the mock/api switch
 
-Every module in `src/services/` follows one shape:
+Every module in `web/src/services/` follows one shape:
 
 ```ts
 let mock: T[] = JSON.parse(JSON.stringify(json)) as T[];   // module-level in-memory copy
@@ -171,14 +192,14 @@ export async function listThings(): Promise<T[]> {
 }
 ```
 
-- `dataSource` comes from `NEXT_PUBLIC_DATA_SOURCE` via `src/lib/env.ts` and defaults to
+- `dataSource` comes from `NEXT_PUBLIC_DATA_SOURCE` via `web/src/lib/env.ts` and defaults to
   `"mock"`. The `api` branch is deliberately unwritten — every method throws
   `NotImplementedError` until Phase 2 fills it in.
 - Mutations persist for the lifetime of the dev process and reset on reload/HMR.
   Cross-reload persistence is not a Phase 1 requirement.
-- **Components must go through the service layer.** Importing `src/data/mock/*.json`
+- **Components must go through the service layer.** Importing `web/src/data/mock/*.json`
   directly from a component is a bug.
-- Errors are `NotImplementedError` or `NotFoundError` from `src/services/_errors.ts`;
+- Errors are `NotImplementedError` or `NotFoundError` from `web/src/services/_errors.ts`;
   components surface `err.message`, usually through `toast.error(...)`.
 - Services are self-contained with one exception: `dashboard.service.ts` composes live
   from `listBookings()`, `listSessions()`, and `listActionItems()` to derive its
@@ -188,14 +209,35 @@ Current services: `auth`, `billing`, `bookings`, `client-notes`, `clients`, `das
 `demo`, `forms`, `notifications`, `packages`, `platform`, `services`,
 `session-action-items`, `sessions`, `settings`.
 
+### Backend foundation
+
+`server/src/slotera_api/main.py` builds the local FastAPI application. It currently has no
+product resources and is not wired to `web/src/services/`; the public demo therefore remains
+deterministically mock-backed. The implemented HTTP surface is deliberately limited to:
+
+- `/health/live` — process liveness and no database access;
+- `/health/ready` — verifies PostgreSQL through the restricted `slotera_app` role;
+- `/openapi.json` and `/docs` — the future generated-transport contract.
+
+Every response receives a generated `X-Request-ID`. HTTP, validation, application, and
+unexpected errors use one camelCase error envelope, and unexpected exceptions do not
+expose their message. Request logs are structured JSON. CORS is credential-capable but
+restricted to configured exact origins; wildcard origins are rejected by configuration.
+
+SQLAlchemy uses an async engine/session factory. Alembic connects separately as
+`slotera_owner`; the API uses `slotera_app`, which has data-operation defaults but cannot
+create tables. The baseline migration is intentionally empty because no domain model has
+landed. The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used
+host `5432` port.
+
 ### Auth and session
 
 No real authentication exists. `auth.service.ts` writes a fabricated token to
-`localStorage`; `src/lib/session.ts` is the **only** module that touches the
+`localStorage`; `web/src/lib/session.ts` is the **only** module that touches the
 `slotera.session` and `slotera.onboarding` keys. `AuthGuard`
-(`src/components/layout/AuthGuard.tsx`) takes an optional `requireRole` and redirects to
+(`web/src/components/layout/AuthGuard.tsx`) takes an optional `requireRole` and redirects to
 `/login?next=…` when there is no session, or to `homePathForRole(session.role)` on a role
-mismatch. `homePathForRole()` in `src/lib/nav.ts` is the single source of truth for where
+mismatch. `homePathForRole()` in `web/src/lib/nav.ts` is the single source of truth for where
 each role goes home; `OPERATOR_NAV` / `SUPERADMIN_NAV` / `navForRole()` live beside it.
 
 `UserRole` is `"operator_admin" | "superadmin"`. Customers never authenticate.
@@ -210,12 +252,12 @@ each role goes home; `OPERATOR_NAV` / `SUPERADMIN_NAV` / `navForRole()` live bes
 | `(superadmin)` | `/superadmin/{overview,workspaces,workspaces/[id],subscriptions,inquiries,settings}` | `AppShell` with `SUPERADMIN_NAV` | `AuthGuard requireRole="superadmin"` |
 
 `/admin` → `/admin/dashboard` and `/superadmin` → `/superadmin/overview` are handled by
-`redirects()` in `next.config.ts` — **not** by `page.tsx` bodies calling `redirect()`.
+`redirects()` in `web/next.config.ts` — **not** by `page.tsx` bodies calling `redirect()`.
 See HISTORY.md for why.
 
 ### Providers
 
-Mounted once at the root layout (`src/app/layout.tsx`), so every route group inherits
+Mounted once at the root layout (`web/src/app/layout.tsx`), so every route group inherits
 them: `I18nProvider` → `ToastProvider` → `DemoGuideProvider`.
 
 - **Toasts** — `const { toast } = useToast()`; `toast.success/error/info(msg, {
@@ -234,7 +276,7 @@ them: `I18nProvider` → `ToastProvider` → `DemoGuideProvider`.
 
 ### Styling
 
-Tailwind v4 with tokens declared in `src/app/globals.css`:
+Tailwind v4 with tokens declared in `web/src/app/globals.css`:
 
 - Semantic colors `paper`, `paper-2`, `ink`/`ink-2`/`ink-3`/`ink-4`, `line`, `line-soft`,
   `surface`, `surface-warm`, `accent` (deep forest green) + `accent-ink`/`accent-soft`/
@@ -243,7 +285,7 @@ Tailwind v4 with tokens declared in `src/app/globals.css`:
   `shadow-1` / `shadow-2` / `shadow-3`.
 - Heading classes are **`.text-display` / `.text-h1` / `.text-h2` / `.text-h3`** — never
   `.h-1`/`.h-2`/`.h-3`, which Tailwind v4 generates as *height* utilities.
-- `src/lib/cn.ts` registers the custom `text-*` typography classes with `tailwind-merge`
+- `web/src/lib/cn.ts` registers the custom `text-*` typography classes with `tailwind-merge`
   as the `font-size` group. Always compose classes with `cn(...)`, not raw `clsx`.
 - Element-selector resets (`button`, `input`, `textarea`, `select`, `a`) are wrapped in
   `@layer base` — mandatory, see HISTORY.md.
@@ -266,10 +308,10 @@ page. Standard page shape:
 
 ### Internationalisation
 
-Hand-rolled, no i18n library. `src/lib/i18n.ts` exposes `Lang = "en" | "tr" | "de"`,
+Hand-rolled, no i18n library. `web/src/lib/i18n.ts` exposes `Lang = "en" | "tr" | "de"`,
 `translate(lang, key, vars?)` with `{name}` interpolation, `localeForLang()` (→ `en-GB`,
 `tr-TR`, `de-DE` for `Intl` formatting), and read/write of the `slotera.lang`
-`localStorage` key. `src/i18n/messages/en.ts` defines the `Messages` type and is the key
+`localStorage` key. `web/src/i18n/messages/en.ts` defines the `Messages` type and is the key
 source of truth; `tr.ts` and `de.ts` are `Partial<Messages>` and fall back to English
 per-key, then to the key itself.
 
@@ -280,25 +322,25 @@ descriptions, seeded notes) is English-only by design.
 
 ## Conventions
 
-- **Path alias** `@/*` → `src/*`. Use it; no deep relative climbs.
+- **Path alias** `@/*` → `web/src/*`. Use it; no deep relative climbs.
 - **`"use client"`** is the default for anything importing a service or session helper.
   Server components are limited to static layouts and the landing page.
-- **Status presentation** lives in `src/lib/status-maps.ts` (`BOOKING_STATUS`,
+- **Status presentation** lives in `web/src/lib/status-maps.ts` (`BOOKING_STATUS`,
   `PAY_STATUS`, `CLIENT_TAGS`, `LOC_TYPE_META`, `SUBSCRIPTION_STATUS`, `INQUIRY_TYPE`,
   `PLAN_LABEL`, `FORM_STATUS`, `PACKAGE_STATUS`). Extend that file; never hardcode a tone
   or label per page.
-- **Icons** go through `IconName` in `src/components/ui/Icon.tsx`. Add to the map rather
+- **Icons** go through `IconName` in `web/src/components/ui/Icon.tsx`. Add to the map rather
   than importing from `lucide-react` at a call site.
-- **Card inputs** are formatted with `src/lib/card.ts` (`formatCardNumber`,
+- **Card inputs** are formatted with `web/src/lib/card.ts` (`formatCardNumber`,
   `formatCardExpiry`, `formatCardCvc`, `detectCardBrand`, `isValidCardExpiry`). Every
   card form uses these; do not write new formatters.
-- **Money** goes through `src/lib/money.ts`; the default currency is **GBP**.
-- **IDs** for mock records come from `makeId(prefix)` in `src/lib/id.ts`.
+- **Money** goes through `web/src/lib/money.ts`; the default currency is **GBP**.
+- **IDs** for mock records come from `makeId(prefix)` in `web/src/lib/id.ts`.
 - **`react-hooks/set-state-in-effect` is disabled project-wide** — mount-once data fetches
   and SSR-portal mount flags both legitimately set state in an effect here.
 - **Unused vars** are a warning when prefixed `_`; that's the intentional escape hatch for
   Phase 1 stub parameters (`_password`, `_token`).
-- **Section-root redirects belong in `next.config.ts`.** Never add a `page.tsx` whose only
+- **Section-root redirects belong in `web/next.config.ts`.** Never add a `page.tsx` whose only
   job is `redirect()`.
 
 ---
@@ -327,7 +369,7 @@ Present tense — what exists in the working tree today.
 - Login, forgot/reset password, and a three-route registration flow
   (`/register` → `/register/plan` → `/register/payment`) that defers account creation
   until after mock payment, holding the draft in `sessionStorage` via
-  `src/lib/register-draft.ts`. Choosing the Custom plan diverts to a persisting contact
+  `web/src/lib/register-draft.ts`. Choosing the Custom plan diverts to a persisting contact
   inquiry and creates no account.
 - Five-pane onboarding stepper: Welcome → Service → Availability → Payments → Done, reusing
   `ServiceForm`, `WorkingHoursForm`, and `ManualPaymentForm`.
@@ -346,12 +388,19 @@ Present tense — what exists in the working tree today.
 - Session drawer carries a "Notes & Actions" tab: one internal note plus lightweight
   action items, both admin-only.
 - Global search: navbar dropdown + Cmd/Ctrl-K palette over one shared index
-  (`src/lib/search.ts`) spanning bookings, clients, services, sessions, and nav.
+  (`web/src/lib/search.ts`) spanning bookings, clients, services, sessions, and nav.
 
 **Platform workspace (`/superadmin`)**
 - Overview KPIs, workspaces list + detail, subscriptions, and an inquiries **inbox**
   (read/unread only — no ticket statuses) with a preview modal that can promote a business
   inquiry into a provisioned workspace.
+
+**Backend foundation**
+- Local FastAPI app with liveness/readiness, OpenAPI docs, structured errors and request
+  logging, exact-origin CORS, async PostgreSQL lifecycle, and an Alembic baseline.
+- Docker Compose PostgreSQL with separate owner/application roles. Pytest covers the HTTP
+  contract and failure paths; opt-in integration tests prove readiness and the restricted
+  role boundary.
 
 **Mock data set** — 5 services, 4 form templates, 2 packages, 8 clients, 11 bookings,
 10 sessions, 3 client notes, 9 session action items, 8 platform workspaces, 6 inquiries,
@@ -396,6 +445,14 @@ Written on 2026-07-25 against the working tree at commit `8b80465`. At that poin
 in under a second with `/`, `/booking`, `/login`, and `/booking/manage/demo` all
 returning 200.
 
-The Phase 2/3 planning summary was updated on 2026-07-26. That update changed
-documentation only; the current application state and verification snapshot above still
-refer to commit `8b80465`.
+The Phase 2/3 planning summary was updated on 2026-07-26, followed by the local backend
+foundation described above. For that foundation, isolated pytest reports 9 passed,
+PostgreSQL integration pytest reports 2 passed, Ruff and mypy are clean, the baseline
+Alembic migration applies, and the Compose PostgreSQL service reaches healthy. Frontend
+`npx tsc --noEmit` and `npm run lint` were also rerun after the docs-only integration.
+
+On 2026-07-28 the complete Next.js workspace moved under `web/`. From that directory,
+`npx tsc --noEmit`, `npm run lint`, and `npm run build` pass; the dev server boots on
+`127.0.0.1:3344`, `/`, `/booking`, `/login`, and `/booking/manage/demo` return 200, and an
+unknown route returns 404. Backend isolated pytest, Ruff, mypy, and Compose configuration
+also remain clean after the workspace move.

@@ -5,9 +5,9 @@ description: Use when touching auth, data access, external input, rendering of s
 
 # Security Review
 
-Defensive review for a codebase that has **no real security today and will need real
-security soon**. The job is to keep Phase 1's shortcuts from hardening into Phase 2's
-vulnerabilities.
+Defensive review for a codebase whose backend currently has infrastructure controls but
+**no real identity or domain authorisation yet**. The job is to keep Phase 1's shortcuts
+from hardening into Phase 2's vulnerabilities.
 
 > Skills are the workflow layer; **`docs/RULES.md` is the always-on convention layer and
 > wins on any conflict.**
@@ -22,8 +22,10 @@ State this plainly rather than reviewing as if it weren't:
   `localStorage` into a superadmin session.
 - **Every route protection is cosmetic.** `AuthGuard` trusts what it reads. It is a UX
   affordance, not a boundary — and must be described that way, never as access control.
-- **There is no server**, so no CSRF, no rate limiting, no server-side validation, and no
-  secrets. `.env.local` holds two `NEXT_PUBLIC_*` values, both non-sensitive by design.
+- **The server is foundation-only.** It exposes health/OpenAPI, exact-origin CORS,
+  structured safe errors, and separate migration/application database roles. It has no
+  auth, CSRF, rate limiting, domain input, or production secrets. Frontend
+  `web/.env.local` still holds two non-sensitive `NEXT_PUBLIC_*` values only.
 - **No real payment data exists.** Card forms are formatting-only; nothing is transmitted
   or stored.
 
@@ -58,9 +60,9 @@ verified, and **only a verified payment webhook may confirm a card-funded bookin
 any new logic that depends on "landed on success = paid" as a finding, because it's the
 shortcut most likely to survive into production by inertia.
 
-**4. Storage key ownership.** `slotera.session` is touched only by `src/lib/session.ts`;
-`slotera.register.draft` only by `src/lib/register-draft.ts`; `slotera.lang` only by
-`src/lib/i18n.ts`. Reading or writing these anywhere else is a finding — scattered access
+**4. Storage key ownership.** `slotera.session` is touched only by `web/src/lib/session.ts`;
+`slotera.register.draft` only by `web/src/lib/register-draft.ts`; `slotera.lang` only by
+`web/src/lib/i18n.ts`. Reading or writing these anywhere else is a finding — scattered access
 to auth state is how a "clear on logout" gets missed. Note that the register draft holds a
 password in `sessionStorage` between `/register` and `/register/payment`; that's tolerable
 only because nothing is real, and Phase 2 must not carry the pattern forward.
@@ -72,7 +74,7 @@ applies at a *lower* trust level than client notes, because the audience is the 
 
 ## Phase 2 review checklist
 
-When the backend work starts, these are the things to check on every change:
+As backend work expands beyond health infrastructure, check these on every change:
 
 - **Authorisation is server-side.** Every endpoint re-derives the actor's identity and
   workspace from a verified token. `AuthGuard` stays a UX affordance.

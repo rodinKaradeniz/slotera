@@ -1,0 +1,23 @@
+name: slotera
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: slotera
+      POSTGRES_USER: slotera_owner
+      POSTGRES_PASSWORD: slotera_owner_local
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - slotera-postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slotera_owner -d slotera"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 3s
+
+volumes:
+  slotera-postgres-data:

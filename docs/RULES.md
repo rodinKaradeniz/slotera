@@ -42,19 +42,19 @@ adds 4. Planning adds 5.
 
 2. **Follow the existing pattern; don't add a second way to do something.** This codebase
    has one way to do most things, and each was a decision:
-   - data access → the service layer in `src/services/`, never `src/data/mock/*.json`
+   - data access → the service layer in `web/src/services/`, never `web/src/data/mock/*.json`
      from a component;
-   - class composition → `cn(...)` from `src/lib/cn.ts`, never raw `clsx`;
-   - status tone/label/icon → `src/lib/status-maps.ts`;
-   - icons → the `IconName` union in `src/components/ui/Icon.tsx`, never a direct
+   - class composition → `cn(...)` from `web/src/lib/cn.ts`, never raw `clsx`;
+   - status tone/label/icon → `web/src/lib/status-maps.ts`;
+   - icons → the `IconName` union in `web/src/components/ui/Icon.tsx`, never a direct
      `lucide-react` import at a call site;
-   - card inputs → the formatters in `src/lib/card.ts`;
-   - money → `src/lib/money.ts` (default currency **GBP**);
+   - card inputs → the formatters in `web/src/lib/card.ts`;
+   - money → `web/src/lib/money.ts` (default currency **GBP**);
    - ambient feedback → `toast.*`; blocking confirmation → `ConfirmDialog`. Never
      `window.alert()` or `window.confirm()`;
    - admin edit/create flows → extend `DrawersProvider`, don't add a local modal;
-   - session/local storage keys → the module that owns them (`src/lib/session.ts`,
-     `src/lib/register-draft.ts`, `src/lib/i18n.ts`). One owner per key.
+   - session/local storage keys → the module that owns them (`web/src/lib/session.ts`,
+     `web/src/lib/register-draft.ts`, `web/src/lib/i18n.ts`). One owner per key.
 
    If the existing pattern is genuinely wrong for the case, say so and propose the change
    — don't quietly open a second path.
@@ -84,11 +84,12 @@ adds 4. Planning adds 5.
    Never add the reverse field, and never dual-write. Reverse lookups are filters
    (`listFormsForService`, `listPackagesForService`).
 
-7. **Test what you build, at the boundaries — not just the happy path.** There is no
-   runner yet (see TODO.md §2), so today this means: exercise the failure path, the empty
-   state, and the permission/role path by hand, and say which you exercised. When a runner
-   exists, prove the negative — that the guard throws, that the unknown id 404s, that the
-   role mismatch redirects. A test that only asserts success is close to no test.
+7. **Test what you build, at the boundaries — not just the happy path.** The frontend has
+   no runner yet (see TODO.md §2), so frontend work still exercises failure, empty, and
+   permission/role paths by hand. Backend work uses pytest and must prove the negative —
+   unavailable dependencies fail closed, unauthorised operations are rejected, and
+   unknown resources use the error contract. A test that only asserts success is close to
+   no test.
 
 8. **Update the docs as part of the work, not after it.**
    - new or changed feature → update the `AGENTS.md` snapshot;
@@ -109,7 +110,7 @@ adds 4. Planning adds 5.
 10. **Wrap a swappable third-party dependency behind a local interface and a single
     factory**, so the vendor choice stays a one-file decision. The existing examples:
    `lucide-react` behind `Icon.tsx`, and the whole data layer behind
-   `src/services/*.service.ts` + `src/lib/env.ts`. Phase 2's transactional-email provider
+   `web/src/services/*.service.ts` + `web/src/lib/env.ts`. Phase 2's transactional-email provider
    and Phase 3's payment, scheduled-email, and calendar providers must arrive the same way
    — no provider SDK imported at a call site.
 
@@ -140,7 +141,7 @@ adds 4. Planning adds 5.
    "per the plan's step 4" is meaningless six months later.
 
 3. **Don't assume a filename, type name, or location — check or ask.** The type barrel
-   (`src/types/index.ts`) is incomplete, several services export similarly-named methods
+   (`web/src/types/index.ts`) is incomplete, several services export similarly-named methods
    with different semantics, and route files live under parenthesised group directories.
    Guessing here produces plausible code that doesn't compile, or worse, compiles against
    the wrong module.
@@ -150,15 +151,16 @@ adds 4. Planning adds 5.
    only passed through.
 
 5. **Don't introduce dependencies casually.** A small pure utility goes inline in
-   `src/lib/`. A new package needs a stated reason, a look at what it pulls in, and — if it
+   `web/src/lib/`. A new package needs a stated reason, a look at what it pulls in, and — if it
    is swappable — a local wrapper (Do #10). The current dependency list is short on
    purpose. Related: don't rely on a transitive dependency's presence; if you import it,
    declare it (TODO.md §1 has a live example).
 
 6. **Don't overclaim verification.** State exactly what you ran versus what you read.
    "`npx tsc --noEmit` and `npm run lint` pass; I loaded `/admin/clients/cli-002` and added
-   a note" is useful. "Tested and working" is not, and on a project with no test suite it
-   is false. If you didn't run the app, say you didn't run the app.
+   a note" is useful. For backend work, name the pytest selection, Ruff, mypy, migrations,
+   and whether PostgreSQL was real or stubbed. "Tested and working" is not evidence. If
+   you didn't run the affected process or route, say so.
 
 7. **Don't silently fix something flag-worthy.** A bug outside the task's scope, a doc that
    contradicts the code, a security-relevant assumption — surface it, even if you also fix
@@ -172,10 +174,11 @@ adds 4. Planning adds 5.
    an inquiry status enum; shared resources or client-facing next steps on the booking
    workspace; a redirect-only `page.tsx`; markdown-marker note editing.
 
-9. **Don't build Phase 2 or Phase 3 capabilities into Phase 1.** No backend calls, no real
-   auth, no Stripe, no email provider, no calendar integration — unless explicitly asked.
-   Representing a future capability in the UI (a reminder line, a placeholder link) is the
-   established pattern; implementing it is not.
+9. **Don't let Phase 2 work silently change the Phase 1 demo.** The backend is developed
+   separately under `server/`; no frontend API calls, real auth, Stripe, email provider,
+   or calendar integration enter the mock-backed demo unless a coherent migration bundle
+   is explicitly requested. Representing a future capability in the UI (a reminder line,
+   a placeholder link) remains the established Phase 1 pattern.
 
 10. **Don't expose internal data to client-facing surfaces.** Service notes, session notes,
     client notes, and session action items are operator-only. The public booking flow and
@@ -211,8 +214,10 @@ adds 4. Planning adds 5.
    for and nobody was told about is the expensive kind.
 
 4. **Say what you verified, in the verification vocabulary this project actually has**:
-   `npx tsc --noEmit`, `npm run lint`, `PORT=3344 npm run dev` plus the specific routes you
-   loaded. Distinguish "ran" from "read."
+   from `web/`, frontend uses `npx tsc --noEmit`, `npm run lint`, and
+   `PORT=3344 npm run dev` plus the specific routes loaded; from `server/`, backend uses
+   `uv run pytest`, `uv run pytest -m integration`, `uv run ruff check .`, `uv run mypy`,
+   Alembic, and explicit health probes as applicable. Distinguish "ran" from "read."
 
 5. **Be concrete about what's left.** If the task is 90% done, name the 10% — don't report
    completion and let it surface later.

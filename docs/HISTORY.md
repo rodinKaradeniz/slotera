@@ -25,7 +25,7 @@ thematic sections at the end are living and can be edited in place.
 ### Entry 001 — Scaffold, then a deliberate reset
 
 The project started from `create-next-app` (TypeScript, Tailwind, ESLint, App Router,
-`src/` dir, `@/*` alias, Turbopack, npm). The second substantive commit deleted the
+`web/src/` dir, `@/*` alias, Turbopack, npm). The second substantive commit deleted the
 generated `README.md`, the scaffold's agent docs, and the placeholder SVGs rather than
 editing around them, and replaced the default stylesheet with the project's own tokens.
 
@@ -39,7 +39,7 @@ the first real docs (the product rulebook) unambiguous.
 ### Entry 002 — Design tokens ported to CSS variables, then exposed to Tailwind
 
 The visual language (warm cream paper, deep forest green accent, architectural radii)
-came from a design handoff as a `tokens.css`. It was ported into `src/app/globals.css` as
+came from a design handoff as a `tokens.css`. It was ported into `web/src/app/globals.css` as
 `:root` custom properties, then re-exposed through Tailwind v4's `@theme inline` so the
 tokens generate real utilities (`bg-paper`, `text-ink-3`, `border-line-soft`).
 
@@ -74,7 +74,7 @@ With the renamed classes in place, headings still lost their styling when compos
 **Why:** `tailwind-merge` treats `text-*` as a conflict group covering both font-size and
 color. It knows `text-lg` is a size and `text-ink` is a color for *its own* class list,
 but `text-h1` is unknown, so it was resolved as a color and dropped in favour of the later
-one. `src/lib/cn.ts` now uses `extendTailwindMerge` to register
+one. `web/src/lib/cn.ts` now uses `extendTailwindMerge` to register
 `display / h1 / h2 / h3 / body / body-lg / small / micro` under the `font-size` group.
 
 **Rule this produced:** compose classes with `cn(...)`, never raw `clsx`, anywhere the
@@ -95,7 +95,7 @@ every time. Wrapping the `button` / `input` / `textarea` / `select` / `a` resets
 `@layer base`. When an accent button shows the wrong text colour, check `globals.css`
 layering before touching the button component.
 
-### Entry 006 — Section-root redirects moved to `next.config.ts`
+### Entry 006 — Section-root redirects moved to `web/next.config.ts`
 
 `/admin` and `/superadmin` originally had `page.tsx` files whose only body was a
 server-side `redirect()`. Under Next 16 + Turbopack this tripped a `Performance.measure`
@@ -106,14 +106,14 @@ before any page module is involved, so there is no component to race. It is also
 no page bundle, no render.
 
 **Rule this produced:** never add a `page.tsx` at a route-segment root whose only job is
-to redirect. Add a `next.config.ts` redirect instead. The reason is comment-documented in
-`next.config.ts` so it survives a future "why is this here?" cleanup.
+to redirect. Add a `web/next.config.ts` redirect instead. The reason is comment-documented in
+`web/next.config.ts` so it survives a future "why is this here?" cleanup.
 
 ### Entry 007 — Two roles, two navs, one shell
 
 Superadmin arrived as a separate route group rather than as extra items in the operator
 sidebar. `AppShell` / `Sidebar` / `Topbar` are shared; `OPERATOR_NAV` and
-`SUPERADMIN_NAV` in `src/lib/nav.ts` are not.
+`SUPERADMIN_NAV` in `web/src/lib/nav.ts` are not.
 
 **Why:** the two areas are different mental models — one operator managing their own
 workspace vs. platform staff managing every workspace. Merging the navs would imply the
@@ -212,8 +212,8 @@ creates a `PlatformInquiry`, and creates **no account** — leaving the draft in
 then promote the inquiry to a manually-provisioned workspace from `/superadmin/inquiries`.
 This gave the inquiry inbox a real purpose beyond being a form dump.
 
-`src/lib/register-draft.ts` owns the storage key exclusively, mirroring how
-`src/lib/session.ts` owns `slotera.session`.
+`web/src/lib/register-draft.ts` owns the storage key exclusively, mirroring how
+`web/src/lib/session.ts` owns `slotera.session`.
 
 ### Entry 013 — Inquiries are an inbox, not a ticketing system
 
@@ -406,8 +406,8 @@ relationships. API integration therefore happens in coherent route bundles while
 unfinished paths keep throwing explicitly.
 
 FastAPI's OpenAPI document is the HTTP contract. Generated TypeScript transport DTOs live
-under `src/api/generated/` and are imported only by the service/API layer, which maps them
-to the established component-facing types under `src/types/`. Generating a second set of
+under `web/src/api/generated/` and are imported only by the service/API layer, which maps them
+to the established component-facing types under `web/src/types/`. Generating a second set of
 domain types used throughout components was rejected; transport and domain shapes differ
 legitimately because current UI types contain derived/demo fields.
 
@@ -503,6 +503,79 @@ management, retention/export, and anonymisation-based erasure. Financial facts m
 retained where required, but PII is stored so it can be removed rather than embedded in
 append-only event text. Rich-text client notes must be allow-list sanitised on server write
 and defensively on render as soon as they arrive over the API.
+
+### Entry 021 — The backend starts with a proven local foundation, not domain scaffolding
+
+*2026-07-26.* Phase 2 implementation began under `server/` as an independently runnable
+Python 3.13 project. `uv` owns dependency resolution and the committed lockfile; FastAPI
+owns HTTP/OpenAPI; SQLAlchemy uses its async engine/session factory; Alembic uses the
+official async migration bridge; pytest, Ruff, and strict mypy are the backend gates.
+This is still one modular application and one PostgreSQL database. No frontend service
+was pointed at it, so the portfolio/demo remains deterministic and mock-backed.
+
+**Why establish HTTP and operational contracts first:** identity and booking code will
+otherwise invent request ids, errors, database ownership, health semantics, and OpenAPI
+naming while implementing product behaviour. The foundation now gives every response a
+generated `X-Request-ID`, serialises known and unknown failures through one camelCase
+error envelope, redacts unexpected exception messages, emits structured request logs,
+and gives health operations explicit stable ids. Liveness never touches PostgreSQL;
+readiness fails closed when PostgreSQL is unavailable.
+
+**Why two database roles immediately:** migrations connect as `slotera_owner`; the API
+connects as `slotera_app`. The Compose bootstrap grants the app role data-operation
+defaults but no schema creation. An integration test proves that readiness works through
+that role and that `CREATE TABLE` is rejected. This does not yet claim tenant isolation —
+RLS can only be implemented and schema-tested when tenant tables arrive — but it prevents
+the common failure where future RLS appears configured while a table-owning runtime role
+bypasses it.
+
+**Local isolation:** the Compose project is explicitly named `slotera`, and PostgreSQL is
+bound only to `127.0.0.1:55432`. The non-default host port was chosen after verification
+found another healthy project already using `5432`; stopping or reconfiguring that project
+was outside Slotera's scope. PostgreSQL remains on `5432` inside its own container.
+
+**Seed importer deferred one milestone:** the original foundation list included a seed
+importer. With no domain tables, natural keys, upsert rules, or foreign-key ordering, a
+"generic importer" would be a placeholder whose interface is likely to be rewritten.
+It will land with identity/tenancy and the first model-backed resources, where fixture
+mapping and repeatable conflict semantics can be tested. The empty baseline migration is
+deliberate for the same reason: migration infrastructure is real; speculative schema is
+not.
+
+**Rejected alternatives:** Poetry/pip requirements would add a second less-familiar
+dependency workflow despite `uv` already being available; a wildcard CORS origin is
+incompatible with credentialed browser requests and is rejected by settings validation;
+connecting the app as the database owner would make later RLS defence-in-depth illusory.
+The decisions turn primarily on maintainability and security, not throughput. They would
+be revisited if the backend were split into independently deployed services or if a
+deployment platform imposed a different package/runtime contract.
+
+### Entry 022 — The Next.js application moved under `web/`
+
+*2026-07-28.* Once `server/` became a real workspace, leaving the Next.js package, source,
+configuration, and local build state loose at the repository root made the root look like
+the frontend rather than the shared Slotera workspace. The entire Next.js project moved
+as one unit under `web/`: package manifests, environment files, Next/TypeScript/ESLint/
+PostCSS configuration, `public/`, `src/`, dependencies, and local build caches. Internal
+`@/*` imports did not change because `web/tsconfig.json` and `web/src/` moved together.
+
+**Why `web`, not `client`:** Slotera already plans a future native client and will generate
+an API client from OpenAPI. Calling the Next.js application `client` would make all three
+meanings compete. `web` identifies the delivery surface exactly and leaves `mobile/` or a
+generated client package unambiguous if either appears later.
+
+**Why not `apps/web` + `apps/api`:** that layout is useful when a monorepo has several
+deployable applications, shared packages, and root-level orchestration. Today it would
+rename and move a working Python service merely for symmetry, while npm and uv still need
+separate toolchains. The repository therefore uses the deliberately shallow
+`web/` + `server/` split, with shared `docs/`, `skills/`, and `AGENTS.md` at root. Revisit
+`apps/*` if Slotera gains multiple additional deployables or shared build orchestration
+that materially benefits from it.
+
+There is intentionally no root npm workspace or proxy script. Frontend commands run from
+`web/`; backend commands run from `server/`. Explicit working directories keep each
+toolchain independently reproducible and avoid a root abstraction with only two commands
+behind it.
 
 ---
 

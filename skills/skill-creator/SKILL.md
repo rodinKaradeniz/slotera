@@ -33,7 +33,7 @@ Two more disqualifiers:
 - **Used once.** Codify on the second or third recurrence, not the first. A skill written
   from a single instance encodes that instance's accidents.
 - **Better as code.** A convention you can enforce with a lint rule, a type, or a shared
-  helper should be enforced there. `src/lib/cn.ts` is a convention made unbreakable —
+  helper should be enforced there. `web/src/lib/cn.ts` is a convention made unbreakable —
   worth more than a document asking people to remember.
 
 ## Format
@@ -74,10 +74,10 @@ Lead with "Use when…" and name the concrete situations.
 ignored in favour of general judgment, because it adds nothing. Name real files, real
 commands, real invariants:
 
-- the real commands (`npx tsc --noEmit`, `npm run lint`, `PORT=3344 npm run dev`) — and
-  the fact that there is no test runner;
-- real paths (`src/services/*.service.ts`, `src/lib/status-maps.ts`,
-  `src/components/ui/Icon.tsx`);
+- the real commands (frontend type-check/lint/dev routes and backend pytest/Ruff/mypy/
+  Alembic) — including which workspace still has no test runner;
+- real paths (`web/src/services/*.service.ts`, `web/src/lib/status-maps.ts`,
+  `web/src/components/ui/Icon.tsx`);
 - real constraints (the mock/api guard, single-sourced relationships, the
   `dangerouslySetInnerHTML` trust assumption, internal notes never reaching clients).
 

@@ -11,23 +11,33 @@ is about writing the other kind.
 > Skills are the workflow layer; **`docs/RULES.md` is the always-on convention layer and
 > wins on any conflict.**
 
-## Read this first: there is no test runner yet
+## Read this first: testing is split by workspace
 
-This project has **no test runner, no test files, and no CI** — see `docs/TODO.md` §2.
-That has two consequences:
+The frontend has **no test runner or test files** — see `docs/TODO.md` §2. Adding one is a
+dependency decision, and frontend verification remains manual failure/empty/permission
+exercise plus type-check and lint.
 
-1. **Adding one is a dependency decision**, not a side effect of a task. Propose it, name
-   the runner and why, and get agreement before installing. Don't arrive at a feature
-   request with a testing framework attached.
-2. **Until then, "testing" means manual exercise** — and the discipline below still
-   applies to *which* cases you exercise. Run the failure path and the empty state, not
-   just the happy one, and say in your summary which you actually loaded.
+The backend under `server/` already uses pytest + pytest-asyncio, Ruff, and strict mypy.
+Its default pytest run excludes `integration`; `pytest -m integration` requires the local
+Compose PostgreSQL service. Add backend tests at the boundary being introduced and keep
+live-database assertions separate from isolated HTTP/configuration tests.
 
 ## What is worth testing here
 
 Ranked by how silently the bug would fail:
 
-**1. Pure helpers in `src/lib/`** — the cheapest, highest-yield targets.
+**Backend foundations and invariants** — use `server/tests/`.
+- Liveness must not depend on PostgreSQL; readiness must fail closed when it cannot reach
+  PostgreSQL.
+- HTTP failures keep the shared error envelope and request id without exposing unexpected
+  exception messages.
+- Database integration tests prove permissions and invariants against PostgreSQL rather
+  than replacing them with mocks. RLS policy coverage becomes mandatory with the first
+  tenant tables.
+- OpenAPI operation ids and transport-facing field aliases stay stable once consumed by
+  generated frontend types.
+
+**1. Pure helpers in `web/src/lib/`** — the cheapest, highest-yield targets.
 - `card.ts` — `formatCardNumber`, `formatCardExpiry`, `formatCardCvc`,
   `isValidCardExpiry`, `parseCardExpiry`, `detectCardBrand`. Partial input, over-length
   input, non-digits, an expiry in the past, an expiry this month.
