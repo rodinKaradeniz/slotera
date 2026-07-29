@@ -132,7 +132,8 @@ resolves the role from the email address:
 Authentication is cookie-backed and the operator lands on `/admin/calendar`; Calendar,
 Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are exposed in API-mode navigation.
 Calendar uses persisted sessions and services, while its booking/client, attendance, and
-session-action-item context remains mock-only until the operator-core bundle lands.
+attendance context remains mock-only until their operator-core bundles land. Session action
+items are persisted and available in the existing Notes & Actions drawer.
 Superadmin resource pages, public booking, registration/reset, and the remaining operator
 routes are not API-wired yet.
 
@@ -228,7 +229,7 @@ export async function listThings(): Promise<T[]> {
 
 - `dataSource` comes from `NEXT_PUBLIC_DATA_SOURCE` via `web/src/lib/env.ts` and defaults to
   `"mock"`. Auth/session, business settings/saved locations, services, notifications,
-  availability, sessions, clients, and booking reads have API adapters; other methods still throw
+  availability, sessions, clients, booking reads, and session action items have API adapters; other methods still throw
   `NotImplementedError` in API mode.
 - FastAPI OpenAPI is exported to `web/src/api/generated/` by `npm run generate:api`.
   Generated DTOs stay inside the API/service boundary and are mapped to `web/src/types/`.
@@ -274,6 +275,8 @@ implemented HTTP surface is deliberately limited to:
   buffers, notice/advance limits, and blackout ranges;
 - `GET/POST /sessions` plus item `GET/PATCH` — one-off and recurring materialised
   sessions, including explicit `this` / `this_and_following` edit scope;
+- `GET/POST /sessions/{session_id}/action-items` plus item `PATCH/DELETE` — private
+  operator session tasks with persisted `todo`/`done` state;
 - `/openapi.json` and `/docs` — the future generated-transport contract.
 
 Every response receives a generated `X-Request-ID`. HTTP, validation, application, and
@@ -478,7 +481,8 @@ Present tense — what exists in the working tree today.
   attached to services), and Settings (Business Profile incl. saved locations, Branding,
   Client Payments, Billing & Subscription, Calendar, Emails, Account).
 - Session drawer carries a "Notes & Actions" tab: one internal note plus lightweight
-  action items, both admin-only.
+  action items, both admin-only. API mode persists the action-item list, its task status,
+  optional due date, and future-only `clientVisible` flag.
 - Client Notes persist in API mode as separate internal entries; stored rich text is
   server-sanitised and defensively sanitised again before rendering.
 - Global search: navbar dropdown + Cmd/Ctrl-K palette over one shared index
@@ -523,6 +527,8 @@ Present tense — what exists in the working tree today.
 - Client-note CRUD persists separate, internal operator context under forced RLS and audit
   events. The API strips all HTML attributes and non-editor markup before storage; no
   public response exposes client notes.
+- Session action items persist as separate session-owned operator tasks under forced RLS
+  and audit events. `clientVisible` is stored but has no public/client transport effect.
 
 **Mock data set** — 5 services, 4 form templates, 2 packages, 8 clients, 11 bookings,
 10 sessions, 3 client notes, 9 session action items, 8 platform workspaces, 6 inquiries,
@@ -663,3 +669,14 @@ routes expose no note data. `uv run alembic upgrade head` applied the revision; 
 strict mypy pass; isolated pytest reports 28 passed and PostgreSQL integration pytest
 reports 28 passed. `npm run generate:api`, `npx tsc --noEmit`, `npm run lint`, and
 `npm run build` also pass.
+
+Later on 2026-07-29, session-action-items revision `20260729_0011` added tenant-scoped,
+session-owned operator tasks with forced RLS, audit events, and CSRF-protected CRUD. The
+generated transport now enables the existing API-mode Calendar Notes & Actions manager;
+the stored `clientVisible` flag has no public/client transport effect. `uv run alembic
+upgrade head` reached `20260729_0011 (head)` and the repeat seed inserted zero rows.
+Backend isolated pytest reports 28 passed, PostgreSQL integration pytest reports 29
+passed, and Ruff/strict mypy are clean. `npm run generate:api`, `npx tsc --noEmit`,
+`npm run lint`, and `npm run build` pass. An attempted fresh `./scripts/dev --api` could
+not bind ports 8000/3344 because listeners already occupied them; read-only probes of the
+existing listeners returned 200 for `/openapi.json` and `/admin/calendar`.

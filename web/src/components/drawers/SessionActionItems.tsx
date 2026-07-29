@@ -102,7 +102,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       ),
     );
     try {
-      await toggleActionItemStatus(item.id);
+      await toggleActionItemStatus(item.id, item.status);
     } catch (err) {
       onChange(snapshot);
       toast.error("Couldn't update item", {

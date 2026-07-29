@@ -321,6 +321,24 @@ export interface paths {
         patch: operations["updateService"];
         trace?: never;
     };
+    "/session-action-items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Session Action Item */
+        delete: operations["deleteSessionActionItem"];
+        options?: never;
+        head?: never;
+        /** Update Session Action Item */
+        patch: operations["updateSessionActionItem"];
+        trace?: never;
+    };
     "/sessions": {
         parameters: {
             query?: never;
@@ -355,6 +373,24 @@ export interface paths {
         head?: never;
         /** Update Session */
         patch: operations["updateSession"];
+        trace?: never;
+    };
+    "/sessions/{session_id}/action-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Session Action Items */
+        get: operations["listSessionActionItems"];
+        put?: never;
+        /** Create Session Action Item */
+        post: operations["createSessionActionItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/settings/business": {
@@ -1251,6 +1287,76 @@ export interface components {
             notes: string | null;
             /** Pricecents */
             priceCents: number;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** SessionActionItemCreate */
+        SessionActionItemCreate: {
+            /**
+             * Clientvisible
+             * @default false
+             */
+            clientVisible: boolean;
+            /** Description */
+            description?: string | null;
+            /** Duedate */
+            dueDate?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** SessionActionItemListResponse */
+        SessionActionItemListResponse: {
+            /** Items */
+            items: components["schemas"]["SessionActionItemResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** SessionActionItemPatch */
+        SessionActionItemPatch: {
+            /** Clientvisible */
+            clientVisible?: boolean | null;
+            /** Description */
+            description?: string | null;
+            /** Duedate */
+            dueDate?: string | null;
+            /** Status */
+            status?: ("todo" | "done") | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** SessionActionItemResponse */
+        SessionActionItemResponse: {
+            /** Clientvisible */
+            clientVisible: boolean;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Description */
+            description: string | null;
+            /** Duedate */
+            dueDate: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Sessionid
+             * Format: uuid
+             */
+            sessionId: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "todo" | "done";
+            /** Title */
+            title: string;
             /**
              * Updatedat
              * Format: date-time
@@ -2326,6 +2432,70 @@ export interface operations {
             };
         };
     };
+    deleteSessionActionItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateSessionActionItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionActionItemPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionActionItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listSessions: {
         parameters: {
             query?: {
@@ -2451,6 +2621,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SchedulingSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listSessionActionItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionActionItemListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createSessionActionItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionActionItemCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionActionItemResponse"];
                 };
             };
             /** @description Validation Error */

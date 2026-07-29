@@ -14,6 +14,7 @@ from slotera_api.api.health import router as health_router
 from slotera_api.api.notifications import router as notifications_router
 from slotera_api.api.operator_resources import services_router, settings_router
 from slotera_api.api.scheduling import availability_router, sessions_router
+from slotera_api.api.session_action_items import router as session_action_items_router
 from slotera_api.auth.service import AuthServiceProtocol, create_auth_service
 from slotera_api.config import Settings, get_settings
 from slotera_api.database import Database, DatabaseLifecycle
@@ -68,6 +69,7 @@ def create_app(
     app.include_router(services_router)
     app.include_router(availability_router)
     app.include_router(sessions_router)
+    app.include_router(session_action_items_router)
     return app
 
 

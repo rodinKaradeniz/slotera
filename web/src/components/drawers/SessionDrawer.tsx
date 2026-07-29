@@ -122,7 +122,7 @@ export function SessionDrawer({
   // body directly (attendance) and keep notes inline in the details form.
   const canShowAttendance =
     dataSource === "mock" && isEdit && (initial?.capacity ?? 0) > 1;
-  const canShowActionItems = dataSource === "mock";
+  const canShowActionItems = isEdit;
   const showTabs = isEdit;
   const [tab, setTab] = React.useState<"details" | "notes" | "attendance">(
     "details",
@@ -145,7 +145,7 @@ export function SessionDrawer({
 
   // Load action items for the open session so the tab badge + panel stay in sync.
   React.useEffect(() => {
-    if (!open || !initial || dataSource === "api") {
+    if (!open || !initial) {
       setActionItems([]);
       return;
     }

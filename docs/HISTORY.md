@@ -875,6 +875,25 @@ specific content-security design.
 
 ---
 
+### Entry 035 — Session action items remain session-bound operator tasks
+
+*2026-07-29.* Session action items persist as tenant-scoped rows with an owning session,
+not as a generic workspace task system. They use ordinary item `PATCH` for an explicit
+`todo`/`done` status change, rather than a second toggle command, so web and future clients
+share one patch contract. The Calendar drawer keeps the existing small interaction model.
+
+`clientVisible` is stored deliberately because the mock domain already represented it, but
+it changes no authorisation or transport: no public or client-booking response exposes an
+action item. The resource is protected by the normal operator session, CSRF, forced RLS,
+and audit-event boundaries.
+
+**Alternative rejected:** a generic task/assignee/reminder system or public sharing based
+on `clientVisible`. Either would turn an operator session aid into a CRM/project board and
+would weaken the standing operator/client boundary. Revisit only if a deliberate future
+product surface needs cross-session ownership or client task access.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

@@ -304,8 +304,17 @@ built and exercised separately.
      persist under RLS with audit events, CSRF-protected mutations, allow-listed HTML
      sanitisation on write, defensive browser sanitisation on render, and an API-mode
      Notes tab. They remain operator-only.
-   - Booking creation/cancellation/status commands, form responses, session action items,
-     attendance, and operator-created manual bookings.
+   - **~~Session action items.~~ DONE.** Operator-only task entries now persist against
+     real sessions under RLS, with CSRF-protected CRUD/status changes, audit events, and
+     API-mode Calendar drawer support. `clientVisible` remains a stored future flag and
+     does not expose an item to any public or client-booking response.
+   - **Booking capacity-consumption rules and booking commands.** Create/cancel/status and
+     operator-created manual booking commands must arrive with transaction-safe counting
+     and locking for capacity-consuming bookings/holds; do not add either independently.
+   - **Attendance.** Attendance depends on real capacity-consuming bookings and remains
+     deferred until the booking-command bundle is complete.
+   - **Form responses.** Persisted public/post-booking form answers belong with the real
+     public booking transaction, not the operator-template CRUD bundle.
 7. Public booking: public catalog/availability, free/manual booking transactions, tax
    snapshots, idempotency, and expiry.
 8. Transactional email and booking workspace: outbox worker, confirmation/magic links,

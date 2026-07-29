@@ -4,7 +4,9 @@ from enum import StrEnum
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -43,6 +45,7 @@ TENANT_TABLES = frozenset(
         "form_templates",
         "form_template_services",
         "client_notes",
+        "session_action_items",
     }
 )
 
@@ -99,6 +102,11 @@ class PaymentStatus(StrEnum):
 class FormStatus(StrEnum):
     ACTIVE = "active"
     INACTIVE = "inactive"
+
+
+class SessionActionItemStatus(StrEnum):
+    TODO = "todo"
+    DONE = "done"
 
 
 def _enum_values(enum_type: type[StrEnum]) -> list[str]:
@@ -624,6 +632,43 @@ class ClientNote(Base):
     )
 
 
+class SessionActionItem(Base):
+    __tablename__ = "session_action_items"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["workspace_id", "session_id"],
+            ["sessions.workspace_id", "sessions.id"],
+            ondelete="CASCADE",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    session_id: Mapped[UUID] = mapped_column(index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    description: Mapped[str | None] = mapped_column(String(1000))
+    status: Mapped[SessionActionItemStatus] = mapped_column(
+        Enum(
+            SessionActionItemStatus,
+            name="session_action_item_status",
+            values_callable=_enum_values,
+        ),
+        server_default=text("'todo'"),
+    )
+    due_date: Mapped[date | None] = mapped_column(Date)
+    client_visible: Mapped[bool] = mapped_column(
+        Boolean, server_default=text("false")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class Notification(Base):
     __tablename__ = "notifications"
     __table_args__ = (
@@ -690,6 +735,8 @@ __all__ = [
     "Service",
     "ServiceBookingMode",
     "Session",
+    "SessionActionItem",
+    "SessionActionItemStatus",
     "SessionSeries",
     "SessionStatus",
     "User",
