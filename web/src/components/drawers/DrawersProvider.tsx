@@ -6,6 +6,7 @@ import { SessionDrawer, type SessionDrawerProps } from "./SessionDrawer";
 import { ServiceDrawer, type ServiceDrawerProps } from "./ServiceDrawer";
 import { FormDrawer, type FormDrawerProps } from "./FormDrawer";
 import { PackageDrawer, type PackageDrawerProps } from "./PackageDrawer";
+import { ClientDrawer, type ClientDrawerProps } from "./ClientDrawer";
 
 type State =
   | { type: "none" }
@@ -13,6 +14,7 @@ type State =
   | { type: "session"; props: Omit<SessionDrawerProps, "open" | "onClose"> }
   | { type: "service"; props: Omit<ServiceDrawerProps, "open" | "onClose"> }
   | { type: "form"; props: Omit<FormDrawerProps, "open" | "onClose"> }
+  | { type: "client"; props: Omit<ClientDrawerProps, "open" | "onClose"> }
   | {
       type: "package";
       props: Omit<PackageDrawerProps, "open" | "onClose">;
@@ -23,6 +25,7 @@ type Ctx = {
   openSessionDrawer: (props?: Omit<SessionDrawerProps, "open" | "onClose">) => void;
   openServiceDrawer: (props?: Omit<ServiceDrawerProps, "open" | "onClose">) => void;
   openFormDrawer: (props?: Omit<FormDrawerProps, "open" | "onClose">) => void;
+  openClientDrawer: (props?: Omit<ClientDrawerProps, "open" | "onClose">) => void;
   openPackageDrawer: (
     props?: Omit<PackageDrawerProps, "open" | "onClose">,
   ) => void;
@@ -50,6 +53,8 @@ export function DrawersProvider({ children }: { children: React.ReactNode }) {
         setState({ type: "service", props }),
       openFormDrawer: (props = {}) =>
         setState({ type: "form", props }),
+      openClientDrawer: (props = {}) =>
+        setState({ type: "client", props }),
       openPackageDrawer: (props = {}) =>
         setState({ type: "package", props }),
       close: () => setState({ type: "none" }),
@@ -79,6 +84,11 @@ export function DrawersProvider({ children }: { children: React.ReactNode }) {
         open={state.type === "form"}
         onClose={value.close}
         {...(state.type === "form" ? state.props : {})}
+      />
+      <ClientDrawer
+        open={state.type === "client"}
+        onClose={value.close}
+        {...(state.type === "client" ? state.props : {})}
       />
       <PackageDrawer
         open={state.type === "package"}

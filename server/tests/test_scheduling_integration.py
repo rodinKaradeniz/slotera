@@ -31,6 +31,10 @@ def _csrf_headers(client: AsyncClient) -> dict[str, str]:
 async def _clear_demo_sessions(owner: Database) -> None:
     async with owner.transaction() as session:
         await session.execute(
+            text("DELETE FROM bookings WHERE workspace_id = :workspace_id"),
+            {"workspace_id": DEMO_SEED.workspace.id},
+        )
+        await session.execute(
             text("DELETE FROM sessions WHERE workspace_id = :workspace_id"),
             {"workspace_id": DEMO_SEED.workspace.id},
         )

@@ -15,6 +15,30 @@ type LocationResponseDto = components["schemas"]["WorkspaceLocationResponse"];
 type LocationCreateDto = components["schemas"]["WorkspaceLocationCreate"];
 type LocationPatchDto = components["schemas"]["WorkspaceLocationPatch"];
 type LocationListDto = components["schemas"]["WorkspaceLocationListResponse"];
+type AvailabilityResponseDto = components["schemas"]["AvailabilityResponse"];
+type AvailabilityUpdateDto = components["schemas"]["AvailabilityUpdate"];
+
+export type AvailabilityWindow = {
+  dayOfWeek: number;
+  startLocal: string;
+  endLocal: string;
+};
+
+export type AvailabilitySettings = {
+  timezone: string;
+  weeklyHours: AvailabilityWindow[];
+  slotIntervalMin: number;
+  bufferBeforeMin: number;
+  bufferAfterMin: number;
+  minimumNoticeMin: number;
+  maximumAdvanceDays: number;
+  blackouts: {
+    id?: string;
+    startsAt: string;
+    endsAt: string;
+    reason?: string;
+  }[];
+};
 
 export type BusinessSettings = SettingsData["business"];
 
@@ -67,6 +91,106 @@ function mapBusiness(
     bookingPageEnabled: business.bookingPageEnabled,
     locations,
   };
+}
+
+function mapAvailability(availability: AvailabilityResponseDto): AvailabilitySettings {
+  return {
+    timezone: availability.timezone,
+    weeklyHours: availability.weeklyHours.map((window) => ({
+      dayOfWeek: window.dayOfWeek,
+      startLocal: window.startLocal,
+      endLocal: window.endLocal,
+    })),
+    slotIntervalMin: availability.slotIntervalMin,
+    bufferBeforeMin: availability.bufferBeforeMin,
+    bufferAfterMin: availability.bufferAfterMin,
+    minimumNoticeMin: availability.minimumNoticeMin,
+    maximumAdvanceDays: availability.maximumAdvanceDays,
+    blackouts: availability.blackouts.map((blackout) => ({
+      id: blackout.id,
+      startsAt: blackout.startsAt,
+      endsAt: blackout.endsAt,
+      reason: blackout.reason ?? undefined,
+    })),
+  };
+}
+
+function availabilityPayload(input: AvailabilitySettings): AvailabilityUpdateDto {
+  return {
+    timezone: input.timezone,
+    weeklyHours: input.weeklyHours.map((window) => ({
+      dayOfWeek: window.dayOfWeek,
+      startLocal: window.startLocal,
+      endLocal: window.endLocal,
+    })),
+    slotIntervalMin: input.slotIntervalMin,
+    bufferBeforeMin: input.bufferBeforeMin,
+    bufferAfterMin: input.bufferAfterMin,
+    minimumNoticeMin: input.minimumNoticeMin,
+    maximumAdvanceDays: input.maximumAdvanceDays,
+    blackouts: input.blackouts.map((blackout) => ({
+      startsAt: blackout.startsAt,
+      endsAt: blackout.endsAt,
+      reason: blackout.reason ?? null,
+    })),
+  };
+}
+
+function mockAvailability(): AvailabilitySettings {
+  return {
+    timezone: "Europe/Berlin",
+    weeklyHours: mock.calendar.workingHours
+      .map((day, index) => ({
+        dayOfWeek: index + 1,
+        startLocal: day.start,
+        endLocal: day.end,
+        enabled: day.enabled,
+      }))
+      .filter((window) => window.enabled)
+      .map(({ enabled: _enabled, ...window }) => window),
+    slotIntervalMin: 30,
+    bufferBeforeMin: 0,
+    bufferAfterMin: 0,
+    minimumNoticeMin: 60,
+    maximumAdvanceDays: 90,
+    blackouts: [],
+  };
+}
+
+export async function getAvailabilitySettings(): Promise<AvailabilitySettings> {
+  if (dataSource === "api") {
+    return mapAvailability(await apiRequest<AvailabilityResponseDto>("/availability"));
+  }
+  await sleep(60);
+  return mockAvailability();
+}
+
+export async function updateAvailabilitySettings(
+  input: AvailabilitySettings,
+): Promise<AvailabilitySettings> {
+  if (dataSource === "api") {
+    return mapAvailability(
+      await apiRequest<AvailabilityResponseDto, AvailabilityUpdateDto>(
+        "/availability",
+        { method: "PUT", body: availabilityPayload(input), csrf: true },
+      ),
+    );
+  }
+  await sleep(120);
+  const windowsByDay = new Map(input.weeklyHours.map((window) => [window.dayOfWeek, window]));
+  mock = {
+    ...mock,
+    calendar: {
+      ...mock.calendar,
+      workingHours: mock.calendar.workingHours.map((day, index) => {
+        const window = windowsByDay.get(index + 1);
+        return window
+          ? { ...day, enabled: true, start: window.startLocal, end: window.endLocal }
+          : { ...day, enabled: false };
+      }),
+    },
+  };
+  return mockAvailability();
 }
 
 export async function getSettings(): Promise<SettingsData> {

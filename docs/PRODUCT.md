@@ -43,9 +43,9 @@ requirement. Phase 2's explicit local `api` mode is separate from this demo cont
 PostgreSQL, SQLAlchemy, Alembic, and Docker Compose under `server/`. The infrastructure
 foundation, identity/tenancy persistence, backend auth/session, business settings, saved
 locations, services, the structured notification baseline, generated OpenAPI transport
-types, the first coherent operator frontend wiring, and the backend scheduling foundation
-(workspace availability, materialised recurrence, sessions, and database overlap
-enforcement) exist. The
+types, coherent operator frontend wiring, and the scheduling bundle (workspace
+availability, materialised recurrence, sessions, database overlap enforcement, Calendar,
+and Calendar Settings) exist. The
 public portfolio/demo deployment stays mock-backed; the API is developed and exercised in
 a separate local/API environment. Real public bookings include durable transactional
 confirmation + booking-workspace magic-link email through a PostgreSQL outbox worker.
@@ -105,7 +105,7 @@ await sleep(N);                 // simulated latency
 return ...                      // returns from / mutates an in-memory copy of web/src/data/mock/*.json
 ```
 
-`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The first API bundle implements auth/session, business settings, saved locations, services, and notifications through `web/src/api/client.ts`; every other API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
+`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The wired API bundles implement auth/session, business settings/saved locations, services, notifications, availability, and sessions through `web/src/api/client.ts`; every other API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
 
 `getDashboard()` is the only service that composes from other services live: it imports `listBookings()` and `listSessions()` to compute the "Record attendance for N sessions" pending action and prepend it to the seeded `pendingActions`. Other services should stay self-contained unless they need similar live-derived state.
 
@@ -423,6 +423,11 @@ Intentionally more editorial than generic SaaS. **Keep:**
 
 ### Bookings
 
+The local API baseline is an operator read-only ledger. It displays persisted booking,
+client, session, service, and monetary snapshot data; no API-mode control may create,
+edit, cancel, confirm, or mark attendance yet. Those are transactional commands and wait
+for the capacity, payment, and attendance milestones.
+
 - Grouped into status accordions in order: **Pending → Confirmed → Completed → No-show → Cancelled**.
 - Accordion headers: color-coded dot + bold label + count + a muted truncated preview like `Maya 10:00 · John 14:30 · +6 more`. **No status badges in headers** — the dot is the indicator.
 - Row-level edit/cancel icons stay removed. Use the `BookingDrawer` for everything.
@@ -462,7 +467,14 @@ type WorkspaceLocation = { id; label; address };
 
 ### Clients
 
-The client detail page (`/admin/clients/[id]`) is a focused two-tab workspace, **not** a CRM:
+The local API client baseline stores only tenant-scoped profile/contact data. A client has
+a stable UUID and a normalized email that is unique per workspace; clients never
+authenticate. Booking totals, activity tags, recent bookings, and the rich-text Notes tab
+remain unavailable in API mode until their backing resources exist—do not synthesize them
+from mock fixtures.
+
+In mock mode, the client detail page (`/admin/clients/[id]`) is a focused two-tab workspace,
+**not** a CRM. API mode currently renders the persisted-profile Overview only:
 
 - **Real-data identity:** every client has a stable UUID `clientId`; bookings point to it.
   Normalised email remains required and unique within a workspace so public repeat

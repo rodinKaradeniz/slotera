@@ -23,7 +23,7 @@ export function WorkingHoursForm({ value, onChange, disabled }: Props) {
     <fieldset disabled={disabled} className="flex flex-col gap-2 disabled:opacity-90">
       {value.map((h, i) => (
         <div
-          key={h.day}
+          key={`${h.day}-${i}`}
           className="grid grid-cols-[60px_auto_1fr_1fr] items-center gap-3 py-2"
         >
           <div className="text-[14px] font-medium text-ink">{h.day}</div>

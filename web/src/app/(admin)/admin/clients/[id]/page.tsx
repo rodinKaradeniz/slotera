@@ -23,6 +23,7 @@ import { listSessions } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
 import { gbp } from "@/lib/money";
 import { fmtDate } from "@/lib/time";
+import { dataSource } from "@/lib/env";
 import type { Client } from "@/types/client";
 import type { Booking } from "@/types/booking";
 import type { Service } from "@/types/service";
@@ -33,7 +34,7 @@ type Tab = "overview" | "notes";
 export default function ClientDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { openBookingDrawer } = useDrawers();
+  const { openBookingDrawer, openClientDrawer } = useDrawers();
   const [client, setClient] = React.useState<Client | null>(null);
   const [bookings, setBookings] = React.useState<Booking[]>([]);
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
@@ -44,18 +45,29 @@ export default function ClientDetailPage() {
   React.useEffect(() => {
     if (!params?.id) return;
     let live = true;
-    Promise.all([
-      getClient(params.id),
-      listBookingsByClient(params.id),
-      listSessions(),
-      listServices(),
-    ]).then(([c, b, s, sv]) => {
+    const load = async () => {
+      if (dataSource === "api") {
+        const c = await getClient(params.id);
+        if (!live) return;
+        setClient(c);
+        setBookings([]);
+        setSessions([]);
+        setServices([]);
+        return;
+      }
+      const [c, b, s, sv] = await Promise.all([
+        getClient(params.id),
+        listBookingsByClient(params.id),
+        listSessions(),
+        listServices(),
+      ]);
       if (!live) return;
       setClient(c);
       setBookings(b);
       setSessions(s);
       setServices(sv);
-    });
+    };
+    void load();
     return () => {
       live = false;
     };
@@ -104,22 +116,34 @@ export default function ClientDetailPage() {
             }
             actions={
               <>
-                <Button variant="secondary" size="md" icon="mail">
-                  Email
-                </Button>
                 <Button
-                  variant="primary"
+                  variant="secondary"
                   size="md"
-                  icon="plus"
+                  icon="edit"
                   onClick={() =>
-                    openBookingDrawer({
-                      defaultClientId: client.id,
-                      onSaved: () => setReload((k) => k + 1),
+                    openClientDrawer({
+                      initial: client,
+                      onSaved: setClient,
                     })
                   }
                 >
-                  Book a session
+                  Edit client
                 </Button>
+                {dataSource === "mock" && (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    icon="plus"
+                    onClick={() =>
+                      openBookingDrawer({
+                        defaultClientId: client.id,
+                        onSaved: () => setReload((k) => k + 1),
+                      })
+                    }
+                  >
+                    Book a session
+                  </Button>
+                )}
               </>
             }
           />
@@ -130,7 +154,7 @@ export default function ClientDetailPage() {
               onChange={(v) => setTab(v as Tab)}
               tabs={[
                 { value: "overview", label: "Overview" },
-                { value: "notes", label: "Notes" },
+                ...(dataSource === "mock" ? [{ value: "notes", label: "Notes" }] : []),
               ]}
             />
           </div>
@@ -241,9 +265,9 @@ export default function ClientDetailPage() {
                 </Card>
               </div>
             </div>
-          ) : (
+          ) : dataSource === "mock" ? (
             <ClientNotes clientId={client.id} />
-          )}
+          ) : null}
         </>
       )}
     </PageContainer>

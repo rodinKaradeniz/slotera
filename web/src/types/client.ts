@@ -18,4 +18,7 @@ export type Client = {
   totalSpentCents: number;
 };
 
-export type ClientInput = Omit<Client, "id" | "joinedISO">;
+export type ClientInput = Pick<
+  Client,
+  "name" | "email" | "phone" | "company" | "role" | "timezone" | "address" | "vatId"
+>;

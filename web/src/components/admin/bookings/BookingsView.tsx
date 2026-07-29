@@ -22,6 +22,7 @@ import type { Client } from "@/types/client";
 import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
 import type { BookingStatus } from "@/types/common";
+import { dataSource } from "@/lib/env";
 
 const STATUS_ORDER: BookingStatus[] = [
   "pending",
@@ -130,18 +131,20 @@ export function BookingsView() {
             <Button variant="secondary" size="md" icon="download">
               Export
             </Button>
-            <Button
-              variant="primary"
-              size="md"
-              icon="plus"
-              onClick={() =>
-                openBookingDrawer({
-                  onSaved: () => setReload((k) => k + 1),
-                })
-              }
-            >
-              New booking
-            </Button>
+            {dataSource === "mock" && (
+              <Button
+                variant="primary"
+                size="md"
+                icon="plus"
+                onClick={() =>
+                  openBookingDrawer({
+                    onSaved: () => setReload((k) => k + 1),
+                  })
+                }
+              >
+                New booking
+              </Button>
+            )}
           </>
         }
       />
@@ -194,6 +197,7 @@ export function BookingsView() {
               onRowClick={(r) =>
                 openBookingDrawer({
                   initial: r.booking,
+                  mode: dataSource === "api" ? "view" : "edit",
                   onSaved: () => setReload((k) => k + 1),
                   onCancelled: () => setReload((k) => k + 1),
                 })

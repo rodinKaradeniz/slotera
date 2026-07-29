@@ -17,10 +17,12 @@ import { listClients } from "@/services/clients.service";
 import { gbp } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import type { Client } from "@/types/client";
+import { useDrawers } from "@/components/drawers/DrawersProvider";
 
 type Layout = "grid" | "rows";
 
 export function ClientsView() {
+  const { openClientDrawer } = useDrawers();
   const [clients, setClients] = React.useState<Client[] | null>(null);
   const [query, setQuery] = React.useState("");
   const [layout, setLayout] = React.useState<Layout>("grid");
@@ -55,7 +57,21 @@ export function ClientsView() {
         actions={
           <>
             <Button variant="secondary" size="md" icon="download">Export CSV</Button>
-            <Button variant="primary" size="md" icon="plus">Add client</Button>
+            <Button
+              variant="primary"
+              size="md"
+              icon="plus"
+              onClick={() =>
+                openClientDrawer({
+                  onSaved: (client) =>
+                    setClients((current) =>
+                      current ? [client, ...current] : [client],
+                    ),
+                })
+              }
+            >
+              Add client
+            </Button>
           </>
         }
       />

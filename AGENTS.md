@@ -129,10 +129,12 @@ resolves the role from the email address:
 | `wrong@example.com` | throws — the seeded failure case for testing error states |
 
 **Signing in (local API mode)** — use `hello@slotera.app` / `slotera-local-only`.
-Authentication is cookie-backed and the operator lands on `/admin/services`; only Services
-and Business Settings are exposed in API-mode navigation until related resource bundles
-land. Superadmin resource pages, public booking, registration/reset, and the remaining
-operator routes are not API-wired yet.
+Authentication is cookie-backed and the operator lands on `/admin/calendar`; Calendar,
+Calendar Settings, Bookings, Clients, Services, and Business Settings are exposed in API-mode navigation.
+Calendar uses persisted sessions and services, while its booking/client, attendance, and
+session-action-item context remains mock-only until the operator-core bundle lands.
+Superadmin resource pages, public booking, registration/reset, and the remaining operator
+routes are not API-wired yet.
 
 **Public routes needing no session:** `/` (landing), `/booking`,
 `/booking/confirmation`, `/booking/failure`, `/booking/manage/demo`.
@@ -225,8 +227,9 @@ export async function listThings(): Promise<T[]> {
 ```
 
 - `dataSource` comes from `NEXT_PUBLIC_DATA_SOURCE` via `web/src/lib/env.ts` and defaults to
-  `"mock"`. Auth/session, business settings, saved locations, services, and notifications
-  have API adapters; other methods still throw `NotImplementedError` in API mode.
+  `"mock"`. Auth/session, business settings/saved locations, services, notifications,
+  availability, sessions, clients, and booking reads have API adapters; other methods still throw
+  `NotImplementedError` in API mode.
 - FastAPI OpenAPI is exported to `web/src/api/generated/` by `npm run generate:api`.
   Generated DTOs stay inside the API/service boundary and are mapped to `web/src/types/`.
 - `web/src/api/client.ts` owns credentialed fetch, no-store requests, structured API
@@ -500,12 +503,17 @@ Present tense — what exists in the working tree today.
   count, and CSRF-protected mark-all-read command. Both repository predicates and forced
   PostgreSQL RLS isolate workspace and recipient; no email or event producers exist yet.
 - Generated OpenAPI transport types and a shared credentialed HTTP client back an opt-in
-  local operator UI for auth, services, business settings/locations, and notifications.
-  API-mode navigation deliberately excludes routes whose related resources are still mock-
-  only, and the public/Vercel experience continues to default to mock mode.
+  local operator UI for auth, services, business settings/locations, notifications,
+  availability, and sessions. API-mode Calendar intentionally excludes mock-only
+  booking/client context, attendance, and action items; API-mode navigation deliberately
+  excludes all other routes whose related resources are still mock-only, and the
+  public/Vercel experience continues to default to mock mode.
 - Workspace availability and authenticated session APIs persist one-off or rolling six-
   month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant;
   session capacity is validated, while booked-count consumption waits for bookings.
+- Tenant-scoped client profiles persist stable UUIDs and normalized, workspace-unique
+  email addresses. Operator client CRUD/search is RLS-backed and audit logged; booking
+  metrics and notes remain unwired until their resources land.
 
 **Mock data set** — 5 services, 4 form templates, 2 packages, 8 clients, 11 bookings,
 10 sessions, 3 client notes, 9 session action items, 8 platform workspaces, 6 inquiries,
@@ -614,3 +622,25 @@ exclusion constraint. Isolated pytest reports 28 passed; PostgreSQL integration 
 reports 23 passed; Ruff and strict mypy are clean. The migration applies through real
 PostgreSQL and generated OpenAPI/TypeScript transport declarations include availability
 and session contracts. Frontend calendar/settings adapters remain deliberately unwired.
+
+On 2026-07-29, the scheduling frontend/API bundle wired those generated contracts through
+the service layer. API mode exposes Calendar plus Calendar Settings, without mixing in
+mock booking/client, attendance, or action-item data. `./scripts/dev --api` regenerated
+the transport, reached migration `20260728_0006 (head)`, and repeated the seed with zero
+inserts; authenticated availability/session reads and Calendar/Settings route probes
+returned successfully. `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass.
+Backend isolated pytest reports 28 passed, PostgreSQL integration pytest reports 23
+passed, and Ruff/strict mypy are clean.
+
+Later on 2026-07-29, booking ledger revision `20260729_0008` added forced-RLS booking
+rows with composite workspace/client and workspace/session references plus EUR monetary
+snapshots. API mode exposes operator Booking list/detail reads only; commands and capacity
+consumption remain deferred.
+
+Later on 2026-07-29, the client-profile API bundle added migration
+`20260729_0007`, forced tenant RLS, normalized workspace-unique emails, audit events,
+and generated frontend transport. API mode now supports the Client directory, profile
+detail, and add/edit drawer without using mock booking metrics or notes. The idempotent
+seed reports `clients_inserted: 0` on repeat. Isolated pytest reports 28 passed,
+PostgreSQL integration pytest reports 25 passed, Ruff and strict mypy are clean, and
+`npm run generate:api`, `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass.

@@ -21,9 +21,10 @@ import {
   findConflict,
 } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
-import { getSettings } from "@/services/settings.service";
+import { listWorkspaceLocations } from "@/services/settings.service";
 import { listActionItemsForSession } from "@/services/session-action-items.service";
 import { addMinutes } from "@/lib/time";
+import { dataSource } from "@/lib/env";
 import type { Service } from "@/types/service";
 import type { Recurring, SessionItem, SessionStatus } from "@/types/session";
 import type { SessionActionItem } from "@/types/session-action-item";
@@ -119,7 +120,9 @@ export function SessionDrawer({
   // Tabs appear for an existing session: "Notes & Actions" is always available,
   // "Attendance" only for a group session. New / 1:1 sessions render the details
   // body directly (attendance) and keep notes inline in the details form.
-  const canShowAttendance = isEdit && (initial?.capacity ?? 0) > 1;
+  const canShowAttendance =
+    dataSource === "mock" && isEdit && (initial?.capacity ?? 0) > 1;
+  const canShowActionItems = dataSource === "mock";
   const showTabs = isEdit;
   const [tab, setTab] = React.useState<"details" | "notes" | "attendance">(
     "details",
@@ -137,12 +140,12 @@ export function SessionDrawer({
 
   React.useEffect(() => {
     listServices().then(setServices);
-    getSettings().then((s) => setSavedLocations(s.business.locations ?? []));
+    listWorkspaceLocations().then(setSavedLocations);
   }, []);
 
   // Load action items for the open session so the tab badge + panel stay in sync.
   React.useEffect(() => {
-    if (!open || !initial) {
+    if (!open || !initial || dataSource === "api") {
       setActionItems([]);
       return;
     }
@@ -176,7 +179,7 @@ export function SessionDrawer({
   }, [form.date, form.time, form.durationMin]);
 
   React.useEffect(() => {
-    if (!open) return;
+    if (!open || dataSource === "api") return;
     let live = true;
     findConflict({ startISO, endISO, id: initial?.id }).then((c) => {
       if (live) setConflict(c);
@@ -199,12 +202,10 @@ export function SessionDrawer({
           startISO,
           endISO,
           capacity: form.capacity,
-          bookedCount: initial.bookedCount,
           status: form.status,
           locationType: form.locationType,
           location: form.location,
           address: addressOnSave,
-          recurring: form.recurring,
           notes: form.notes,
         });
         onSaved?.(next);
@@ -321,9 +322,11 @@ export function SessionDrawer({
               {
                 value: "notes",
                 label:
-                  openActionCount > 0
+                  canShowActionItems && openActionCount > 0
                     ? `Notes & Actions (${openActionCount})`
-                    : "Notes & Actions",
+                    : canShowActionItems
+                      ? "Notes & Actions"
+                      : "Internal notes",
               },
               ...(canShowAttendance
                 ? [{ value: "attendance", label: "Attendance" }]
@@ -358,14 +361,16 @@ export function SessionDrawer({
             </div>
           </div>
 
-          <div className="border-t border-line-soft pt-5">
-            <SessionActionItems
-              sessionId={initial.id}
-              items={actionItems}
-              onChange={setActionItems}
-              loading={actionItemsLoading}
-            />
-          </div>
+          {canShowActionItems && (
+            <div className="border-t border-line-soft pt-5">
+              <SessionActionItems
+                sessionId={initial.id}
+                items={actionItems}
+                onChange={setActionItems}
+                loading={actionItemsLoading}
+              />
+            </div>
+          )}
         </div>
       ) : tab === "attendance" && initial ? (
         <AttendanceTab sessionId={initial.id} />
@@ -458,7 +463,9 @@ export function SessionDrawer({
               options={[
                 { value: "one-off", label: "One-off" },
                 { value: "weekly", label: "Weekly" },
-                { value: "custom", label: "Custom" },
+                ...(dataSource === "mock" || form.recurring === "custom"
+                  ? [{ value: "custom", label: "Custom" }]
+                  : []),
               ]}
             />
           </Field>
@@ -527,4 +534,3 @@ export function SessionDrawer({
     </DrawerShell>
   );
 }
-

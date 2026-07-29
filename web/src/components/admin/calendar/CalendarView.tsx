@@ -16,6 +16,7 @@ import { listBookings } from "@/services/bookings.service";
 import { listClients } from "@/services/clients.service";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { buildWeekDays, sameDay } from "@/lib/calendar";
+import { dataSource } from "@/lib/env";
 import type { SessionItem } from "@/types/session";
 import type { Service } from "@/types/service";
 import type { Booking } from "@/types/booking";
@@ -65,7 +66,9 @@ function shift(view: CalView, anchor: Date, delta: number): Date {
 
 export function CalendarView() {
   const { openSessionDrawer } = useDrawers();
-  const [anchor, setAnchor] = React.useState(() => new Date(2026, 4, 11));
+  const [anchor, setAnchor] = React.useState(() =>
+    dataSource === "api" ? new Date() : new Date(2026, 4, 11),
+  );
   const [view, setView] = React.useState<CalView>("week");
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
@@ -75,14 +78,36 @@ export function CalendarView() {
   const [reloadKey, setReloadKey] = React.useState(0);
 
   React.useEffect(() => {
-    Promise.all([listSessions(), listServices(), listBookings(), listClients()]).then(
-      ([s, sv, bk, cl]) => {
-        setSessions(s);
-        setServices(sv);
-        setBookings(bk);
-        setClients(cl);
-      },
-    );
+    let live = true;
+    const load = async () => {
+      if (dataSource === "api") {
+        const [nextSessions, nextServices] = await Promise.all([
+          listSessions(),
+          listServices(),
+        ]);
+        if (!live) return;
+        setSessions(nextSessions);
+        setServices(nextServices);
+        setBookings([]);
+        setClients([]);
+        return;
+      }
+      const [nextSessions, nextServices, nextBookings, nextClients] = await Promise.all([
+        listSessions(),
+        listServices(),
+        listBookings(),
+        listClients(),
+      ]);
+      if (!live) return;
+      setSessions(nextSessions);
+      setServices(nextServices);
+      setBookings(nextBookings);
+      setClients(nextClients);
+    };
+    void load();
+    return () => {
+      live = false;
+    };
   }, [reloadKey]);
 
   const clientById = React.useMemo(() => {

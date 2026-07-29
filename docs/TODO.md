@@ -142,10 +142,11 @@ built and exercised separately.
 
 ### Migration and contract
 
-- **The first coherent API branch is wired.** Auth/session, business settings, saved
-  locations, services, and notifications use generated DTO adapters through the shared
-  HTTP/CSRF client in opt-in local API mode. All other service methods continue to throw
-  `NotImplementedError`; fill them as coherent bundles without automatic mock fallback.
+- **Coherent API bundles are wired.** Auth/session, business settings/saved locations,
+  services, notifications, availability, and sessions use generated DTO adapters through
+  the shared HTTP/CSRF client in opt-in local API mode. All other service methods continue
+  to throw `NotImplementedError`; fill them as coherent bundles without automatic mock
+  fallback.
 - **Keep two coherent environments.** The public demo stays `mock`; an API-backed local or
   preview environment uses `api`. Integrate complete route bundles (public catalog,
   operator baseline, scheduling) rather than silently falling back method by method.
@@ -279,16 +280,25 @@ built and exercised separately.
      persist under forced RLS. Recurrence materialises a DST-aware rolling six-month
      horizon, item edits use explicit `this` / `this_and_following` scope, and PostgreSQL
      rejects same-owner active overlaps with a partial GiST exclusion constraint.
-   - **Scheduling frontend bundle.** Map the generated availability/session DTOs through
-     the service layer and opt the calendar plus Calendar Settings into coherent API mode.
+   - **~~Scheduling frontend bundle.~~ DONE.** Generated availability/session DTOs map
+     through the service layer; API mode now exposes Calendar and Calendar Settings without
+     mixing in mock booking/client, attendance, or action-item data.
    - **Recurrence horizon maintenance.** Add the database-backed worker that extends
      active series and split series metadata when `this_and_following` edits must survive
      beyond the currently materialised horizon.
    - **Capacity consumption.** Session capacity is range-validated now; locking and
      counting capacity-consuming bookings/holds lands with the booking schema because no
      such rows exist yet.
-6. Operator core: clients, bookings, forms/responses, notes, action items, attendance, and
-   operator-created manual bookings.
+6. Operator core:
+   - **~~Clients API bundle.~~ DONE.** Tenant-scoped client profiles now have normalized,
+     workspace-unique emails, operator CRUD/search, audit events, forced RLS, generated
+     transport, and API-mode directory/detail reads. Booking-derived totals/tags remain
+     placeholders until the booking ledger exists.
+   - **~~Bookings read baseline.~~ DONE.** Tenant-scoped ledger rows now persist client and
+     session references plus amount/currency snapshots, with forced RLS and API-mode
+     list/detail reads. Creation and every booking command remain deferred.
+   - Booking creation/cancellation/status commands, forms/responses, notes, action items,
+     attendance, and operator-created manual bookings.
 7. Public booking: public catalog/availability, free/manual booking transactions, tax
    snapshots, idempotency, and expiry.
 8. Transactional email and booking workspace: outbox worker, confirmation/magic links,
@@ -296,6 +306,19 @@ built and exercised separately.
 9. Derived/platform resources: dashboard, server-side search, notification producers,
    superadmin, subscriptions, and inquiries.
 10. Production-readiness gate, then later hosting/deployment selection.
+
+### Explicitly deferred dependencies
+
+- **Recurrence-horizon worker:** retain the current materialised horizon; do not add the
+  worker until active-series maintenance is separately scheduled.
+- **Booking capacity consumption:** no booking/hold rows or capacity locks before the
+  booking schema milestone.
+- **Payments:** Stripe, payment holds, webhooks, refunds, and tax-provider work remain
+  Phase 3.
+- **Email:** booking confirmation/magic-link delivery waits for real public bookings;
+  reminders and follow-ups remain Phase 3.
+- **External calendars:** Google Calendar/Meet and all connection/sync work remain
+  display-only/deferred.
 
 Before any live auth deployment, add shared login throttling, expired/revoked-session
 cleanup, password reset delivery/consumption, password-change session revocation, and

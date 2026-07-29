@@ -23,12 +23,15 @@ import { useToast } from "@/components/ui/Toast";
 import {
   createWorkspaceLocation,
   deleteWorkspaceLocation,
+  getAvailabilitySettings,
   getBusinessSettings,
   getSettings,
   updateBusinessSettings,
+  updateAvailabilitySettings,
   updateSettings,
   updateWorkspaceLocation,
   type BusinessSettings,
+  type AvailabilitySettings,
 } from "@/services/settings.service";
 import { BillingPanel } from "./BillingPanel";
 import { EMPTY_ADDRESS, type WorkspaceLocation } from "@/types/address";
@@ -59,13 +62,19 @@ export function SettingsView() {
   const [section, setSection] = React.useState<SectionId>("business");
   const [data, setData] = React.useState<SettingsData | null>(null);
   const [business, setBusiness] = React.useState<BusinessSettings | null>(null);
+  const [availability, setAvailability] = React.useState<AvailabilitySettings | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const load = async () => {
       try {
         if (dataSource === "api") {
-          setBusiness(await getBusinessSettings());
+          const [nextBusiness, nextAvailability] = await Promise.all([
+            getBusinessSettings(),
+            getAvailabilitySettings(),
+          ]);
+          setBusiness(nextBusiness);
+          setAvailability(nextAvailability);
           return;
         }
         const settings = await getSettings();
@@ -78,7 +87,9 @@ export function SettingsView() {
     void load();
   }, []);
 
-  const visibleNav = dataSource === "api" ? NAV.filter((item) => item.id === "business") : NAV;
+  const visibleNav = dataSource === "api"
+    ? NAV.filter((item) => item.id === "business" || item.id === "calendar")
+    : NAV;
   const activeMeta = visibleNav.find((n) => n.id === section);
   const handleBusinessChange = (next: BusinessSettings) => {
     setBusiness(next);
@@ -145,7 +156,15 @@ export function SettingsView() {
               {section === "branding" && data && <BrandingPanel data={data} onChange={setData} />}
               {section === "payments" && data && <PaymentsPanel data={data} onChange={setData} />}
               {section === "billing" && <BillingPanel />}
-              {section === "calendar" && data && <CalendarPanel data={data} onChange={setData} />}
+              {section === "calendar" && dataSource === "api" && availability && (
+                <ApiCalendarPanel
+                  availability={availability}
+                  onChange={setAvailability}
+                />
+              )}
+              {section === "calendar" && dataSource === "mock" && data && (
+                <CalendarPanel data={data} onChange={setData} />
+              )}
               {section === "emails" && data && <EmailsPanel data={data} onChange={setData} />}
               {section === "account" && data && <AccountPanel data={data} onChange={setData} />}
             </div>
@@ -502,6 +521,155 @@ function CalendarPanel({ data, onChange }: PanelProps) {
       <PanelCard title="Working Hours" onSave={save}>
         <WorkingHoursForm value={hours} onChange={setHours} />
       </PanelCard>
+    </>
+  );
+}
+
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function availabilityWorkingDays(availability: AvailabilitySettings): WorkingDay[] {
+  const days: WorkingDay[] = [];
+  WEEKDAY_LABELS.forEach((day, index) => {
+    const dayOfWeek = index + 1;
+    const windows = availability.weeklyHours.filter(
+      (window) => window.dayOfWeek === dayOfWeek,
+    );
+    if (windows.length === 0) {
+      days.push({ day, dayOfWeek, enabled: false, start: "09:00", end: "17:00" });
+      return;
+    }
+    days.push(
+      ...windows.map((window) => ({
+        day,
+        dayOfWeek,
+        enabled: true,
+        start: window.startLocal,
+        end: window.endLocal,
+      })),
+    );
+  });
+  return days;
+}
+
+function ApiCalendarPanel({
+  availability,
+  onChange,
+}: {
+  availability: AvailabilitySettings;
+  onChange: (next: AvailabilitySettings) => void;
+}) {
+  const { toast } = useToast();
+  const [local, setLocal] = React.useState(availability);
+  const [hours, setHours] = React.useState<WorkingDay[]>(() =>
+    availabilityWorkingDays(availability),
+  );
+  const [saving, setSaving] = React.useState(false);
+
+  const save = async () => {
+    const weeklyHours = hours
+      .filter((day) => day.enabled)
+      .map((day) => ({
+        dayOfWeek: day.dayOfWeek ?? WEEKDAY_LABELS.indexOf(day.day) + 1,
+        startLocal: day.start,
+        endLocal: day.end,
+      }));
+    setSaving(true);
+    try {
+      const next = await updateAvailabilitySettings({ ...local, weeklyHours });
+      setLocal(next);
+      setHours(availabilityWorkingDays(next));
+      onChange(next);
+      toast.success("Calendar settings saved");
+    } catch (error) {
+      toast.error("Couldn't save calendar settings", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const numericField = (
+    key:
+      | "slotIntervalMin"
+      | "bufferBeforeMin"
+      | "bufferAfterMin"
+      | "minimumNoticeMin"
+      | "maximumAdvanceDays",
+  ) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(event.target.value);
+    setLocal({ ...local, [key]: Number.isFinite(value) ? value : 0 });
+  };
+
+  return (
+    <>
+      <PanelCard
+        title="Calendar Connections"
+        hint="External calendar connections remain display-only in this local API bundle."
+      >
+        <p className="text-small text-ink-2">
+          Google Calendar, Apple Calendar, and Outlook sync are not connected yet.
+        </p>
+      </PanelCard>
+
+      <Card padded>
+        <div className="mb-4">
+          <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>Availability</h2>
+          <p className="text-small mt-1">
+            These workspace-wide rules shape future public availability. They do not
+            create bookings or consume session capacity.
+          </p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4 mb-5">
+          <Field label="Workspace timezone">
+            <Input
+              value={local.timezone}
+              onChange={(event) => setLocal({ ...local, timezone: event.target.value })}
+              placeholder="Europe/Berlin"
+            />
+          </Field>
+          <Field label="Slot interval (min)">
+            <Input type="number" min={5} value={String(local.slotIntervalMin)} onChange={numericField("slotIntervalMin")} />
+          </Field>
+          <Field label="Buffer before (min)">
+            <Input type="number" min={0} value={String(local.bufferBeforeMin)} onChange={numericField("bufferBeforeMin")} />
+          </Field>
+          <Field label="Buffer after (min)">
+            <Input type="number" min={0} value={String(local.bufferAfterMin)} onChange={numericField("bufferAfterMin")} />
+          </Field>
+          <Field label="Minimum notice (min)">
+            <Input type="number" min={0} value={String(local.minimumNoticeMin)} onChange={numericField("minimumNoticeMin")} />
+          </Field>
+          <Field label="Maximum advance (days)">
+            <Input type="number" min={1} value={String(local.maximumAdvanceDays)} onChange={numericField("maximumAdvanceDays")} />
+          </Field>
+        </div>
+        <div className="border-t border-line-soft pt-5">
+          <h3 className="text-[13px] font-medium text-ink mb-2">Working hours</h3>
+          <WorkingHoursForm value={hours} onChange={setHours} disabled={saving} />
+        </div>
+        <div className="flex justify-end mt-5 pt-4 border-t border-line-soft">
+          <Button variant="primary" onClick={save} loading={saving}>Save availability</Button>
+        </div>
+      </Card>
+
+      {local.blackouts.length > 0 && (
+        <PanelCard
+          title="Blackout dates"
+          hint="Existing blackout ranges are preserved when availability is saved."
+        >
+          <div className="flex flex-col gap-2">
+            {local.blackouts.map((blackout) => (
+              <div key={blackout.id ?? `${blackout.startsAt}-${blackout.endsAt}`} className="text-small text-ink-2">
+                {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(blackout.startsAt))}
+                {" – "}
+                {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(blackout.endsAt))}
+                {blackout.reason ? ` · ${blackout.reason}` : ""}
+              </div>
+            ))}
+          </div>
+        </PanelCard>
+      )}
     </>
   );
 }

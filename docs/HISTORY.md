@@ -796,6 +796,57 @@ booking transaction because no capacity-consuming table exists yet.
 
 ---
 
+### Entry 030 — API Calendar is a scheduling-only resource bundle
+
+*2026-07-29.* The local API Calendar maps generated session and availability DTOs through
+the existing service layer and exposes the Calendar plus Calendar Settings routes in API
+mode. It loads only persisted sessions and services. Calendar Settings persists the full
+availability aggregate—timezone, windows, policy values, and blackout ranges—so editing
+working hours does not discard policy or blackout data.
+
+The calendar intentionally does **not** call mocked bookings, clients, attendance, or
+session-action-item services in API mode. Those fixture relationships use different ids and
+would turn a partially wired view into a misleading mixed-data surface. Session internal
+notes remain available because they are part of the session resource; the mock-only drawer
+tabs disappear until their resources are implemented. PostgreSQL remains the conflict
+authority in API mode, while the mock calendar retains its local advisory warning.
+
+**Alternative rejected:** making API Calendar look complete by falling back to fixture data
+for booking context or action items. That would be cheaper today but violates the coherent
+environment rule and risks displaying unrelated client data beside a real session. The
+decision turns on maintainability and tenant correctness; it should be revisited only when
+the operator-core booking, client, attendance, and action-item APIs are wired together.
+
+---
+
+### Entry 031 — Client profiles precede the booking ledger
+
+*2026-07-29.* Client persistence owns only stable identity and operator-maintained contact
+profile data. Email is normalized and unique within a workspace; the client UUID, rather
+than email, is the future booking relationship key. The API deliberately returns no
+fixture booking totals, activity tags, notes, or recent bookings.
+
+**Alternative rejected:** storing the current UI totals/tag or filling them with mock data
+to retain a fuller detail page in API mode. Those values are booking-derived and would
+become stale dual writes before a booking ledger exists. Maintainability and tenant
+correctness win; the profile expands when bookings and notes have real backing resources.
+
+---
+
+### Entry 032 — Bookings begin as a read-only ledger
+
+*2026-07-29.* The first booking API stores tenant-scoped client/session references and
+amount/currency snapshots, but exposes only list and detail reads. Composite tenant foreign
+keys prevent a booking from referencing a client or session in another workspace, and
+deleting a referenced session is restricted.
+
+**Alternative rejected:** adding create, cancellation, payment-state, or attendance commands
+alongside the table. Each changes capacity or money-adjacent business state, so a convenient
+CRUD endpoint would be an incorrect transaction before the deferred capacity and payment
+rules exist. Correctness and future command semantics outweigh a more interactive UI.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

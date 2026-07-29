@@ -37,6 +37,8 @@ TENANT_TABLES = frozenset(
         "availability_blackouts",
         "session_series",
         "sessions",
+        "clients",
+        "bookings",
     }
 )
 
@@ -72,6 +74,22 @@ class SessionStatus(StrEnum):
     LIVE = "live"
     DONE = "done"
     CANCELLED = "cancelled"
+
+
+class BookingStatus(StrEnum):
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    NOSHOW = "noshow"
+
+
+class PaymentStatus(StrEnum):
+    PAID = "paid"
+    PENDING = "pending"
+    REFUNDED = "refunded"
+    FREE = "free"
+    OVERDUE = "overdue"
 
 
 def _enum_values(enum_type: type[StrEnum]) -> list[str]:
@@ -334,6 +352,34 @@ class Service(Base):
     )
 
 
+class Client(Base):
+    __tablename__ = "clients"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "email"),
+        UniqueConstraint("workspace_id", "id", name="uq_clients_workspace_id_id"),
+        CheckConstraint("email = lower(btrim(email))", name="email_normalized"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(160))
+    email: Mapped[str] = mapped_column(String(320))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    company: Mapped[str | None] = mapped_column(String(160))
+    role: Mapped[str | None] = mapped_column(String(160))
+    timezone: Mapped[str | None] = mapped_column(String(64))
+    address: Mapped[str | None] = mapped_column(String(500))
+    vat_id: Mapped[str | None] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class AvailabilityPolicy(Base):
     __tablename__ = "availability_policies"
     __table_args__ = (
@@ -437,6 +483,7 @@ class Session(Base):
             ondelete="RESTRICT",
         ),
         UniqueConstraint("series_id", "start_at"),
+        UniqueConstraint("workspace_id", "id", name="uq_sessions_workspace_id_id"),
         ExcludeConstraint(
             ("calendar_owner_id", "="),
             (func.tstzrange(text("start_at"), text("end_at"), "[)"), "&&"),
@@ -467,6 +514,46 @@ class Session(Base):
     )
     location: Mapped[str] = mapped_column(String(240))
     address: Mapped[dict[str, object] | None] = mapped_column(JSONB)
+    notes: Mapped[str | None] = mapped_column(String(2000))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Booking(Base):
+    __tablename__ = "bookings"
+    __table_args__ = (
+        CheckConstraint("amount_cents >= 0", name="amount_nonnegative"),
+        CheckConstraint("char_length(currency) = 3", name="currency_iso_length"),
+        ForeignKeyConstraint(
+            ["workspace_id", "client_id"],
+            ["clients.workspace_id", "clients.id"],
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "session_id"],
+            ["sessions.workspace_id", "sessions.id"],
+            ondelete="RESTRICT",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    session_id: Mapped[UUID] = mapped_column(index=True)
+    client_id: Mapped[UUID] = mapped_column(index=True)
+    status: Mapped[BookingStatus] = mapped_column(
+        Enum(BookingStatus, name="booking_status", values_callable=_enum_values)
+    )
+    payment_status: Mapped[PaymentStatus] = mapped_column(
+        Enum(PaymentStatus, name="payment_status", values_callable=_enum_values)
+    )
+    amount_cents: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
     notes: Mapped[str | None] = mapped_column(String(2000))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -522,6 +609,9 @@ __all__ = [
     "AvailabilityBlackout",
     "AvailabilityPolicy",
     "AvailabilityWindow",
+    "Booking",
+    "BookingStatus",
+    "Client",
     "AuthSession",
     "Base",
     "MembershipRole",
@@ -530,6 +620,7 @@ __all__ = [
     "NotificationKind",
     "PasswordResetToken",
     "PlatformRole",
+    "PaymentStatus",
     "ReservedWorkspaceSlug",
     "Service",
     "ServiceBookingMode",

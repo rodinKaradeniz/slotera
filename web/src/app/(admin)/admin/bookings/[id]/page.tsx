@@ -23,6 +23,7 @@ import { formatAddressSummary } from "@/components/shared/forms/AddressForm";
 import { gbp } from "@/lib/money";
 import { fmtDate } from "@/lib/time";
 import { LOC_TYPE_META } from "@/lib/status-maps";
+import { dataSource } from "@/lib/env";
 import type { Booking } from "@/types/booking";
 import type { Client } from "@/types/client";
 import type { Service } from "@/types/service";
@@ -113,7 +114,8 @@ export default function BookingDetailPage() {
                   <StatusBadge kind="payment" status={booking.paymentStatus} />
                 </span>
               }
-              actions={
+            actions={
+                dataSource === "mock" ? (
                 <>
                   <Button
                     variant="primary"
@@ -133,6 +135,7 @@ export default function BookingDetailPage() {
                     Invoice PDF
                   </Button>
                 </>
+                ) : undefined
               }
             />
 

@@ -2,6 +2,8 @@ import type { WorkspaceLocation } from "./address";
 
 export type WorkingDay = {
   day: string;
+  /** ISO weekday (1 = Monday). Present for API-backed availability windows. */
+  dayOfWeek?: number;
   enabled: boolean;
   start: string;
   end: string;

@@ -14,11 +14,18 @@ from slotera_api.db.models import (
     AuditEvent,
     AvailabilityPolicy,
     AvailabilityWindow,
+    Booking,
+    BookingStatus,
+    Client,
+    LocationType,
     MembershipRole,
     Notification,
+    PaymentStatus,
     PlatformRole,
     ReservedWorkspaceSlug,
     Service,
+    Session,
+    SessionStatus,
     User,
     Workspace,
     WorkspaceBusinessProfile,
@@ -92,6 +99,9 @@ class SeedSummary:
     business_profiles_inserted: int
     locations_inserted: int
     services_inserted: int
+    clients_inserted: int
+    sessions_inserted: int
+    bookings_inserted: int
     notifications_inserted: int
     availability_policies_inserted: int
     availability_windows_inserted: int
@@ -319,6 +329,85 @@ DEMO_NOTIFICATIONS = (
     },
 )
 
+DEMO_CLIENTS = (
+    {
+        "key": "sofia-marin",
+        "name": "Sofia Marin",
+        "email": "sofia.marin@example.com",
+        "phone": "+49 30 5550101",
+        "company": "Northstar Ventures",
+        "role": "Founder",
+        "timezone": "Europe/Berlin",
+        "address": None,
+        "vat_id": None,
+        "created_at": datetime(2026, 2, 4, 10, tzinfo=UTC),
+    },
+    {
+        "key": "mila-ozawa",
+        "name": "Mila Ozawa",
+        "email": "mila.ozawa@example.com",
+        "phone": None,
+        "company": "Studio Altair",
+        "role": "Creative Director",
+        "timezone": "Europe/London",
+        "address": None,
+        "vat_id": None,
+        "created_at": datetime(2026, 2, 18, 10, tzinfo=UTC),
+    },
+)
+
+DEMO_SESSIONS = (
+    {
+        "key": "strategy-july-31",
+        "service_key": "strategy",
+        "start_at": datetime(2026, 7, 31, 13, tzinfo=UTC),
+        "end_at": datetime(2026, 7, 31, 14, 30, tzinfo=UTC),
+        "capacity": 1,
+        "status": SessionStatus.SCHEDULED,
+        "location_type": LocationType.ONLINE,
+        "location": "Zoom · link sent on confirmation",
+        "address": None,
+        "notes": None,
+    },
+    {
+        "key": "workshop-august-3",
+        "service_key": "workshop",
+        "start_at": datetime(2026, 8, 3, 9, tzinfo=UTC),
+        "end_at": datetime(2026, 8, 3, 11, tzinfo=UTC),
+        "capacity": 6,
+        "status": SessionStatus.SCHEDULED,
+        "location_type": LocationType.PHYSICAL,
+        "location": "Berlin · Mitte studio",
+        "address": DEMO_SERVICES[3]["address"],
+        "notes": None,
+    },
+)
+
+DEMO_BOOKINGS = (
+    {
+        "key": "sofia-strategy-july-31",
+        "client_key": "sofia-marin",
+        "session_key": "strategy-july-31",
+        "status": BookingStatus.CONFIRMED,
+        "payment_status": PaymentStatus.PAID,
+        "amount_cents": 38000,
+        "currency": "EUR",
+        "notes": "Focus the working session on the fundraising narrative.",
+        "created_at": datetime(2026, 7, 20, 10, tzinfo=UTC),
+    },
+    {
+        "key": "mila-workshop-august-3",
+        "client_key": "mila-ozawa",
+        "session_key": "workshop-august-3",
+        "status": BookingStatus.PENDING,
+        "payment_status": PaymentStatus.PENDING,
+        "amount_cents": 18000,
+        "currency": "EUR",
+        "notes": None,
+        "created_at": datetime(2026, 7, 22, 10, tzinfo=UTC),
+    },
+)
+
 DEMO_AVAILABILITY_WINDOWS = tuple(
     {
         "id": _seed_id(f"availability-window:hartmann-strategy:{day}"),
@@ -487,6 +576,87 @@ async def import_demo_seed(
                 ).all()
             )
 
+        inserted_clients = 0
+        for client in DEMO_CLIENTS:
+            key = str(client["key"])
+            values = {field: value for field, value in client.items() if field != "key"}
+            inserted_clients += len(
+                (
+                    await session.scalars(
+                        insert(Client)
+                        .values(
+                            id=_seed_id(f"client:hartmann-strategy:{key}"),
+                            workspace_id=workspace_id,
+                            **values,
+                            updated_at=values["created_at"],
+                        )
+                        .on_conflict_do_nothing()
+                        .returning(Client.id)
+                    )
+                ).all()
+            )
+
+        inserted_sessions = 0
+        for demo_session in DEMO_SESSIONS:
+            key = str(demo_session["key"])
+            session_id = _seed_id(f"session:hartmann-strategy:{key}")
+            existing_session = await session.scalar(
+                select(Session.id).where(Session.id == session_id)
+            )
+            if existing_session is not None:
+                continue
+            values = {
+                field: value
+                for field, value in demo_session.items()
+                if field not in {"key", "service_key"}
+            }
+            session.add(
+                Session(
+                    id=session_id,
+                    workspace_id=workspace_id,
+                    series_id=None,
+                    service_id=_seed_id(
+                        f"service:hartmann-strategy:{demo_session['service_key']}"
+                    ),
+                    calendar_owner_id=operator_id,
+                    **values,
+                    created_at=values["start_at"],
+                    updated_at=values["start_at"],
+                )
+            )
+            inserted_sessions += 1
+        await session.flush()
+
+        inserted_bookings = 0
+        for booking in DEMO_BOOKINGS:
+            key = str(booking["key"])
+            values = {
+                field: value
+                for field, value in booking.items()
+                if field not in {"key", "client_key", "session_key"}
+            }
+            inserted_bookings += len(
+                (
+                    await session.scalars(
+                        insert(Booking)
+                        .values(
+                            id=_seed_id(f"booking:hartmann-strategy:{key}"),
+                            workspace_id=workspace_id,
+                            client_id=_seed_id(
+                                f"client:hartmann-strategy:{booking['client_key']}"
+                            ),
+                            session_id=_seed_id(
+                                f"session:hartmann-strategy:{booking['session_key']}"
+                            ),
+                            **values,
+                            updated_at=values["created_at"],
+                        )
+                        .on_conflict_do_nothing()
+                        .returning(Booking.id)
+                    )
+                ).all()
+            )
+
         inserted_availability_policies = len(
             (
                 await session.scalars(
@@ -592,6 +762,9 @@ async def import_demo_seed(
         business_profiles_inserted=inserted_business_profiles,
         locations_inserted=inserted_locations,
         services_inserted=inserted_services,
+        clients_inserted=inserted_clients,
+        sessions_inserted=inserted_sessions,
+        bookings_inserted=inserted_bookings,
         notifications_inserted=inserted_notifications,
         availability_policies_inserted=inserted_availability_policies,
         availability_windows_inserted=inserted_availability_windows,

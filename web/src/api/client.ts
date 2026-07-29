@@ -3,7 +3,7 @@ import { ApiRequestError } from "@/services/_errors";
 import type { components } from "@/api/generated/schema";
 
 type ErrorEnvelope = components["schemas"]["ErrorEnvelope"];
-type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 type RequestOptions<TBody> = {
   method?: HttpMethod;

@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from slotera_api.api.auth import router as auth_router
+from slotera_api.api.bookings import router as bookings_router
+from slotera_api.api.clients import router as clients_router
 from slotera_api.api.health import router as health_router
 from slotera_api.api.notifications import router as notifications_router
 from slotera_api.api.operator_resources import services_router, settings_router
@@ -55,6 +57,8 @@ def create_app(
     install_error_handlers(app)
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(clients_router)
+    app.include_router(bookings_router)
     app.include_router(notifications_router)
     app.include_router(settings_router)
     app.include_router(services_router)
