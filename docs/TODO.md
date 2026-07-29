@@ -238,9 +238,9 @@ built and exercised separately.
   booking transaction writes an outbox event; a small second process polls PostgreSQL with
   `FOR UPDATE SKIP LOCKED`, sends confirmation/magic-link email behind a local provider
   interface, and records attempts/provider ids. Do not add Redis or Celery yet.
-- **Rich-text client notes become untrusted network data.** Sanitise their allow-listed
-  HTML server-side on write and defensively on render in the same migration; the current
-  local-editor trust assumption no longer holds once notes come from an API.
+- **~~Rich-text client notes become untrusted network data.~~ DONE.** The client-notes
+  API allow-lists editor HTML on write and the browser sanitises again immediately before
+  rendering; this protection must remain as new note transports are added.
 
 ### Delivery order
 
@@ -300,7 +300,11 @@ built and exercised separately.
    - **~~Form-template operator CRUD.~~ DONE.** Operator form templates and their
      single-sourced service attachments persist under RLS, with API-mode create/edit/
      activate/deactivate/delete. Public rendering and responses remain deferred.
-   - Booking creation/cancellation/status commands, form responses, notes, action items,
+   - **~~Client-notes operator CRUD.~~ DONE.** Private, tenant-scoped note entries now
+     persist under RLS with audit events, CSRF-protected mutations, allow-listed HTML
+     sanitisation on write, defensive browser sanitisation on render, and an API-mode
+     Notes tab. They remain operator-only.
+   - Booking creation/cancellation/status commands, form responses, session action items,
      attendance, and operator-created manual bookings.
 7. Public booking: public catalog/availability, free/manual booking transactions, tax
    snapshots, idempotency, and expiry.

@@ -154,7 +154,7 @@ export default function ClientDetailPage() {
               onChange={(v) => setTab(v as Tab)}
               tabs={[
                 { value: "overview", label: "Overview" },
-                ...(dataSource === "mock" ? [{ value: "notes", label: "Notes" }] : []),
+                { value: "notes", label: "Notes" },
               ]}
             />
           </div>
@@ -265,9 +265,9 @@ export default function ClientDetailPage() {
                 </Card>
               </div>
             </div>
-          ) : dataSource === "mock" ? (
+          ) : (
             <ClientNotes clientId={client.id} />
-          ) : null}
+          )}
         </>
       )}
     </PageContainer>

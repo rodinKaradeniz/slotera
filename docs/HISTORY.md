@@ -858,6 +858,23 @@ database-enforced tenant references and leaves deleted-service handling ambiguou
 
 ---
 
+### Entry 034 — Client notes cross a trust boundary at persistence
+
+*2026-07-29.* Client notes now persist as distinct, tenant-scoped `client_notes` rows
+under forced RLS, rather than relying on the mock-only local editor. The resource is
+operator-only: list/create is nested under its client, while update/delete target the note
+itself; every mutation requires the normal session/CSRF boundary and emits an audit event.
+No public booking or client workspace DTO includes these records.
+
+Tiptap output became untrusted as soon as it crossed HTTP. The server therefore retains
+only the deliberately small editor tag allow-list, strips every attribute and script/style
+content, and rejects bodies left without visible text. `NoteContent` repeats that policy in
+the browser before rendering, so a malformed legacy row or alternate transport does not
+turn `dangerouslySetInnerHTML` into a trust bypass. Do not loosen either layer without a
+specific content-security design.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

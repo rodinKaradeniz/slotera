@@ -41,6 +41,13 @@ async def test_operator_can_create_and_read_form_template() -> None:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
             created = await client.post("/forms", headers=_csrf(client), json=payload)
+            form_id = created.json()["id"]
+            updated = await client.patch(
+                f"/forms/{form_id}",
+                headers=_csrf(client),
+                json={"status": "inactive"},
+            )
+            removed = await client.delete(f"/forms/{form_id}", headers=_csrf(client))
             listed = await client.get("/forms")
     finally:
         await application.dispose()
@@ -48,4 +55,7 @@ async def test_operator_can_create_and_read_form_template() -> None:
 
     assert created.status_code == 201
     assert created.json()["fields"][0]["id"] == "focus"
-    assert any(item["id"] == created.json()["id"] for item in listed.json()["items"])
+    assert updated.status_code == 200
+    assert updated.json()["status"] == "inactive"
+    assert removed.status_code == 204
+    assert not any(item["id"] == form_id for item in listed.json()["items"])

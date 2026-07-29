@@ -18,6 +18,7 @@ def test_every_declared_tenant_table_carries_workspace_identity() -> None:
             "bookings",
             "form_templates",
             "form_template_services",
+            "client_notes",
             "notifications",
         "availability_policies",
         "availability_windows",

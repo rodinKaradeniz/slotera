@@ -10,8 +10,8 @@ import { cn } from "@/lib/cn";
  * Lightweight Tiptap rich-text editor for client notes. Admins format visually
  * while typing — no markdown markers. Deliberately minimal: StarterKit only,
  * with Bold / Italic / Heading / lists / quote / undo-redo. No images, uploads,
- * embeds, tables, colors, or font pickers. Produces safe HTML (rendered back via
- * NoteContent) from controlled, admin-authored content only.
+ * embeds, tables, colors, or font pickers. The API sanitizes its limited HTML
+ * before persistence, and NoteContent sanitizes once more before rendering.
  */
 
 // Shared prose styling for editable + read-only surfaces so notes look the same

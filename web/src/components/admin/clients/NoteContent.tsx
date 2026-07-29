@@ -1,13 +1,12 @@
 import * as React from "react";
 import { cn } from "@/lib/cn";
+import { sanitizeNoteHtml } from "@/lib/sanitize-note-html";
 import { NOTE_PROSE } from "./NoteEditor";
 
 /**
- * Read-only renderer for a client note. The HTML is admin-authored and produced
- * solely by the lightweight Tiptap editor (NoteEditor) — a contained, controlled
- * source (StarterKit tags only: p, strong, em, h3, ul/ol/li, blockquote), never
- * client- or network-supplied. `dangerouslySetInnerHTML` is acceptable here for
- * that reason; do not render untrusted HTML through this component.
+ * Read-only renderer for an operator-only client note. API writes sanitize the
+ * limited Tiptap markup; this browser pass is a defensive second boundary before
+ * the deliberately contained `dangerouslySetInnerHTML` render.
  */
 export function NoteContent({
   html,
@@ -16,10 +15,18 @@ export function NoteContent({
   html: string;
   className?: string;
 }) {
+  // Start blank so server and client markup match; populate only after the
+  // browser-side sanitizer has processed the persisted value.
+  const [safeHtml, setSafeHtml] = React.useState("");
+
+  React.useEffect(() => {
+    setSafeHtml(sanitizeNoteHtml(html));
+  }, [html]);
+
   return (
     <div
       className={cn(NOTE_PROSE, className)}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: safeHtml }}
     />
   );
 }

@@ -263,6 +263,11 @@ implemented HTTP surface is deliberately limited to:
 - `GET/PATCH /settings/business` — operator-owned workspace/profile settings;
 - `GET/POST /settings/locations` plus item `PATCH/DELETE` — saved locations;
 - `GET/POST /services` plus item `GET/PATCH/DELETE` — operator service management;
+- `GET/POST /clients` plus item `GET/PATCH` — operator client profiles and search;
+- `GET /bookings` plus item `GET` — tenant-scoped operator booking-ledger reads;
+- `GET/POST /forms` plus item `GET/PATCH/DELETE` — operator form-template management;
+- `GET/POST /clients/{client_id}/notes` plus note `PATCH/DELETE` — private operator
+  client context, allow-list sanitised before persistence;
 - `GET /notifications` and `POST /notifications/mark-all-read` — structured, user-
   targeted operator notifications and read acknowledgement;
 - `GET/PUT /availability` — workspace timezone, split weekly hours, booking-window policy,
@@ -474,6 +479,8 @@ Present tense — what exists in the working tree today.
   Client Payments, Billing & Subscription, Calendar, Emails, Account).
 - Session drawer carries a "Notes & Actions" tab: one internal note plus lightweight
   action items, both admin-only.
+- Client Notes persist in API mode as separate internal entries; stored rich text is
+  server-sanitised and defensively sanitised again before rendering.
 - Global search: navbar dropdown + Cmd/Ctrl-K palette over one shared index
   (`web/src/lib/search.ts`) spanning bookings, clients, services, sessions, and nav.
 
@@ -504,16 +511,18 @@ Present tense — what exists in the working tree today.
   PostgreSQL RLS isolate workspace and recipient; no email or event producers exist yet.
 - Generated OpenAPI transport types and a shared credentialed HTTP client back an opt-in
   local operator UI for auth, services, business settings/locations, notifications,
-  availability, and sessions. API-mode Calendar intentionally excludes mock-only
-  booking/client context, attendance, and action items; API-mode navigation deliberately
-  excludes all other routes whose related resources are still mock-only, and the
-  public/Vercel experience continues to default to mock mode.
+  availability/sessions, clients, booking-ledger reads, forms, and client notes. API-mode
+  Calendar intentionally excludes mock-only attendance and action items; the public/Vercel
+  experience continues to default to mock mode.
 - Workspace availability and authenticated session APIs persist one-off or rolling six-
   month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant;
   session capacity is validated, while booked-count consumption waits for bookings.
 - Tenant-scoped client profiles persist stable UUIDs and normalized, workspace-unique
   email addresses. Operator client CRUD/search is RLS-backed and audit logged; booking
-  metrics and notes remain unwired until their resources land.
+  metrics remain unwired until their resources land.
+- Client-note CRUD persists separate, internal operator context under forced RLS and audit
+  events. The API strips all HTML attributes and non-editor markup before storage; no
+  public response exposes client notes.
 
 **Mock data set** — 5 services, 4 form templates, 2 packages, 8 clients, 11 bookings,
 10 sessions, 3 client notes, 9 session action items, 8 platform workspaces, 6 inquiries,
@@ -644,3 +653,13 @@ detail, and add/edit drawer without using mock booking metrics or notes. The ide
 seed reports `clients_inserted: 0` on repeat. Isolated pytest reports 28 passed,
 PostgreSQL integration pytest reports 25 passed, Ruff and strict mypy are clean, and
 `npm run generate:api`, `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass.
+
+Later on 2026-07-29, client-notes revision `20260729_0010` added separate private note
+rows with composite client/workspace ownership, forced RLS, and audit events. The operator
+API exposes list/create beneath a client and update/delete by note id; it allow-list
+sanitises Tiptap HTML on write and the browser repeats that sanitisation before rendering.
+The regenerated OpenAPI transport enables the API-mode Client Notes tab, while public
+routes expose no note data. `uv run alembic upgrade head` applied the revision; Ruff and
+strict mypy pass; isolated pytest reports 28 passed and PostgreSQL integration pytest
+reports 28 passed. `npm run generate:api`, `npx tsc --noEmit`, `npm run lint`, and
+`npm run build` also pass.

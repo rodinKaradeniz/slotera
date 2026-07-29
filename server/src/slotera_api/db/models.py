@@ -42,6 +42,7 @@ TENANT_TABLES = frozenset(
         "bookings",
         "form_templates",
         "form_template_services",
+        "client_notes",
     }
 )
 
@@ -598,6 +599,31 @@ class FormTemplateService(Base):
     service_id: Mapped[UUID] = mapped_column(primary_key=True)
 
 
+class ClientNote(Base):
+    __tablename__ = "client_notes"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["workspace_id", "client_id"],
+            ["clients.workspace_id", "clients.id"],
+            ondelete="CASCADE",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    client_id: Mapped[UUID] = mapped_column(index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    body: Mapped[str] = mapped_column(String(20000))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class Notification(Base):
     __tablename__ = "notifications"
     __table_args__ = (
@@ -647,6 +673,7 @@ __all__ = [
     "Booking",
     "BookingStatus",
     "Client",
+    "ClientNote",
     "FormStatus",
     "FormTemplate",
     "FormTemplateService",
