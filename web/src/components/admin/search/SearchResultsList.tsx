@@ -9,6 +9,7 @@ type Props = {
   groups: { group: SearchGroup; items: SearchResult[] }[];
   query: string;
   loading: boolean;
+  error?: string | null;
   activeIndex: number;
   onSelect: (r: SearchResult) => void;
   onHover: (index: number) => void;
@@ -25,6 +26,7 @@ export function SearchResultsList({
   groups,
   query,
   loading,
+  error,
   activeIndex,
   onSelect,
   onHover,
@@ -42,6 +44,10 @@ export function SearchResultsList({
     return (
       <div className="px-4 py-8 text-center text-small">Searching…</div>
     );
+  }
+
+  if (error) {
+    return <div className="px-4 py-8 text-center text-small">{error}</div>;
   }
 
   if (groups.length === 0) {

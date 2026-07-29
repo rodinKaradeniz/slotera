@@ -310,7 +310,14 @@ Two surfaces share the same index:
 - Inline navbar dropdown (`web/src/components/admin/search/NavbarSearch.tsx`)
 - Command-K palette (`web/src/components/admin/search/CommandPalette.tsx`)
 
-Both consume `useSearch()` from `web/src/lib/search.ts` which indexes bookings, clients, services, sessions, and a fixed nav list. Cmd/Ctrl+K is wired in `AppShell`. **No separate search results page in Phase 1.** Keep search mocked and frontend-only.
+Both consume `useSearch()` from `web/src/lib/search.ts`, which maps bookings, clients,
+services, sessions, and a fixed nav list into one presentation index. Cmd/Ctrl+K is wired
+in `AppShell`. In mock mode the search service builds that index in memory; API mode calls
+the tenant-scoped `GET /search` projection as the operator types, then adds only
+API-available navigation destinations locally. The API searches client contact fields,
+service name/description/location, session service/location/status, and booking client/
+service/status fields. It never searches or returns service/session/client notes or action
+items. **No separate search results page in Phase 1.**
 
 ### Contact feature
 

@@ -913,6 +913,25 @@ funnel denominator makes conversion well-defined.
 
 ---
 
+### Entry 037 — Operator search is a bounded projection, not a page endpoint
+
+*2026-07-29.* Operator search uses one authenticated `GET /search` resource over the
+existing booking, client, service, and session rows. It accepts a non-empty query and a
+small per-kind cap, applies workspace predicates and forced RLS in one tenant transaction,
+and returns only resource kind/id plus compact search display facts. The web layer retains
+icons, routes, local navigation entries, timestamp formatting, and grouping; API mode
+never inserts fixture records into those results.
+
+**Alternative rejected:** firing four browser searches against existing list endpoints,
+or adding PostgreSQL full-text indexes now. Browser composition duplicates ranking/limits
+for future clients and can fail partially; full-text infrastructure adds a migration and
+language/relevance policy before current workspace data warrants it. Revisit indexing when
+measured data size or query latency requires it. Notes and action items are intentionally
+excluded: their internal context is neither needed for navigation nor appropriate to widen
+through a general search projection.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

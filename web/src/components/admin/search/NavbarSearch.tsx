@@ -19,7 +19,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const wrapRef = React.useRef<HTMLDivElement>(null);
 
-  const { loading, groups } = useSearch(query, 4);
+  const { loading, error, groups } = useSearch(query, 4);
   const flat = React.useMemo(() => flattenGroups(groups), [groups]);
 
   React.useEffect(() => {
@@ -124,6 +124,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
             groups={groups}
             query={query}
             loading={loading}
+            error={error}
             activeIndex={activeIndex}
             onSelect={navigate}
             onHover={setActiveIndex}

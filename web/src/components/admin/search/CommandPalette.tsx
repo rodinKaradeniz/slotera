@@ -33,7 +33,7 @@ export function CommandPalette({ open, onClose }: Props) {
     };
   }, [open]);
 
-  const { loading, groups } = useSearch(query, 6);
+  const { loading, error, groups } = useSearch(query, 6);
   const flat = React.useMemo(() => flattenGroups(groups), [groups]);
 
   React.useEffect(() => {
@@ -109,6 +109,7 @@ export function CommandPalette({ open, onClose }: Props) {
             groups={groups}
             query={query}
             loading={loading}
+            error={error}
             activeIndex={activeIndex}
             onSelect={navigate}
             onHover={setActiveIndex}

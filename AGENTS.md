@@ -48,7 +48,8 @@ currently exposes infrastructure health checks,
 real auth/session endpoints, operator business-settings/saved-location/service resources,
 workspace availability, session/recurrence resources, client/booking/form/context
 resources, a tenant-scoped dashboard read model, database-enforced calendar conflicts,
-and a user-targeted notification baseline over the identity/tenancy model. See
+server-side operator search, and a user-targeted notification baseline over the
+identity/tenancy model. See
 `docs/PRODUCT.md` for the full positioning rules and
 phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
 Phase 3 adds Stripe, scheduled email, and calendar integrations).
@@ -132,8 +133,9 @@ resolves the role from the email address:
 **Signing in (local API mode)** — use `hello@slotera.app` / `slotera-local-only`.
 Authentication is cookie-backed and the operator lands on `/admin/dashboard`; Dashboard,
 Calendar, Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are
-exposed in API-mode navigation. Calendar uses persisted sessions, booking/client context,
-and session action items, while attendance remains deferred until booking commands exist.
+exposed in API-mode navigation. The navbar and Cmd/Ctrl-K operator search are also
+API-backed. Calendar uses persisted sessions, booking/client context, and session action
+items, while attendance remains deferred until booking commands exist.
 Superadmin resource pages, public booking, registration/reset, and the remaining operator
 routes are not API-wired yet.
 
@@ -230,7 +232,7 @@ export async function listThings(): Promise<T[]> {
 - `dataSource` comes from `NEXT_PUBLIC_DATA_SOURCE` via `web/src/lib/env.ts` and defaults to
   `"mock"`. Auth/session, business settings/saved locations, services, notifications,
   availability, sessions, clients, booking reads, forms, client notes, session action
-  items, and the dashboard summary have API adapters; other methods still throw
+  items, dashboard summary, and workspace search have API adapters; other methods still throw
   `NotImplementedError` in API mode.
 - FastAPI OpenAPI is exported to `web/src/api/generated/` by `npm run generate:api`.
   Generated DTOs stay inside the API/service boundary and are mapped to `web/src/types/`.
@@ -248,7 +250,7 @@ export async function listThings(): Promise<T[]> {
 
 Current services: `auth`, `billing`, `bookings`, `client-notes`, `clients`, `dashboard`,
 `demo`, `forms`, `notifications`, `packages`, `platform`, `services`,
-`session-action-items`, `sessions`, `settings`.
+`search`, `session-action-items`, `sessions`, `settings`.
 
 ### Backend persistence
 
@@ -279,6 +281,7 @@ implemented HTTP surface is deliberately limited to:
 - `GET/POST /sessions/{session_id}/action-items` plus item `PATCH/DELETE` — private
   operator session tasks with persisted `todo`/`done` state;
 - `GET /dashboard/summary` — a tenant- and principal-scoped operator dashboard read model;
+- `GET /search` — a bounded tenant-scoped projection over searchable operator resources;
 - `/openapi.json` and `/docs` — the future generated-transport contract.
 
 Every response receives a generated `X-Request-ID`. HTTP, validation, application, and
@@ -488,8 +491,9 @@ Present tense — what exists in the working tree today.
   optional due date, and future-only `clientVisible` flag.
 - Client Notes persist in API mode as separate internal entries; stored rich text is
   server-sanitised and defensively sanitised again before rendering.
-- Global search: navbar dropdown + Cmd/Ctrl-K palette over one shared index
-  (`web/src/lib/search.ts`) spanning bookings, clients, services, sessions, and nav.
+- Global search: navbar dropdown + Cmd/Ctrl-K palette over one shared presentation index
+  (`web/src/lib/search.ts`) spanning bookings, clients, services, sessions, and nav; API
+  mode uses the tenant-scoped search projection without fixture fallback.
 
 **Platform workspace (`/superadmin`)**
 - Overview KPIs, workspaces list + detail, subscriptions, and an inquiries **inbox**
@@ -519,7 +523,7 @@ Present tense — what exists in the working tree today.
 - Generated OpenAPI transport types and a shared credentialed HTTP client back an opt-in
   local operator UI for auth, services, business settings/locations, notifications,
   availability/sessions, clients, booking-ledger reads, forms, client notes, session
-  action items, and dashboard facts. API-mode Calendar intentionally excludes mock-only
+  action items, dashboard facts, and workspace search. API-mode Calendar intentionally excludes mock-only
   attendance; the public/Vercel experience continues to default to mock mode.
 - Workspace availability and authenticated session APIs persist one-off or rolling six-
   month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant;
@@ -694,3 +698,14 @@ pytest passes and 30 PostgreSQL integration passes, with Ruff and strict mypy cl
 `npm run generate:api`, `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass.
 Read-only probes of the running local services returned ready `{"status":"ok","checks":{"database":"ok"}}`
 from `/health/ready` and HTTP 200 from `/admin/dashboard`.
+
+Later on 2026-07-29, server-side operator search added authenticated `GET /search` without
+a migration. It performs bounded, forced-RLS search projections across bookings, clients,
+services, and sessions, intentionally excluding internal note/action-item text. The
+existing navbar dropdown and Cmd/Ctrl-K palette now run in API mode through generated
+transport rather than a fixture index; their locally added navigation entries are limited
+to API-available routes. Backend isolated pytest reports 28 passes and PostgreSQL
+integration pytest reports 31 passes, with Ruff and strict mypy clean. `npm run
+generate:api`, `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass; read-only
+probes of the running listeners returned HTTP 200 for `/openapi.json` and
+`/admin/dashboard`.

@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import type { IconName } from "@/components/ui/Icon";
-import { listBookings } from "@/services/bookings.service";
-import { listClients } from "@/services/clients.service";
-import { listServices } from "@/services/services.service";
-import { listSessions } from "@/services/sessions.service";
+import { dataSource } from "@/lib/env";
+import { getWorkspaceSearchMatches } from "@/services/search.service";
+import type { WorkspaceSearchMatch } from "@/types/search";
 
 export type SearchGroup =
   | "Bookings"
@@ -134,100 +133,47 @@ function formatWhen(iso: string): string {
 }
 
 async function buildIndex(): Promise<SearchResult[]> {
-  const [bookings, clients, services, sessions] = await Promise.all([
-    listBookings(),
-    listClients(),
-    listServices(),
-    listSessions(),
-  ]);
+  const matches = await getWorkspaceSearchMatches();
+  return [...matches.map(matchToResult), ...navigationResults()];
+}
 
-  const clientById = new Map(clients.map((c) => [c.id, c]));
-  const serviceById = new Map(services.map((s) => [s.id, s]));
-  const sessionById = new Map(sessions.map((s) => [s.id, s]));
+function matchToResult(match: WorkspaceSearchMatch): SearchResult {
+  const presentation = {
+    booking: { group: "Bookings" as const, href: `/admin/bookings/${match.id}`, icon: "clipboard" },
+    client: { group: "Clients" as const, href: `/admin/clients/${match.id}`, icon: "user" },
+    service: { group: "Services" as const, href: "/admin/services", icon: "layers" },
+    session: { group: "Sessions" as const, href: "/admin/calendar", icon: "calendar" },
+  }[match.kind];
+  const subtitle = [
+    match.occurredAtISO ? formatWhen(match.occurredAtISO) : undefined,
+    match.subtitle,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return {
+    id: `${match.kind}-${match.id}`,
+    group: presentation.group,
+    title: match.title,
+    subtitle: subtitle || undefined,
+    href: presentation.href,
+    icon: presentation.icon,
+    keywords: match.keywords,
+  };
+}
 
-  const clientResults: SearchResult[] = clients.map((c) => ({
-    id: `client-${c.id}`,
-    group: "Clients",
-    title: c.name,
-    subtitle: [c.email, c.company].filter(Boolean).join(" · "),
-    href: `/admin/clients/${c.id}`,
-    icon: "user",
-    keywords: [c.name, c.email, c.company, c.phone, c.tag]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase(),
-  }));
-
-  const serviceResults: SearchResult[] = services.map((s) => ({
-    id: `service-${s.id}`,
-    group: "Services",
-    title: s.name,
-    subtitle: `${s.durationMin} min${s.capacity > 1 ? ` · group of ${s.capacity}` : ""}`,
-    href: `/admin/services`,
-    icon: "layers",
-    keywords: [s.name, s.description, s.locationType]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase(),
-  }));
-
-  const sessionResults: SearchResult[] = sessions.map((s) => {
-    const svc = serviceById.get(s.serviceId);
-    const when = formatWhen(s.startISO);
-    return {
-      id: `session-${s.id}`,
-      group: "Sessions",
-      title: svc?.name ?? "Session",
-      subtitle: `${when} · ${s.bookedCount}/${s.capacity} booked · ${s.status}`,
-      href: `/admin/calendar`,
-      icon: "calendar",
-      keywords: [svc?.name, when, s.status, s.location, s.locationType]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase(),
-    };
-  });
-
-  const bookingResults: SearchResult[] = bookings.map((b) => {
-    const client = clientById.get(b.clientId);
-    const session = sessionById.get(b.sessionId);
-    const svc = session ? serviceById.get(session.serviceId) : null;
-    const when = session ? formatWhen(session.startISO) : null;
-    const title = client ? client.name : "Booking";
-    const subtitleParts = [
-      svc?.name,
-      when,
-      b.status,
-      b.paymentStatus,
-    ].filter(Boolean);
-    return {
-      id: `booking-${b.id}`,
-      group: "Bookings",
-      title,
-      subtitle: subtitleParts.join(" · "),
-      href: `/admin/bookings/${b.id}`,
-      icon: "clipboard",
-      keywords: [
-        client?.name,
-        client?.email,
-        svc?.name,
-        b.status,
-        b.paymentStatus,
-        when,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase(),
-    };
-  });
-
-  return [
-    ...bookingResults,
-    ...clientResults,
-    ...serviceResults,
-    ...sessionResults,
-    ...NAV_RESULTS,
-  ];
+function navigationResults(): SearchResult[] {
+  if (dataSource !== "api") return NAV_RESULTS;
+  return NAV_RESULTS.filter((item) =>
+    [
+      "nav-dashboard",
+      "nav-calendar",
+      "nav-bookings",
+      "nav-clients",
+      "nav-services",
+      "nav-settings",
+      "nav-settings-calendar",
+    ].includes(item.id),
+  );
 }
 
 export async function getSearchIndex(): Promise<SearchResult[]> {
@@ -303,8 +249,11 @@ export function groupAndRank(
 
 export function useSearch(query: string, limitPerGroup = 5) {
   const [index, setIndex] = React.useState<SearchResult[] | null>(null);
+  const [apiResults, setApiResults] = React.useState<SearchResult[] | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    if (dataSource === "api") return;
     let cancelled = false;
     getSearchIndex().then((idx) => {
       if (!cancelled) setIndex(idx);
@@ -314,10 +263,59 @@ export function useSearch(query: string, limitPerGroup = 5) {
     };
   }, []);
 
-  return React.useMemo(() => {
-    if (!index || !query.trim()) {
-      return { loading: !index, groups: [] as ReturnType<typeof groupAndRank> };
+  React.useEffect(() => {
+    if (dataSource !== "api") return;
+    if (!query.trim()) {
+      setApiResults([]);
+      setError(null);
+      return;
     }
-    return { loading: false, groups: groupAndRank(index, query, limitPerGroup) };
-  }, [index, query, limitPerGroup]);
+    let cancelled = false;
+    setApiResults(null);
+    setError(null);
+    getWorkspaceSearchMatches(query, limitPerGroup)
+      .then((matches) => {
+        if (!cancelled) {
+          setApiResults([...matches.map(matchToResult), ...navigationResults()]);
+        }
+      })
+      .catch((searchError: unknown) => {
+        if (!cancelled) {
+          setApiResults([]);
+          setError(
+            searchError instanceof Error
+              ? searchError.message
+              : "Could not search this workspace.",
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [query, limitPerGroup]);
+
+  return React.useMemo(() => {
+    if (dataSource === "api") {
+      if (!query.trim()) {
+        return { loading: false, error: null, groups: [] as ReturnType<typeof groupAndRank> };
+      }
+      return {
+        loading: apiResults === null,
+        error,
+        groups: apiResults ? groupAndRank(apiResults, query, limitPerGroup) : [],
+      };
+    }
+    if (!index || !query.trim()) {
+      return {
+        loading: !index,
+        error: null,
+        groups: [] as ReturnType<typeof groupAndRank>,
+      };
+    }
+    return {
+      loading: false,
+      error: null,
+      groups: groupAndRank(index, query, limitPerGroup),
+    };
+  }, [apiResults, error, index, query, limitPerGroup]);
 }

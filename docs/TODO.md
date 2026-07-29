@@ -325,7 +325,11 @@ built and exercised separately.
      tenant- and principal-scoped read model for monthly booking facts, a 30-day trend,
      next/today sessions, and action-item/notification attention counts; API mode maps it
      without mock fallback.
-   - Server-side search, notification producers, superadmin, subscriptions, and inquiries.
+   - **~~Server-side operator search.~~ DONE.** `GET /search` is an authenticated,
+     tenant-scoped, bounded read projection for bookings, clients, services, and sessions;
+     API mode enables the existing navbar dropdown and Cmd/Ctrl-K palette without fixture
+     fallback. Note/action-item text remains outside its search/response scope.
+   - Notification producers, superadmin, subscriptions, and inquiries.
 10. Production-readiness gate, then later hosting/deployment selection.
 
 ### Explicitly deferred dependencies
