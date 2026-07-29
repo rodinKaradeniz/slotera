@@ -1,4 +1,4 @@
-import type { BookingStatus, PaymentStatus, Tone } from "./common";
+import type { BookingStatus, Currency, PaymentStatus, Tone } from "./common";
 
 export type KpiTrend = "up" | "down" | "flat";
 
@@ -18,6 +18,7 @@ export type DashboardScheduleItem = {
   end: string;
   client: string;
   company?: string;
+  clientEmail?: string;
   service: string;
   duration: string;
   status: "next" | "done" | "past" | "upcoming";
@@ -59,8 +60,12 @@ export type RecentBooking = {
 
 export type DashboardData = {
   todayISO: string;
+  currency?: Currency;
+  timezone?: string;
   todaySchedule: DashboardScheduleItem[];
+  nextSession?: DashboardScheduleItem;
   weekStrip: WeekDay[];
+  weekSessionCount?: number;
   kpis: Kpi[];
   trend30d: TrendPoint[];
   pendingActions: PendingAction[];

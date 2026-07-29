@@ -14,7 +14,7 @@ import type { DashboardData } from "@/types/dashboard";
 
 function buildSubtitle(data: DashboardData): string {
   const todayCount = data.todaySchedule.length;
-  const weekCount = data.weekStrip.reduce((acc, d) => acc + d.bookings.length, 0);
+  const weekCount = data.weekSessionCount ?? data.weekStrip.reduce((acc, d) => acc + d.bookings.length, 0);
   const todayWord = todayCount === 1 ? "session" : "sessions";
   return `${spell(todayCount)} ${todayWord} today, ${spell(weekCount).toLowerCase()} on the books this week.`;
 }
@@ -31,7 +31,7 @@ export function DashboardView() {
     setFirstName(first);
   }, []);
 
-  const next = data?.todaySchedule.find((t) => t.status === "next");
+  const next = data?.nextSession ?? data?.todaySchedule.find((t) => t.status === "next");
   const subtitle = data ? buildSubtitle(data) : undefined;
 
   return (
@@ -57,7 +57,7 @@ export function DashboardView() {
                 <KpiTile key={k.id} kpi={k} />
               ))}
             </div>
-            <TrendChart data={data.trend30d} />
+            <TrendChart data={data.trend30d} currency={data.currency} />
           </div>
         </div>
       )}

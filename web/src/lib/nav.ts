@@ -21,7 +21,7 @@ export const OPERATOR_NAV: NavItem[] = [
 ];
 
 export const API_OPERATOR_NAV: NavItem[] = OPERATOR_NAV.filter((item) =>
-  ["calendar", "bookings", "clients", "services", "forms", "settings"].includes(item.id),
+  ["dashboard", "calendar", "bookings", "clients", "services", "forms", "settings"].includes(item.id),
 );
 
 export const SUPERADMIN_NAV: NavItem[] = [
@@ -39,7 +39,7 @@ export function navForRole(role: UserRole): NavItem[] {
 
 export function homePathForRole(role: UserRole): string {
   if (role === "superadmin") return "/superadmin/overview";
-  return dataSource === "api" ? "/admin/calendar" : "/admin/dashboard";
+  return "/admin/dashboard";
 }
 
 export function eyebrowForRole(role: UserRole): string {

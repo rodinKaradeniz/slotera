@@ -9,6 +9,7 @@ from slotera_api.api.auth import router as auth_router
 from slotera_api.api.bookings import router as bookings_router
 from slotera_api.api.client_notes import router as client_notes_router
 from slotera_api.api.clients import router as clients_router
+from slotera_api.api.dashboard import router as dashboard_router
 from slotera_api.api.forms import router as forms_router
 from slotera_api.api.health import router as health_router
 from slotera_api.api.notifications import router as notifications_router
@@ -61,6 +62,7 @@ def create_app(
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(clients_router)
+    app.include_router(dashboard_router)
     app.include_router(client_notes_router)
     app.include_router(bookings_router)
     app.include_router(forms_router)

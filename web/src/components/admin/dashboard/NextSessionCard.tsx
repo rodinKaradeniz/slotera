@@ -11,6 +11,7 @@ import { getBooking } from "@/services/bookings.service";
 import type { DashboardScheduleItem } from "@/types/dashboard";
 import type { Booking } from "@/types/booking";
 import { cn } from "@/lib/cn";
+import { dataSource } from "@/lib/env";
 
 const EVENT_STYLE = { bg: "#E7EDE3", fg: "#2A3F2A" };
 
@@ -267,9 +268,11 @@ export function NextSessionCard({ item, schedule }: Props) {
                 {item.company && (
                   <div className="text-small text-ink-3 truncate">{item.company}</div>
                 )}
-                <div className="text-small text-ink-3 truncate">
-                  {item.client.toLowerCase().replace(/\s+/g, ".")}@example.com
-                </div>
+                {item.clientEmail && (
+                  <div className="text-small text-ink-3 truncate">
+                    {item.clientEmail}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -286,15 +289,17 @@ export function NextSessionCard({ item, schedule }: Props) {
             >
               View details
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon="refresh"
-              onClick={openEdit}
-              disabled={!booking}
-            >
-              Reschedule
-            </Button>
+            {dataSource === "mock" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon="refresh"
+                onClick={openEdit}
+                disabled={!booking}
+              >
+                Reschedule
+              </Button>
+            )}
           </div>
         </div>
 

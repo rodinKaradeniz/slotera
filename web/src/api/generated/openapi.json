@@ -1167,6 +1167,206 @@
         "title": "ClientResponse",
         "type": "object"
       },
+      "DashboardSessionSummary": {
+        "properties": {
+          "bookingId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bookingid"
+          },
+          "clientCompany": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clientcompany"
+          },
+          "clientEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clientemail"
+          },
+          "clientName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clientname"
+          },
+          "endAt": {
+            "format": "date-time",
+            "title": "Endat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "serviceName": {
+            "title": "Servicename",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "bookingId",
+          "startAt",
+          "endAt",
+          "serviceName",
+          "clientName",
+          "clientCompany",
+          "clientEmail"
+        ],
+        "title": "DashboardSessionSummary",
+        "type": "object"
+      },
+      "DashboardSummaryResponse": {
+        "properties": {
+          "averageBookingValuePreviousMonthCents": {
+            "title": "Averagebookingvaluepreviousmonthcents",
+            "type": "integer"
+          },
+          "averageBookingValueThisMonthCents": {
+            "title": "Averagebookingvaluethismonthcents",
+            "type": "integer"
+          },
+          "bookingsPreviousMonth": {
+            "title": "Bookingspreviousmonth",
+            "type": "integer"
+          },
+          "bookingsThisMonth": {
+            "title": "Bookingsthismonth",
+            "type": "integer"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "nextSession": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardSessionSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "openActionItemsCount": {
+            "title": "Openactionitemscount",
+            "type": "integer"
+          },
+          "revenuePreviousMonthCents": {
+            "title": "Revenuepreviousmonthcents",
+            "type": "integer"
+          },
+          "revenueThisMonthCents": {
+            "title": "Revenuethismonthcents",
+            "type": "integer"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "todaySessions": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardSessionSummary"
+            },
+            "title": "Todaysessions",
+            "type": "array"
+          },
+          "trend30d": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardTrendPoint"
+            },
+            "title": "Trend30D",
+            "type": "array"
+          },
+          "unreadNotificationsCount": {
+            "title": "Unreadnotificationscount",
+            "type": "integer"
+          },
+          "weekSessionCount": {
+            "title": "Weeksessioncount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "timezone",
+          "today",
+          "nextSession",
+          "todaySessions",
+          "weekSessionCount",
+          "revenueThisMonthCents",
+          "revenuePreviousMonthCents",
+          "bookingsThisMonth",
+          "bookingsPreviousMonth",
+          "averageBookingValueThisMonthCents",
+          "averageBookingValuePreviousMonthCents",
+          "trend30d",
+          "unreadNotificationsCount",
+          "openActionItemsCount"
+        ],
+        "title": "DashboardSummaryResponse",
+        "type": "object"
+      },
+      "DashboardTrendPoint": {
+        "properties": {
+          "bookings": {
+            "title": "Bookings",
+            "type": "integer"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "revenueCents": {
+            "title": "Revenuecents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "revenueCents",
+          "bookings"
+        ],
+        "title": "DashboardTrendPoint",
+        "type": "object"
+      },
       "ErrorBody": {
         "properties": {
           "code": {
@@ -3896,6 +4096,27 @@
         "summary": "Create Client Note",
         "tags": [
           "client notes"
+        ]
+      }
+    },
+    "/dashboard/summary": {
+      "get": {
+        "operationId": "getDashboardSummary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummaryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Dashboard Summary",
+        "tags": [
+          "dashboard"
         ]
       }
     },

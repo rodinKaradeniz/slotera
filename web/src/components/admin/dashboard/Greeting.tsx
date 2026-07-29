@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getSettings, updateSettings } from "@/services/settings.service";
 import { cn } from "@/lib/cn";
+import { dataSource } from "@/lib/env";
 import type { SettingsData } from "@/types/settings";
 
 type Props = {
@@ -43,6 +44,7 @@ export function Greeting({ firstName = "Lena", subtitle }: Props) {
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
+    if (dataSource === "api") return;
     getSettings().then(setSettings);
   }, []);
 
@@ -108,34 +110,36 @@ export function Greeting({ firstName = "Lena", subtitle }: Props) {
             <p className="mt-3 text-small text-ink-3">{subtitle}</p>
           )}
         </div>
-        <div className="flex flex-col gap-3 lg:items-end">
-          <BookingPageToggleRow
-            loading={settings === null}
-            enabled={enabled}
-            onRequestToggle={requestToggle}
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <a href="/booking" target="_blank" rel="noreferrer">
+        {dataSource === "mock" && (
+          <div className="flex flex-col gap-3 lg:items-end">
+            <BookingPageToggleRow
+              loading={settings === null}
+              enabled={enabled}
+              onRequestToggle={requestToggle}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <a href="/booking" target="_blank" rel="noreferrer">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  icon="eye"
+                  className="whitespace-nowrap"
+                >
+                  View booking page
+                </Button>
+              </a>
               <Button
-                variant="secondary"
+                variant="primary"
                 size="md"
-                icon="eye"
+                icon="plus"
                 className="whitespace-nowrap"
+                onClick={() => openBookingDrawer()}
               >
-                View booking page
+                New booking
               </Button>
-            </a>
-            <Button
-              variant="primary"
-              size="md"
-              icon="plus"
-              className="whitespace-nowrap"
-              onClick={() => openBookingDrawer()}
-            >
-              New booking
-            </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <Modal

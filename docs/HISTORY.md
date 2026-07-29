@@ -894,6 +894,25 @@ product surface needs cross-session ownership or client task access.
 
 ---
 
+### Entry 036 — Dashboard is a tenant-scoped read model, not client composition
+
+*2026-07-29.* The API dashboard is one authenticated `GET /dashboard/summary` resource.
+It returns facts rather than presentation: workspace currency/timezone, current and prior
+month booking aggregates, a 30-day daily trend, next/today session context, weekly session
+count, and the current operator's unread-notification/open-action-item counts. The
+repository uses the principal transaction context because notification RLS is recipient as
+well as workspace scoped. The web service maps those facts to existing labels, money
+formatting, relative KPI deltas, and schedule presentation.
+
+**Alternative rejected:** composing the API dashboard from browser calls to bookings,
+sessions, notifications, and action items, or preserving fixture-only conversion metrics.
+The former spreads aggregate rules across clients and increases partial-data failure modes;
+the latter makes a persistence-backed surface show invented facts. Revisit the response
+shape only when another real client needs a materially different aggregate or a persisted
+funnel denominator makes conversion well-defined.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

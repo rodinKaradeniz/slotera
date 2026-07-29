@@ -46,8 +46,9 @@ now wires the first operator bundle to FastAPI without changing that deployment 
 Phase 2 continues as a local-only FastAPI + PostgreSQL backend under `server/`; it
 currently exposes infrastructure health checks,
 real auth/session endpoints, operator business-settings/saved-location/service resources,
-workspace availability, session/recurrence resources, database-enforced calendar
-conflicts, and a user-targeted notification baseline over the identity/tenancy model. See
+workspace availability, session/recurrence resources, client/booking/form/context
+resources, a tenant-scoped dashboard read model, database-enforced calendar conflicts,
+and a user-targeted notification baseline over the identity/tenancy model. See
 `docs/PRODUCT.md` for the full positioning rules and
 phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
 Phase 3 adds Stripe, scheduled email, and calendar integrations).
@@ -129,11 +130,10 @@ resolves the role from the email address:
 | `wrong@example.com` | throws — the seeded failure case for testing error states |
 
 **Signing in (local API mode)** — use `hello@slotera.app` / `slotera-local-only`.
-Authentication is cookie-backed and the operator lands on `/admin/calendar`; Calendar,
-Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are exposed in API-mode navigation.
-Calendar uses persisted sessions and services, while its booking/client, attendance, and
-attendance context remains mock-only until their operator-core bundles land. Session action
-items are persisted and available in the existing Notes & Actions drawer.
+Authentication is cookie-backed and the operator lands on `/admin/dashboard`; Dashboard,
+Calendar, Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are
+exposed in API-mode navigation. Calendar uses persisted sessions, booking/client context,
+and session action items, while attendance remains deferred until booking commands exist.
 Superadmin resource pages, public booking, registration/reset, and the remaining operator
 routes are not API-wired yet.
 
@@ -229,7 +229,8 @@ export async function listThings(): Promise<T[]> {
 
 - `dataSource` comes from `NEXT_PUBLIC_DATA_SOURCE` via `web/src/lib/env.ts` and defaults to
   `"mock"`. Auth/session, business settings/saved locations, services, notifications,
-  availability, sessions, clients, booking reads, and session action items have API adapters; other methods still throw
+  availability, sessions, clients, booking reads, forms, client notes, session action
+  items, and the dashboard summary have API adapters; other methods still throw
   `NotImplementedError` in API mode.
 - FastAPI OpenAPI is exported to `web/src/api/generated/` by `npm run generate:api`.
   Generated DTOs stay inside the API/service boundary and are mapped to `web/src/types/`.
@@ -241,9 +242,9 @@ export async function listThings(): Promise<T[]> {
   directly from a component is a bug.
 - Errors are `NotImplementedError` or `NotFoundError` from `web/src/services/_errors.ts`;
   components surface `err.message`, usually through `toast.error(...)`.
-- Services are self-contained with one exception: `dashboard.service.ts` composes live
-  from `listBookings()`, `listSessions()`, and `listActionItems()` to derive its
-  "Needs your attention" entries and prepend them to the seeded ones.
+- Services are self-contained with one exception: in mock mode, `dashboard.service.ts`
+  composes live from bookings, sessions, and action items to prepend derived "Needs your
+  attention" entries. API mode maps the single dashboard summary read model instead.
 
 Current services: `auth`, `billing`, `bookings`, `client-notes`, `clients`, `dashboard`,
 `demo`, `forms`, `notifications`, `packages`, `platform`, `services`,
@@ -277,6 +278,7 @@ implemented HTTP surface is deliberately limited to:
   sessions, including explicit `this` / `this_and_following` edit scope;
 - `GET/POST /sessions/{session_id}/action-items` plus item `PATCH/DELETE` — private
   operator session tasks with persisted `todo`/`done` state;
+- `GET /dashboard/summary` — a tenant- and principal-scoped operator dashboard read model;
 - `/openapi.json` and `/docs` — the future generated-transport contract.
 
 Every response receives a generated `X-Request-ID`. HTTP, validation, application, and
@@ -471,7 +473,8 @@ Present tense — what exists in the working tree today.
 
 **Operator workspace (`/admin`)**
 - Dashboard: KPI tiles, Recharts revenue trend, `NextSessionCard` (with today's timeline
-  embedded), `PendingActions`, and a booking-page live/paused toggle in the greeting.
+  embedded), and `PendingActions`; API mode uses persisted dashboard facts, while the
+  mock-only booking-page live/paused controls stay hidden in API mode.
 - Calendar: day / week / month grids, conflict warning, session details via `SessionDrawer`.
 - Bookings: status accordions (Pending → Confirmed → Completed → No-show → Cancelled),
   a `client` query-param filter with a removable chip, and a focused booking detail page.
@@ -515,9 +518,9 @@ Present tense — what exists in the working tree today.
   PostgreSQL RLS isolate workspace and recipient; no email or event producers exist yet.
 - Generated OpenAPI transport types and a shared credentialed HTTP client back an opt-in
   local operator UI for auth, services, business settings/locations, notifications,
-  availability/sessions, clients, booking-ledger reads, forms, and client notes. API-mode
-  Calendar intentionally excludes mock-only attendance and action items; the public/Vercel
-  experience continues to default to mock mode.
+  availability/sessions, clients, booking-ledger reads, forms, client notes, session
+  action items, and dashboard facts. API-mode Calendar intentionally excludes mock-only
+  attendance; the public/Vercel experience continues to default to mock mode.
 - Workspace availability and authenticated session APIs persist one-off or rolling six-
   month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant;
   session capacity is validated, while booked-count consumption waits for bookings.
@@ -680,3 +683,14 @@ passed, and Ruff/strict mypy are clean. `npm run generate:api`, `npx tsc --noEmi
 `npm run lint`, and `npm run build` pass. An attempted fresh `./scripts/dev --api` could
 not bind ports 8000/3344 because listeners already occupied them; read-only probes of the
 existing listeners returned 200 for `/openapi.json` and `/admin/calendar`.
+
+Later on 2026-07-29, the operator dashboard summary added the authenticated,
+tenant-and-principal-scoped `GET /dashboard/summary` read model without a migration: it
+derives existing booking, session, notification, and session-action-item facts under the
+same database transaction context that enforces RLS. API mode now opens at Dashboard and
+maps its generated DTOs through the dashboard service; mock-only public-booking controls
+and booking rescheduling remain hidden there. Backend verification reports 28 isolated
+pytest passes and 30 PostgreSQL integration passes, with Ruff and strict mypy clean.
+`npm run generate:api`, `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass.
+Read-only probes of the running local services returned ready `{"status":"ok","checks":{"database":"ok"}}`
+from `/health/ready` and HTTP 200 from `/admin/dashboard`.

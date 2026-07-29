@@ -179,6 +179,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dashboard/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Dashboard Summary */
+        get: operations["getDashboardSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/forms": {
         parameters: {
             query?: never;
@@ -850,6 +867,81 @@ export interface components {
             updatedAt: string;
             /** Vatid */
             vatId: string | null;
+        };
+        /** DashboardSessionSummary */
+        DashboardSessionSummary: {
+            /** Bookingid */
+            bookingId: string | null;
+            /** Clientcompany */
+            clientCompany: string | null;
+            /** Clientemail */
+            clientEmail: string | null;
+            /** Clientname */
+            clientName: string | null;
+            /**
+             * Endat
+             * Format: date-time
+             */
+            endAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Servicename */
+            serviceName: string;
+            /**
+             * Startat
+             * Format: date-time
+             */
+            startAt: string;
+        };
+        /** DashboardSummaryResponse */
+        DashboardSummaryResponse: {
+            /** Averagebookingvaluepreviousmonthcents */
+            averageBookingValuePreviousMonthCents: number;
+            /** Averagebookingvaluethismonthcents */
+            averageBookingValueThisMonthCents: number;
+            /** Bookingspreviousmonth */
+            bookingsPreviousMonth: number;
+            /** Bookingsthismonth */
+            bookingsThisMonth: number;
+            /** Currency */
+            currency: string;
+            nextSession: components["schemas"]["DashboardSessionSummary"] | null;
+            /** Openactionitemscount */
+            openActionItemsCount: number;
+            /** Revenuepreviousmonthcents */
+            revenuePreviousMonthCents: number;
+            /** Revenuethismonthcents */
+            revenueThisMonthCents: number;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /** Todaysessions */
+            todaySessions: components["schemas"]["DashboardSessionSummary"][];
+            /** Trend30D */
+            trend30d: components["schemas"]["DashboardTrendPoint"][];
+            /** Unreadnotificationscount */
+            unreadNotificationsCount: number;
+            /** Weeksessioncount */
+            weekSessionCount: number;
+        };
+        /** DashboardTrendPoint */
+        DashboardTrendPoint: {
+            /** Bookings */
+            bookings: number;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Revenuecents */
+            revenueCents: number;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -2019,6 +2111,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getDashboardSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSummaryResponse"];
                 };
             };
         };

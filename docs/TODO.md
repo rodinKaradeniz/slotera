@@ -85,8 +85,9 @@ When tests arrive, the highest-value targets — the places where a bug is silen
 - **Relationship single-sourcing**: `listFormsForService`, `listPackagesForService`, and
   the booking↔session link. These are filters over an owning array, and a filter bug shows
   up as a merely-empty list, not an error.
-- **Derived dashboard state**: `getDashboard()` composing live from bookings, sessions, and
-  action items, including the `ses-demo` exclusion.
+- **Mock-derived dashboard state**: `getDashboard()` composing live from bookings, sessions,
+  and action items, including the `ses-demo` exclusion. The API dashboard summary has its
+  own PostgreSQL integration coverage.
 - **Role routing**: `homePathForRole()` and `AuthGuard`'s two redirect paths.
 
 Choosing a frontend runner is itself deferred — see `docs/RULES.md` on introducing
@@ -319,8 +320,12 @@ built and exercised separately.
    snapshots, idempotency, and expiry.
 8. Transactional email and booking workspace: outbox worker, confirmation/magic links,
    post-booking forms, reschedule/cancel requests, and client messages.
-9. Derived/platform resources: dashboard, server-side search, notification producers,
-   superadmin, subscriptions, and inquiries.
+9. Derived/platform resources:
+   - **~~Operator dashboard summary.~~ DONE.** `GET /dashboard/summary` provides a
+     tenant- and principal-scoped read model for monthly booking facts, a 30-day trend,
+     next/today sessions, and action-item/notification attention counts; API mode maps it
+     without mock fallback.
+   - Server-side search, notification producers, superadmin, subscriptions, and inquiries.
 10. Production-readiness gate, then later hosting/deployment selection.
 
 ### Explicitly deferred dependencies

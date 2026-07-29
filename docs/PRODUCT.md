@@ -105,9 +105,9 @@ await sleep(N);                 // simulated latency
 return ...                      // returns from / mutates an in-memory copy of web/src/data/mock/*.json
 ```
 
-`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The wired API bundles implement auth/session, business settings/saved locations, services, notifications, availability, and sessions through `web/src/api/client.ts`; every other API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
+`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The wired API bundles implement auth/session, business settings/saved locations, services, notifications, availability, sessions, clients, booking-ledger reads, forms, client notes, session action items, and the dashboard summary through `web/src/api/client.ts`; every other API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
 
-`getDashboard()` is the only service that composes from other services live: it imports `listBookings()` and `listSessions()` to compute the "Record attendance for N sessions" pending action and prepend it to the seeded `pendingActions`. Other services should stay self-contained unless they need similar live-derived state.
+In mock mode, `getDashboard()` is the only service that composes from other services live: it imports bookings, sessions, and action items to prepend derived attention entries to the fixture. In API mode it maps the single tenant-scoped `GET /dashboard/summary` read model; it must not compose a real dashboard from unrelated mock data or make client-side aggregate queries.
 
 ### Auth and session
 
@@ -419,10 +419,12 @@ Intentionally more editorial than generic SaaS. **Keep:**
 - Compact KPI cards (`KpiTile`).
 - Revenue trend with Recharts (`TrendChart`) — its `ResponsiveContainer` is gated on a measured positive size to suppress the `width(-1)/height(-1)` warnings that fire during route transitions.
 - Prominent `NextSessionCard` (also embeds today's schedule timeline — don't add a separate "Today's schedule" card).
-- `PendingActions` ("Needs your attention"). New live-derived entries get *prepended* via `dashboard.service.ts`; the existing one is "Record attendance for N sessions" (computed from past `capacity > 1` sessions with un-marked, non-cancelled bookings).
-- `Greeting`'s right-hand column has the **booking-page toggle**: a `Toggle` + status pill ("Booking page live" / "Bookings paused") + confirmation modal + `toast.info("Bookings paused", { description })` / `toast.success("Bookings live")`. Persists to `settings.business.bookingPageEnabled`.
+- `PendingActions` ("Needs your attention"). Mock mode prepends derived attendance/action-item entries. API mode reports only persisted summary facts: open session action-item and unread-notification counts.
+- API mode maps `GET /dashboard/summary` into the same component-facing contract: monthly paid-booking revenue plus active booking count/average, a 30-day trend, today/next session context, weekly session count, and the two attention counts. Currency formatting remains in the service/UI; the API returns currency and minor-unit facts.
+- `Greeting`'s right-hand column has the **booking-page toggle** in mock mode: a `Toggle` + status pill ("Booking page live" / "Bookings paused") + confirmation modal + `toast.info("Bookings paused", { description })` / `toast.success("Bookings live")`. It is intentionally hidden in API mode until the public booking bundle is real; API mode must not imply that its mock public page is live.
 
 **Do not reintroduce:** "Recent bookings" card, "This week" card. Those live on other pages.
+Do not add a conversion KPI until a persisted, unambiguous funnel denominator exists; dashboard facts must not be fabricated from the mock model.
 
 ### Bookings
 

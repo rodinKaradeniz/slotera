@@ -12,11 +12,12 @@ import {
 } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { SegGroup } from "@/components/ui/SegGroup";
-import { gbp } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
+import type { Currency } from "@/types/common";
 import type { TrendPoint } from "@/types/dashboard";
 
 type Metric = "revenue" | "bookings";
-type Props = { data: TrendPoint[] };
+type Props = { data: TrendPoint[]; currency?: Currency };
 
 type TooltipPayload = {
   payload: TrendPoint;
@@ -27,10 +28,12 @@ function ChartTooltip({
   active,
   payload,
   metric,
+  currency,
 }: {
   active?: boolean;
   payload?: TooltipPayload[];
   metric: Metric;
+  currency: Currency;
 }) {
   if (!active || !payload?.length) return null;
   const pt = payload[0].payload;
@@ -44,13 +47,13 @@ function ChartTooltip({
         className="font-serif"
         style={{ fontSize: 18, fontWeight: 380, lineHeight: 1.15 }}
       >
-        {metric === "revenue" ? gbp(v * 100) : `${v} bookings`}
+        {metric === "revenue" ? formatMoney(v * 100, currency) : `${v} bookings`}
       </div>
     </div>
   );
 }
 
-export function TrendChart({ data }: Props) {
+export function TrendChart({ data, currency = "GBP" }: Props) {
   const [metric, setMetric] = React.useState<Metric>("revenue");
   // Recharts' ResponsiveContainer falls back to width(-1)/height(-1) when its
   // parent is briefly detached or zero-sized during a Next.js route transition,
@@ -144,12 +147,12 @@ export function TrendChart({ data }: Props) {
                 fontFamily: "var(--font-mono)",
               }}
               tickFormatter={(v: number) =>
-                metric === "revenue" ? `£${v}` : `${v}`
+                metric === "revenue" ? formatMoney(v * 100, currency) : `${v}`
               }
             />
             <Tooltip
               cursor={{ stroke: "var(--line)", strokeDasharray: "2 4" }}
-              content={<ChartTooltip metric={metric} />}
+              content={<ChartTooltip metric={metric} currency={currency} />}
             />
             <Area
               type="monotone"
