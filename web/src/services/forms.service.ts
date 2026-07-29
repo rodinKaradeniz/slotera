@@ -53,7 +53,10 @@ export async function listForms(): Promise<FormTemplate[]> {
 }
 
 export async function getForm(id: string): Promise<FormTemplate | null> {
-  if (dataSource !== "mock") throw new NotImplementedError("getForm");
+  if (dataSource === "api") {
+    try { return mapForm(await apiRequest<FormDto>(`/forms/${encodeURIComponent(id)}`)); }
+    catch (error) { if (error instanceof Error && error.message.includes("not found")) return null; throw error; }
+  }
   await sleep(40);
   return mock.find((f) => f.id === id) ?? null;
 }
@@ -82,7 +85,11 @@ export async function updateForm(
   id: string,
   patch: Partial<FormTemplateInput>,
 ): Promise<FormTemplate> {
-  if (dataSource !== "mock") throw new NotImplementedError("updateForm");
+  if (dataSource === "api") {
+    return mapForm(await apiRequest<FormDto, Partial<FormCreateDto>>(`/forms/${encodeURIComponent(id)}`, {
+      method: "PATCH", body: patch, csrf: true,
+    }));
+  }
   await sleep(100);
   const idx = mock.findIndex((f) => f.id === id);
   if (idx === -1) throw new NotFoundError("form", id);
@@ -100,7 +107,10 @@ export async function activateForm(id: string): Promise<FormTemplate> {
 }
 
 export async function removeForm(id: string): Promise<void> {
-  if (dataSource !== "mock") throw new NotImplementedError("removeForm");
+  if (dataSource === "api") {
+    await apiRequest<void>(`/forms/${encodeURIComponent(id)}`, { method: "DELETE", csrf: true });
+    return;
+  }
   await sleep(80);
   mock = mock.filter((f) => f.id !== id);
 }

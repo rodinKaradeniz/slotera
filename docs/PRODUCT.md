@@ -354,8 +354,8 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 
 ### Forms
 
-The local API form baseline is operator-only: it persists reusable templates and their
-service attachments. It does not render forms publicly or accept/store client responses.
+The local API form bundle is operator-only: it persists and manages reusable templates and
+their service attachments. It does not render forms publicly or accept/store client responses.
 
 - Reusable `FormTemplate`s (`web/src/types/form.ts`) are created under `/admin/forms` and attached to services. Attachment is **single-sourced on `FormTemplate.attachedServiceIds`** — there is no `Service.attachedFormIds` field. The public flow resolves attachment via `listFormsForService(serviceId)`. Don't reintroduce a dual-write relationship.
 - **Simplified shape (no `purpose`).** A `FormTemplate` is `{ id, name, description, status, fields, attachedServiceIds, requiredBeforePayment, createdAtISO }`. There is **no `purpose`/`FormPurpose` field, category, or filter** — don't reintroduce one. Mock forms are curated around the consultant/coach/instructor ICP (Discovery Call prep, Business context questions, Workshop intake, Mutual NDA acknowledgement). Don't add back profession-specific forms (pet/therapy/trainer).

@@ -161,6 +161,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/forms/{form_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Form */
+        get: operations["getForm"];
+        put?: never;
+        post?: never;
+        /** Delete Form */
+        delete: operations["deleteForm"];
+        options?: never;
+        head?: never;
+        /** Update Form */
+        patch: operations["updateForm"];
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -783,6 +802,21 @@ export interface components {
             items: components["schemas"]["FormTemplateResponse"][];
             /** Total */
             total: number;
+        };
+        /** FormTemplatePatch */
+        FormTemplatePatch: {
+            /** Attachedserviceids */
+            attachedServiceIds?: string[] | null;
+            /** Description */
+            description?: string | null;
+            /** Fields */
+            fields?: components["schemas"]["FormFieldInput"][] | null;
+            /** Name */
+            name?: string | null;
+            /** Requiredbeforepayment */
+            requiredBeforePayment?: boolean | null;
+            /** Status */
+            status?: ("active" | "inactive") | null;
         };
         /** FormTemplateResponse */
         FormTemplateResponse: {
@@ -1704,6 +1738,101 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormTemplatePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

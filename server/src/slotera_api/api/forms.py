@@ -16,6 +16,7 @@ from slotera_api.schemas.forms import (
     FormFieldInput,
     FormTemplateInput,
     FormTemplateListResponse,
+    FormTemplatePatch,
     FormTemplateResponse,
 )
 
@@ -44,3 +45,34 @@ async def create_form(payload: FormTemplateInput, response: Response, operator: 
         raise ApiError(status_code=HTTPStatus.NOT_FOUND, code="form_service_not_found", message="An attached service was not found")
     response.headers["Cache-Control"] = "no-store"
     return await _response(repository, operator.workspace_id, item)
+
+
+@router.get("/{form_id}", response_model=FormTemplateResponse, operation_id="getForm")
+async def get_form(form_id: UUID, response: Response, operator: OperatorWorkspaceDependency, database: DatabaseDependency) -> FormTemplateResponse:
+    repository = FormsRepository(database)
+    item = await repository.get_form(operator.workspace_id, form_id)
+    if item is None:
+        raise ApiError(status_code=404, code="form_not_found", message="Form was not found")
+    response.headers["Cache-Control"] = "no-store"
+    return await _response(repository, operator.workspace_id, item)
+
+
+@router.patch("/{form_id}", response_model=FormTemplateResponse, operation_id="updateForm")
+async def update_form(form_id: UUID, payload: FormTemplatePatch, response: Response, operator: CsrfOperatorWorkspaceDependency, database: DatabaseDependency) -> FormTemplateResponse:
+    values = payload.model_dump(exclude_unset=True)
+    if "fields" in values and values["fields"] is not None:
+        values["fields"] = [field.model_dump() for field in payload.fields or []]
+    repository = FormsRepository(database)
+    item = await repository.update(operator.workspace_id, operator.user_id, form_id, values)
+    if item is None:
+        raise ApiError(status_code=404, code="form_not_found", message="Form was not found")
+    response.headers["Cache-Control"] = "no-store"
+    return await _response(repository, operator.workspace_id, item)
+
+
+@router.delete("/{form_id}", status_code=204, operation_id="deleteForm")
+async def delete_form(form_id: UUID, operator: CsrfOperatorWorkspaceDependency, database: DatabaseDependency) -> Response:
+    deleted = await FormsRepository(database).delete(operator.workspace_id, operator.user_id, form_id)
+    if not deleted:
+        raise ApiError(status_code=404, code="form_not_found", message="Form was not found")
+    return Response(status_code=204)
