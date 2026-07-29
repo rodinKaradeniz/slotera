@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from datetime import date, datetime, time
 from enum import StrEnum
 from uuid import UUID, uuid4
@@ -39,6 +40,8 @@ TENANT_TABLES = frozenset(
         "sessions",
         "clients",
         "bookings",
+        "form_templates",
+        "form_template_services",
     }
 )
 
@@ -90,6 +93,11 @@ class PaymentStatus(StrEnum):
     REFUNDED = "refunded"
     FREE = "free"
     OVERDUE = "overdue"
+
+
+class FormStatus(StrEnum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
 
 
 def _enum_values(enum_type: type[StrEnum]) -> list[str]:
@@ -563,6 +571,33 @@ class Booking(Base):
     )
 
 
+class FormTemplate(Base):
+    __tablename__ = "form_templates"
+    __table_args__ = (UniqueConstraint("workspace_id", "id", name="uq_form_templates_workspace_id_id"),)
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    description: Mapped[str] = mapped_column(String(1000), server_default=text("''"))
+    status: Mapped[FormStatus] = mapped_column(Enum(FormStatus, name="form_status", values_callable=_enum_values))
+    fields: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
+    required_before_payment: Mapped[bool] = mapped_column(server_default=text("true"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class FormTemplateService(Base):
+    __tablename__ = "form_template_services"
+    __table_args__ = (
+        ForeignKeyConstraint(["workspace_id", "form_template_id"], ["form_templates.workspace_id", "form_templates.id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["workspace_id", "service_id"], ["services.workspace_id", "services.id"], ondelete="RESTRICT"),
+    )
+
+    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), primary_key=True)
+    form_template_id: Mapped[UUID] = mapped_column(primary_key=True)
+    service_id: Mapped[UUID] = mapped_column(primary_key=True)
+
+
 class Notification(Base):
     __tablename__ = "notifications"
     __table_args__ = (
@@ -612,6 +647,9 @@ __all__ = [
     "Booking",
     "BookingStatus",
     "Client",
+    "FormStatus",
+    "FormTemplate",
+    "FormTemplateService",
     "AuthSession",
     "Base",
     "MembershipRole",

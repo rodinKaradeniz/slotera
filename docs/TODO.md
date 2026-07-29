@@ -297,7 +297,10 @@ built and exercised separately.
    - **~~Bookings read baseline.~~ DONE.** Tenant-scoped ledger rows now persist client and
      session references plus amount/currency snapshots, with forced RLS and API-mode
      list/detail reads. Creation and every booking command remain deferred.
-   - Booking creation/cancellation/status commands, forms/responses, notes, action items,
+   - **~~Form-template create/list baseline.~~ DONE.** Operator form templates and their
+     single-sourced service attachments persist under RLS; public rendering/responses and
+     template commands beyond creation remain deferred.
+   - Booking creation/cancellation/status commands, form responses, notes, action items,
      attendance, and operator-created manual bookings.
 7. Public booking: public catalog/availability, free/manual booking transactions, tax
    snapshots, idempotency, and expiry.

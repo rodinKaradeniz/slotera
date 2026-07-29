@@ -130,7 +130,7 @@ resolves the role from the email address:
 
 **Signing in (local API mode)** — use `hello@slotera.app` / `slotera-local-only`.
 Authentication is cookie-backed and the operator lands on `/admin/calendar`; Calendar,
-Calendar Settings, Bookings, Clients, Services, and Business Settings are exposed in API-mode navigation.
+Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are exposed in API-mode navigation.
 Calendar uses persisted sessions and services, while its booking/client, attendance, and
 session-action-item context remains mock-only until the operator-core bundle lands.
 Superadmin resource pages, public booking, registration/reset, and the remaining operator

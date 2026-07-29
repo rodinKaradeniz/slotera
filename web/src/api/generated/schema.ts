@@ -143,6 +143,24 @@ export interface paths {
         patch: operations["updateClient"];
         trace?: never;
     };
+    "/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Forms */
+        get: operations["listForms"];
+        put?: never;
+        /** Create Form */
+        post: operations["createForm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -717,6 +735,82 @@ export interface components {
         /** ErrorEnvelope */
         ErrorEnvelope: {
             error: components["schemas"]["ErrorBody"];
+        };
+        /** FormFieldInput */
+        FormFieldInput: {
+            /** Helptext */
+            helpText?: string | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Options */
+            options?: string[] | null;
+            /** Placeholder */
+            placeholder?: string | null;
+            /** Required */
+            required: boolean;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "short_text" | "long_text" | "single_select" | "multi_select" | "date" | "yes_no" | "consent_checkbox";
+        };
+        /** FormTemplateInput */
+        FormTemplateInput: {
+            /** Attachedserviceids */
+            attachedServiceIds?: string[];
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Fields */
+            fields: components["schemas"]["FormFieldInput"][];
+            /** Name */
+            name: string;
+            /** Requiredbeforepayment */
+            requiredBeforePayment: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        /** FormTemplateListResponse */
+        FormTemplateListResponse: {
+            /** Items */
+            items: components["schemas"]["FormTemplateResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** FormTemplateResponse */
+        FormTemplateResponse: {
+            /** Attachedserviceids */
+            attachedServiceIds: string[];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Description */
+            description: string;
+            /** Fields */
+            fields: components["schemas"]["FormFieldInput"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Requiredbeforepayment */
+            requiredBeforePayment: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "inactive";
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1562,6 +1656,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listForms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateListResponse"];
+                };
+            };
+        };
+    };
+    createForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormTemplateInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResponse"];
                 };
             };
             /** @description Validation Error */

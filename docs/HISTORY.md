@@ -847,6 +847,17 @@ rules exist. Correctness and future command semantics outweigh a more interactiv
 
 ---
 
+### Entry 033 — Templates own form/service attachments
+
+*2026-07-29.* Form fields persist as one template-owned JSON aggregate, while a tenant-scoped
+join table validates the template-owned attached-service list against real workspace services.
+The Service model has no reverse attachment field.
+
+**Alternative rejected:** storing service UUIDs only in JSON. That would be cheaper, but loses
+database-enforced tenant references and leaves deleted-service handling ambiguous.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

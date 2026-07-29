@@ -21,7 +21,7 @@ export const OPERATOR_NAV: NavItem[] = [
 ];
 
 export const API_OPERATOR_NAV: NavItem[] = OPERATOR_NAV.filter((item) =>
-  ["calendar", "bookings", "clients", "services", "settings"].includes(item.id),
+  ["calendar", "bookings", "clients", "services", "forms", "settings"].includes(item.id),
 );
 
 export const SUPERADMIN_NAV: NavItem[] = [

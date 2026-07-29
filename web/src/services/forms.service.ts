@@ -1,5 +1,7 @@
 import formsJson from "@/data/mock/forms.json";
 import responsesJson from "@/data/mock/form-responses.json";
+import { apiRequest } from "@/api/client";
+import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
@@ -11,13 +13,41 @@ import type {
 } from "@/types/form";
 import { NotFoundError, NotImplementedError } from "./_errors";
 
+type FormDto = components["schemas"]["FormTemplateResponse"];
+type FormListDto = components["schemas"]["FormTemplateListResponse"];
+type FormCreateDto = components["schemas"]["FormTemplateInput"];
+
 let mock: FormTemplate[] = JSON.parse(JSON.stringify(formsJson)) as FormTemplate[];
 let responses: FormResponse[] = JSON.parse(
   JSON.stringify(responsesJson),
 ) as FormResponse[];
 
+function mapForm(form: FormDto): FormTemplate {
+  return {
+    id: form.id,
+    name: form.name,
+    description: form.description,
+    status: form.status,
+    fields: form.fields.map((field) => ({
+      ...field,
+      placeholder: field.placeholder ?? undefined,
+      helpText: field.helpText ?? undefined,
+      options: field.options ?? undefined,
+    })),
+    attachedServiceIds: form.attachedServiceIds,
+    requiredBeforePayment: form.requiredBeforePayment,
+    createdAtISO: form.createdAt,
+  };
+}
+
+function createPayload(input: FormTemplateInput): FormCreateDto {
+  return input;
+}
+
 export async function listForms(): Promise<FormTemplate[]> {
-  if (dataSource !== "mock") throw new NotImplementedError("listForms");
+  if (dataSource === "api") {
+    return (await apiRequest<FormListDto>("/forms")).items.map(mapForm);
+  }
   await sleep(60);
   return [...mock];
 }
@@ -31,7 +61,13 @@ export async function getForm(id: string): Promise<FormTemplate | null> {
 export async function createForm(
   input: FormTemplateInput,
 ): Promise<FormTemplate> {
-  if (dataSource !== "mock") throw new NotImplementedError("createForm");
+  if (dataSource === "api") {
+    return mapForm(await apiRequest<FormDto, FormCreateDto>("/forms", {
+      method: "POST",
+      body: createPayload(input),
+      csrf: true,
+    }));
+  }
   await sleep(120);
   const created: FormTemplate = {
     ...input,
