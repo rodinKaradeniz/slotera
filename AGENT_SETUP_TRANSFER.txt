@@ -1,0 +1,473 @@
+PORTABLE REPOSITORY GOVERNANCE + AGENT SETUP PACK
+==================================================
+
+Purpose
+-------
+
+Apply the documentation and agent-working structure used by Slotera to THIS target
+repository. This is a reusable operating system for a codebase, not an instruction to
+copy Slotera's product, design, stack, data model, or roadmap.
+
+First inspect the target repository before creating or changing files. Then configure the
+same governance layout, adapting all product-, stack-, and command-specific text to what
+is actually present. Preserve existing authoritative documentation where it exists;
+reorganise carefully instead of replacing useful project knowledge with generic prose.
+
+The objective is that a new agent can open one root file, understand the project, know
+which other documents to read for a given task, work within established patterns, record
+new decisions, and verify changes honestly.
+
+
+NON-NEGOTIABLE OPERATING PRINCIPLES
+-----------------------------------
+
+1. Documentation describes the repository as it is now. Do not write aspirational claims
+   as current state.
+2. One topic has one owner. Do not put the same rule in several documents with different
+   wording or authority.
+3. Product decisions, technical rationale, deferred work, and day-to-day working rules
+   are different things. Keep them separate.
+4. Documentation is part of a feature change. If code changes current state, decisions,
+   product rules, or deferred scope, update the owning document in the same change.
+5. Read before changing. A surprising implementation detail is often a recorded decision,
+   not an accident.
+6. Never manufacture verification. State the exact commands, routes, database checks, or
+   manual flows actually exercised, and distinguish them from files merely read.
+7. Keep agent instructions project-specific and evidence-backed. Do not add blanket rules
+   that conflict with the target repository's toolchain or existing team process.
+8. Do not run git operations, delete files, rewrite broad areas, install dependencies, or
+   alter deployment configuration unless the task authorises that work.
+
+
+SOURCE LAYOUT TO RECREATE
+-------------------------
+
+At the root of the target repository, aim for this layout. Omit implementation-specific
+folders that do not fit the target; retain the documentation/governance shape.
+
+  AGENTS.md                         Entry point: present-tense current state
+  CLAUDE.md                         Small pointer to AGENTS.md for compatible tooling
+  docs/
+    PRODUCT.md                      Product rulebook and domain vocabulary
+    HISTORY.md                      Decisions, rationale, rejected alternatives, bug catches
+    TODO.md                         Deferred work, known gaps, ordered delivery work
+    RULES.md                        Always-on Do / Don't / Communication rules
+    PORTABLE_AGENT_SETUP.txt        Optional copy of this pack after installation
+  skills/
+    <workflow-name>/SKILL.md        Canonical on-demand workflow modules
+  .claude/skills/
+    <workflow-name> -> ../../skills/<workflow-name>
+                                      Optional symlinks for native skill discovery
+  scripts/                          Project automation, when useful
+  <application folders>             The actual source layout, documented in AGENTS.md
+
+Slotera-specific example only:
+
+  web/                              Next.js frontend
+  server/                           FastAPI backend
+  scripts/dev                       local stack launcher
+
+Do NOT create web/, server/, Docker, a database, mock/API modes, or any particular
+workflow merely because Slotera has them. Describe and extend the target's actual shape.
+
+
+DOCUMENT OWNERSHIP AND PRECEDENCE
+---------------------------------
+
+Use these documents with exactly these responsibilities.
+
+1. AGENTS.md — THE ENTRY POINT / CURRENT STATE
+
+   Owns:
+   - what the product is in one concise paragraph;
+   - the present implementation state, including important limitations;
+   - exact repository layout and ownership boundaries;
+   - stack and commands that are known to work;
+   - architecture and data-flow conventions;
+   - routes/modules/surfaces currently present;
+   - how to run, test, type-check, lint, migrate, seed, or inspect the project;
+   - the mandatory reading order below;
+   - an index of local workflow modules in skills/.
+
+   Does NOT own:
+   - long-form product requirements;
+   - a chronological decision diary;
+   - an unfiltered backlog;
+   - generic AI advice unrelated to this repository.
+
+   Write it in present tense. It must answer: “What exists today, where is it, and how do
+   I safely work on it?” Update it whenever that answer changes.
+
+2. docs/RULES.md — ALWAYS-ON WORKING CONVENTIONS
+
+   Owns:
+   - do/don't rules for editing, testing, scope control, communication, and safety;
+   - local coding conventions that are not better owned by one source file;
+   - documentation update rules;
+   - verification vocabulary;
+   - the rule that this document applies to every task.
+
+   This is the procedural authority. A local workflow module may add process, but RULES.md
+   wins if they disagree. Keep it concrete: name the target's actual patterns instead of
+   saying “write clean code.”
+
+3. docs/PRODUCT.md — PRODUCT RULEBOOK
+
+   Owns:
+   - positioning and intended user/problem;
+   - canonical domain vocabulary;
+   - per-surface behaviour and copy rules;
+   - field meanings and domain invariants;
+   - explicit “do not reintroduce X” decisions;
+   - phase scope and product-level forward rules.
+
+   This is the authority when a product rule conflicts with another document. It is not a
+   general technical manual. If the target has no product surface, rename this document to
+   DOMAIN.md only after explicitly recording that choice in AGENTS.md and RULES.md.
+
+4. docs/HISTORY.md — DECISIONS AND RATIONALE
+
+   Owns:
+   - why an apparently arbitrary choice exists;
+   - architectural decisions and the alternatives rejected;
+   - framework/library pitfalls discovered in real work;
+   - calibration decisions worth preserving;
+   - a compact collected table of rejected alternatives, when useful.
+
+   Use chronological entries near the front and stable thematic summaries near the end.
+   Add a history entry for a non-obvious call, a rejected alternative, or a bug that could
+   plausibly be reintroduced. Do not turn ordinary commits into diary entries.
+
+5. docs/TODO.md — DELIBERATE FUTURE WORK
+
+   Owns:
+   - deferred requirements and known gaps;
+   - sequencing and phase boundaries;
+   - production-readiness gates;
+   - work consciously not built yet and why;
+   - items completed in place.
+
+   An item in TODO.md is a decision, not an oversight. Mark completed work with
+   strikethrough plus DONE and a concise explanation; never silently delete the record.
+   Split work that depends on missing infrastructure so “partially built” cannot be read
+   as “done.”
+
+6. skills/<name>/SKILL.md — ON-DEMAND WORKFLOWS
+
+   Owns a reusable process for a particular class of task. These are not always-on rules.
+   Each module must state when it should be read, what it changes about the approach, and
+   any required verification or documentation outcome. Prefer a small set of useful
+   modules over a catalogue of generic checklists.
+
+
+MANDATORY READING ORDER FOR ALL AGENTS
+--------------------------------------
+
+Put this exact concept, adapted to the target's paths, at the top of AGENTS.md and
+RULES.md:
+
+  1. AGENTS.md — current state, layout, commands, conventions. Always.
+  2. docs/RULES.md — project working rules. Always.
+  3. docs/PRODUCT.md — before user-facing work, domain fields, copy, or product changes.
+  4. docs/HISTORY.md — before changing structural or arbitrary-looking behaviour.
+  5. docs/TODO.md — before planning or touching an adjacent deferred concern.
+
+Suggested right-sizing:
+
+  - Small mechanical/local change: read 1–2.
+  - User-facing copy/surface/domain-field work: read 1–3.
+  - Architectural, persistence, API, security, or cross-layer work: read 1–4.
+  - Planning, sequencing, or scope work: read 1–5.
+
+If another tool automatically reads CLAUDE.md, make it a short pointer stub to AGENTS.md.
+Do not maintain a second independent source of agent instructions.
+
+
+REQUIRED AGENTS.md OUTLINE
+--------------------------
+
+Create AGENTS.md with this outline, removing headings that genuinely do not apply and
+adding target-specific ones where necessary:
+
+  # <Project> — Current State
+
+  One-paragraph explanation of what this document is and why it is the entry point.
+
+  ## Reading order at the start of every task
+  <Use the mandatory reading order above.>
+
+  ## What <Project> is
+  <Product/domain, audience, important positioning, and current phase.>
+
+  ## Running it locally
+  <Exact known commands. Explain prerequisites, ports, env files, test limitations,
+   migrations, seed data, and how run state is tracked.>
+
+  ## Stack
+  <A compact table: layer, actual choice, notes.>
+
+  ## Repository layout
+  <A tree of real important paths, with one-line ownership notes.>
+
+  ## Architecture
+  <Real data flow, service boundaries, auth/session semantics, tenancy or permissions,
+   API contract conventions, state ownership, and external-provider boundaries.>
+
+  ## Conventions
+  <Only conventions that a contributor needs to avoid creating a second pattern.>
+
+  ## Feature snapshot
+  <Present-tense, user-visible and backend/internal features that exist today.>
+
+  ## Workflow modules
+  <A table: module, when to open it.>
+
+  ## Verification status of this document
+  <Date, source state, checks actually run. Update only when evidence exists.>
+
+Use real relative paths. Do not claim tests, APIs, authentication, deployment, or data
+protection that the target repository does not have.
+
+
+REQUIRED RULES.md CONTENT
+-------------------------
+
+Write target-specific versions of these rules:
+
+DO
+
+  1. Ask only when two materially different readings would produce different work.
+  2. Follow existing patterns; if a pattern is wrong, surface and justify the replacement.
+  3. Fix shared primitives rather than duplicate call-site patches.
+  4. Keep data access behind the target's existing boundary.
+  5. Preserve single-sourced relationships; do not dual-write inverse fields.
+  6. Test boundaries and negative paths, not only happy paths.
+  7. Update the document that owns the changed fact or decision in the same task.
+  8. Wrap swappable external providers behind a local interface/factory.
+  9. Prefer additive, narrow changes and preserve unrelated work in a dirty tree.
+ 10. Report in-scope work that was not done, blocked, or intentionally deferred.
+
+DON'T
+
+  1. Do not run git operations without explicit authorisation.
+  2. Do not assume names, paths, exports, schema fields, or existing patterns; inspect.
+  3. Do not reformat or tidy unrelated code.
+  4. Do not introduce dependencies casually or rely on undeclared transitive dependencies.
+  5. Do not overclaim verification.
+  6. Do not silently fix unrelated or security-relevant issues; surface them.
+  7. Do not reintroduce entries expressly ruled out in PRODUCT.md or HISTORY.md.
+  8. Do not let a backend or integration change silently alter a demo/default environment.
+  9. Do not expose internal/operator-only data through public/client-facing surfaces.
+
+COMMUNICATION
+
+  - Lead with outcome, then evidence.
+  - State meaningful assumptions when they change scope or design.
+  - For substantial work, end with a “deviations, all deliberate” section listing
+    non-trivial departures and why.
+  - Name exactly what was run, what passed, and what was only inspected.
+  - State what remains, especially if a feature is intentionally partial.
+
+Replace generic statements above with target-specific examples once the repository has
+enough established patterns to name them.
+
+
+TODO.md OPERATING MODEL
+-----------------------
+
+Use a structure appropriate to the target, but preserve these sections where relevant:
+
+  # Deferred work and known gaps
+
+  ## 1. Current quality/tooling gaps
+  ## 2. Product or UX follow-ups
+  ## 3. Security / privacy / production readiness
+  ## 4. Architecture and integration work
+  ## Delivery order
+
+For every non-trivial item, record:
+
+  - what is missing;
+  - why it is deliberately deferred;
+  - the dependency or trigger that should cause it to be revisited;
+  - any rule that prevents a tempting partial implementation.
+
+Good example:
+
+  - **Recurring export.** Deferred until the event model has stable identifiers and a
+    customer-visible permission decision. Do not add a local CSV button that exposes
+    internal fields; build it with the public export contract.
+
+Completed example:
+
+  - **~~Generated transport types.~~ DONE.** The backend exports a repeatable contract and
+    the frontend imports generated DTOs only within its service boundary.
+
+
+HISTORY.md ENTRY TEMPLATE
+-------------------------
+
+Add a chronological entry like this for important decisions:
+
+  ### Entry NNN — <short decision title>
+
+  *YYYY-MM-DD.* <What was decided and what concrete shape it takes.>
+
+  **Alternative rejected:** <A real alternative>, because <specific cost/risk/constraint>.
+
+  <The invariant or condition that would cause this decision to be revisited.>
+
+Keep one history entry focused on one decision. Place a concise “Rejected alternatives,
+collected” table near the end only after there are enough decisions to make it useful.
+
+
+PRODUCT.md OUTLINE
+------------------
+
+Never copy Slotera's domain choices into the target. Instead, synthesise the target's
+actual product rulebook using this outline:
+
+  # <Project> — Product Rulebook
+
+  ## Product position and audience
+  ## Canonical domain vocabulary
+  ## Phase scope / non-goals
+  ## Domain entities and invariants
+  ## Product surfaces and rules
+  ### <Surface A>
+  ### <Surface B>
+  ## Security and visibility boundaries
+  ## API/contract rules that are product-level, not implementation detail
+  ## Deliberately excluded concepts
+
+Make product copy and vocabulary rules explicit. Include a “never reintroduce” list only
+for decisions the target has actually made. Product rules outrank convenience refactors.
+
+
+WORKFLOW MODULES TO CONSIDER
+----------------------------
+
+Create only modules that fit the target. Slotera's useful baseline set is:
+
+  skills/engineering-discipline/SKILL.md
+    Trigger: any non-trivial change, new surface, or new pattern.
+    Requires: success criteria, blast radius, and explicit non-goals before editing.
+
+  skills/structured-reasoning/SKILL.md
+    Trigger: several defensible design options or a costly wrong decision.
+    Requires: question, hard/soft constraints, real options, tradeoff, recommendation,
+    and condition that would change the recommendation.
+
+  skills/full-stack-architect/SKILL.md
+    Trigger: persistence, API, service boundaries, multi-client contracts, or other
+    decisions that outlive the current phase.
+    Requires: maintainability/cost/scale tradeoffs and a HISTORY.md decision entry.
+
+  skills/security-review/SKILL.md
+    Trigger: authentication, authorisation, tenancy, external input, stored content,
+    public/private data flow, webhooks, payments, or credentials.
+    Requires: identify trust boundaries and verify server-side authorisation and tenancy.
+
+  skills/test-authoring/SKILL.md
+    Trigger: writing or reviewing tests.
+    Requires: tests named after failures they prevent; boundary and negative-path focus.
+
+  skills/tdd-verification/SKILL.md
+    Trigger: a change that must be proven correct.
+    Requires: an observable red condition where possible, then the exact green check and
+    relevant regression gate.
+
+Do not create empty ceremonial skill files. Each selected module must contain target-aware
+commands and rules, and AGENTS.md must list its trigger.
+
+
+IMPLEMENTATION INSTRUCTIONS FOR THE RECEIVING AGENT
+----------------------------------------------------
+
+Perform the following in order.
+
+1. Discovery (read-only first)
+
+   - List root files, existing docs, instructions, build manifests, source folders, tests,
+     deployment configuration, and environment examples.
+   - Find any existing AGENTS.md, CLAUDE.md, README, CONTRIBUTING, architecture docs,
+     ADRs, TODOs, issue templates, and CI configuration.
+   - Identify the real commands from package/build configuration. Do not infer them.
+   - Identify existing agent instructions and preserve higher-authority rules.
+   - Identify whether the repository is a library, application, monorepo, frontend,
+     backend, infrastructure project, or another shape.
+
+2. Design the documentation map before editing
+
+   Report briefly:
+
+   - success criteria for the governance setup;
+   - the proposed paths and ownership boundaries;
+   - what existing docs will be preserved, renamed, merged, or left untouched;
+   - what is explicitly not being introduced because the target does not need it.
+
+   Ask for direction only if an existing document has unclear authority or a proposed move
+   would discard meaningful target-specific content.
+
+3. Create or adapt the governance files
+
+   - Add AGENTS.md as the single current-state entry point.
+   - Add/repair RULES.md, PRODUCT.md (or recorded equivalent), HISTORY.md, and TODO.md.
+   - Add the CLAUDE.md pointer only if it helps the target's tooling.
+   - Add only justified workflow modules under skills/.
+   - Update existing README/CONTRIBUTING only when they would now contradict the new entry
+     point; do not replace user-facing onboarding material with agent-only prose.
+
+4. Cross-link and check authority
+
+   - Every document links to the proper owner where relevant.
+   - AGENTS.md gives the exact reading order and workflow-module index.
+   - RULES.md says PRODUCT.md wins on product conflicts and RULES.md wins on workflow
+     conflicts.
+   - TODO.md is referenced for planning/deferred concerns.
+   - HISTORY.md explains how to append entries.
+   - No two files claim ownership of the same policy without one explicitly delegating.
+
+5. Verify
+
+   - Read every created/modified governance file end-to-end.
+   - Confirm all links and paths exist.
+   - Run existing formatting, markdown lint, docs checks, and relevant repository checks
+     if available; do not introduce a new test framework merely for these docs.
+   - State exactly what was verified and what was not.
+
+
+QUALITY BAR FOR THE RESULT
+--------------------------
+
+The setup is successful only when an agent new to the repository can answer all of these:
+
+  - What does this project do and what does it deliberately not do?
+  - Which files must I read before making this particular change?
+  - What is the authoritative source for product rules, technical rationale, deferred work,
+    and everyday conventions?
+  - How do I run, test, lint, build, migrate, or otherwise verify it?
+  - Which abstractions/patterns are already canonical?
+  - Which parts are mock/demo/stubbed versus production-backed?
+  - What security or data-visibility boundaries must never be crossed?
+  - Where do I record a newly discovered decision, deferral, or current-state change?
+
+If the answer to any is “search the codebase and guess,” the documentation setup is not
+finished.
+
+
+FINAL REPORT FORMAT FOR THE RECEIVING AGENT
+-------------------------------------------
+
+Lead with the outcome. Then provide:
+
+  - files created/updated, with a one-line purpose each;
+  - the authoritative reading order now installed;
+  - any target-specific documents intentionally preserved or not duplicated;
+  - exact verification performed;
+  - “deviations, all deliberate”: every non-trivial difference from this pack and why.
+
+Do not claim the target is fully documented if product rules, commands, or architecture
+are still unknown. Record uncertainty honestly in TODO.md or ask for direction where it
+would affect authority or scope.
+

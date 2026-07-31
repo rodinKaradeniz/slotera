@@ -32,13 +32,21 @@ export const SUPERADMIN_NAV: NavItem[] = [
   { id: "settings",      label: "Settings",      icon: "cog",      href: "/superadmin/settings" },
 ];
 
+export const API_SUPERADMIN_NAV: NavItem[] = SUPERADMIN_NAV.filter(
+  (item) => item.id === "workspaces",
+);
+
 export function navForRole(role: UserRole): NavItem[] {
-  if (role === "superadmin") return SUPERADMIN_NAV;
+  if (role === "superadmin") {
+    return dataSource === "api" ? API_SUPERADMIN_NAV : SUPERADMIN_NAV;
+  }
   return dataSource === "api" ? API_OPERATOR_NAV : OPERATOR_NAV;
 }
 
 export function homePathForRole(role: UserRole): string {
-  if (role === "superadmin") return "/superadmin/overview";
+  if (role === "superadmin") {
+    return dataSource === "api" ? "/superadmin/workspaces" : "/superadmin/overview";
+  }
   return "/admin/dashboard";
 }
 

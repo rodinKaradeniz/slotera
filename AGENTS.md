@@ -48,8 +48,9 @@ currently exposes infrastructure health checks,
 real auth/session endpoints, operator business-settings/saved-location/service resources,
 workspace availability, session/recurrence resources, client/booking/form/context
 resources, a tenant-scoped dashboard read model, database-enforced calendar conflicts,
-server-side operator search, and a user-targeted notification baseline over the
-identity/tenancy model. See
+server-side operator search, a narrow superadmin workspace directory/detail plus initial
+workspace-provisioning command, transaction-safe scheduled-session booking commands, and
+a user-targeted notification baseline over the identity/tenancy model. See
 `docs/PRODUCT.md` for the full positioning rules and
 phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
 Phase 3 adds Stripe, scheduled email, and calendar integrations).
@@ -135,9 +136,13 @@ Authentication is cookie-backed and the operator lands on `/admin/dashboard`; Da
 Calendar, Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are
 exposed in API-mode navigation. The navbar and Cmd/Ctrl-K operator search are also
 API-backed. Calendar uses persisted sessions, booking/client context, and session action
-items, while attendance remains deferred until booking commands exist.
-Superadmin resource pages, public booking, registration/reset, and the remaining operator
-routes are not API-wired yet.
+items; the persisted Bookings screen remains read-only while the new operator booking
+commands remain an API foundation. Attendance remains deferred.
+API-mode superadmins land on the persisted Workspaces directory; its detail route shows
+only safe owner, workspace, and aggregate facts, and platform staff can provision a
+workspace plus activation-pending initial operator. Subscriptions, inquiries,
+impersonation, and settings surfaces remain mock-only. Public booking,
+registration/reset, and the remaining operator routes are not API-wired yet.
 
 **Public routes needing no session:** `/` (landing), `/booking`,
 `/booking/confirmation`, `/booking/failure`, `/booking/manage/demo`.
@@ -178,6 +183,7 @@ docs/
   HISTORY.md           decisions & rationale
   TODO.md              deferred work & future directions
   RULES.md             always-on working conventions
+  PROJECT_OVERVIEW.txt paste-ready product/project introduction for external use
 skills/<name>/SKILL.md on-demand workflow modules (canonical location)
 .claude/skills/        symlinks into skills/ for native skill discovery
 scripts/dev            one-command local dependency/database/application startup
@@ -232,7 +238,8 @@ export async function listThings(): Promise<T[]> {
 - `dataSource` comes from `NEXT_PUBLIC_DATA_SOURCE` via `web/src/lib/env.ts` and defaults to
   `"mock"`. Auth/session, business settings/saved locations, services, notifications,
   availability, sessions, clients, booking reads, forms, client notes, session action
-  items, dashboard summary, and workspace search have API adapters; other methods still throw
+  items, dashboard summary, workspace search, and superadmin workspace reads/provisioning have API
+  adapters; other methods still throw
   `NotImplementedError` in API mode.
 - FastAPI OpenAPI is exported to `web/src/api/generated/` by `npm run generate:api`.
   Generated DTOs stay inside the API/service boundary and are mapped to `web/src/types/`.
@@ -268,12 +275,16 @@ implemented HTTP surface is deliberately limited to:
 - `GET/POST /settings/locations` plus item `PATCH/DELETE` — saved locations;
 - `GET/POST /services` plus item `GET/PATCH/DELETE` — operator service management;
 - `GET/POST /clients` plus item `GET/PATCH` — operator client profiles and search;
-- `GET /bookings` plus item `GET` — tenant-scoped operator booking-ledger reads;
+- `GET /bookings` plus item `GET`, `POST /bookings`, and explicit item `POST`
+  confirm/cancel/complete/no-show commands — tenant-scoped operator booking-ledger reads
+  plus idempotent, audited scheduled-session booking commands;
 - `GET/POST /forms` plus item `GET/PATCH/DELETE` — operator form-template management;
 - `GET/POST /clients/{client_id}/notes` plus note `PATCH/DELETE` — private operator
   client context, allow-list sanitised before persistence;
 - `GET /notifications` and `POST /notifications/mark-all-read` — structured, user-
   targeted operator notifications and read acknowledgement;
+- `GET/POST /platform/workspaces` plus item `GET` — global-superadmin-only, display-safe
+  workspace directory/detail projections and one audited initial-provisioning command;
 - `GET/PUT /availability` — workspace timezone, split weekly hours, booking-window policy,
   buffers, notice/advance limits, and blackout ranges;
 - `GET/POST /sessions` plus item `GET/PATCH` — one-off and recurring materialised
@@ -309,7 +320,12 @@ scope resource queries explicitly. Unscoped tenant reads return no rows and cros
 workspace writes fail. The runtime role has no direct privileges on users, auth sessions,
 or reset tokens.
 Four fixed-search-path `SECURITY DEFINER` functions expose only login lookup, session
-creation, session lookup, and revocation to that role.
+creation, session lookup, and revocation to that role. Two additional fixed-search-path
+`SECURITY DEFINER` read functions expose only display-safe platform workspace facts, while
+one fixed provisioning function atomically creates the workspace, initial operator,
+membership, business profile, and audit event after independently checking the actor's
+platform role. The runtime role receives `EXECUTE`, not a tenant-RLS bypass or direct
+identity-table access.
 The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used host
 `5432` port. `uv run slotera-seed` imports the Hartmann workspace, operator, business
 profile, two locations, five EUR-derived services, four notifications, platform
@@ -324,7 +340,8 @@ host-only, HttpOnly, and SameSite=Lax. The readable CSRF cookie must match both 
 `X-CSRF-Token` header and the digest bound to that session. Unsafe authenticated requests
 also require an exact configured `Origin`. Production marks both cookies Secure and
 requires an explicit shared sibling-domain CSRF cookie. Reusable FastAPI dependencies
-provide authenticated, CSRF-protected, and operator-workspace request contexts. Operator
+provide authenticated, CSRF-protected, operator-workspace, and platform-superadmin request
+contexts. Operator
 mutations emit audit events in the same transaction as their resource change.
 Notification queries additionally derive the recipient from the verified session and set
 both workspace and user database context. The runtime role can select notifications and
@@ -338,7 +355,8 @@ logout. `web/src/lib/session.ts` remains the **only** module that touches the
 (`web/src/components/layout/AuthGuard.tsx`) takes an optional `requireRole` and redirects to
 `/login?next=…` when there is no session, or to `homePathForRole(session.role)` on a role
 mismatch. `homePathForRole()` in `web/src/lib/nav.ts` is the single source of truth for where
-each role goes home; `OPERATOR_NAV` / `SUPERADMIN_NAV` / `navForRole()` live beside it.
+each role goes home; `OPERATOR_NAV` / `SUPERADMIN_NAV`, API-filtered variants, and
+`navForRole()` live beside it.
 
 `UserRole` is `"operator_admin" | "superadmin"`. Customers never authenticate.
 
@@ -349,10 +367,11 @@ each role goes home; `OPERATOR_NAV` / `SUPERADMIN_NAV` / `navForRole()` live bes
 | `(public)` | `/`, `/booking`, `/booking/confirmation`, `/booking/failure`, `/booking/manage/demo` | `PublicNav` / booking chrome | none |
 | `(auth)` | `/login`, `/register`, `/register/plan`, `/register/payment`, `/forgot-password`, `/reset-password`, `/onboarding` | `AuthShell` (width chosen by pathname in the group layout) | none |
 | `(admin)` | `/admin/{dashboard,calendar,bookings,bookings/[id],clients,clients/[id],services,packages,forms,settings}` | `AdminShell` | `AuthGuard requireRole="operator_admin"` + `DrawersProvider` |
-| `(superadmin)` | `/superadmin/{overview,workspaces,workspaces/[id],subscriptions,inquiries,settings}` | `AppShell` with `SUPERADMIN_NAV` | `AuthGuard requireRole="superadmin"` |
+| `(superadmin)` | `/superadmin/{overview,workspaces,workspaces/[id],subscriptions,inquiries,settings}` | `AppShell` with role/API-filtered platform nav | `AuthGuard requireRole="superadmin"` |
 
-`/admin` → `/admin/dashboard` and `/superadmin` → `/superadmin/overview` are handled by
-`redirects()` in `web/next.config.ts` — **not** by `page.tsx` bodies calling `redirect()`.
+`/admin` → `/admin/dashboard` and `/superadmin` → the role's environment-appropriate
+platform home are handled by `redirects()` in `web/next.config.ts` — **not** by `page.tsx`
+bodies calling `redirect()`.
 See HISTORY.md for why.
 
 ### Providers
@@ -499,6 +518,11 @@ Present tense — what exists in the working tree today.
 - Overview KPIs, workspaces list + detail, subscriptions, and an inquiries **inbox**
   (read/unread only — no ticket statuses) with a preview modal that can promote a business
   inquiry into a provisioned workspace.
+- API mode is deliberately narrower: authenticated superadmins see a persisted workspace
+  directory/detail with owner identity, created/timezone/currency facts, and
+  service/client/booking/session counts, plus initial provisioning of a workspace and an
+  activation-pending operator identity. No mock plan/subscription, activity, billing,
+  notes, suspension, or impersonation control appears there.
 
 **Backend persistence**
 - Local FastAPI app with liveness/readiness, OpenAPI docs, structured errors and request
@@ -523,11 +547,18 @@ Present tense — what exists in the working tree today.
 - Generated OpenAPI transport types and a shared credentialed HTTP client back an opt-in
   local operator UI for auth, services, business settings/locations, notifications,
   availability/sessions, clients, booking-ledger reads, forms, client notes, session
-  action items, dashboard facts, and workspace search. API-mode Calendar intentionally excludes mock-only
+  action items, dashboard facts, and workspace search. The new booking command transport
+  is not yet exposed by the API-mode UI, which remains a read-only ledger. API-mode Calendar intentionally excludes mock-only
   attendance; the public/Vercel experience continues to default to mock mode.
+- The local API also has a separate superadmin workspace island. Its two database
+  projections are fixed, safe allow-lists and its one provisioning function is an atomic,
+  audited capability under `SECURITY DEFINER`; FastAPI and the function both verify the
+  platform role before use, and the runtime role still has no generic cross-workspace read.
 - Workspace availability and authenticated session APIs persist one-off or rolling six-
-  month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant;
-  session capacity is validated, while booked-count consumption waits for bookings.
+  month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant.
+  Operator booking creation locks the existing scheduled session, counts pending/confirmed
+  bookings in the same transaction, and rejects a full session; booking status commands
+  are idempotent and audit logged without changing payment state.
 - Tenant-scoped client profiles persist stable UUIDs and normalized, workspace-unique
   email addresses. Operator client CRUD/search is RLS-backed and audit logged; booking
   metrics remain unwired until their resources land.
@@ -709,3 +740,39 @@ integration pytest reports 31 passes, with Ruff and strict mypy clean. `npm run
 generate:api`, `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass; read-only
 probes of the running listeners returned HTTP 200 for `/openapi.json` and
 `/admin/dashboard`.
+
+On 2026-07-30, migration `20260730_0012` added two fixed, display-safe
+`SECURITY DEFINER` platform workspace projections. Authenticated superadmins can read the
+persisted directory/detail in API mode; operators receive `403`, and no platform command
+or generic tenant-RLS bypass was introduced. `uv run alembic upgrade head` reached the
+revision; backend isolated pytest reports 28 passed and PostgreSQL integration pytest
+reports 32 passed, with Ruff and strict mypy clean. `npm run generate:api`, `npx tsc
+--noEmit`, `npm run lint`, and `npm run build` also pass.
+
+Later on 2026-07-30, migration `20260730_0013` added the first superadmin platform
+command: provision a EUR workspace with its activation-pending initial operator,
+membership, baseline business profile, and tenant audit event. The CSRF-protected API and
+API-mode Workspaces drawer accept only workspace/owner identity and timezone—never mock
+subscription or billing fields. The fixed `SECURITY DEFINER` function independently
+checks the actor's platform role, while the restricted runtime role retains no direct
+global-table access. Focused real-PostgreSQL integration tests cover operator rejection,
+CSRF protection, successful atomic provisioning, duplicate slug/email conflicts, audit
+facts, and direct-user-table denial. `uv run alembic upgrade head` reached the revision;
+`uv run pytest` reports 28 passed, `uv run pytest -m integration` reports 33 passed, and
+Ruff/strict mypy are clean. `npm run generate:api`, `npx tsc --noEmit`, `npm run lint`,
+and `npm run build` also pass; `./scripts/dev --api` reached head with a zero-change seed,
+and live `/health/ready` / `/superadmin/workspaces` probes returned `200`.
+
+On 2026-07-31, migrations `20260731_0014` and `20260731_0015` added the scheduled-session
+operator booking-command foundation and its tenant-scoped idempotency record. Creation
+locks the existing session, derives the monetary snapshot from its service/workspace,
+counts capacity-consuming pending/confirmed rows, and returns a conflict when full.
+Confirm/cancel/complete/no-show are explicit CSRF-protected commands, audit logged and
+idempotent without altering payment state. The generated transport contains the commands,
+but API-mode Bookings intentionally remains read-only. `uv run alembic upgrade head`
+reached `20260731_0015 (head)`; `uv run pytest` reports 28 passed and `uv run pytest -m
+integration -q` reports 37 passed (28 deselected); Ruff and strict mypy are clean.
+`npm run generate:api`, `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass. A
+fresh `./scripts/dev --api` completed dependency sync, transport generation, migration, and
+zero-change seeding, then stopped because port `8000` was already occupied; no replacement
+API/browser process was started.

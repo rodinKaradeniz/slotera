@@ -309,9 +309,12 @@ built and exercised separately.
      real sessions under RLS, with CSRF-protected CRUD/status changes, audit events, and
      API-mode Calendar drawer support. `clientVisible` remains a stored future flag and
      does not expose an item to any public or client-booking response.
-   - **Booking capacity-consumption rules and booking commands.** Create/cancel/status and
-     operator-created manual booking commands must arrive with transaction-safe counting
-     and locking for capacity-consuming bookings/holds; do not add either independently.
+   - **~~Scheduled-session booking capacity consumption and commands.~~ DONE.** Migration
+     `20260731_0014` adds idempotent, audited operator creation plus explicit
+     confirm/cancel/complete/no-show commands. Creation locks the existing session and
+     counts pending/confirmed bookings in one tenant transaction; it snapshots service
+     price and workspace currency, leaves payment state untouched, and rejects a full
+     session. The API-mode UI remains read-only; holds and open-mode creation are separate.
    - **Attendance.** Attendance depends on real capacity-consuming bookings and remains
      deferred until the booking-command bundle is complete.
    - **Form responses.** Persisted public/post-booking form answers belong with the real
@@ -329,15 +332,28 @@ built and exercised separately.
      tenant-scoped, bounded read projection for bookings, clients, services, and sessions;
      API mode enables the existing navbar dropdown and Cmd/Ctrl-K palette without fixture
      fallback. Note/action-item text remains outside its search/response scope.
-   - Notification producers, superadmin, subscriptions, and inquiries.
+   - **~~Superadmin workspace reads.~~ DONE.** Global-superadmin-only directory/detail
+     reads now use two fixed, display-safe database projections; the runtime role has
+     `EXECUTE` on those projections rather than direct cross-workspace table access or a
+     generic RLS bypass. API mode exposes only that read-only platform island.
+   - **~~Superadmin workspace provisioning.~~ DONE.** The single CSRF-protected command
+     atomically creates a EUR workspace, activation-pending initial operator identity and
+     membership, baseline business profile, and tenant audit event through a fixed
+     `SECURITY DEFINER` capability; no broad superadmin RLS exception or direct global
+     table access was introduced.
+   - Notification producers, additional superadmin workspace commands, subscriptions, and
+     inquiries.
 10. Production-readiness gate, then later hosting/deployment selection.
 
 ### Explicitly deferred dependencies
 
 - **Recurrence-horizon worker:** retain the current materialised horizon; do not add the
   worker until active-series maintenance is separately scheduled.
-- **Booking capacity consumption:** no booking/hold rows or capacity locks before the
-  booking schema milestone.
+- **~~Scheduled-session booking capacity consumption and commands.~~ DONE.** Pending and
+  confirmed operator-created bookings now consume capacity under a locked-session,
+  idempotent transaction; explicit lifecycle commands are audit logged. **Holds and
+  open-mode/public booking creation remain deferred** and need their own lock targets and
+  expiry rules. Attendance remains deferred until its separate group-session command work.
 - **Payments:** Stripe, payment holds, webhooks, refunds, and tax-provider work remain
   Phase 3.
 - **Email:** booking confirmation/magic-link delivery waits for real public bookings;
@@ -394,8 +410,10 @@ stay demonstrations until the backend can support them properly.
   coupons or gift cards. A real version would need purchase, remaining-credit tracking,
   enrollment, and customer-facing package management. Do not add any of it to the current
   surface; see HISTORY.md Entry 016.
-- **Manual booking by the operator.** Creating a booking for someone who has already paid
-  out-of-band, from the admin side. Not modelled.
+- **Operator booking-command UI and out-of-band payment reconciliation.** The API can now
+  create an audited pending operator booking against an existing scheduled session, but no
+  API-mode UI exposes it and it cannot record an out-of-band payment. Keep payment state
+  and reconciliation with the later payment domain rather than widening the command.
 - **Client-side authentication at booking time** ("if you have an account, log in") and
   **invitation flows** ("your provider has invited you to book"). Both imply customer
   accounts, which the product currently does not have — adopting either is a positioning

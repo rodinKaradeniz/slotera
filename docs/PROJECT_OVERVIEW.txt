@@ -1,0 +1,63 @@
+SLOTERA — PROJECT OVERVIEW
+
+Slotera is a lightweight client workspace for independent consultants, coaches,
+instructors, and small expert-led studios. It brings bookings, session management,
+client preparation, packages, and follow-up into one calm, focused workspace—without
+turning into a heavyweight CRM or generic reservation system.
+
+WHO IT IS FOR
+
+Slotera is designed for service providers who run expert-led appointments, coaching,
+consulting sessions, classes, and workshops. Its first product story centres on
+independent consultants, coaches, and instructors, while keeping the underlying model
+flexible for different service businesses.
+
+WHAT IT HELPS WITH
+
+- A customer booking page for browsing services, choosing a time, completing prep forms,
+  and reviewing payment details.
+- An operator workspace for managing services, availability, calendar sessions, bookings,
+  clients, forms, packages, internal notes, and session action items.
+- A scheduling experience with one-off and recurring sessions, workspace availability,
+  blackout dates, and conflict prevention.
+- Client context that stays lightweight: contact details, booking history, and private
+  rich-text notes for session preparation and follow-up.
+- Multi-session packages presented as ordered bundles of existing services.
+- A separate superadmin workspace for platform staff to view safe workspace facts and
+  provision new workspaces.
+- English, Turkish, and German interface support for core navigation and labels.
+
+PRODUCT APPROACH
+
+Slotera is intentionally warm, simple, and service-led. It uses the language of bookings
+and sessions, not reservations or a customer portal. The product is built to support paid
+work, preparation, and follow-up while avoiding unnecessary CRM-style complexity.
+
+CURRENT DEVELOPMENT STATUS
+
+The public-facing experience is a polished Next.js prototype backed by deterministic mock
+data, making it suitable for portfolio and client demonstrations. Payment forms, booking
+confirmation, and customer management are therefore demonstrative in the default version;
+they are not connected to a live payment provider, email service, or production customer
+authentication system.
+
+Alongside the prototype, Slotera has a local FastAPI and PostgreSQL backend in active
+development. It already includes secure operator and superadmin sessions, tenant-aware
+data isolation, services, client profiles, booking-ledger reads, forms, notes,
+notifications, availability, recurring sessions, calendar-conflict enforcement, dashboard
+facts, search, and limited superadmin workspace provisioning. The backend is opt-in for
+local development and does not replace the public mock demo.
+
+TECHNOLOGY
+
+Frontend: Next.js, React, TypeScript, Tailwind CSS
+Backend: FastAPI, PostgreSQL, SQLAlchemy, Alembic
+Developer experience: Docker Compose, OpenAPI-generated TypeScript transport types,
+strict type checking, linting, and automated backend tests
+
+WHAT COMES NEXT
+
+The next phases focus on real public booking transactions, capacity-safe booking commands,
+transactional confirmation email and booking-management links. Stripe payments, advanced
+email automation, and external calendar integrations are planned later, after those core
+flows are reliable.

@@ -44,6 +44,15 @@ export function AuthGuard({ children, requireRole }: Props) {
           router.replace(homePathForRole("operator_admin"));
           return;
         }
+        if (
+          dataSource === "api" &&
+          requireRole === "superadmin" &&
+          pathname !== "/superadmin/workspaces" &&
+          !pathname.startsWith("/superadmin/workspaces/")
+        ) {
+          router.replace(homePathForRole("superadmin"));
+          return;
+        }
         setReady(true);
       })
       .catch(() => {

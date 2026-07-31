@@ -13,7 +13,10 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/superadmin",
-        destination: "/superadmin/overview",
+        destination:
+          process.env.NEXT_PUBLIC_DATA_SOURCE === "api"
+            ? "/superadmin/workspaces"
+            : "/superadmin/overview",
         permanent: false,
       },
     ];

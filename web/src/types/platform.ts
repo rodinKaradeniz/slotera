@@ -4,21 +4,35 @@ import type {
   SubscriptionStatus,
 } from "./billing";
 
-export type Workspace = {
+/** Display-safe, persisted facts exposed to a platform superadmin. */
+export type PlatformWorkspace = {
   id: string;
   name: string;
   slug: string;
-  ownerName: string;
-  ownerEmail: string;
-  planId: PlanId;
-  subscriptionStatus: SubscriptionStatus;
+  ownerName: string | null;
+  ownerEmail: string | null;
   createdAtISO: string;
-  lastActiveISO: string;
   bookingsCount: number;
   servicesCount: number;
   clientsCount: number;
+  sessionsCount: number;
+  currency?: string;
+  timezone?: string;
+};
+
+/** Mock-only platform controls that do not yet exist in the local API. */
+export type Workspace = PlatformWorkspace & {
+  planId: PlanId;
+  subscriptionStatus: SubscriptionStatus;
+  lastActiveISO: string;
   suspended?: boolean;
 };
+
+export function isMockWorkspace(
+  workspace: PlatformWorkspace,
+): workspace is Workspace {
+  return "planId" in workspace;
+}
 
 export type PlatformSubscription = {
   id: string;

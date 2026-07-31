@@ -42,6 +42,7 @@ TENANT_TABLES = frozenset(
         "sessions",
         "clients",
         "bookings",
+        "booking_command_idempotency",
         "form_templates",
         "form_template_services",
         "client_notes",
@@ -545,6 +546,7 @@ class Booking(Base):
     __table_args__ = (
         CheckConstraint("amount_cents >= 0", name="amount_nonnegative"),
         CheckConstraint("char_length(currency) = 3", name="currency_iso_length"),
+        UniqueConstraint("workspace_id", "id", name="uq_bookings_workspace_id_id"),
         ForeignKeyConstraint(
             ["workspace_id", "client_id"],
             ["clients.workspace_id", "clients.id"],
@@ -577,6 +579,38 @@ class Booking(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class BookingCommandIdempotency(Base):
+    __tablename__ = "booking_command_idempotency"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["workspace_id", "booking_id"],
+            ["bookings.workspace_id", "bookings.id"],
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint(
+            "workspace_id",
+            "actor_user_id",
+            "idempotency_key",
+            name="uq_booking_command_idempotency_actor_key",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    actor_user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(255))
+    command: Mapped[str] = mapped_column(String(64))
+    request_fingerprint: Mapped[str] = mapped_column(String(64))
+    booking_id: Mapped[UUID]
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )
 
 
@@ -716,6 +750,7 @@ __all__ = [
     "AvailabilityPolicy",
     "AvailabilityWindow",
     "Booking",
+    "BookingCommandIdempotency",
     "BookingStatus",
     "Client",
     "ClientNote",

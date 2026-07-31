@@ -7,17 +7,20 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { dataSource } from "@/lib/env";
 import {
   createWorkspace,
+  provisionWorkspace,
   setInquiryRead,
   type CreateWorkspaceInput,
+  type ProvisionWorkspaceInput,
 } from "@/services/platform.service";
 import type {
   BillingCycle,
   PlanId,
   SubscriptionStatus,
 } from "@/types/billing";
-import type { Workspace } from "@/types/platform";
+import type { PlatformWorkspace } from "@/types/platform";
 
 /**
  * Slotera-staff drawer for provisioning a workspace. Used by:
@@ -36,7 +39,7 @@ export type NewWorkspaceDrawerProps = {
     ownerName?: string;
     ownerEmail?: string;
   };
-  onCreated?: (workspace: Workspace) => void;
+  onCreated?: (workspace: PlatformWorkspace) => void;
 };
 
 type FormState = {
@@ -49,6 +52,15 @@ type FormState = {
   seats: number;
   amountPounds: number;
   trialDays: number;
+};
+
+type ApiFormState = {
+  name: string;
+  slug: string;
+  ownerFirstNames: string;
+  ownerLastName: string;
+  ownerEmail: string;
+  timezone: string;
 };
 
 const STATUS_OPTIONS: { value: SubscriptionStatus; label: string }[] = [
@@ -93,6 +105,17 @@ function makeForm(initial?: NewWorkspaceDrawerProps["initial"]): FormState {
   };
 }
 
+function makeApiForm(): ApiFormState {
+  return {
+    name: "",
+    slug: "",
+    ownerFirstNames: "",
+    ownerLastName: "",
+    ownerEmail: "",
+    timezone: "Europe/Berlin",
+  };
+}
+
 function isoDaysFromNow(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
@@ -113,17 +136,29 @@ export function NewWorkspaceDrawer({
   onCreated,
 }: NewWorkspaceDrawerProps) {
   const { toast } = useToast();
+  const apiMode = dataSource === "api";
   const [form, setForm] = React.useState<FormState>(() => makeForm(initial));
+  const [apiForm, setApiForm] = React.useState<ApiFormState>(makeApiForm);
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
-    if (open) setForm(makeForm(initial));
+    if (open) {
+      setForm(makeForm(initial));
+      setApiForm(makeApiForm());
+    }
   }, [open, initial]);
 
   const valid =
     form.name.trim().length > 1 &&
     form.ownerName.trim().length > 1 &&
     form.ownerEmail.trim().includes("@");
+  const apiValid =
+    apiForm.name.trim().length > 1 &&
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(apiForm.slug) &&
+    apiForm.slug.length >= 3 &&
+    apiForm.ownerFirstNames.trim().length > 0 &&
+    apiForm.ownerLastName.trim().length > 0 &&
+    apiForm.ownerEmail.trim().includes("@");
 
   const onPlanChange = (planId: PlanId) => {
     const d = PLAN_DEFAULTS[planId];
@@ -136,9 +171,19 @@ export function NewWorkspaceDrawer({
   };
 
   const save = async () => {
-    if (!valid) return;
+    if (apiMode && !apiValid) return;
+    if (!apiMode && !valid) return;
     setBusy(true);
     try {
+      if (apiMode) {
+        const workspace = await provisionWorkspace(apiForm satisfies ProvisionWorkspaceInput);
+        toast.success("Workspace provisioned", {
+          description: "The initial operator record is ready; account activation remains pending.",
+        });
+        onCreated?.(workspace);
+        onClose();
+        return;
+      }
       const payload: CreateWorkspaceInput = {
         name: form.name,
         ownerName: form.ownerName,
@@ -172,6 +217,89 @@ export function NewWorkspaceDrawer({
       setBusy(false);
     }
   };
+
+  if (apiMode) {
+    return (
+      <DrawerShell
+        open={open}
+        onClose={onClose}
+        eyebrow="Provision workspace"
+        title={apiForm.name.trim() || "New workspace"}
+        footer={
+          <>
+            <Button variant="ghost" onClick={onClose} disabled={busy}>
+              Cancel
+            </Button>
+            <Button onClick={save} loading={busy} disabled={!apiValid}>
+              Provision workspace
+            </Button>
+          </>
+        }
+      >
+        <fieldset disabled={busy} className="flex flex-col gap-5 disabled:opacity-90">
+          <Field label="Workspace name" required>
+            <Input
+              value={apiForm.name}
+              onChange={(event) =>
+                setApiForm({ ...apiForm, name: event.target.value })
+              }
+              placeholder="e.g. North Star Coaching"
+            />
+          </Field>
+          <Field label="Workspace slug" required hint="Lowercase letters, numbers, and hyphens.">
+            <Input
+              value={apiForm.slug}
+              onChange={(event) =>
+                setApiForm({ ...apiForm, slug: event.target.value.toLowerCase() })
+              }
+              placeholder="north-star-coaching"
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Owner first names" required>
+              <Input
+                value={apiForm.ownerFirstNames}
+                onChange={(event) =>
+                  setApiForm({ ...apiForm, ownerFirstNames: event.target.value })
+                }
+              />
+            </Field>
+            <Field label="Owner last name" required>
+              <Input
+                value={apiForm.ownerLastName}
+                onChange={(event) =>
+                  setApiForm({ ...apiForm, ownerLastName: event.target.value })
+                }
+              />
+            </Field>
+          </div>
+          <Field label="Owner email" required>
+            <Input
+              type="email"
+              value={apiForm.ownerEmail}
+              onChange={(event) =>
+                setApiForm({ ...apiForm, ownerEmail: event.target.value })
+              }
+              autoComplete="email"
+            />
+          </Field>
+          <Field label="Workspace timezone" required>
+            <Input
+              value={apiForm.timezone}
+              onChange={(event) =>
+                setApiForm({ ...apiForm, timezone: event.target.value })
+              }
+              placeholder="Europe/Berlin"
+            />
+          </Field>
+          <div className="rounded-md border border-line-soft bg-paper-2 px-3 py-2.5 text-small">
+            This creates the workspace and its initial operator record. Activation and invitation
+            delivery are not available yet.
+          </div>
+        </fieldset>
+      </DrawerShell>
+    );
+  }
 
   return (
     <DrawerShell

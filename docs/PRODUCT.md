@@ -43,9 +43,10 @@ requirement. Phase 2's explicit local `api` mode is separate from this demo cont
 PostgreSQL, SQLAlchemy, Alembic, and Docker Compose under `server/`. The infrastructure
 foundation, identity/tenancy persistence, backend auth/session, business settings, saved
 locations, services, the structured notification baseline, generated OpenAPI transport
-types, coherent operator frontend wiring, and the scheduling bundle (workspace
+types, coherent operator frontend wiring, the scheduling bundle (workspace
 availability, materialised recurrence, sessions, database overlap enforcement, Calendar,
-and Calendar Settings) exist. The
+Calendar Settings), and a narrow superadmin workspace directory/detail plus initial
+provisioning command exist. The
 public portfolio/demo deployment stays mock-backed; the API is developed and exercised in
 a separate local/API environment. Real public bookings include durable transactional
 confirmation + booking-workspace magic-link email through a PostgreSQL outbox worker.
@@ -105,7 +106,7 @@ await sleep(N);                 // simulated latency
 return ...                      // returns from / mutates an in-memory copy of web/src/data/mock/*.json
 ```
 
-`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The wired API bundles implement auth/session, business settings/saved locations, services, notifications, availability, sessions, clients, booking-ledger reads, forms, client notes, session action items, and the dashboard summary through `web/src/api/client.ts`; every other API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
+`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The wired API bundles implement auth/session, business settings/saved locations, services, notifications, availability, sessions, clients, booking-ledger reads, forms, client notes, session action items, the dashboard summary, and superadmin workspace reads through `web/src/api/client.ts`; every other API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
 
 In mock mode, `getDashboard()` is the only service that composes from other services live: it imports bookings, sessions, and action items to prepend derived attention entries to the fixture. In API mode it maps the single tenant-scoped `GET /dashboard/summary` read model; it must not compose a real dashboard from unrelated mock data or make client-side aggregate queries.
 
@@ -131,7 +132,7 @@ prop and:
 - `(admin)` — everything under `/admin/*`. Wrapped by `AuthGuard requireRole="operator_admin"` + `DrawersProvider`. Uses `AdminShell` (sidebar + topbar).
 - `(superadmin)` — everything under `/superadmin/*`. Wrapped by `AuthGuard requireRole="superadmin"`. Uses the same `AppShell` as admin but with the platform nav from `SUPERADMIN_NAV` in `web/src/lib/nav.ts`.
 
-`/admin` → `/admin/dashboard` and `/superadmin` → `/superadmin/overview` are handled by `redirects()` in `web/next.config.ts`, not by `redirect()` page bodies — Next 16 + Turbopack tripped a Performance.measure race on the page-body pattern. **Never reintroduce `page.tsx` files at the root of a route segment whose only job is to call `redirect()`.** Add a config redirect instead.
+`/admin` → `/admin/dashboard` and `/superadmin` → the environment-appropriate platform home are handled by `redirects()` in `web/next.config.ts`, not by `redirect()` page bodies — Next 16 + Turbopack tripped a Performance.measure race on the page-body pattern. **Never reintroduce `page.tsx` files at the root of a route segment whose only job is to call `redirect()`.** Add a config redirect instead.
 
 ### Drawers are global (admin only)
 
@@ -259,6 +260,19 @@ Routes:
 | dashboard, calendar, bookings, clients, services, packages, forms, settings | overview, workspaces, workspaces/[id], subscriptions, inquiries, settings |
 
 Mock auth routes by role via `homePathForRole()`. `/superadmin/*` is protected by `AuthGuard requireRole="superadmin"`.
+
+**Local API superadmin baseline.** API mode exposes only `/superadmin/workspaces` and
+`/superadmin/workspaces/[id]`; the API-filtered navigation and `AuthGuard` redirect all
+other platform pages to that directory. `GET /platform/workspaces` and its item read are
+available only to an authenticated superadmin and return a display-safe allow-list:
+workspace identity/configuration, the first operator owner’s name/email, creation time,
+and service/client/booking/session counts. `POST /platform/workspaces` is the one
+persisted command: it creates a EUR workspace, initial operator identity/membership,
+baseline business profile, and audit event. It does **not** set a password or send an
+invitation; owner activation waits for the separately modelled password-reset/invitation
+and email work. The API must not invent or show mock plan/subscription status,
+billing/activity history, admin notes, suspend/reactivate, or impersonate controls. Those
+features await their own persisted models and commands.
 
 Mock files under `web/src/data/mock/`: `platform-workspaces.json`, `platform-subscriptions.json`, `platform-inquiries.json`, `platform-overview.json`. **Everything platform-side lives in `web/src/services/platform.service.ts`** — workspaces, subscriptions, and inquiries together. There is no separate `platform-billing.service.ts`; both share `setSubscriptionStatus` (with different semantics from `billing.service.ts`'s same-name method — different import sites).
 
@@ -435,10 +449,16 @@ Do not add a conversion KPI until a persisted, unambiguous funnel denominator ex
 
 ### Bookings
 
-The local API baseline is an operator read-only ledger. It displays persisted booking,
-client, session, service, and monetary snapshot data; no API-mode control may create,
-edit, cancel, confirm, or mark attendance yet. Those are transactional commands and wait
-for the capacity, payment, and attendance milestones.
+The API now has an operator-only transaction foundation for scheduled-session bookings:
+creation starts a pending, capacity-consuming booking from server-owned service price and
+workspace currency snapshots; explicit confirm/cancel/complete/no-show commands are
+idempotent and audit logged. It locks the session and counts pending/confirmed bookings in
+one transaction, so an operator bypass can never overfill capacity. It never changes
+payment state: cancellation is not a refund, and confirmation is not a payment signal.
+
+The API-mode Bookings UI remains an operator read-only ledger while a dedicated command
+surface is designed. It displays persisted booking, client, session, service, and monetary
+snapshot data; it does not create, edit, cancel, confirm, or mark attendance yet.
 
 - Grouped into status accordions in order: **Pending → Confirmed → Completed → No-show → Cancelled**.
 - Accordion headers: color-coded dot + bold label + count + a muted truncated preview like `Maya 10:00 · John 14:30 · +6 more`. **No status badges in headers** — the dot is the indicator.

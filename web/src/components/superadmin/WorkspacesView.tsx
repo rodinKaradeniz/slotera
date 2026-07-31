@@ -14,9 +14,10 @@ import { LoadingRows } from "@/components/shared/LoadingRows";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { NewWorkspaceDrawer } from "./NewWorkspaceDrawer";
 import { listWorkspaces } from "@/services/platform.service";
+import { dataSource } from "@/lib/env";
 import { PLAN_LABEL, SUBSCRIPTION_STATUS } from "@/lib/status-maps";
 import { fmtDate, fmtRelative } from "@/lib/time";
-import type { Workspace } from "@/types/platform";
+import { isMockWorkspace, type PlatformWorkspace } from "@/types/platform";
 import type { PlanId, SubscriptionStatus } from "@/types/billing";
 
 const STATUS_OPTIONS: Array<{ value: "" | SubscriptionStatus; label: string }> = [
@@ -37,7 +38,8 @@ const PLAN_OPTIONS: Array<{ value: "" | PlanId; label: string }> = [
 
 export function WorkspacesView() {
   const router = useRouter();
-  const [items, setItems] = React.useState<Workspace[] | null>(null);
+  const apiMode = dataSource === "api";
+  const [items, setItems] = React.useState<PlatformWorkspace[] | null>(null);
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<"" | SubscriptionStatus>("");
   const [plan, setPlan] = React.useState<"" | PlanId>("");
@@ -50,23 +52,30 @@ export function WorkspacesView() {
   const filtered = React.useMemo(() => {
     if (!items) return [];
     const q = query.trim().toLowerCase();
-    return items.filter((w) => {
-      if (status && w.subscriptionStatus !== status) return false;
-      if (plan && w.planId !== plan) return false;
+    return items.filter((workspace) => {
+      if (!apiMode && isMockWorkspace(workspace)) {
+        if (status && workspace.subscriptionStatus !== status) return false;
+        if (plan && workspace.planId !== plan) return false;
+      }
       if (!q) return true;
-      return [w.name, w.ownerName, w.ownerEmail]
+      return [workspace.name, workspace.ownerName, workspace.ownerEmail]
+        .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
-  }, [items, query, status, plan]);
+  }, [apiMode, items, plan, query, status]);
 
   return (
     <PageContainer>
       <PageHeader
         eyebrow="Platform"
         title="Workspaces"
-        description="Every registered Slotera workspace, with plan and subscription status."
+        description={
+          apiMode
+            ? "Provision and browse persisted workspaces with display-safe operating facts."
+            : "Every registered Slotera workspace, with plan and subscription status."
+        }
         meta={items ? `${items.length} workspaces` : undefined}
         actions={
           <Button
@@ -80,23 +89,29 @@ export function WorkspacesView() {
         }
       />
 
-      <div className="grid sm:grid-cols-[1fr_180px_180px] gap-3 mb-4">
+      <div className={`grid gap-3 mb-4 ${apiMode ? "sm:grid-cols-1" : "sm:grid-cols-[1fr_180px_180px]"}`}>
         <Input
           icon="search"
           placeholder="Search by name, owner, email…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(event) => setQuery(event.target.value)}
         />
-        <Select
-          value={plan}
-          onChange={(e) => setPlan(e.target.value as "" | PlanId)}
-          options={PLAN_OPTIONS}
-        />
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as "" | SubscriptionStatus)}
-          options={STATUS_OPTIONS}
-        />
+        {!apiMode && (
+          <>
+            <Select
+              value={plan}
+              onChange={(event) => setPlan(event.target.value as "" | PlanId)}
+              options={PLAN_OPTIONS}
+            />
+            <Select
+              value={status}
+              onChange={(event) =>
+                setStatus(event.target.value as "" | SubscriptionStatus)
+              }
+              options={STATUS_OPTIONS}
+            />
+          </>
+        )}
       </div>
 
       {!items ? (
@@ -109,58 +124,99 @@ export function WorkspacesView() {
         />
       ) : (
         <Card padded={false}>
-          <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-line-soft text-micro uppercase tracking-wide text-ink-3 bg-surface-warm rounded-t-lg">
-            <span>Workspace</span>
-            <span>Owner</span>
-            <span>Plan</span>
-            <span>Status</span>
-            <span>Created</span>
-            <span>Bookings</span>
-          </div>
-          {filtered.map((w) => {
-            const status = SUBSCRIPTION_STATUS[w.subscriptionStatus];
-            return (
-              <Link
-                key={w.id}
-                href={`/superadmin/workspaces/${w.id}`}
-                className="grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] gap-2 md:gap-4 items-center px-5 py-3.5 border-b border-line-soft last:border-b-0 hover:bg-surface-warm"
-              >
-                <div className="min-w-0">
-                  <div className="text-[14px] text-ink truncate">{w.name}</div>
-                  <div className="text-small md:hidden">{w.ownerName}</div>
-                </div>
-                <div className="hidden md:block min-w-0">
-                  <div className="text-[14px] text-ink truncate">{w.ownerName}</div>
-                  <div className="text-small truncate">{w.ownerEmail}</div>
-                </div>
-                <div>
-                  <Pill tone="neutral">{PLAN_LABEL[w.planId]}</Pill>
-                </div>
-                <div>
-                  <Pill tone={status.tone} icon={status.icon}>
-                    {status.label}
-                  </Pill>
-                </div>
-                <div className="text-small whitespace-nowrap">
-                  {fmtDate(new Date(w.createdAtISO), "short")}
-                </div>
-                <div className="text-small whitespace-nowrap">
-                  {w.bookingsCount.toLocaleString()} · {fmtRelative(w.lastActiveISO)}
-                </div>
-              </Link>
-            );
-          })}
+          {apiMode ? <ApiDirectory items={filtered} /> : <MockDirectory items={filtered} />}
         </Card>
       )}
 
       <NewWorkspaceDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onCreated={(ws) => {
+        onCreated={(workspace) => {
           listWorkspaces().then(setItems);
-          router.push(`/superadmin/workspaces/${ws.id}`);
+          router.push(`/superadmin/workspaces/${workspace.id}`);
         }}
       />
     </PageContainer>
+  );
+}
+
+function ApiDirectory({ items }: { items: PlatformWorkspace[] }) {
+  return (
+    <>
+      <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-line-soft text-micro uppercase tracking-wide text-ink-3 bg-surface-warm rounded-t-lg">
+        <span>Workspace</span>
+        <span>Owner</span>
+        <span>Created</span>
+        <span>Services</span>
+        <span>Clients</span>
+        <span>Activity</span>
+      </div>
+      {items.map((workspace) => (
+        <Link
+          key={workspace.id}
+          href={`/superadmin/workspaces/${workspace.id}`}
+          className="grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] gap-2 md:gap-4 items-center px-5 py-3.5 border-b border-line-soft last:border-b-0 hover:bg-surface-warm"
+        >
+          <div className="min-w-0">
+            <div className="text-[14px] text-ink truncate">{workspace.name}</div>
+            <div className="text-small md:hidden truncate">
+              {workspace.ownerName ?? "No operator assigned"}
+            </div>
+          </div>
+          <div className="hidden md:block min-w-0">
+            <div className="text-[14px] text-ink truncate">
+              {workspace.ownerName ?? "No operator assigned"}
+            </div>
+            <div className="text-small truncate">{workspace.ownerEmail ?? "—"}</div>
+          </div>
+          <div className="text-small whitespace-nowrap">
+            {fmtDate(new Date(workspace.createdAtISO), "short")}
+          </div>
+          <div className="text-small whitespace-nowrap">{workspace.servicesCount}</div>
+          <div className="text-small whitespace-nowrap">{workspace.clientsCount}</div>
+          <div className="text-small whitespace-nowrap">
+            {workspace.bookingsCount} bookings · {workspace.sessionsCount} sessions
+          </div>
+        </Link>
+      ))}
+    </>
+  );
+}
+
+function MockDirectory({ items }: { items: PlatformWorkspace[] }) {
+  return (
+    <>
+      <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-line-soft text-micro uppercase tracking-wide text-ink-3 bg-surface-warm rounded-t-lg">
+        <span>Workspace</span>
+        <span>Owner</span>
+        <span>Plan</span>
+        <span>Status</span>
+        <span>Created</span>
+        <span>Bookings</span>
+      </div>
+      {items.filter(isMockWorkspace).map((workspace) => {
+        const subscription = SUBSCRIPTION_STATUS[workspace.subscriptionStatus];
+        return (
+          <Link
+            key={workspace.id}
+            href={`/superadmin/workspaces/${workspace.id}`}
+            className="grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] gap-2 md:gap-4 items-center px-5 py-3.5 border-b border-line-soft last:border-b-0 hover:bg-surface-warm"
+          >
+            <div className="min-w-0">
+              <div className="text-[14px] text-ink truncate">{workspace.name}</div>
+              <div className="text-small md:hidden">{workspace.ownerName}</div>
+            </div>
+            <div className="hidden md:block min-w-0">
+              <div className="text-[14px] text-ink truncate">{workspace.ownerName}</div>
+              <div className="text-small truncate">{workspace.ownerEmail}</div>
+            </div>
+            <div><Pill tone="neutral">{PLAN_LABEL[workspace.planId]}</Pill></div>
+            <div><Pill tone={subscription.tone} icon={subscription.icon}>{subscription.label}</Pill></div>
+            <div className="text-small whitespace-nowrap">{fmtDate(new Date(workspace.createdAtISO), "short")}</div>
+            <div className="text-small whitespace-nowrap">{workspace.bookingsCount.toLocaleString()} · {fmtRelative(workspace.lastActiveISO)}</div>
+          </Link>
+        );
+      })}
+    </>
   );
 }

@@ -28,6 +28,15 @@ class OperatorWorkspaceRequest:
         return self.authenticated.session.user_id
 
 
+@dataclass(frozen=True)
+class PlatformSuperadminRequest:
+    authenticated: AuthenticatedRequest
+
+    @property
+    def user_id(self) -> UUID:
+        return self.authenticated.session.user_id
+
+
 def get_auth_service(request: Request) -> AuthServiceProtocol:
     return cast(AuthServiceProtocol, request.app.state.auth_service)
 
@@ -140,4 +149,36 @@ OperatorWorkspaceDependency = Annotated[
 ]
 CsrfOperatorWorkspaceDependency = Annotated[
     OperatorWorkspaceRequest, Depends(require_csrf_operator_workspace)
+]
+
+
+async def require_platform_superadmin(
+    authenticated: AuthenticatedRequestDependency,
+) -> PlatformSuperadminRequest:
+    return _platform_superadmin(authenticated)
+
+
+def _platform_superadmin(authenticated: AuthenticatedRequest) -> PlatformSuperadminRequest:
+    if authenticated.session.role != "superadmin":
+        raise ApiError(
+            status_code=HTTPStatus.FORBIDDEN,
+            code="platform_superadmin_required",
+            message="A platform superadmin is required",
+        )
+    return PlatformSuperadminRequest(authenticated=authenticated)
+
+
+PlatformSuperadminDependency = Annotated[
+    PlatformSuperadminRequest, Depends(require_platform_superadmin)
+]
+
+
+async def require_csrf_platform_superadmin(
+    authenticated: CsrfProtectedRequestDependency,
+) -> PlatformSuperadminRequest:
+    return _platform_superadmin(authenticated)
+
+
+CsrfPlatformSuperadminDependency = Annotated[
+    PlatformSuperadminRequest, Depends(require_csrf_platform_superadmin)
 ]

@@ -6,15 +6,27 @@ import inquiriesJson from "@/data/mock/platform-inquiries.json";
 import overviewJson from "@/data/mock/platform-overview.json";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
+import { apiRequest } from "@/api/client";
+import type { components } from "@/api/generated/schema";
 import type {
   PlatformInquiry,
   PlatformInquiryType,
   PlatformOverview,
   PlatformSubscription,
+  PlatformWorkspace,
   Workspace,
 } from "@/types/platform";
 import type { BillingCycle, PlanId, SubscriptionStatus } from "@/types/billing";
 import { NotFoundError, NotImplementedError } from "./_errors";
+
+type PlatformWorkspaceSummaryDto =
+  components["schemas"]["PlatformWorkspaceSummary"];
+type PlatformWorkspaceDetailDto =
+  components["schemas"]["PlatformWorkspaceDetail"];
+type PlatformWorkspaceListDto =
+  components["schemas"]["PlatformWorkspaceListResponse"];
+type PlatformWorkspaceProvisionDto =
+  components["schemas"]["PlatformWorkspaceProvision"];
 
 let workspaces: Workspace[] = JSON.parse(
   JSON.stringify(workspacesJson),
@@ -32,14 +44,55 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
   return overviewJson as unknown as PlatformOverview;
 }
 
-export async function listWorkspaces(): Promise<Workspace[]> {
-  if (dataSource !== "mock") throw new NotImplementedError("listWorkspaces");
+function mapPlatformWorkspace(
+  workspace: PlatformWorkspaceSummaryDto | PlatformWorkspaceDetailDto,
+): PlatformWorkspace {
+  return {
+    id: workspace.id,
+    name: workspace.name,
+    slug: workspace.slug,
+    ownerName: workspace.ownerName,
+    ownerEmail: workspace.ownerEmail,
+    createdAtISO: workspace.createdAt,
+    servicesCount: workspace.servicesCount,
+    clientsCount: workspace.clientsCount,
+    bookingsCount: workspace.bookingsCount,
+    sessionsCount: workspace.sessionsCount,
+    ...( "currency" in workspace
+      ? { currency: workspace.currency, timezone: workspace.timezone }
+      : {}),
+  };
+}
+
+export async function listWorkspaces(): Promise<PlatformWorkspace[]> {
+  if (dataSource === "api") {
+    const response = await apiRequest<PlatformWorkspaceListDto>(
+      "/platform/workspaces?limit=100",
+    );
+    return response.items.map(mapPlatformWorkspace);
+  }
   await sleep(80);
   return [...workspaces];
 }
 
-export async function getWorkspace(id: string): Promise<Workspace | null> {
-  if (dataSource !== "mock") throw new NotImplementedError("getWorkspace");
+export async function getWorkspace(id: string): Promise<PlatformWorkspace | null> {
+  if (dataSource === "api") {
+    try {
+      const response = await apiRequest<PlatformWorkspaceDetailDto>(
+        `/platform/workspaces/${id}`,
+      );
+      return mapPlatformWorkspace(response);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "status" in error &&
+        error.status === 404
+      ) {
+        return null;
+      }
+      throw error;
+    }
+  }
   await sleep(60);
   return workspaces.find((w) => w.id === id) ?? null;
 }
@@ -64,6 +117,35 @@ export type CreateWorkspaceInput = {
   nextBillingAtISO?: string | null;
 };
 
+export type ProvisionWorkspaceInput = PlatformWorkspaceProvisionDto;
+
+export async function provisionWorkspace(
+  input: ProvisionWorkspaceInput,
+): Promise<PlatformWorkspace> {
+  if (dataSource === "api") {
+    const response = await apiRequest<
+      PlatformWorkspaceDetailDto,
+      PlatformWorkspaceProvisionDto
+    >(
+      "/platform/workspaces",
+      { method: "POST", body: input, csrf: true },
+    );
+    return mapPlatformWorkspace(response);
+  }
+
+  const workspace = await createWorkspace({
+    name: input.name,
+    ownerName: `${input.ownerFirstNames} ${input.ownerLastName}`,
+    ownerEmail: input.ownerEmail,
+    planId: "custom",
+    billingCycle: "monthly",
+    status: "trialing",
+    seats: 25,
+    amountPounds: 0,
+  });
+  return workspace;
+}
+
 export async function createWorkspace(
   input: CreateWorkspaceInput,
 ): Promise<Workspace> {
@@ -87,6 +169,7 @@ export async function createWorkspace(
     bookingsCount: 0,
     servicesCount: 0,
     clientsCount: 0,
+    sessionsCount: 0,
   };
 
   const subscription: PlatformSubscription = {

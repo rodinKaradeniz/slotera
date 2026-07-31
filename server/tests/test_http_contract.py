@@ -93,3 +93,14 @@ async def test_openapi_exposes_stable_health_operation_ids() -> None:
         document["paths"]["/notifications/mark-all-read"]["post"]["operationId"]
         == "markAllNotificationsRead"
     )
+    booking_paths = document["paths"]
+    assert booking_paths["/bookings"]["post"]["operationId"] == "createOperatorBooking"
+    command_operations = {
+        "confirm": "confirmBooking",
+        "cancel": "cancelBooking",
+        "complete": "completeBooking",
+        "noshow": "markBookingNoshow",
+    }
+    for command, operation_id in command_operations.items():
+        operation = booking_paths[f"/bookings/{{booking_id}}/{command}"]["post"]
+        assert operation["operationId"] == operation_id

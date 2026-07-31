@@ -932,6 +932,87 @@ through a general search projection.
 
 ---
 
+### Entry 038 — Platform workspace access is an allow-listed global projection
+
+*2026-07-30.* The first persisted superadmin bundle is deliberately read-only: a workspace
+directory and detail view with workspace identity/configuration, a first operator owner,
+and aggregate service/client/booking/session counts. The API grants no platform mutation,
+subscription, inquiry, note, billing, activity, suspension, provisioning, or impersonation
+capability.
+
+Forced tenant RLS remains unchanged. Instead of adding a superadmin exception to every
+tenant policy or granting the runtime role broad table access, two fixed-search-path
+`SECURITY DEFINER` functions execute as the migration owner and return only those safe
+columns. `slotera_app` gets `EXECUTE` on the functions, not direct access to the identity
+tables or a generic cross-workspace read. FastAPI independently requires the verified
+`superadmin` role before it calls either projection.
+
+**Alternative rejected:** a session setting that lets superadmins bypass tenant policies,
+or reusing the operator’s active workspace context. The former turns every tenant table
+into a global read surface; the latter violates the no-synthetic-workspace decision and
+cannot represent a platform directory. Revisit the boundary only when a separately
+modelled platform-reporting or support capability has concrete, audited data needs.
+
+---
+
+### Entry 039 — Workspace provisioning is one audited platform capability
+
+*2026-07-30.* The first persisted platform command is `POST /platform/workspaces`. It
+atomically creates a EUR workspace, one operator identity/membership, a baseline business
+profile, and a tenant audit event. The command takes only workspace identity, initial
+operator identity, and timezone; it does not create a platform subscription, provision a
+password, or send an invitation.
+
+**Why provisioning is a function rather than a superadmin RLS exemption:** the runtime
+role still cannot query or mutate global users/workspaces directly, and a superadmin
+session must not become a general tenant-table bypass. A fixed-search-path
+`SECURITY DEFINER` function receives generated record ids, checks that the passed actor is
+still a platform superadmin, checks reserved/used slugs and globally used owner emails,
+then writes the complete initial graph in one database transaction. FastAPI repeats the
+session-role check and applies the existing CSRF/exact-Origin boundary before it can call
+the function. Duplicate inputs return explicit conflict errors without partial records.
+
+**Why the initial operator is activation-pending:** safely delivering a credential needs
+the separately deferred password-reset/invitation and transactional-email capabilities.
+Accepting a platform-chosen password would create an unsafe credential handoff, while
+returning one would leak it through the API. The row therefore has no password hash and
+cannot log in until that later activation flow exists.
+
+**Alternative rejected:** copying the mock New Workspace drawer's plan, billing cycle,
+seat, trial, and subscription-status fields into the API. Platform billing is a separate
+payment domain with no persisted model, and keeping those fields would make a real
+workspace look billed when it is not. Suspension/reactivation, inquiries, and
+impersonation remain separate commands/models for the same reason.
+
+---
+
+### Entry 040 — Scheduled-session booking commands lock capacity before state
+
+*2026-07-31.* The booking ledger now has an operator-only command foundation: create a
+pending booking for an existing client and scheduled session, then explicitly confirm,
+cancel, complete, or mark it no-show. Creation locks that session row before counting
+`pending` and `confirmed` bookings, so concurrent attempts for the final place serialize
+and one fails rather than overfilling capacity. Each command requires an opaque,
+actor-scoped idempotency key persisted under forced RLS, and writes its booking change plus
+audit event in the same tenant transaction. The operator cannot set amount, currency,
+status, or payment status at creation: amount/currency snapshot from the session service
+and workspace; creation is `pending`/`pending`; lifecycle transitions never modify payment
+state.
+
+The commands deliberately cover existing scheduled sessions only. Open-mode creation needs
+its separately recorded advisory-lock target, and payment holds, payment verification,
+public booking, attendance, and a command UI remain deferred. The API-mode booking screen
+therefore stays a read-only ledger even though its generated API contract now exposes the
+commands.
+
+**Alternative rejected:** a generic booking `PATCH` or a standalone capacity counter.
+`PATCH` would allow invalid transitions and money-adjacent field edits, while a counter
+would drift under cancellation/retries and cannot prevent the last-place race. Session-row
+locking plus a status-derived count turns on transactional correctness; revisit only when
+open-mode slots or active holds need their own lock strategy.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

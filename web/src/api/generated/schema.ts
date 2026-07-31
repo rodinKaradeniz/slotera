@@ -83,7 +83,8 @@ export interface paths {
         /** List Bookings */
         get: operations["listBookings"];
         put?: never;
-        post?: never;
+        /** Create Operator Booking */
+        post: operations["createOperatorBooking"];
         delete?: never;
         options?: never;
         head?: never;
@@ -101,6 +102,74 @@ export interface paths {
         get: operations["getBooking"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{booking_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Booking */
+        post: operations["cancelBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{booking_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Booking */
+        post: operations["completeBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{booking_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Booking */
+        post: operations["confirmBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{booking_id}/noshow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Booking Noshow */
+        post: operations["markBookingNoshow"];
         delete?: never;
         options?: never;
         head?: never;
@@ -295,6 +364,41 @@ export interface paths {
         put?: never;
         /** Mark All Notifications Read */
         post: operations["markAllNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Platform Workspaces */
+        get: operations["listPlatformWorkspaces"];
+        put?: never;
+        /** Provision Platform Workspace */
+        post: operations["provisionPlatformWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/workspaces/{workspace_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Platform Workspace */
+        get: operations["getPlatformWorkspace"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1114,6 +1218,23 @@ export interface components {
             /** Unreadcount */
             unreadCount: number;
         };
+        /** OperatorBookingCreate */
+        OperatorBookingCreate: {
+            /** Auditreason */
+            auditReason: string;
+            /**
+             * Clientid
+             * Format: uuid
+             */
+            clientId: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Sessionid
+             * Format: uuid
+             */
+            sessionId: string;
+        };
         /** PaymentPendingNotification */
         PaymentPendingNotification: {
             /**
@@ -1149,6 +1270,98 @@ export interface components {
             currency: string;
             /** Servicename */
             serviceName: string;
+        };
+        /** PlatformWorkspaceDetail */
+        PlatformWorkspaceDetail: {
+            /** Bookingscount */
+            bookingsCount: number;
+            /** Clientscount */
+            clientsCount: number;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Owneremail */
+            ownerEmail: string | null;
+            /** Ownername */
+            ownerName: string | null;
+            /** Servicescount */
+            servicesCount: number;
+            /** Sessionscount */
+            sessionsCount: number;
+            /** Slug */
+            slug: string;
+            /** Timezone */
+            timezone: string;
+        };
+        /** PlatformWorkspaceListResponse */
+        PlatformWorkspaceListResponse: {
+            /** Items */
+            items: components["schemas"]["PlatformWorkspaceSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** PlatformWorkspaceProvision */
+        PlatformWorkspaceProvision: {
+            /** Name */
+            name: string;
+            /**
+             * Owneremail
+             * Format: email
+             */
+            ownerEmail: string;
+            /** Ownerfirstnames */
+            ownerFirstNames: string;
+            /** Ownerlastname */
+            ownerLastName: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Timezone
+             * @default Europe/Berlin
+             */
+            timezone: string;
+        };
+        /** PlatformWorkspaceSummary */
+        PlatformWorkspaceSummary: {
+            /** Bookingscount */
+            bookingsCount: number;
+            /** Clientscount */
+            clientsCount: number;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Owneremail */
+            ownerEmail: string | null;
+            /** Ownername */
+            ownerName: string | null;
+            /** Servicescount */
+            servicesCount: number;
+            /** Sessionscount */
+            sessionsCount: number;
+            /** Slug */
+            slug: string;
         };
         /** ReadinessResponse */
         ReadinessResponse: {
@@ -1867,10 +2080,177 @@ export interface operations {
             };
         };
     };
+    createOperatorBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OperatorBookingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getBooking: {
         parameters: {
             query?: never;
             header?: never;
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancelBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    completeBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirmBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    markBookingNoshow: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 booking_id: string;
             };
@@ -2423,6 +2803,102 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    listPlatformWorkspaces: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformWorkspaceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provisionPlatformWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformWorkspaceProvision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformWorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getPlatformWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformWorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
