@@ -283,7 +283,7 @@ built and exercised separately.
      rejects same-owner active overlaps with a partial GiST exclusion constraint.
    - **~~Scheduling frontend bundle.~~ DONE.** Generated availability/session DTOs map
      through the service layer; API mode now exposes Calendar and Calendar Settings without
-     mixing in mock booking/client, attendance, or action-item data.
+     mixing mock booking/client, attendance, or action-item data.
    - **Recurrence horizon maintenance.** Add the database-backed worker that extends
      active series and split series metadata when `this_and_following` edits must survive
      beyond the currently materialised horizon.
@@ -297,7 +297,8 @@ built and exercised separately.
      placeholders until the booking ledger exists.
    - **~~Bookings read baseline.~~ DONE.** Tenant-scoped ledger rows now persist client and
      session references plus amount/currency snapshots, with forced RLS and API-mode
-     list/detail reads. Creation and every booking command remain deferred.
+     list/detail reads. Scheduled-session commands and attendance are recorded separately
+     below; public/open-mode transactions remain deferred.
    - **~~Form-template operator CRUD.~~ DONE.** Operator form templates and their
      single-sourced service attachments persist under RLS, with API-mode create/edit/
      activate/deactivate/delete. Public rendering and responses remain deferred.
@@ -315,8 +316,10 @@ built and exercised separately.
      counts pending/confirmed bookings in one tenant transaction; it snapshots service
      price and workspace currency, leaves payment state untouched, and rejects a full
      session. The API-mode UI remains read-only; holds and open-mode creation are separate.
-   - **Attendance.** Attendance depends on real capacity-consuming bookings and remains
-     deferred until the booking-command bundle is complete.
+   - **~~Group-session attendance.~~ DONE.** Migration `20260731_0016` persists nullable
+     `present`/`late`/`absent` outcomes. Its idempotent operator command locks booking and
+     session, rejects capacity-1 and ineligible lifecycle states, completes the booking
+     without touching payment state, and powers the API-mode Calendar roster/tab.
    - **Form responses.** Persisted public/post-booking form answers belong with the real
      public booking transaction, not the operator-template CRUD bundle.
 7. Public booking: public catalog/availability, free/manual booking transactions, tax
@@ -353,7 +356,12 @@ built and exercised separately.
   confirmed operator-created bookings now consume capacity under a locked-session,
   idempotent transaction; explicit lifecycle commands are audit logged. **Holds and
   open-mode/public booking creation remain deferred** and need their own lock targets and
-  expiry rules. Attendance remains deferred until its separate group-session command work.
+  expiry rules.
+- **~~Group-session attendance.~~ DONE.** Confirmed/completed bookings on sessions with
+  capacity greater than one can now record/correct `present`/`late`/`absent` through an
+  actor-idempotent, audited command; it completes the booking and does not alter payment
+  state. Batch attendance remains a client composition of these safe per-booking commands,
+  not a new broad mutation endpoint.
 - **Payments:** Stripe, payment holds, webhooks, refunds, and tax-provider work remain
   Phase 3.
 - **Email:** booking confirmation/magic-link delivery waits for real public bookings;

@@ -1013,6 +1013,28 @@ open-mode slots or active holds need their own lock strategy.
 
 ---
 
+### Entry 041 — Attendance is a group-session command, not a mutable booking field
+
+*2026-07-31.* Migration `20260731_0016` adds optional persisted booking attendance using
+the fixed `present | late | absent` vocabulary. `POST /bookings/{booking_id}/attendance`
+locks both the booking and its session in the tenant transaction, is actor-idempotent and
+audited, and accepts only confirmed/completed bookings whose session capacity exceeds one.
+It always leaves the booking completed and never changes payment state; a later correction
+updates the recorded outcome while retaining that completed lifecycle state. The
+session-filtered booking resource provides the group roster, and API-mode Calendar joins it
+to the existing tenant-scoped client resource in the SessionDrawer—never to mock fixtures.
+
+**Alternative rejected:** treating attendance as generic `PATCH /bookings/{id}` data, or
+adding a distinct group-booking entity/batch mutation. Generic patching would permit
+attendance for 1:1 or pending/cancelled bookings and disconnect it from lifecycle/audit
+rules. A separate group entity would violate the capacity-based domain model. A server batch
+command is premature: the existing quick action composes the same safe idempotent command
+per attendee. Transactional correctness and the single `capacity > 1` rule drove the
+decision; revisit a true batch endpoint only if roster-scale or all-or-nothing semantics
+become a demonstrated product need.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

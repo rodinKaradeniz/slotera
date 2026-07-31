@@ -328,6 +328,25 @@
         "title": "AvailabilityWindowInput",
         "type": "object"
       },
+      "BookingAttendanceCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "attendance": {
+            "enum": [
+              "present",
+              "late",
+              "absent"
+            ],
+            "title": "Attendance",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attendance"
+        ],
+        "title": "BookingAttendanceCommand",
+        "type": "object"
+      },
       "BookingConfirmedNotification": {
         "properties": {
           "id": {
@@ -457,6 +476,22 @@
             "title": "Amountcents",
             "type": "integer"
           },
+          "attendance": {
+            "anyOf": [
+              {
+                "enum": [
+                  "present",
+                  "late",
+                  "absent"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attendance"
+          },
           "clientId": {
             "format": "uuid",
             "title": "Clientid",
@@ -526,6 +561,7 @@
           "clientId",
           "status",
           "paymentStatus",
+          "attendance",
           "amountCents",
           "currency",
           "notes",
@@ -3995,6 +4031,23 @@
               "title": "Offset",
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "sessionId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sessionid"
+            }
           }
         ],
         "responses": {
@@ -4115,6 +4168,70 @@
           }
         },
         "summary": "Get Booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{booking_id}/attendance": {
+      "post": {
+        "operationId": "recordBookingAttendance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingAttendanceCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Booking Attendance",
         "tags": [
           "bookings"
         ]

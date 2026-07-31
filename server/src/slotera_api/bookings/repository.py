@@ -13,6 +13,7 @@ from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
     Booking,
+    BookingAttendance,
     BookingCommandIdempotency,
     BookingStatus,
     Client,
@@ -33,6 +34,10 @@ class BookingIdempotencyConflictError(Exception):
 
 
 class BookingTransitionError(Exception):
+    pass
+
+
+class BookingAttendanceError(Exception):
     pass
 
 
@@ -72,10 +77,17 @@ class BookingsRepository:
         self.database = database
 
     async def list_bookings(
-        self, workspace_id: UUID, *, limit: int, offset: int
+        self,
+        workspace_id: UUID,
+        *,
+        limit: int,
+        offset: int,
+        session_id: UUID | None = None,
     ) -> tuple[list[Booking], int]:
         async with self.database.tenant_transaction(workspace_id) as session:
             predicate = Booking.workspace_id == workspace_id
+            if session_id is not None:
+                predicate = predicate & (Booking.session_id == session_id)
             total = await session.scalar(select(func.count(Booking.id)).where(predicate))
             items = list(
                 (
@@ -191,6 +203,86 @@ class BookingsRepository:
                 actor_user_id,
                 idempotency_key,
                 "create",
+                fingerprint,
+                booking.id,
+            )
+            await database_session.flush()
+            await database_session.refresh(booking)
+            return BookingCommandResult(booking=booking, replayed=False)
+
+    async def record_attendance(
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        booking_id: UUID,
+        attendance: BookingAttendance,
+        idempotency_key: str,
+    ) -> BookingCommandResult | None:
+        fingerprint = _fingerprint(
+            "attendance",
+            {"booking_id": str(booking_id), "attendance": attendance.value},
+        )
+        async with self.database.tenant_transaction(workspace_id) as database_session:
+            booking = await database_session.scalar(
+                select(Booking)
+                .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
+                .with_for_update()
+            )
+            if booking is None:
+                return None
+            scheduled_session = await database_session.scalar(
+                select(Session)
+                .where(
+                    Session.workspace_id == workspace_id,
+                    Session.id == booking.session_id,
+                )
+                .with_for_update()
+            )
+            if scheduled_session is None:
+                return None
+            replay = await self._replay_or_conflict(
+                database_session,
+                workspace_id,
+                actor_user_id,
+                idempotency_key,
+                fingerprint,
+            )
+            if replay is not None:
+                return BookingCommandResult(booking=replay, replayed=True)
+            if scheduled_session.capacity <= 1 or booking.status not in (
+                BookingStatus.CONFIRMED,
+                BookingStatus.COMPLETED,
+            ):
+                raise BookingAttendanceError
+            previous_status = booking.status
+            previous_attendance = booking.attendance
+            booking.status = BookingStatus.COMPLETED
+            booking.attendance = attendance
+            database_session.add(
+                AuditEvent(
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    action="booking.attendance_recorded",
+                    resource_type="booking",
+                    resource_id=booking.id,
+                    details={
+                        "previous_status": previous_status.value,
+                        "status": booking.status.value,
+                        "previous_attendance": (
+                            previous_attendance.value
+                            if previous_attendance is not None
+                            else None
+                        ),
+                        "attendance": attendance.value,
+                    },
+                )
+            )
+            await self._record_idempotency(
+                database_session,
+                workspace_id,
+                actor_user_id,
+                idempotency_key,
+                "attendance",
                 fingerprint,
                 booking.id,
             )

@@ -9,6 +9,7 @@ type RequestOptions<TBody> = {
   method?: HttpMethod;
   body?: TBody;
   csrf?: boolean;
+  idempotencyKey?: string;
 };
 
 function readCookie(name: string): string | null {
@@ -57,6 +58,9 @@ export async function apiRequest<TResponse, TBody = never>(
       );
     }
     headers.set("X-CSRF-Token", csrfToken);
+  }
+  if (options.idempotencyKey) {
+    headers.set("Idempotency-Key", options.idempotencyKey);
   }
 
   let response: Response;

@@ -281,6 +281,129 @@ async def test_confirmed_bookings_can_complete_or_end_as_noshow() -> None:
 
 
 @pytest.mark.integration
+async def test_group_attendance_completes_a_booking_and_supports_safe_correction() -> None:
+    owner = Database(get_migration_settings().migration_database_url)
+    application = Database(get_settings().database_url)
+    booking_id: UUID | None = None
+    audit_actions: list[str] = []
+    try:
+        await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
+        app = create_app(database=application)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await _login(client)
+            sessions = await client.get("/sessions")
+            workshop = next(item for item in sessions.json()["items"] if item["capacity"] > 1)
+            clients = await client.get("/clients")
+            created = await client.post(
+                "/bookings",
+                headers=_csrf_headers(client, idempotency_key=f"create-attendance-{uuid4()}"),
+                json={
+                    "clientId": clients.json()["items"][0]["id"],
+                    "sessionId": workshop["id"],
+                    "auditReason": "Recorded a group booking for attendance testing.",
+                },
+            )
+            booking_id = UUID(created.json()["id"])
+            confirmed = await client.post(
+                f"/bookings/{booking_id}/confirm",
+                headers=_csrf_headers(client, idempotency_key=f"confirm-attendance-{uuid4()}"),
+            )
+            attendance_key = f"attendance-{uuid4()}"
+            recorded = await client.post(
+                f"/bookings/{booking_id}/attendance",
+                headers=_csrf_headers(client, idempotency_key=attendance_key),
+                json={"attendance": "late"},
+            )
+            replayed = await client.post(
+                f"/bookings/{booking_id}/attendance",
+                headers=_csrf_headers(client, idempotency_key=attendance_key),
+                json={"attendance": "late"},
+            )
+            corrected = await client.post(
+                f"/bookings/{booking_id}/attendance",
+                headers=_csrf_headers(client, idempotency_key=f"correct-attendance-{uuid4()}"),
+                json={"attendance": "absent"},
+            )
+            roster = await client.get(f"/bookings?sessionId={workshop['id']}")
+            async with owner.transaction() as session:
+                audit_actions = [
+                    str(row.action)
+                    for row in (
+                        await session.execute(
+                            text(
+                                "SELECT action FROM audit_events "
+                                "WHERE resource_id = :booking_id ORDER BY occurred_at, id"
+                            ),
+                            {"booking_id": booking_id},
+                        )
+                    ).all()
+                ]
+    finally:
+        if booking_id is not None:
+            async with owner.transaction() as session:
+                await session.execute(
+                    text("DELETE FROM audit_events WHERE resource_id = :booking_id"),
+                    {"booking_id": booking_id},
+                )
+                await session.execute(
+                    text("DELETE FROM bookings WHERE id = :booking_id"),
+                    {"booking_id": booking_id},
+                )
+        await application.dispose()
+        await owner.dispose()
+
+    assert created.status_code == 201
+    assert confirmed.status_code == 200
+    assert recorded.status_code == 200
+    assert recorded.json()["status"] == "completed"
+    assert recorded.json()["attendance"] == "late"
+    assert recorded.json()["paymentStatus"] == "pending"
+    assert replayed.status_code == 200
+    assert replayed.json()["attendance"] == "late"
+    assert corrected.status_code == 200
+    assert corrected.json()["status"] == "completed"
+    assert corrected.json()["attendance"] == "absent"
+    assert roster.status_code == 200
+    assert all(item["sessionId"] == workshop["id"] for item in roster.json()["items"])
+    recorded_roster_booking = next(
+        item for item in roster.json()["items"] if item["id"] == str(booking_id)
+    )
+    assert recorded_roster_booking["attendance"] == "absent"
+    assert audit_actions == [
+        "booking.created",
+        "booking.confirmed",
+        "booking.attendance_recorded",
+        "booking.attendance_recorded",
+    ]
+
+
+@pytest.mark.integration
+async def test_attendance_rejects_a_confirmed_one_to_one_booking() -> None:
+    owner = Database(get_migration_settings().migration_database_url)
+    application = Database(get_settings().database_url)
+    try:
+        await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
+        app = create_app(database=application)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await _login(client)
+            sessions = await client.get("/sessions")
+            appointment = next(item for item in sessions.json()["items"] if item["capacity"] == 1)
+            bookings = await client.get(f"/bookings?sessionId={appointment['id']}")
+            booking_id = bookings.json()["items"][0]["id"]
+            rejected = await client.post(
+                f"/bookings/{booking_id}/attendance",
+                headers=_csrf_headers(client, idempotency_key=f"one-to-one-attendance-{uuid4()}"),
+                json={"attendance": "present"},
+            )
+    finally:
+        await application.dispose()
+        await owner.dispose()
+
+    assert rejected.status_code == 409
+    assert rejected.json()["error"]["code"] == "booking_attendance_invalid"
+
+
+@pytest.mark.integration
 async def test_concurrent_booking_commands_cannot_overfill_a_session() -> None:
     owner = Database(get_migration_settings().migration_database_url)
     application = Database(get_settings().database_url)

@@ -92,6 +92,12 @@ class BookingStatus(StrEnum):
     NOSHOW = "noshow"
 
 
+class BookingAttendance(StrEnum):
+    PRESENT = "present"
+    LATE = "late"
+    ABSENT = "absent"
+
+
 class PaymentStatus(StrEnum):
     PAID = "paid"
     PENDING = "pending"
@@ -571,6 +577,13 @@ class Booking(Base):
     payment_status: Mapped[PaymentStatus] = mapped_column(
         Enum(PaymentStatus, name="payment_status", values_callable=_enum_values)
     )
+    attendance: Mapped[BookingAttendance | None] = mapped_column(
+        Enum(
+            BookingAttendance,
+            name="booking_attendance",
+            values_callable=_enum_values,
+        )
+    )
     amount_cents: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(3))
     notes: Mapped[str | None] = mapped_column(String(2000))
@@ -752,6 +765,7 @@ __all__ = [
     "Booking",
     "BookingCommandIdempotency",
     "BookingStatus",
+    "BookingAttendance",
     "Client",
     "ClientNote",
     "FormStatus",

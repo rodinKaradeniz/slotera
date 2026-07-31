@@ -458,13 +458,15 @@ payment state: cancellation is not a refund, and confirmation is not a payment s
 
 The API-mode Bookings UI remains an operator read-only ledger while a dedicated command
 surface is designed. It displays persisted booking, client, session, service, and monetary
-snapshot data; it does not create, edit, cancel, confirm, or mark attendance yet.
+snapshot data; it does not create, edit, cancel, or confirm bookings. Group-session
+attendance is intentionally available only in the Calendar SessionDrawer, where the
+session roster provides its necessary context.
 
 - Grouped into status accordions in order: **Pending → Confirmed → Completed → No-show → Cancelled**.
 - Accordion headers: color-coded dot + bold label + count + a muted truncated preview like `Maya 10:00 · John 14:30 · +6 more`. **No status badges in headers** — the dot is the indicator.
 - Row-level edit/cancel icons stay removed. Use the `BookingDrawer` for everything.
 - `BookingStatus` includes `"noshow"`. Its `BOOKING_STATUS` entry uses tone `warning` and icon `alert` so it's visually distinct from `cancelled` (tone `danger`, icon `x`). Don't make them look the same.
-- Per-booking attendance — `Booking.attendance?: "present" | "late" | "absent"` — is set via the SessionDrawer's **Attendance** tab (renders only when `capacity > 1`). Recorded per row with a `SegGroup`. "Mark all present" quick action saves a batch with one toast.
+- Per-booking attendance — `Booking.attendance?: "present" | "late" | "absent"` — is set via the SessionDrawer's **Attendance** tab (renders only when `capacity > 1`). Only confirmed/completed bookings appear; recording an outcome completes the booking but never changes payment state. It is recorded per row with a `SegGroup`; "Mark all present" sends individually idempotent commands and gives one toast.
 - **Booking detail page (`/admin/bookings/[id]`)** is a focused two-column layout: **left = Session + Location** (+ the optional booking note), **right = Payment**. It deliberately does **not** duplicate the full client info card — the Session section shows the client **name as a link to `/admin/clients/<clientId>`** instead. Payment shows status, subtotal/tax/total, and the workspace manual payment instructions when enabled — display-only, no real payment actions or Stripe workflow.
 
 ### Settings

@@ -119,9 +119,9 @@ export function SessionDrawer({
   const [savingNote, setSavingNote] = React.useState(false);
   // Tabs appear for an existing session: "Notes & Actions" is always available,
   // "Attendance" only for a group session. New / 1:1 sessions render the details
-  // body directly (attendance) and keep notes inline in the details form.
+  // body directly and keep notes inline in the details form.
   const canShowAttendance =
-    dataSource === "mock" && isEdit && (initial?.capacity ?? 0) > 1;
+    isEdit && (initial?.capacity ?? 0) > 1;
   const canShowActionItems = isEdit;
   const showTabs = isEdit;
   const [tab, setTab] = React.useState<"details" | "notes" | "attendance">(

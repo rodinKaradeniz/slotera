@@ -15,12 +15,17 @@ class OperatorBookingCreate(StrictApiModel):
     audit_reason: Annotated[NonBlank, Field(max_length=500)]
 
 
+class BookingAttendanceCommand(StrictApiModel):
+    attendance: Literal["present", "late", "absent"]
+
+
 class BookingResponse(ApiModel):
     id: UUID
     session_id: UUID
     client_id: UUID
     status: Literal["pending", "confirmed", "completed", "cancelled", "noshow"]
     payment_status: Literal["paid", "pending", "refunded", "free", "overdue"]
+    attendance: Literal["present", "late", "absent"] | None
     amount_cents: int
     currency: str
     notes: str | None

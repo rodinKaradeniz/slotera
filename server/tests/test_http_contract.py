@@ -100,6 +100,7 @@ async def test_openapi_exposes_stable_health_operation_ids() -> None:
         "cancel": "cancelBooking",
         "complete": "completeBooking",
         "noshow": "markBookingNoshow",
+        "attendance": "recordBookingAttendance",
     }
     for command, operation_id in command_operations.items():
         operation = booking_paths[f"/bookings/{{booking_id}}/{command}"]["post"]

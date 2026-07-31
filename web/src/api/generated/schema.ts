@@ -108,6 +108,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bookings/{booking_id}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record Booking Attendance */
+        post: operations["recordBookingAttendance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bookings/{booking_id}/cancel": {
         parameters: {
             query?: never;
@@ -708,6 +725,14 @@ export interface components {
             /** Startlocal */
             startLocal: string;
         };
+        /** BookingAttendanceCommand */
+        BookingAttendanceCommand: {
+            /**
+             * Attendance
+             * @enum {string}
+             */
+            attendance: "present" | "late" | "absent";
+        };
         /** BookingConfirmedNotification */
         BookingConfirmedNotification: {
             /**
@@ -760,6 +785,8 @@ export interface components {
         BookingResponse: {
             /** Amountcents */
             amountCents: number;
+            /** Attendance */
+            attendance: ("present" | "late" | "absent") | null;
             /**
              * Clientid
              * Format: uuid
@@ -2053,6 +2080,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                sessionId?: string | null;
             };
             header?: never;
             path?: never;
@@ -2125,6 +2153,43 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recordBookingAttendance: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingAttendanceCommand"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

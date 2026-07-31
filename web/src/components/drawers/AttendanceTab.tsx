@@ -31,8 +31,9 @@ const ATTENDANCE_OPTIONS = [
 
 /**
  * Renders inside SessionDrawer's Attendance tab. Only shown when capacity > 1.
- * Cancelled bookings are filtered out — attendance only makes sense for the
- * people who were expected.
+ * Only confirmed/completed bookings appear: attendance both records a group
+ * attendee's outcome and completes their booking, so pending bookings cannot
+ * be marked yet.
  */
 export function AttendanceTab({ sessionId }: Props) {
   const { toast } = useToast();
@@ -46,7 +47,7 @@ export function AttendanceTab({ sessionId }: Props) {
         if (!live) return;
         const clientById = new Map(clients.map((c) => [c.id, c]));
         const filtered = bookings
-          .filter((b) => b.status !== "cancelled")
+          .filter((b) => b.status === "confirmed" || b.status === "completed")
           .map<Row>((b) => ({ booking: b, client: clientById.get(b.clientId) }));
         setRows(filtered);
       },

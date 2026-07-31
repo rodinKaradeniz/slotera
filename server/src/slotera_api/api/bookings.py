@@ -10,14 +10,16 @@ from slotera_api.auth.dependencies import (
     OperatorWorkspaceDependency,
 )
 from slotera_api.bookings.repository import (
+    BookingAttendanceError,
     BookingCapacityExceededError,
     BookingIdempotencyConflictError,
     BookingsRepository,
     BookingTransitionError,
 )
-from slotera_api.db.models import Booking
+from slotera_api.db.models import Booking, BookingAttendance
 from slotera_api.errors import ApiError
 from slotera_api.schemas.bookings import (
+    BookingAttendanceCommand,
     BookingListResponse,
     BookingResponse,
     OperatorBookingCreate,
@@ -38,6 +40,7 @@ def _response(item: Booking) -> BookingResponse:
         client_id=item.client_id,
         status=item.status.value,
         payment_status=item.payment_status.value,
+        attendance=item.attendance.value if item.attendance is not None else None,
         amount_cents=item.amount_cents,
         currency=item.currency,
         notes=item.notes,
@@ -77,6 +80,15 @@ def _command_error(error: Exception) -> ApiError:
             code="booking_transition_invalid",
             message="The booking cannot make that status transition",
         )
+    if isinstance(error, BookingAttendanceError):
+        return ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="booking_attendance_invalid",
+            message=(
+                "Attendance can only be recorded for confirmed or completed "
+                "group-session bookings"
+            ),
+        )
     raise error
 
 
@@ -87,9 +99,13 @@ async def list_bookings(
     database: DatabaseDependency,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
+    session_id: Annotated[UUID | None, Query(alias="sessionId")] = None,
 ) -> BookingListResponse:
     items, total = await BookingsRepository(database).list_bookings(
-        operator.workspace_id, limit=limit, offset=offset
+        operator.workspace_id,
+        limit=limit,
+        offset=offset,
+        session_id=session_id,
     )
     _private(response)
     return BookingListResponse(
@@ -225,3 +241,32 @@ async def mark_booking_noshow(
     idempotency_key: IdempotencyKey,
 ) -> BookingResponse:
     return await _transition(booking_id, "noshow", response, operator, database, idempotency_key)
+
+
+@router.post(
+    "/{booking_id}/attendance",
+    response_model=BookingResponse,
+    operation_id="recordBookingAttendance",
+)
+async def record_booking_attendance(
+    booking_id: UUID,
+    payload: BookingAttendanceCommand,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    idempotency_key: IdempotencyKey,
+) -> BookingResponse:
+    try:
+        result = await BookingsRepository(database).record_attendance(
+            operator.workspace_id,
+            operator.user_id,
+            booking_id,
+            BookingAttendance(payload.attendance),
+            idempotency_key,
+        )
+    except (BookingAttendanceError, BookingIdempotencyConflictError) as exc:
+        raise _command_error(exc) from exc
+    if result is None:
+        raise _booking_not_found()
+    _private(response)
+    return _response(result.booking)

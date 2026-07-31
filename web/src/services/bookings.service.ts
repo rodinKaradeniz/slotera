@@ -19,6 +19,7 @@ function mapBooking(booking: BookingDto): Booking {
     clientId: booking.clientId,
     status: booking.status,
     paymentStatus: booking.paymentStatus,
+    attendance: booking.attendance ?? undefined,
     amountCents: booking.amountCents,
     currency: booking.currency as Booking["currency"],
     notes: booking.notes ?? undefined,
@@ -55,7 +56,12 @@ export async function listBookingsByClient(clientId: string): Promise<Booking[]>
 }
 
 export async function listBookingsBySession(sessionId: string): Promise<Booking[]> {
-  if (dataSource !== "mock") throw new NotImplementedError("listBookingsBySession");
+  if (dataSource === "api") {
+    const response = await apiRequest<BookingListDto>(
+      `/bookings?sessionId=${encodeURIComponent(sessionId)}&limit=200`,
+    );
+    return response.items.map(mapBooking);
+  }
   await sleep(40);
   return mock.filter((b) => b.sessionId === sessionId);
 }
@@ -90,22 +96,32 @@ export async function cancelBooking(id: string): Promise<Booking> {
 }
 
 /**
- * Record per-attendee attendance for a single booking. Pass `null` to clear
- * (the field is optional on `Booking`, so a clear is meaningful — used by
- * "undo" actions).
+ * Record a post-session group attendance outcome. The backend completes the
+ * booking atomically and rejects non-group or non-confirmed bookings.
  */
 export async function setBookingAttendance(
   id: string,
-  attendance: BookingAttendance | null,
+  attendance: BookingAttendance,
 ): Promise<Booking> {
-  if (dataSource !== "mock")
-    throw new NotImplementedError("setBookingAttendance");
+  if (dataSource === "api") {
+    return mapBooking(
+      await apiRequest<BookingDto, { attendance: BookingAttendance }>(
+        `/bookings/${encodeURIComponent(id)}/attendance`,
+        {
+          method: "POST",
+          body: { attendance },
+          csrf: true,
+          idempotencyKey: crypto.randomUUID(),
+        },
+      ),
+    );
+  }
   await sleep(80);
   const idx = mock.findIndex((b) => b.id === id);
   if (idx === -1) throw new NotFoundError("booking", id);
   const next: Booking = { ...mock[idx] };
-  if (attendance === null) delete next.attendance;
-  else next.attendance = attendance;
+  next.attendance = attendance;
+  next.status = "completed";
   mock = [...mock.slice(0, idx), next, ...mock.slice(idx + 1)];
   return next;
 }

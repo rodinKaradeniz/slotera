@@ -49,7 +49,7 @@ real auth/session endpoints, operator business-settings/saved-location/service r
 workspace availability, session/recurrence resources, client/booking/form/context
 resources, a tenant-scoped dashboard read model, database-enforced calendar conflicts,
 server-side operator search, a narrow superadmin workspace directory/detail plus initial
-workspace-provisioning command, transaction-safe scheduled-session booking commands, and
+workspace-provisioning command, transaction-safe scheduled-session booking/attendance commands, and
 a user-targeted notification baseline over the identity/tenancy model. See
 `docs/PRODUCT.md` for the full positioning rules and
 phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
@@ -135,9 +135,9 @@ resolves the role from the email address:
 Authentication is cookie-backed and the operator lands on `/admin/dashboard`; Dashboard,
 Calendar, Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are
 exposed in API-mode navigation. The navbar and Cmd/Ctrl-K operator search are also
-API-backed. Calendar uses persisted sessions, booking/client context, and session action
-items; the persisted Bookings screen remains read-only while the new operator booking
-commands remain an API foundation. Attendance remains deferred.
+API-backed. Calendar uses persisted sessions, booking/client context, session action
+items, and group-session attendance; the persisted Bookings screen remains read-only while
+the new operator booking commands remain an API foundation.
 API-mode superadmins land on the persisted Workspaces directory; its detail route shows
 only safe owner, workspace, and aggregate facts, and platform staff can provision a
 workspace plus activation-pending initial operator. Subscriptions, inquiries,
@@ -275,9 +275,10 @@ implemented HTTP surface is deliberately limited to:
 - `GET/POST /settings/locations` plus item `PATCH/DELETE` — saved locations;
 - `GET/POST /services` plus item `GET/PATCH/DELETE` — operator service management;
 - `GET/POST /clients` plus item `GET/PATCH` — operator client profiles and search;
-- `GET /bookings` plus item `GET`, `POST /bookings`, and explicit item `POST`
-  confirm/cancel/complete/no-show commands — tenant-scoped operator booking-ledger reads
-  plus idempotent, audited scheduled-session booking commands;
+- `GET /bookings` (optionally filtered by `sessionId`) plus item `GET`, `POST /bookings`,
+  and explicit item `POST` confirm/cancel/complete/no-show/attendance commands — tenant-
+  scoped operator booking-ledger reads plus idempotent, audited scheduled-session booking
+  and group-attendance commands;
 - `GET/POST /forms` plus item `GET/PATCH/DELETE` — operator form-template management;
 - `GET/POST /clients/{client_id}/notes` plus note `PATCH/DELETE` — private operator
   client context, allow-list sanitised before persistence;
@@ -508,6 +509,9 @@ Present tense — what exists in the working tree today.
 - Session drawer carries a "Notes & Actions" tab: one internal note plus lightweight
   action items, both admin-only. API mode persists the action-item list, its task status,
   optional due date, and future-only `clientVisible` flag.
+- Group-session SessionDrawer instances also expose an API-backed Attendance tab. It lists
+  confirmed/completed session bookings with operator client context and records
+  `present`/`late`/`absent` outcomes; 1:1 sessions remain on the no-show lifecycle path.
 - Client Notes persist in API mode as separate internal entries; stored rich text is
   server-sanitised and defensively sanitised again before rendering.
 - Global search: navbar dropdown + Cmd/Ctrl-K palette over one shared presentation index
@@ -547,9 +551,10 @@ Present tense — what exists in the working tree today.
 - Generated OpenAPI transport types and a shared credentialed HTTP client back an opt-in
   local operator UI for auth, services, business settings/locations, notifications,
   availability/sessions, clients, booking-ledger reads, forms, client notes, session
-  action items, dashboard facts, and workspace search. The new booking command transport
-  is not yet exposed by the API-mode UI, which remains a read-only ledger. API-mode Calendar intentionally excludes mock-only
-  attendance; the public/Vercel experience continues to default to mock mode.
+  action items, dashboard facts, workspace search, and group-session attendance. The new
+  booking command transport remains otherwise unexposed by the API-mode Bookings ledger;
+  API-mode Calendar uses its real roster/attendance resources without mock fallback. The
+  public/Vercel experience continues to default to mock mode.
 - The local API also has a separate superadmin workspace island. Its two database
   projections are fixed, safe allow-lists and its one provisioning function is an atomic,
   audited capability under `SECURITY DEFINER`; FastAPI and the function both verify the
@@ -558,7 +563,9 @@ Present tense — what exists in the working tree today.
   month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant.
   Operator booking creation locks the existing scheduled session, counts pending/confirmed
   bookings in the same transaction, and rejects a full session; booking status commands
-  are idempotent and audit logged without changing payment state.
+  are idempotent and audit logged without changing payment state. Group attendance locks
+  the booking/session pair, completes a confirmed booking atomically, and permits only
+  `present`/`late`/`absent` for sessions with capacity greater than one.
 - Tenant-scoped client profiles persist stable UUIDs and normalized, workspace-unique
   email addresses. Operator client CRUD/search is RLS-backed and audit logged; booking
   metrics remain unwired until their resources land.
@@ -776,3 +783,21 @@ integration -q` reports 37 passed (28 deselected); Ruff and strict mypy are clea
 fresh `./scripts/dev --api` completed dependency sync, transport generation, migration, and
 zero-change seeding, then stopped because port `8000` was already occupied; no replacement
 API/browser process was started.
+
+Later on 2026-07-31, migration `20260731_0016` added nullable persisted booking attendance
+for group sessions. The authenticated roster is `GET /bookings?sessionId=…`; the
+CSRF-protected, actor-idempotent attendance command locks the booking and session, accepts
+only confirmed/completed group bookings, records `present`/`late`/`absent`, and completes
+the booking without changing payment status. API-mode Calendar now uses that real roster
+and command in its group-only SessionDrawer Attendance tab; the Bookings ledger remains
+read-only. Open-mode/public bookings, holds, payment work, email, and a dedicated command
+UI remain deferred.
+
+Verification for that attendance bundle: `uv run alembic upgrade head` reached
+`20260731_0016 (head)`; `uv run pytest` reported 28 passed (39 deselected), and
+`uv run pytest -m integration` reported 39 passed (28 deselected). `uv run ruff check .`
+was clean and `uv run mypy` was clean for 68 source files. `npm run generate:api`, `npx
+tsc --noEmit`, `npm run lint`, and `npm run build` passed. Against a local API listener on
+port 8001, `/health/ready` returned its database-ok payload, the authenticated filtered
+group roster returned only its session rows, and a 1:1 attendance attempt returned `409
+booking_attendance_invalid`; the API-mode `/admin/calendar` route returned HTTP 200.
