@@ -113,8 +113,9 @@ async def test_operator_can_create_an_idempotent_capacity_consuming_booking() ->
 
 
 @pytest.mark.integration
-async def test_booking_status_commands_preserve_payment_state_and_reject_invalid_transitions(
-) -> None:
+async def test_booking_status_commands_preserve_payment_state_and_reject_invalid_transitions() -> (
+    None
+):
     owner = Database(get_migration_settings().migration_database_url)
     application = Database(get_settings().database_url)
     booking_id: UUID | None = None

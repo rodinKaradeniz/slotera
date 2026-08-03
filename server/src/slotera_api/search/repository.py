@@ -91,9 +91,7 @@ class SearchRepository:
                                 cast(Session.status, String).ilike(pattern),
                             ),
                         )
-                        .order_by(
-                            _rank(Service.name, query), Session.start_at, Session.id
-                        )
+                        .order_by(_rank(Service.name, query), Session.start_at, Session.id)
                         .limit(limit_per_kind)
                     )
                 ).all()
@@ -139,9 +137,7 @@ class SearchRepository:
                                 cast(Booking.payment_status, String).ilike(pattern),
                             ),
                         )
-                        .order_by(
-                            _rank(Client.name, query), Booking.created_at.desc(), Booking.id
-                        )
+                        .order_by(_rank(Client.name, query), Booking.created_at.desc(), Booking.id)
                         .limit(limit_per_kind)
                     )
                 ).all()
@@ -154,8 +150,7 @@ class SearchRepository:
                     id=booking.id,
                     title=client_name,
                     subtitle=(
-                        f"{service_name} · {booking.status.value}"
-                        f" · {booking.payment_status.value}"
+                        f"{service_name} · {booking.status.value} · {booking.payment_status.value}"
                     ),
                     occurred_at=start_at,
                 )
@@ -166,9 +161,7 @@ class SearchRepository:
                     kind="client",
                     id=client.id,
                     title=client.name,
-                    subtitle=" · ".join(
-                        item for item in [client.email, client.company] if item
-                    )
+                    subtitle=" · ".join(item for item in [client.email, client.company] if item)
                     or None,
                     occurred_at=None,
                 )

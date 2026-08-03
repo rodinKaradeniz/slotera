@@ -13,13 +13,24 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [sent, setSent] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    await requestPasswordReset(email);
-    setLoading(false);
-    setSent(true);
+    try {
+      await requestPasswordReset(email);
+      setSent(true);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "The reset request could not be sent.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) {
@@ -76,6 +87,7 @@ export default function ForgotPasswordPage() {
             required
           />
         </Field>
+        {error && <div className="text-small text-danger">{error}</div>}
         <Button type="submit" loading={loading} size="lg" iconRight="arrow-right">
           Send reset link
         </Button>

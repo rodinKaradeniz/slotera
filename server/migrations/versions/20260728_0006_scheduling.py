@@ -74,12 +74,8 @@ def upgrade() -> None:
         sa.CheckConstraint("slot_interval_min BETWEEN 5 AND 1440", name="slot_interval"),
         sa.CheckConstraint("buffer_before_min BETWEEN 0 AND 1440", name="buffer_before"),
         sa.CheckConstraint("buffer_after_min BETWEEN 0 AND 1440", name="buffer_after"),
-        sa.CheckConstraint(
-            "minimum_notice_min BETWEEN 0 AND 525600", name="minimum_notice"
-        ),
-        sa.CheckConstraint(
-            "maximum_advance_days BETWEEN 1 AND 730", name="maximum_advance"
-        ),
+        sa.CheckConstraint("minimum_notice_min BETWEEN 0 AND 525600", name="minimum_notice"),
+        sa.CheckConstraint("maximum_advance_days BETWEEN 1 AND 730", name="maximum_advance"),
         sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("workspace_id"),
     )
@@ -125,9 +121,7 @@ def upgrade() -> None:
         sa.Column("horizon_through", sa.Date(), nullable=False),
         *_timestamps(),
         sa.CheckConstraint("interval_weeks BETWEEN 1 AND 52", name="interval_weeks"),
-        sa.CheckConstraint(
-            "starts_on <= ends_on OR ends_on IS NULL", name="date_order"
-        ),
+        sa.CheckConstraint("starts_on <= ends_on OR ends_on IS NULL", name="date_order"),
         sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("workspace_id", "id", name="uq_session_series_workspace_id_id"),
@@ -166,9 +160,7 @@ def upgrade() -> None:
             ["session_series.workspace_id", "session_series.id"],
             ondelete="RESTRICT",
         ),
-        sa.ForeignKeyConstraint(
-            ["workspace_id"], ["workspaces.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("series_id", "start_at"),
     )

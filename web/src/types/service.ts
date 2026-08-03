@@ -34,6 +34,16 @@ export type Service = {
   createdAtISO: string;
   /** Internal-only prep/operator notes. Not shown to clients on the booking page. */
   notes?: string;
+  /** Server-calculated gross-inclusive public quote; present only on API catalog items. */
+  publicQuote?: {
+    treatment: "none" | "fixed";
+    rateBps: number;
+    label?: string;
+    jurisdiction?: string;
+    grossAmountCents: number;
+    netAmountCents: number;
+    taxAmountCents: number;
+  };
 };
 
-export type ServiceInput = Omit<Service, "id" | "createdAtISO">;
+export type ServiceInput = Omit<Service, "id" | "createdAtISO" | "publicQuote">;

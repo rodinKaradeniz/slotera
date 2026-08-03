@@ -25,13 +25,16 @@ import {
   deleteWorkspaceLocation,
   getAvailabilitySettings,
   getBusinessSettings,
+  getPaymentSettings,
   getSettings,
   updateBusinessSettings,
   updateAvailabilitySettings,
   updateSettings,
+  updatePaymentSettings,
   updateWorkspaceLocation,
   type BusinessSettings,
   type AvailabilitySettings,
+  type PaymentSettings,
 } from "@/services/settings.service";
 import { BillingPanel } from "./BillingPanel";
 import { EMPTY_ADDRESS, type WorkspaceLocation } from "@/types/address";
@@ -63,18 +66,21 @@ export function SettingsView() {
   const [data, setData] = React.useState<SettingsData | null>(null);
   const [business, setBusiness] = React.useState<BusinessSettings | null>(null);
   const [availability, setAvailability] = React.useState<AvailabilitySettings | null>(null);
+  const [paymentSettings, setPaymentSettings] = React.useState<PaymentSettings | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const load = async () => {
       try {
         if (dataSource === "api") {
-          const [nextBusiness, nextAvailability] = await Promise.all([
+          const [nextBusiness, nextAvailability, nextPayments] = await Promise.all([
             getBusinessSettings(),
             getAvailabilitySettings(),
+            getPaymentSettings(),
           ]);
           setBusiness(nextBusiness);
           setAvailability(nextAvailability);
+          setPaymentSettings(nextPayments);
           return;
         }
         const settings = await getSettings();
@@ -88,7 +94,9 @@ export function SettingsView() {
   }, []);
 
   const visibleNav = dataSource === "api"
-    ? NAV.filter((item) => item.id === "business" || item.id === "calendar")
+    ? NAV.filter((item) =>
+        item.id === "business" || item.id === "payments" || item.id === "calendar"
+      )
     : NAV;
   const activeMeta = visibleNav.find((n) => n.id === section);
   const handleBusinessChange = (next: BusinessSettings) => {
@@ -155,6 +163,12 @@ export function SettingsView() {
               )}
               {section === "branding" && data && <BrandingPanel data={data} onChange={setData} />}
               {section === "payments" && data && <PaymentsPanel data={data} onChange={setData} />}
+              {section === "payments" && dataSource === "api" && paymentSettings && (
+                <ApiPaymentsPanel
+                  payments={paymentSettings}
+                  onChange={setPaymentSettings}
+                />
+              )}
               {section === "billing" && <BillingPanel />}
               {section === "calendar" && dataSource === "api" && availability && (
                 <ApiCalendarPanel
@@ -376,6 +390,152 @@ function PaymentsPanel({ data, onChange }: PanelProps) {
         </div>
       </Card>
     </>
+  );
+}
+
+function ApiPaymentsPanel({
+  payments,
+  onChange,
+}: {
+  payments: PaymentSettings;
+  onChange: (next: PaymentSettings) => void;
+}) {
+  const { toast } = useToast();
+  const [local, setLocal] = React.useState(payments);
+  const [saving, setSaving] = React.useState(false);
+  const save = async () => {
+    setSaving(true);
+    try {
+      const next = await updatePaymentSettings(local);
+      setLocal(next);
+      onChange(next);
+      toast.success("Client payment settings saved");
+    } catch (error) {
+      toast.error("Couldn't save client payment settings", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-6">
+      <Card padded>
+        <h3 className="text-h3 text-ink mb-1" style={{ fontSize: 18 }}>
+          Offline client payments
+        </h3>
+        <p className="text-small mb-5">
+          Slotera records the booking as payment pending. The client pays using
+          instructions you provide outside Slotera.
+        </p>
+        <ManualPaymentForm
+          value={{
+            enabled: local.manualPaymentEnabled,
+            instructions: local.manualPaymentInstructions,
+          }}
+          onChange={(value) =>
+            setLocal({
+              ...local,
+              manualPaymentEnabled: value.enabled,
+              manualPaymentInstructions: value.instructions,
+            })
+          }
+        />
+      </Card>
+      <Card padded>
+        <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 18 }}>
+          Booking terms
+        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[14px] font-medium text-ink">
+            Show provider terms at checkout
+          </span>
+          <Toggle
+            checked={local.bookingTermsEnabled}
+            onChange={(bookingTermsEnabled) =>
+              setLocal({ ...local, bookingTermsEnabled })
+            }
+          />
+        </div>
+        <Textarea
+          rows={7}
+          disabled={!local.bookingTermsEnabled}
+          value={local.bookingTermsContent}
+          onChange={(event) =>
+            setLocal({ ...local, bookingTermsContent: event.target.value })
+          }
+        />
+      </Card>
+      <Card padded>
+        <h3 className="text-h3 text-ink mb-1" style={{ fontSize: 18 }}>
+          Tax-inclusive pricing
+        </h3>
+        <p className="text-small mb-5">
+          Published service prices are gross totals. A fixed rate splits that
+          total into net and tax snapshots when a booking is created.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Tax treatment">
+            <Select
+              value={local.taxTreatment}
+              onChange={(event) =>
+                setLocal({
+                  ...local,
+                  taxTreatment: event.target.value as "none" | "fixed",
+                  taxRateBps: event.target.value === "none" ? 0 : local.taxRateBps,
+                })
+              }
+              options={[
+                { value: "none", label: "No tax split" },
+                { value: "fixed", label: "Fixed tax rate" },
+              ]}
+            />
+          </Field>
+          <Field label="Tax rate (%)">
+            <Input
+              type="number"
+              min="0.01"
+              max="100"
+              step="0.01"
+              disabled={local.taxTreatment === "none"}
+              value={local.taxTreatment === "none" ? "" : local.taxRateBps / 100}
+              onChange={(event) =>
+                setLocal({
+                  ...local,
+                  taxRateBps: Math.round(Number(event.target.value) * 100),
+                })
+              }
+            />
+          </Field>
+          <Field label="Tax label">
+            <Input
+              value={local.taxLabel}
+              onChange={(event) => setLocal({ ...local, taxLabel: event.target.value })}
+            />
+          </Field>
+          <Field label="Jurisdiction (country code)">
+            <Input
+              maxLength={2}
+              value={local.taxJurisdiction}
+              onChange={(event) =>
+                setLocal({ ...local, taxJurisdiction: event.target.value.toUpperCase() })
+              }
+            />
+          </Field>
+          <Field label="Seller tax number" className="sm:col-span-2">
+            <Input
+              value={local.sellerTaxNumber}
+              onChange={(event) =>
+                setLocal({ ...local, sellerTaxNumber: event.target.value })
+              }
+            />
+          </Field>
+        </div>
+      </Card>
+      <div className="flex justify-end">
+        <Button onClick={save} loading={saving}>Save client payments</Button>
+      </div>
+    </div>
   );
 }
 

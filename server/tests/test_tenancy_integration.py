@@ -121,9 +121,7 @@ async def test_runtime_role_is_tenant_scoped_and_cannot_cross_write() -> None:
         async with application.tenant_transaction(workspace_a) as session:
             visible_ids = set(
                 (
-                    await session.scalars(
-                        text("SELECT id FROM workspace_memberships ORDER BY id")
-                    )
+                    await session.scalars(text("SELECT id FROM workspace_memberships ORDER BY id"))
                 ).all()
             )
 
@@ -166,9 +164,10 @@ async def test_identity_tables_are_not_directly_accessible_to_runtime_role() -> 
     try:
         async with database.transaction() as session:
             privileges = (
-                await session.execute(
-                    text(
-                        """
+                (
+                    await session.execute(
+                        text(
+                            """
                         SELECT
                           has_table_privilege(current_user, 'users', 'SELECT') AS users_select,
                           has_table_privilege(current_user, 'auth_sessions', 'SELECT')
@@ -176,9 +175,12 @@ async def test_identity_tables_are_not_directly_accessible_to_runtime_role() -> 
                           has_table_privilege(current_user, 'password_reset_tokens', 'SELECT')
                             AS resets_select
                         """
+                        )
                     )
                 )
-            ).mappings().one()
+                .mappings()
+                .one()
+            )
     finally:
         await database.dispose()
 

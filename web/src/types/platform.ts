@@ -4,6 +4,8 @@ import type {
   SubscriptionStatus,
 } from "./billing";
 
+export type PlatformWorkspaceOperationalStatus = "active" | "suspended";
+
 /** Display-safe, persisted facts exposed to a platform superadmin. */
 export type PlatformWorkspace = {
   id: string;
@@ -12,6 +14,7 @@ export type PlatformWorkspace = {
   ownerName: string | null;
   ownerEmail: string | null;
   createdAtISO: string;
+  operationalStatus: PlatformWorkspaceOperationalStatus;
   bookingsCount: number;
   servicesCount: number;
   clientsCount: number;

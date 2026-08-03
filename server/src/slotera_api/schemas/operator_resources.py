@@ -70,6 +70,44 @@ class BusinessSettingsPatch(StrictApiModel):
         return self
 
 
+class PaymentSettingsResponse(ApiModel):
+    manual_payment_enabled: bool
+    manual_payment_instructions: str
+    booking_terms_enabled: bool
+    booking_terms_content: str
+    tax_treatment: Literal["none", "fixed"]
+    tax_rate_bps: int
+    tax_label: str
+    tax_jurisdiction: str | None
+    seller_tax_number: str | None
+    updated_at: datetime
+
+
+class PaymentSettingsPatch(StrictApiModel):
+    manual_payment_enabled: bool | None = None
+    manual_payment_instructions: Annotated[str | None, Field(max_length=4000)] = None
+    booking_terms_enabled: bool | None = None
+    booking_terms_content: Annotated[str | None, Field(max_length=10000)] = None
+    tax_treatment: Literal["none", "fixed"] | None = None
+    tax_rate_bps: int | None = Field(default=None, ge=0, le=10000)
+    tax_label: Annotated[NonBlank | None, Field(max_length=40)] = None
+    tax_jurisdiction: CountryCode | None = None
+    seller_tax_number: Annotated[str | None, Field(max_length=80)] = None
+
+    @field_validator("tax_jurisdiction")
+    @classmethod
+    def uppercase_tax_jurisdiction(cls, value: str | None) -> str | None:
+        return value.upper() if value else None
+
+    @model_validator(mode="after")
+    def reject_invalid_nulls(self) -> "PaymentSettingsPatch":
+        nullable = {"tax_jurisdiction", "seller_tax_number"}
+        for field in self.model_fields_set - nullable:
+            if getattr(self, field) is None:
+                raise ValueError(f"{to_camel(field)} cannot be null")
+        return self
+
+
 class Address(StrictApiModel):
     street: Annotated[NonBlank, Field(max_length=200)]
     street2: Annotated[str | None, Field(max_length=200)] = None

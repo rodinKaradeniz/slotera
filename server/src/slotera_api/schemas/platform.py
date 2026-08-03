@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -16,6 +16,7 @@ class PlatformWorkspaceSummary(ApiModel):
     owner_name: str | None
     owner_email: str | None
     created_at: datetime
+    operational_status: Literal["active", "suspended"]
     services_count: int
     clients_count: int
     bookings_count: int

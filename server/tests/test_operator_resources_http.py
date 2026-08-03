@@ -42,6 +42,7 @@ class StubAuthService:
         password: str,
         remember_me: bool,
         workspace_id: str | None,
+        client_key: str,
     ) -> AuthResult:
         return AuthResult(
             session=self.session,
@@ -56,6 +57,12 @@ class StubAuthService:
         return session is self.session and csrf_token == self.csrf_token
 
     async def revoke(self, session_token: str) -> None:
+        pass
+
+    async def request_password_reset(self, *, email: str, client_key: str) -> None:
+        pass
+
+    async def consume_password_reset(self, *, token: str, new_password: str) -> None:
         pass
 
 

@@ -49,10 +49,13 @@ real auth/session endpoints, operator business-settings/saved-location/service r
 workspace availability, session/recurrence resources, client/booking/form/context
 resources, a tenant-scoped dashboard read model, database-enforced calendar conflicts,
 server-side operator search, a narrow superadmin workspace directory/detail plus initial
-workspace-provisioning command, transaction-safe scheduled-session booking/attendance commands, and
+workspace-provisioning and operational suspension/reactivation commands, transaction-safe
+scheduled-session booking/attendance commands, PostgreSQL-backed activation/password
+reset and transactional email delivery, operator client-payment/tax settings, a
+capacity-one open-mode public booking transaction, and
 a user-targeted notification baseline over the identity/tenancy model. See
 `docs/PRODUCT.md` for the full positioning rules and
-phase plan (Phase 2 later adds the minimum transactional email required by real bookings;
+phase plan (Phase 2 later adds booking confirmation/magic-link email;
 Phase 3 adds Stripe, scheduled email, and calendar integrations).
 
 ---
@@ -71,7 +74,7 @@ The script requires Docker, uv, and npm. It creates missing local env files from
 examples without overwriting existing ones, synchronizes both dependency sets, regenerates
 TypeScript transport types from FastAPI OpenAPI, starts and waits for PostgreSQL, runs
 `alembic upgrade head`, imports the idempotent demo seed, then
-starts FastAPI on `8000` and Next.js on `3344`. Ctrl-C stops both application processes
+starts FastAPI on `8000`, the transactional email worker, and Next.js on `3344`. Ctrl-C stops those application processes
 but deliberately leaves PostgreSQL running with its named volume intact. Alembic tracks
 the applied revision in PostgreSQL's `alembic_version` table, so repeated starts apply
 only pending migrations.
@@ -140,9 +143,14 @@ items, and group-session attendance; the persisted Bookings screen remains read-
 the new operator booking commands remain an API foundation.
 API-mode superadmins land on the persisted Workspaces directory; its detail route shows
 only safe owner, workspace, and aggregate facts, and platform staff can provision a
-workspace plus activation-pending initial operator. Subscriptions, inquiries,
-impersonation, and settings surfaces remain mock-only. Public booking,
-registration/reset, and the remaining operator routes are not API-wired yet.
+workspace plus activation-pending initial operator or suspend/reactivate operator access.
+Provisioning queues the initial operator's one-time activation link; local console delivery
+prints that sensitive link in the worker log, while production configuration requires Resend.
+Suspension revokes existing workspace sessions and blocks new ones until reactivation.
+Subscriptions, inquiries,
+impersonation, and platform settings surfaces remain mock-only. API mode wires password
+reset, Client Payments settings, and the seeded `lena` capacity-one open-mode public
+booking flow; registration and the remaining operator routes are not API-wired yet.
 
 **Public routes needing no session:** `/` (landing), `/booking`,
 `/booking/confirmation`, `/booking/failure`, `/booking/manage/demo`.
@@ -257,7 +265,7 @@ export async function listThings(): Promise<T[]> {
 
 Current services: `auth`, `billing`, `bookings`, `client-notes`, `clients`, `dashboard`,
 `demo`, `forms`, `notifications`, `packages`, `platform`, `services`,
-`search`, `session-action-items`, `sessions`, `settings`.
+`search`, `session-action-items`, `sessions`, `settings`, `public-booking`.
 
 ### Backend persistence
 
@@ -271,7 +279,11 @@ implemented HTTP surface is deliberately limited to:
 - `POST /auth/login` — verifies Argon2id credentials and issues an opaque session;
 - `GET /auth/session` — resolves the current user, role, and workspace;
 - `POST /auth/logout` — CSRF-protected immediate session revocation;
+- `POST /auth/password-reset/request` and `/consume` — generic, rate-limited activation/
+  reset issuance and one-time password consumption with existing-session revocation;
 - `GET/PATCH /settings/business` — operator-owned workspace/profile settings;
+- `GET/PATCH /settings/payments` — workspace manual-payment instructions, provider terms,
+  and gross-inclusive `none | fixed` tax settings;
 - `GET/POST /settings/locations` plus item `PATCH/DELETE` — saved locations;
 - `GET/POST /services` plus item `GET/PATCH/DELETE` — operator service management;
 - `GET/POST /clients` plus item `GET/PATCH` — operator client profiles and search;
@@ -286,6 +298,9 @@ implemented HTTP surface is deliberately limited to:
   targeted operator notifications and read acknowledgement;
 - `GET/POST /platform/workspaces` plus item `GET` — global-superadmin-only, display-safe
   workspace directory/detail projections and one audited initial-provisioning command;
+- item `POST` suspend/reactivate commands — global-superadmin-only operational controls
+  that audit real transitions, revoke operator sessions on suspension, and never change
+  subscription or billing state;
 - `GET/PUT /availability` — workspace timezone, split weekly hours, booking-window policy,
   buffers, notice/advance limits, and blackout ranges;
 - `GET/POST /sessions` plus item `GET/PATCH` — one-off and recurring materialised
@@ -294,6 +309,10 @@ implemented HTTP surface is deliberately limited to:
   operator session tasks with persisted `todo`/`done` state;
 - `GET /dashboard/summary` — a tenant- and principal-scoped operator dashboard read model;
 - `GET /search` — a bounded tenant-scoped projection over searchable operator resources;
+- public workspace/catalog/forms/availability reads plus `POST
+  /public/workspaces/{slug}/bookings` — display-safe capacity-one open-mode booking with
+  server-derived slots, free/manual state, financial/form snapshots, rate limiting, and
+  idempotency;
 - `/openapi.json` and `/docs` — the future generated-transport contract.
 
 Every response receives a generated `X-Request-ID`. HTTP, validation, application, and
@@ -311,6 +330,10 @@ and a separate principal transaction context for workspace-and-user RLS.
 The scheduling revision adds normalized availability, recurrence series, materialised
 occurrences, composite tenant foreign keys, and a partial GiST exclusion constraint that
 allows adjacent/cancelled time ranges but rejects active overlap per calendar owner.
+Migrations `20260802_0018` and `0019` add shared request throttles, the transactional email
+outbox/auth maintenance capabilities, workspace payment settings, immutable booking
+financial snapshots, form responses, public idempotency records, and narrow public slug
+resolution without granting global table access.
 Only SHA-256 session/CSRF token digests are stored. The local seed gives Lena and Avery an
 Argon2id hash for `slotera-local-only`; the seed command is disabled in production.
 
@@ -320,13 +343,15 @@ history, audit events, business profiles, locations, and services; repositories 
 scope resource queries explicitly. Unscoped tenant reads return no rows and cross-
 workspace writes fail. The runtime role has no direct privileges on users, auth sessions,
 or reset tokens.
-Four fixed-search-path `SECURITY DEFINER` functions expose only login lookup, session
-creation, session lookup, and revocation to that role. Two additional fixed-search-path
-`SECURITY DEFINER` read functions expose only display-safe platform workspace facts, while
-one fixed provisioning function atomically creates the workspace, initial operator,
-membership, business profile, and audit event after independently checking the actor's
-platform role. The runtime role receives `EXECUTE`, not a tenant-RLS bypass or direct
-identity-table access.
+Fixed-search-path `SECURITY DEFINER` capabilities expose only the exact auth operations
+the runtime needs: login/session lookup and mutation, rate limiting, one-time reset
+issuance/consumption, outbox claiming/result recording, and bounded auth maintenance.
+Separate fixed capabilities expose the two display-safe platform workspace projections,
+atomic initial provisioning, and audited suspension/reactivation after independently
+checking the actor's platform role. Public slug resolution is likewise a fixed allow-list
+projection. The runtime role receives `EXECUTE` on those named capabilities, not a
+tenant-RLS bypass, generic global-table access, direct identity-table access, or permission
+to update the workspace root table.
 The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used host
 `5432` port. `uv run slotera-seed` imports the Hartmann workspace, operator, business
 profile, two locations, five EUR-derived services, four notifications, platform
@@ -476,6 +501,10 @@ Present tense — what exists in the working tree today.
 - Public booking flow: Service → Date & time → Details → (Forms, conditional) → Billing →
   Review → Pay, with a receipt-styled summary, consent linking to a two-tab legal modal
   (provider booking terms + platform terms), and confirmation/failure routes.
+- API mode persists the seeded `lena` flow for active open-mode, capacity-one services.
+  It shows only server-issued available slots, validates and snapshots required attached
+  forms, and creates either a confirmed free booking or payment-pending manual booking;
+  mock-mode card/package demonstrations remain outside that real transaction.
 - The service list on `/booking` is curated in `demo.service.ts`
   (`STANDARD_BOOKING_SERVICE_IDS` → Discovery Call, Strategy Session, Coaching Session,
   Group Workshop). Persona demos are reachable via `?demo=<slug>`.
@@ -525,15 +554,18 @@ Present tense — what exists in the working tree today.
 - API mode is deliberately narrower: authenticated superadmins see a persisted workspace
   directory/detail with owner identity, created/timezone/currency facts, and
   service/client/booking/session counts, plus initial provisioning of a workspace and an
-  activation-pending operator identity. No mock plan/subscription, activity, billing,
-  notes, suspension, or impersonation control appears there.
+  activation-pending operator identity whose one-time setup link is queued to transactional
+  email. They can also suspend/reactivate workspace access;
+  suspension immediately revokes operator sessions while retaining workspace data. No mock
+  plan/subscription, activity, billing, notes, or impersonation control appears there.
 
 **Backend persistence**
 - Local FastAPI app with liveness/readiness, OpenAPI docs, structured errors and request
   logging, exact-origin CORS, async PostgreSQL lifecycle, and Alembic migrations.
 - Identity/tenancy schema for users, sessions/reset tokens, workspaces, memberships,
   slug history/reservations, and audit events. Tenant tables use forced PostgreSQL RLS;
-  identity tables remain withheld from the runtime role behind four narrow auth functions.
+  identity tables remain withheld from the runtime role behind narrow, operation-specific
+  fixed database capabilities.
 - A deterministic local seed importer maps the Lena/Avery identity fixture into UUID-backed
   rows, including local-only Argon2id credentials, and is repeatable.
 - Real `/auth/login`, `/auth/session`, and `/auth/logout` resources with revocable cookies,
@@ -541,13 +573,18 @@ Present tense — what exists in the working tree today.
   HTTP contracts and negative security paths;
   opt-in integration tests exercise live readiness, privileges, tenant isolation, RLS
   coverage, append-only audit events, and seed idempotency.
+- Real activation/password-reset request and consumption use generic responses, shared
+  PostgreSQL throttles, hashed one-time credentials, a retryable email outbox, and full
+  session revocation on password change. `slotera-email-worker` supports local console and
+  production-required Resend delivery; `slotera-maintenance` cleans stale auth state.
 - Operator business-profile, saved-location, and service CRUD. Service currency is
   inherited from the workspace, inputs cannot override it, and service notes are exposed
   only on authenticated operator endpoints. Resource queries are application-scoped and
   backed by forced PostgreSQL RLS.
 - Structured operator notifications with a typed event/payload response, aggregate unread
   count, and CSRF-protected mark-all-read command. Both repository predicates and forced
-  PostgreSQL RLS isolate workspace and recipient; no email or event producers exist yet.
+  PostgreSQL RLS isolate workspace and recipient; booking notification producers remain
+  deferred.
 - Generated OpenAPI transport types and a shared credentialed HTTP client back an opt-in
   local operator UI for auth, services, business settings/locations, notifications,
   availability/sessions, clients, booking-ledger reads, forms, client notes, session
@@ -555,10 +592,17 @@ Present tense — what exists in the working tree today.
   booking command transport remains otherwise unexposed by the API-mode Bookings ledger;
   API-mode Calendar uses its real roster/attendance resources without mock fallback. The
   public/Vercel experience continues to default to mock mode.
+- API mode also wires Client Payments and the seeded `lena` public booking flow. Public
+  responses allow-list workspace/catalog/form facts and open slots only; creation supports
+  capacity-one open services, free/manual payment state, gross-inclusive fixed tax,
+  persisted pre-payment form answers, slot/idempotency locks, and immutable booking
+  financial snapshots without mock fallback.
 - The local API also has a separate superadmin workspace island. Its two database
   projections are fixed, safe allow-lists and its one provisioning function is an atomic,
-  audited capability under `SECURITY DEFINER`; FastAPI and the function both verify the
-  platform role before use, and the runtime role still has no generic cross-workspace read.
+  audited capability under `SECURITY DEFINER`. A second narrow capability changes only
+  operational status, audits actual transitions, and revokes workspace sessions when
+  suspending; FastAPI and the functions verify the platform role before use, and the
+  runtime role still has no generic cross-workspace read or workspace-root update.
 - Workspace availability and authenticated session APIs persist one-off or rolling six-
   month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant.
   Operator booking creation locks the existing scheduled session, counts pending/confirmed
@@ -790,8 +834,9 @@ CSRF-protected, actor-idempotent attendance command locks the booking and sessio
 only confirmed/completed group bookings, records `present`/`late`/`absent`, and completes
 the booking without changing payment status. API-mode Calendar now uses that real roster
 and command in its group-only SessionDrawer Attendance tab; the Bookings ledger remains
-read-only. Open-mode/public bookings, holds, payment work, email, and a dedicated command
-UI remain deferred.
+read-only. At that milestone, open-mode/public bookings, holds, payment work, email, and a
+dedicated command UI were still deferred; the later release-MVP bundle implements the
+capacity-one free/manual public slice, payment settings, and activation email only.
 
 Verification for that attendance bundle: `uv run alembic upgrade head` reached
 `20260731_0016 (head)`; `uv run pytest` reported 28 passed (39 deselected), and
@@ -801,3 +846,15 @@ tsc --noEmit`, `npm run lint`, and `npm run build` passed. Against a local API l
 port 8001, `/health/ready` returned its database-ok payload, the authenticated filtered
 group roster returned only its session rows, and a 1:1 attendance attempt returned `409
 booking_attendance_invalid`; the API-mode `/admin/calendar` route returned HTTP 200.
+
+On 2026-08-03, migrations `20260802_0018` and `20260802_0019` completed the release-MVP
+activation/offline-payment/open-booking bundle documented in HISTORY Entry 043. The
+database reached `20260802_0019 (head)` and the repeat seed inserted zero rows. Backend
+verification reports 32 isolated passes (43 deselected), 43 PostgreSQL integration passes
+(32 deselected), clean Ruff, and clean strict mypy for 77 source files. Frontend transport
+generation, TypeScript, ESLint, and both default mock-mode and explicit API-mode production
+builds pass. `bash -n scripts/dev` passes, `slotera-maintenance` exits successfully, and a
+live API-mode smoke returned HTTP 200/database-ok for readiness, HTTP 200 for the public
+workspace/catalog resources, and HTTP 200 for `/booking`. Production Resend delivery was
+not exercised without a real provider credential; configuration rejects the local console
+provider in production.

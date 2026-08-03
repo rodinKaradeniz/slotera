@@ -85,8 +85,7 @@ def _command_error(error: Exception) -> ApiError:
             status_code=HTTPStatus.CONFLICT,
             code="booking_attendance_invalid",
             message=(
-                "Attendance can only be recorded for confirmed or completed "
-                "group-session bookings"
+                "Attendance can only be recorded for confirmed or completed group-session bookings"
             ),
         )
     raise error

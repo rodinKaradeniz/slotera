@@ -36,9 +36,7 @@ async def test_dashboard_summary_is_private_and_aggregates_open_action_items() -
             transport=ASGITransport(app=app), base_url="http://test"
         ) as anonymous:
             denied = await anonymous.get("/dashboard/summary")
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
             before = await client.get("/dashboard/summary")
             sessions = await client.get("/sessions", params={"limit": 1})

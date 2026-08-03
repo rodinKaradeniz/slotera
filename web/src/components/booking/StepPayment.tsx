@@ -60,6 +60,25 @@ export function StepPayment({ draft, payment, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
+  if (draft.service?.priceCents === 0) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-stretch h-full">
+        <Card padded className="flex items-center justify-center h-full">
+          <div className="text-center max-w-sm">
+            <span className="w-11 h-11 rounded-full bg-accent-soft text-accent mx-auto mb-4 flex items-center justify-center">
+              <Icon name="check" size={20} />
+            </span>
+            <h2 className="text-h3 text-ink">No payment required</h2>
+            <p className="text-small mt-2">
+              Confirm the booking to reserve this free session.
+            </p>
+          </div>
+        </Card>
+        <ReceiptCard draft={draft} variant="pay" manualInstructions={null} />
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-stretch h-full">
       <Card padded className="flex flex-col h-full">

@@ -44,6 +44,7 @@ class StubAuthService:
         password: str,
         remember_me: bool,
         workspace_id: str | None,
+        client_key: str,
     ) -> AuthResult:
         self.login_calls += 1
         if password == "wrong":
@@ -63,6 +64,12 @@ class StubAuthService:
     async def revoke(self, session_token: str) -> None:
         if session_token == self.session_token:
             self.revoke_calls += 1
+
+    async def request_password_reset(self, *, email: str, client_key: str) -> None:
+        pass
+
+    async def consume_password_reset(self, *, token: str, new_password: str) -> None:
+        pass
 
 
 async def test_login_sets_http_only_session_and_readable_csrf_cookies() -> None:
@@ -95,8 +102,7 @@ async def test_login_sets_http_only_session_and_readable_csrf_cookies() -> None:
         for cookie in cookies
     )
     assert any(
-        "slotera_csrf=raw-csrf-token" in cookie and "HttpOnly" not in cookie
-        for cookie in cookies
+        "slotera_csrf=raw-csrf-token" in cookie and "HttpOnly" not in cookie for cookie in cookies
     )
 
 
@@ -104,9 +110,7 @@ async def test_login_rejects_missing_origin_before_checking_credentials() -> Non
     auth = StubAuthService()
     app = create_app(database=StubDatabase(), auth_service=auth)
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
             "/auth/login",
             json={"email": "hello@slotera.app", "password": "correct"},
@@ -121,9 +125,7 @@ async def test_invalid_login_is_generic_and_sets_no_credentials() -> None:
     auth = StubAuthService()
     app = create_app(database=StubDatabase(), auth_service=auth)
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
             "/auth/login",
             headers={"Origin": "http://localhost:3344"},
@@ -138,9 +140,7 @@ async def test_invalid_login_is_generic_and_sets_no_credentials() -> None:
 async def test_current_session_rejects_a_missing_cookie() -> None:
     app = create_app(database=StubDatabase(), auth_service=StubAuthService())
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/auth/session")
 
     assert response.status_code == 401
@@ -151,9 +151,7 @@ async def test_current_session_returns_no_store_profile() -> None:
     auth = StubAuthService()
     app = create_app(database=StubDatabase(), auth_service=auth)
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         client.cookies.set("slotera_session", auth.session_token)
         response = await client.get("/auth/session")
 
@@ -165,9 +163,7 @@ async def test_logout_requires_session_bound_csrf_before_revoking() -> None:
     auth = StubAuthService()
     app = create_app(database=StubDatabase(), auth_service=auth)
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         client.cookies.set("slotera_session", auth.session_token)
         client.cookies.set("slotera_csrf", auth.csrf_token)
         response = await client.post(
@@ -187,9 +183,7 @@ async def test_logout_revokes_and_clears_both_cookies() -> None:
     auth = StubAuthService()
     app = create_app(database=StubDatabase(), auth_service=auth)
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         client.cookies.set("slotera_session", auth.session_token)
         client.cookies.set("slotera_csrf", auth.csrf_token)
         response = await client.post(
@@ -212,6 +206,9 @@ async def test_production_login_cookies_are_secure() -> None:
         database_url="postgresql+asyncpg://app:secret@db/slotera",
         cors_origins=["https://app.slotera.app"],
         csrf_cookie_domain=".slotera.app",
+        public_web_base_url="https://app.slotera.app",
+        email_provider="resend",
+        resend_api_key="test-only-resend-key",
     )
     app = create_app(
         settings=settings,

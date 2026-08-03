@@ -54,6 +54,7 @@ function mapPlatformWorkspace(
     ownerName: workspace.ownerName,
     ownerEmail: workspace.ownerEmail,
     createdAtISO: workspace.createdAt,
+    operationalStatus: workspace.operationalStatus,
     servicesCount: workspace.servicesCount,
     clientsCount: workspace.clientsCount,
     bookingsCount: workspace.bookingsCount,
@@ -165,6 +166,7 @@ export async function createWorkspace(
     planId: input.planId,
     subscriptionStatus: input.status,
     createdAtISO: nowISO,
+    operationalStatus: "active",
     lastActiveISO: nowISO,
     bookingsCount: 0,
     servicesCount: 0,
@@ -224,8 +226,15 @@ export async function setWorkspacePlan(
 export async function suspendWorkspace(
   id: string,
   suspended: boolean,
-): Promise<Workspace> {
-  if (dataSource !== "mock") throw new NotImplementedError("suspendWorkspace");
+): Promise<PlatformWorkspace> {
+  if (dataSource === "api") {
+    const action = suspended ? "suspend" : "reactivate";
+    const response = await apiRequest<PlatformWorkspaceDetailDto>(
+      `/platform/workspaces/${id}/${action}`,
+      { method: "POST", csrf: true },
+    );
+    return mapPlatformWorkspace(response);
+  }
   await sleep(100);
   const idx = workspaces.findIndex((w) => w.id === id);
   if (idx === -1) throw new NotFoundError("workspace", id);

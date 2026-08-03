@@ -5,6 +5,7 @@ import { listServices } from "./services.service";
 import type { DemoPersona } from "@/types/demo";
 import type { Service } from "@/types/service";
 import { NotImplementedError } from "./_errors";
+import { listPublicBookingServices } from "./public-booking.service";
 
 const personas = JSON.parse(JSON.stringify(personasJson)) as DemoPersona[];
 
@@ -33,7 +34,7 @@ export const STANDARD_BOOKING_SERVICE_IDS = [
 export async function listBookingServices(
   persona: DemoPersona | null,
 ): Promise<Service[]> {
-  if (dataSource !== "mock") throw new NotImplementedError("listBookingServices");
+  if (dataSource === "api") return listPublicBookingServices();
   const active = (await listServices()).filter((s) => s.active);
   const ids = persona ? persona.serviceIds : STANDARD_BOOKING_SERVICE_IDS;
   return ids

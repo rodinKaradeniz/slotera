@@ -75,9 +75,7 @@ async def list_client_notes(
     operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
 ) -> ClientNoteListResponse:
-    result = await ClientNotesRepository(database).list_notes(
-        operator.workspace_id, client_id
-    )
+    result = await ClientNotesRepository(database).list_notes(operator.workspace_id, client_id)
     if result is None:
         raise _client_not_found()
     notes, total = result

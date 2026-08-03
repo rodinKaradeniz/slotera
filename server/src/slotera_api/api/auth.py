@@ -15,12 +15,17 @@ from slotera_api.auth.service import (
     AuthResult,
     AuthSession,
     InvalidCredentials,
+    InvalidPasswordResetToken,
+    RateLimitExceeded,
     WorkspaceSelectionRequired,
 )
 from slotera_api.config import Settings
 from slotera_api.errors import ApiError
 from slotera_api.schemas.auth import (
     LoginRequest,
+    PasswordResetAccepted,
+    PasswordResetConsume,
+    PasswordResetRequest,
     SessionResponse,
     SessionUser,
     SessionWorkspace,
@@ -122,6 +127,7 @@ async def login(
             password=payload.password,
             remember_me=payload.remember_me,
             workspace_id=payload.workspace_id,
+            client_key=request.client.host if request.client else "unknown",
         )
     except InvalidCredentials as exc:
         raise ApiError(
@@ -140,6 +146,12 @@ async def login(
             status_code=HTTPStatus.FORBIDDEN,
             code="account_unavailable",
             message="This account is not available",
+        ) from exc
+    except RateLimitExceeded as exc:
+        raise ApiError(
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
+            code="rate_limit_exceeded",
+            message="Too many attempts. Try again later",
         ) from exc
     _set_auth_cookies(response, result, settings)
     response.headers["Cache-Control"] = "no-store"
@@ -171,3 +183,62 @@ async def logout(
     response.headers["Cache-Control"] = "no-store"
     _clear_auth_cookies(response, settings)
     return response
+
+
+@router.post(
+    "/password-reset/request",
+    response_model=PasswordResetAccepted,
+    status_code=HTTPStatus.ACCEPTED,
+    operation_id="requestPasswordReset",
+)
+async def request_password_reset(
+    payload: PasswordResetRequest,
+    request: Request,
+    response: Response,
+    service: AuthServiceDependency,
+    settings: SettingsDependency,
+) -> PasswordResetAccepted:
+    require_trusted_origin(request, settings)
+    try:
+        await service.request_password_reset(
+            email=str(payload.email).strip().lower(),
+            client_key=request.client.host if request.client else "unknown",
+        )
+    except RateLimitExceeded as exc:
+        raise ApiError(
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
+            code="rate_limit_exceeded",
+            message="Too many attempts. Try again later",
+        ) from exc
+    response.headers["Cache-Control"] = "no-store"
+    return PasswordResetAccepted()
+
+
+@router.post(
+    "/password-reset/consume",
+    status_code=HTTPStatus.NO_CONTENT,
+    response_class=Response,
+    operation_id="consumePasswordReset",
+)
+async def consume_password_reset(
+    payload: PasswordResetConsume,
+    request: Request,
+    service: AuthServiceDependency,
+    settings: SettingsDependency,
+) -> Response:
+    require_trusted_origin(request, settings)
+    try:
+        await service.consume_password_reset(
+            token=payload.token,
+            new_password=payload.new_password,
+        )
+    except InvalidPasswordResetToken as exc:
+        raise ApiError(
+            status_code=HTTPStatus.BAD_REQUEST,
+            code="password_reset_invalid_or_expired",
+            message="This password reset link is invalid or expired",
+        ) from exc
+    return Response(
+        status_code=HTTPStatus.NO_CONTENT,
+        headers={"Cache-Control": "no-store"},
+    )

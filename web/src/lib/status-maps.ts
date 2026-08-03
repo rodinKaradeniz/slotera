@@ -6,7 +6,10 @@ import type {
   Tone,
 } from "@/types/common";
 import type { SubscriptionStatus } from "@/types/billing";
-import type { PlatformInquiryType } from "@/types/platform";
+import type {
+  PlatformInquiryType,
+  PlatformWorkspaceOperationalStatus,
+} from "@/types/platform";
 import type { FormStatus } from "@/types/form";
 import type { ServicePackageStatus } from "@/types/package";
 
@@ -49,6 +52,14 @@ export const SUBSCRIPTION_STATUS: Record<SubscriptionStatus, Meta> = {
   past_due:         { tone: "danger",  label: "Past due",         icon: "alert" },
   cancel_scheduled: { tone: "warning", label: "Cancel scheduled", icon: "clock" },
   cancelled:        { tone: "neutral", label: "Cancelled",        icon: "x" },
+};
+
+export const WORKSPACE_OPERATIONAL_STATUS: Record<
+  PlatformWorkspaceOperationalStatus,
+  Meta
+> = {
+  active: { tone: "success", label: "Active", icon: "check" },
+  suspended: { tone: "danger", label: "Suspended", icon: "pause" },
 };
 
 export const INQUIRY_TYPE: Record<PlatformInquiryType, { label: string; tone: Tone }> = {

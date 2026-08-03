@@ -28,9 +28,7 @@ def _rls(table: str) -> None:
 
 
 def upgrade() -> None:
-    op.create_unique_constraint(
-        "uq_bookings_workspace_id_id", "bookings", ["workspace_id", "id"]
-    )
+    op.create_unique_constraint("uq_bookings_workspace_id_id", "bookings", ["workspace_id", "id"])
     op.create_table(
         "booking_command_idempotency",
         sa.Column("id", sa.Uuid(), nullable=False),

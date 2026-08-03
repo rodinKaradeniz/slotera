@@ -34,3 +34,16 @@ class SessionResponse(ApiModel):
     user: SessionUser
     workspace: SessionWorkspace | None
     expires_at: datetime
+
+
+class PasswordResetRequest(ApiModel):
+    email: EmailStr
+
+
+class PasswordResetAccepted(ApiModel):
+    accepted: bool = True
+
+
+class PasswordResetConsume(ApiModel):
+    token: str = Field(min_length=32, max_length=1024)
+    new_password: str = Field(min_length=10, max_length=1024)

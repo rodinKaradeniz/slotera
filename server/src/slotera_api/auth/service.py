@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from hmac import compare_digest
 from typing import Literal, Protocol, cast
+from urllib.parse import urlencode
 from uuid import UUID, uuid4
 
 from slotera_api.auth.passwords import PasswordHasher, create_password_hasher
@@ -22,6 +23,14 @@ class AccountUnavailable(Exception):
 
 
 class WorkspaceSelectionRequired(Exception):
+    pass
+
+
+class RateLimitExceeded(Exception):
+    pass
+
+
+class InvalidPasswordResetToken(Exception):
     pass
 
 
@@ -56,6 +65,7 @@ class AuthServiceProtocol(Protocol):
         password: str,
         remember_me: bool,
         workspace_id: UUID | None,
+        client_key: str,
     ) -> AuthResult: ...
 
     async def authenticate(self, session_token: str) -> AuthSession | None: ...
@@ -63,6 +73,10 @@ class AuthServiceProtocol(Protocol):
     def csrf_matches(self, session: AuthSession, csrf_token: str) -> bool: ...
 
     async def revoke(self, session_token: str) -> None: ...
+
+    async def request_password_reset(self, *, email: str, client_key: str) -> None: ...
+
+    async def consume_password_reset(self, *, token: str, new_password: str) -> None: ...
 
 
 class AuthService:
@@ -85,8 +99,18 @@ class AuthService:
         password: str,
         remember_me: bool,
         workspace_id: UUID | None,
+        client_key: str,
     ) -> AuthResult:
-        identities = await self._repository.login_identities(normalize_email(email))
+        normalized_email = normalize_email(email)
+        allowed = await self._repository.consume_rate_limit(
+            scope="auth.login",
+            key_hash=hash_opaque_token(f"{normalized_email}|{client_key}"),
+            limit=10,
+            window_seconds=15 * 60,
+        )
+        if not allowed:
+            raise RateLimitExceeded
+        identities = await self._repository.login_identities(normalized_email)
         password_hash = identities[0].password_hash if identities else None
         candidate_hash = password_hash or self._dummy_password_hash
         password_valid = self._password_hasher.verify(password, candidate_hash)
@@ -140,6 +164,38 @@ class AuthService:
         if session_token:
             await self._repository.revoke_session(hash_opaque_token(session_token))
 
+    async def request_password_reset(self, *, email: str, client_key: str) -> None:
+        normalized_email = normalize_email(email)
+        allowed = await self._repository.consume_rate_limit(
+            scope="auth.password_reset",
+            key_hash=hash_opaque_token(f"{normalized_email}|{client_key}"),
+            limit=5,
+            window_seconds=60 * 60,
+        )
+        if not allowed:
+            raise RateLimitExceeded
+        token = issue_opaque_token()
+        reset_url = (
+            f"{self._settings.public_web_base_url}/reset-password?{urlencode({'token': token})}"
+        )
+        await self._repository.request_password_reset(
+            token_id=uuid4(),
+            outbox_id=uuid4(),
+            email=normalized_email,
+            token_hash=hash_opaque_token(token),
+            expires_at=datetime.now(UTC)
+            + timedelta(minutes=self._settings.password_reset_ttl_minutes),
+            reset_url=reset_url,
+        )
+
+    async def consume_password_reset(self, *, token: str, new_password: str) -> None:
+        result = await self._repository.consume_password_reset(
+            token_hash=hash_opaque_token(token),
+            password_hash=self._password_hasher.hash(new_password),
+        )
+        if result != "consumed":
+            raise InvalidPasswordResetToken
+
     @staticmethod
     def _select_identity(
         identities: list[LoginIdentity], workspace_id: UUID | None
@@ -150,7 +206,12 @@ class AuthService:
                 raise AccountUnavailable
             return first
 
-        memberships = [identity for identity in identities if identity.workspace_id is not None]
+        all_memberships = [identity for identity in identities if identity.workspace_id is not None]
+        memberships = [
+            identity
+            for identity in all_memberships
+            if identity.workspace_operational_status == "active"
+        ]
         if workspace_id is not None:
             selected = next(
                 (identity for identity in memberships if identity.workspace_id == workspace_id),
@@ -159,6 +220,8 @@ class AuthService:
             if selected is None:
                 raise AccountUnavailable
             return selected
+        if all_memberships and not memberships:
+            raise AccountUnavailable
         if len(memberships) != 1:
             raise WorkspaceSelectionRequired
         return memberships[0]

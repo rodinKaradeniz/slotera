@@ -4,6 +4,7 @@ Revision ID: 20260729_0011
 Revises: 20260729_0010
 Create Date: 2026-07-29
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -48,9 +49,7 @@ def upgrade() -> None:
         sa.Column("session_id", sa.Uuid(), nullable=False),
         sa.Column("title", sa.String(160), nullable=False),
         sa.Column("description", sa.String(1000), nullable=True),
-        sa.Column(
-            "status", action_item_status, server_default="todo", nullable=False
-        ),
+        sa.Column("status", action_item_status, server_default="todo", nullable=False),
         sa.Column("due_date", sa.Date(), nullable=True),
         sa.Column("client_visible", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column(
@@ -65,9 +64,7 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["workspace_id"], ["workspaces.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
             ["workspace_id", "session_id"],
             ["sessions.workspace_id", "sessions.id"],
@@ -78,9 +75,7 @@ def upgrade() -> None:
     op.create_index(
         "ix_session_action_items_workspace_id", "session_action_items", ["workspace_id"]
     )
-    op.create_index(
-        "ix_session_action_items_session_id", "session_action_items", ["session_id"]
-    )
+    op.create_index("ix_session_action_items_session_id", "session_action_items", ["session_id"])
     _rls("session_action_items")
 
 

@@ -19,9 +19,10 @@ From the repository root, the recommended path is:
 ```
 
 This synchronizes backend and frontend dependencies, starts and waits for PostgreSQL,
-applies pending migrations, imports the idempotent seed, and runs both development
-servers. Use `./scripts/dev --prepare-only` to stop after preparation. Ctrl-C stops the
-application processes but leaves PostgreSQL and its persistent volume running.
+applies pending migrations, imports the idempotent seed, and runs the API, transactional
+email worker, and frontend. Use `./scripts/dev --prepare-only` to stop after preparation.
+Ctrl-C stops the application processes but leaves PostgreSQL and its persistent volume
+running.
 
 The preparation path also runs `npm run generate:api` in `web/`. That command exports
 FastAPI's OpenAPI document to `web/src/api/generated/openapi.json` and regenerates the
@@ -37,6 +38,7 @@ docker compose up -d db
 uv run alembic upgrade head
 uv run slotera-seed
 uv run uvicorn slotera_api.main:app --reload --port 8000
+uv run slotera-email-worker  # local console output includes sensitive one-time links
 ```
 
 The API documentation is available at `http://localhost:8000/docs`. Liveness is exposed
@@ -69,8 +71,12 @@ raw session/CSRF credentials are never stored.
   no-store`;
 - `POST /auth/logout` — requires the session cookie, CSRF cookie, matching
   `X-CSRF-Token`, and trusted Origin; revokes the database session before clearing cookies.
+- `POST /auth/password-reset/request` and `/consume` — generic, PostgreSQL-rate-limited
+  reset/activation flow with hashed expiring credentials and session revocation.
 - `GET/PATCH /settings/business` — reads and updates the authenticated operator's
   workspace profile; workspace currency and slug are read-only.
+- `GET/PATCH /settings/payments` — configures workspace-wide offline payment instructions,
+  provider booking terms, and gross-inclusive `none | fixed` tax treatment.
 - `GET/POST /settings/locations` and `PATCH/DELETE /settings/locations/{id}` — manages
   structured saved locations.
 - `GET/POST /services` and `GET/PATCH/DELETE /services/{id}` — manages operator services;
@@ -80,15 +86,30 @@ raw session/CSRF credentials are never stored.
   plus the total unread count;
 - `POST /notifications/mark-all-read` — acknowledges that operator's unread events and
   requires the normal Origin/session-bound CSRF checks.
+- `GET/POST /platform/workspaces` plus item `GET` — exposes display-safe workspace facts
+  and audited initial provisioning only to a platform superadmin.
+- `POST /platform/workspaces/{id}/suspend` and `/reactivate` — changes only operational
+  access state; suspension revokes existing operator sessions and blocks new ones while
+  retaining tenant data and leaving subscription/payment state untouched.
 - `GET/PUT /availability` — reads or atomically replaces workspace timezone, weekly
   windows, slot/buffer/notice policy, and blackout ranges.
 - `GET/POST /sessions` and `GET/PATCH /sessions/{id}` — manages one-off and recurring
   materialised sessions; patches choose `scope=this` or `scope=this_and_following`.
+- `/public/workspaces/{slug}` catalog/forms/availability reads and `POST .../bookings` —
+  allow-listed capacity-one open-mode booking with free/manual state, server tax/form
+  snapshots, rate limiting, exact-Origin validation, and idempotency.
 
 All operator mutations use the same Origin and session-bound CSRF checks as logout.
 Superadmin sessions do not implicitly enter an operator workspace. Authenticated resource
-responses are `no-store`, and service notes remain operator-only because there is no
-public catalog endpoint in this slice.
+responses are `no-store`, and service notes remain operator-only; the public catalog is a
+separate explicit allow-list.
+
+`slotera-email-worker` claims outbox rows with `FOR UPDATE SKIP LOCKED`, retries failures
+with bounded backoff, and redacts delivered credential-bearing bodies. The `console`
+provider is local/test-only and prints activation URLs to sensitive local logs. Production
+configuration requires `SLOTERA_EMAIL_PROVIDER=resend`, an API key, HTTPS public web URL,
+and the existing production cookie settings. Run `slotera-maintenance` periodically to
+remove stale sessions, reset tokens, rate-limit buckets, and delivered outbox rows.
 
 ## Identity and tenancy boundary
 
@@ -108,8 +129,9 @@ PostgreSQL statement pooling is unsupported
 because it would break this transaction-local context contract.
 
 The runtime database role still has no table privilege on users, sessions, or reset
-tokens. It receives `EXECUTE` only on four fixed-search-path functions for login identity
-lookup, validated session creation, active-session lookup, and revocation. Authenticated
+tokens and cannot update the workspace root table directly. It receives `EXECUTE` on
+fixed-search-path auth functions and narrow platform projection/provisioning/status
+capabilities rather than a generic global-table or RLS bypass. Authenticated
 Operator-resource dependencies layer role/workspace enforcement over the authenticated and
 CSRF-protected request contexts. Notifications are membership-backed and the runtime role
 can update only their `read_at` column—not payloads, recipients, or resource references.

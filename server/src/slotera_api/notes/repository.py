@@ -117,9 +117,7 @@ class ClientNotesRepository:
             await session.refresh(note)
             return note
 
-    async def delete_note(
-        self, workspace_id: UUID, actor_user_id: UUID, note_id: UUID
-    ) -> bool:
+    async def delete_note(self, workspace_id: UUID, actor_user_id: UUID, note_id: UUID) -> bool:
         async with self.database.tenant_transaction(workspace_id) as session:
             note = await session.scalar(
                 select(ClientNote).where(

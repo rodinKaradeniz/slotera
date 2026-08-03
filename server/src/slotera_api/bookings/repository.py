@@ -171,15 +171,27 @@ class BookingsRepository:
             )
             if int(consumed or 0) >= scheduled_session.capacity:
                 raise BookingCapacityExceededError
+            booking_id = uuid4()
             booking = Booking(
-                id=uuid4(),
+                id=booking_id,
                 workspace_id=workspace_id,
                 session_id=session_id,
                 client_id=client_id,
                 status=BookingStatus.PENDING,
                 payment_status=PaymentStatus.PENDING,
+                reference=f"SLT-{booking_id.hex[:12].upper()}",
+                payment_method="free" if service.price_cents == 0 else "manual",
                 amount_cents=service.price_cents,
+                net_amount_cents=service.price_cents,
+                tax_amount_cents=0,
+                tax_treatment="none",
+                tax_rate_bps=0,
+                tax_label=None,
+                tax_jurisdiction=None,
+                seller_tax_number=None,
                 currency=workspace.currency,
+                billing_address={},
+                payment_due_at=None,
                 notes=values.get("notes"),
             )
             database_session.add(booking)
@@ -269,9 +281,7 @@ class BookingsRepository:
                         "previous_status": previous_status.value,
                         "status": booking.status.value,
                         "previous_attendance": (
-                            previous_attendance.value
-                            if previous_attendance is not None
-                            else None
+                            previous_attendance.value if previous_attendance is not None else None
                         ),
                         "attendance": attendance.value,
                     },
@@ -369,8 +379,7 @@ class BookingsRepository:
         fingerprint: str,
     ) -> Booking | None:
         record = await database_session.scalar(
-            select(BookingCommandIdempotency)
-            .where(
+            select(BookingCommandIdempotency).where(
                 BookingCommandIdempotency.workspace_id == workspace_id,
                 BookingCommandIdempotency.actor_user_id == actor_user_id,
                 BookingCommandIdempotency.idempotency_key == idempotency_key,

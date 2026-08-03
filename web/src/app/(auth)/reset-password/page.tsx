@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { resetPassword } from "@/services/auth.service";
+import { dataSource } from "@/lib/env";
 
 export default function ResetPasswordPage() {
   const [pwd, setPwd] = React.useState("");
@@ -15,6 +16,11 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = React.useState(false);
   const [done, setDone] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [token, setToken] = React.useState("");
+
+  React.useEffect(() => {
+    setToken(new URLSearchParams(window.location.search).get("token") ?? "");
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,10 +33,23 @@ export default function ResetPasswordPage() {
       setError("Passwords don't match.");
       return;
     }
+    if (dataSource === "api" && !token) {
+      setError("This reset link is missing or invalid. Request a new one.");
+      return;
+    }
     setLoading(true);
-    await resetPassword("mock-token", pwd);
-    setLoading(false);
-    setDone(true);
+    try {
+      await resetPassword(token || "mock-token", pwd);
+      setDone(true);
+    } catch (resetError) {
+      setError(
+        resetError instanceof Error
+          ? resetError.message
+          : "The password could not be updated.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (done) {

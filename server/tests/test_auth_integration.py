@@ -1,4 +1,5 @@
 from hashlib import sha256
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -15,6 +16,7 @@ LOCAL_DEMO_PASSWORD = "slotera-local-only"
 async def _set_demo_password(owner: Database) -> None:
     password_hash = create_password_hasher().hash(LOCAL_DEMO_PASSWORD)
     async with owner.transaction() as session:
+        await session.execute(text("DELETE FROM request_rate_limits"))
         await session.execute(
             text(
                 """
@@ -36,9 +38,7 @@ async def test_real_login_session_and_logout_are_revocable() -> None:
         await _set_demo_password(owner)
 
         app = create_app(database=application)
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             login = await client.post(
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
@@ -67,6 +67,7 @@ async def test_real_login_session_and_logout_are_revocable() -> None:
         assert logout.status_code == 204
         assert after_logout.status_code == 401
     finally:
+        await _set_demo_password(owner)
         await application.dispose()
         await owner.dispose()
 
@@ -79,9 +80,7 @@ async def test_login_never_persists_raw_session_or_csrf_tokens() -> None:
     try:
         await _set_demo_password(owner)
         app = create_app(database=application)
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post(
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
@@ -95,17 +94,21 @@ async def test_login_never_persists_raw_session_or_csrf_tokens() -> None:
 
         async with owner.transaction() as session:
             stored = (
-                await session.execute(
-                    text(
-                        """
+                (
+                    await session.execute(
+                        text(
+                            """
                         SELECT token_hash, csrf_token_hash
                         FROM auth_sessions
                         WHERE token_hash = :token_hash
                         """
-                    ),
-                    {"token_hash": sha256(session_token.encode()).digest()},
+                        ),
+                        {"token_hash": sha256(session_token.encode()).digest()},
+                    )
                 )
-            ).mappings().one()
+                .mappings()
+                .one()
+            )
 
         assert response.status_code == 200
         assert stored["token_hash"] == sha256(session_token.encode()).digest()
@@ -123,9 +126,7 @@ async def test_unknown_email_and_wrong_password_share_one_failure_contract() -> 
 
     try:
         app = create_app(database=database)
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             unknown = await client.post(
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
@@ -153,9 +154,7 @@ async def test_superadmin_session_has_no_synthetic_workspace() -> None:
     try:
         await _set_demo_password(owner)
         app = create_app(database=application)
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post(
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
@@ -181,9 +180,7 @@ async def test_expired_session_cookie_is_rejected() -> None:
     try:
         await _set_demo_password(owner)
         app = create_app(database=application)
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             login = await client.post(
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
@@ -213,3 +210,68 @@ async def test_expired_session_cookie_is_rejected() -> None:
     assert login.status_code == 200
     assert expired.status_code == 401
     assert expired.json()["error"]["code"] == "authentication_required"
+
+
+@pytest.mark.integration
+async def test_password_reset_queues_activation_and_revokes_existing_sessions() -> None:
+    owner = Database(get_migration_settings().migration_database_url)
+    application = Database(get_settings().database_url)
+    try:
+        await _set_demo_password(owner)
+        app = create_app(database=application)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            login = await client.post(
+                "/auth/login",
+                headers={"Origin": "http://localhost:3344"},
+                json={"email": "hello@slotera.app", "password": LOCAL_DEMO_PASSWORD},
+            )
+            requested = await client.post(
+                "/auth/password-reset/request",
+                headers={"Origin": "http://localhost:3344"},
+                json={"email": "hello@slotera.app"},
+            )
+            assert login.status_code == 200
+            assert requested.status_code == 202
+
+            async with owner.transaction() as session:
+                email_body = await session.scalar(
+                    text(
+                        """
+                        SELECT text_body
+                        FROM email_outbox
+                        WHERE recipient_email = 'hello@slotera.app'
+                          AND sent_at IS NULL
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                        """
+                    )
+                )
+            assert isinstance(email_body, str)
+            reset_url = next(line for line in email_body.splitlines() if line.startswith("http"))
+            token = parse_qs(urlparse(reset_url).query)["token"][0]
+
+            consumed = await client.post(
+                "/auth/password-reset/consume",
+                headers={"Origin": "http://localhost:3344"},
+                json={"token": token, "newPassword": "a-new-secure-password"},
+            )
+            revoked = await client.get("/auth/session")
+            reused = await client.post(
+                "/auth/password-reset/consume",
+                headers={"Origin": "http://localhost:3344"},
+                json={"token": token, "newPassword": "another-secure-password"},
+            )
+            new_login = await client.post(
+                "/auth/login",
+                headers={"Origin": "http://localhost:3344"},
+                json={"email": "hello@slotera.app", "password": "a-new-secure-password"},
+            )
+
+        assert consumed.status_code == 204
+        assert revoked.status_code == 401
+        assert reused.status_code == 400
+        assert new_login.status_code == 200
+    finally:
+        await _set_demo_password(owner)
+        await application.dispose()
+        await owner.dispose()

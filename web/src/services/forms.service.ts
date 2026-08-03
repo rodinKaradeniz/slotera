@@ -12,6 +12,7 @@ import type {
   FormTemplateInput,
 } from "@/types/form";
 import { NotFoundError, NotImplementedError } from "./_errors";
+import { listPublicServiceForms } from "./public-booking.service";
 
 type FormDto = components["schemas"]["FormTemplateResponse"];
 type FormListDto = components["schemas"]["FormTemplateListResponse"];
@@ -123,8 +124,7 @@ export async function removeForm(id: string): Promise<void> {
 export async function listFormsForService(
   serviceId: string,
 ): Promise<FormTemplate[]> {
-  if (dataSource !== "mock")
-    throw new NotImplementedError("listFormsForService");
+  if (dataSource === "api") return listPublicServiceForms(serviceId);
   await sleep(50);
   return mock.filter(
     (f) => f.status === "active" && f.attachedServiceIds.includes(serviceId),

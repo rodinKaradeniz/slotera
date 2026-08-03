@@ -73,9 +73,7 @@ async def test_availability_round_trip_preserves_split_working_days() -> None:
         app = create_app(database=application)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
-            changed = await client.put(
-                "/availability", headers=_csrf_headers(client), json=payload
-            )
+            changed = await client.put("/availability", headers=_csrf_headers(client), json=payload)
             fetched = await client.get("/availability")
     finally:
         await application.dispose()
@@ -113,9 +111,7 @@ async def test_database_rejects_overlap_but_allows_adjacent_sessions() -> None:
                     "location": "Zoom",
                 }
 
-            first = await client.post(
-                "/sessions", headers=_csrf_headers(client), json=payload(0)
-            )
+            first = await client.post("/sessions", headers=_csrf_headers(client), json=payload(0))
             adjacent = await client.post(
                 "/sessions", headers=_csrf_headers(client), json=payload(60)
             )
@@ -178,9 +174,7 @@ async def test_recurring_session_materialises_the_six_month_horizon() -> None:
                 headers=_csrf_headers(client),
                 json={"location": "Google Meet"},
             )
-            changed_listing = await client.get(
-                "/sessions", params={"seriesId": series_id}
-            )
+            changed_listing = await client.get("/sessions", params={"seriesId": series_id})
     finally:
         await application.dispose()
         await owner.dispose()
@@ -191,6 +185,4 @@ async def test_recurring_session_materialises_the_six_month_horizon() -> None:
     assert {item["seriesId"] for item in listing.json()["items"]} == {series_id}
     assert changed.status_code == 200
     assert changed_listing.json()["items"][0]["location"] == "Zoom"
-    assert {
-        item["location"] for item in changed_listing.json()["items"][1:]
-    } == {"Google Meet"}
+    assert {item["location"] for item in changed_listing.json()["items"][1:]} == {"Google Meet"}

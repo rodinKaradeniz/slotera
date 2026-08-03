@@ -17,9 +17,7 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 platform_role = postgresql.ENUM("superadmin", name="platform_role", create_type=False)
-membership_role = postgresql.ENUM(
-    "operator_admin", name="membership_role", create_type=False
-)
+membership_role = postgresql.ENUM("operator_admin", name="membership_role", create_type=False)
 
 
 def upgrade() -> None:
@@ -52,21 +50,15 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=160), nullable=False),
         sa.Column("slug", sa.String(length=80), nullable=False),
         sa.Column("currency", sa.String(length=3), server_default="EUR", nullable=False),
-        sa.Column(
-            "timezone", sa.String(length=64), server_default="Europe/Berlin", nullable=False
-        ),
+        sa.Column("timezone", sa.String(length=64), server_default="Europe/Berlin", nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
         sa.Column(
             "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
-        sa.CheckConstraint(
-            "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'", name="ck_workspaces_slug_format"
-        ),
-        sa.CheckConstraint(
-            "char_length(currency) = 3", name="ck_workspaces_currency_iso_length"
-        ),
+        sa.CheckConstraint("slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'", name="ck_workspaces_slug_format"),
+        sa.CheckConstraint("char_length(currency) = 3", name="ck_workspaces_currency_iso_length"),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_workspaces")),
         sa.UniqueConstraint("slug", name=op.f("uq_workspaces_slug")),
     )
@@ -76,9 +68,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("workspace_id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "role", membership_role, server_default="operator_admin", nullable=False
-        ),
+        sa.Column("role", membership_role, server_default="operator_admin", nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
@@ -157,9 +147,7 @@ def upgrade() -> None:
         ["expires_at"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_auth_sessions_user_id"), "auth_sessions", ["user_id"], unique=False
-    )
+    op.create_index(op.f("ix_auth_sessions_user_id"), "auth_sessions", ["user_id"], unique=False)
 
     op.create_table(
         "password_reset_tokens",
@@ -183,9 +171,7 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_password_reset_tokens")),
-        sa.UniqueConstraint(
-            "token_hash", name=op.f("uq_password_reset_tokens_token_hash")
-        ),
+        sa.UniqueConstraint("token_hash", name=op.f("uq_password_reset_tokens_token_hash")),
     )
     op.create_index(
         op.f("ix_password_reset_tokens_expires_at"),
@@ -269,9 +255,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_audit_events")),
     )
-    op.create_index(
-        op.f("ix_audit_events_action"), "audit_events", ["action"], unique=False
-    )
+    op.create_index(op.f("ix_audit_events_action"), "audit_events", ["action"], unique=False)
     op.create_index(
         op.f("ix_audit_events_actor_user_id"),
         "audit_events",
@@ -379,9 +363,7 @@ def upgrade() -> None:
     op.execute(
         "REVOKE ALL PRIVILEGES ON users, auth_sessions, password_reset_tokens FROM slotera_app"
     )
-    op.execute(
-        "REVOKE INSERT, UPDATE, DELETE ON reserved_workspace_slugs FROM slotera_app"
-    )
+    op.execute("REVOKE INSERT, UPDATE, DELETE ON reserved_workspace_slugs FROM slotera_app")
 
 
 def downgrade() -> None:

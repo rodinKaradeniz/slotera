@@ -24,9 +24,7 @@ class _NoteHtmlSanitizer(HTMLParser):
         self.parts: list[str] = []
         self.ignored_depth = 0
 
-    def handle_starttag(
-        self, tag: str, attrs: list[tuple[str, str | None]]
-    ) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         del attrs
         tag = tag.lower()
         if tag in IGNORED_TAGS:
@@ -34,9 +32,7 @@ class _NoteHtmlSanitizer(HTMLParser):
         elif self.ignored_depth == 0 and tag in ALLOWED_TAGS:
             self.parts.append(f"<{tag}>")
 
-    def handle_startendtag(
-        self, tag: str, attrs: list[tuple[str, str | None]]
-    ) -> None:
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.handle_starttag(tag, attrs)
         self.handle_endtag(tag)
 

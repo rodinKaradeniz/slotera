@@ -19,6 +19,7 @@ class LoginIdentity:
     workspace_id: UUID | None
     workspace_name: str | None
     workspace_slug: str | None
+    workspace_operational_status: str | None
     membership_role: str | None
 
 
@@ -90,11 +91,15 @@ class AuthRepository:
     async def session_for_token(self, token_hash: bytes) -> StoredAuthSession | None:
         async with self._database.transaction() as session:
             row = (
-                await session.execute(
-                    text("SELECT * FROM public.slotera_auth_session(:token_hash)"),
-                    {"token_hash": token_hash},
+                (
+                    await session.execute(
+                        text("SELECT * FROM public.slotera_auth_session(:token_hash)"),
+                        {"token_hash": token_hash},
+                    )
                 )
-            ).mappings().one_or_none()
+                .mappings()
+                .one_or_none()
+            )
         return StoredAuthSession(**row) if row is not None else None
 
     async def revoke_session(self, token_hash: bytes) -> bool:
@@ -104,3 +109,76 @@ class AuthRepository:
                 {"token_hash": token_hash},
             )
         return revoked is True
+
+    async def consume_rate_limit(
+        self,
+        *,
+        scope: str,
+        key_hash: bytes,
+        limit: int,
+        window_seconds: int,
+    ) -> bool:
+        async with self._database.transaction() as session:
+            allowed = await session.scalar(
+                text(
+                    "SELECT public.slotera_rate_limit_consume("
+                    ":scope, :key_hash, :limit, :window_seconds)"
+                ),
+                {
+                    "scope": scope,
+                    "key_hash": key_hash,
+                    "limit": limit,
+                    "window_seconds": window_seconds,
+                },
+            )
+        return allowed is True
+
+    async def request_password_reset(
+        self,
+        *,
+        token_id: UUID,
+        outbox_id: UUID,
+        email: str,
+        token_hash: bytes,
+        expires_at: datetime,
+        reset_url: str,
+    ) -> bool:
+        async with self._database.transaction() as session:
+            created = await session.scalar(
+                text(
+                    """
+                    SELECT public.slotera_auth_request_password_reset(
+                      :token_id,
+                      :outbox_id,
+                      :email,
+                      :token_hash,
+                      :expires_at,
+                      :reset_url
+                    )
+                    """
+                ),
+                {
+                    "token_id": token_id,
+                    "outbox_id": outbox_id,
+                    "email": email,
+                    "token_hash": token_hash,
+                    "expires_at": expires_at,
+                    "reset_url": reset_url,
+                },
+            )
+        return created is True
+
+    async def consume_password_reset(self, *, token_hash: bytes, password_hash: str) -> str:
+        async with self._database.transaction() as session:
+            result = await session.scalar(
+                text(
+                    "SELECT public.slotera_auth_consume_password_reset(:token_hash, :password_hash)"
+                ),
+                {"token_hash": token_hash, "password_hash": password_hash},
+            )
+        return str(result)
+
+    async def run_maintenance(self) -> int:
+        async with self._database.transaction() as session:
+            affected = await session.scalar(text("SELECT public.slotera_auth_maintenance()"))
+        return int(affected or 0)

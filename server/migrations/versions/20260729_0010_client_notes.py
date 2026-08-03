@@ -4,6 +4,7 @@ Revision ID: 20260729_0010
 Revises: 20260729_0009
 Create Date: 2026-07-29
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -54,9 +55,7 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["workspace_id"], ["workspaces.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
             ["workspace_id", "client_id"],
             ["clients.workspace_id", "clients.id"],

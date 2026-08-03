@@ -1946,6 +1946,53 @@
         "title": "OperatorBookingCreate",
         "type": "object"
       },
+      "PasswordResetAccepted": {
+        "properties": {
+          "accepted": {
+            "default": true,
+            "title": "Accepted",
+            "type": "boolean"
+          }
+        },
+        "title": "PasswordResetAccepted",
+        "type": "object"
+      },
+      "PasswordResetConsume": {
+        "properties": {
+          "newPassword": {
+            "maxLength": 1024,
+            "minLength": 10,
+            "title": "Newpassword",
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 1024,
+            "minLength": 32,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
+        ],
+        "title": "PasswordResetConsume",
+        "type": "object"
+      },
+      "PasswordResetRequest": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "PasswordResetRequest",
+        "type": "object"
+      },
       "PaymentPendingNotification": {
         "properties": {
           "id": {
@@ -2042,6 +2089,201 @@
         "title": "PaymentPendingPayload",
         "type": "object"
       },
+      "PaymentSettingsPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "bookingTermsContent": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bookingtermscontent"
+          },
+          "bookingTermsEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bookingtermsenabled"
+          },
+          "manualPaymentEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manualpaymentenabled"
+          },
+          "manualPaymentInstructions": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manualpaymentinstructions"
+          },
+          "sellerTaxNumber": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sellertaxnumber"
+          },
+          "taxJurisdiction": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxjurisdiction"
+          },
+          "taxLabel": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxlabel"
+          },
+          "taxRateBps": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxratebps"
+          },
+          "taxTreatment": {
+            "anyOf": [
+              {
+                "enum": [
+                  "none",
+                  "fixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxtreatment"
+          }
+        },
+        "title": "PaymentSettingsPatch",
+        "type": "object"
+      },
+      "PaymentSettingsResponse": {
+        "properties": {
+          "bookingTermsContent": {
+            "title": "Bookingtermscontent",
+            "type": "string"
+          },
+          "bookingTermsEnabled": {
+            "title": "Bookingtermsenabled",
+            "type": "boolean"
+          },
+          "manualPaymentEnabled": {
+            "title": "Manualpaymentenabled",
+            "type": "boolean"
+          },
+          "manualPaymentInstructions": {
+            "title": "Manualpaymentinstructions",
+            "type": "string"
+          },
+          "sellerTaxNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sellertaxnumber"
+          },
+          "taxJurisdiction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxjurisdiction"
+          },
+          "taxLabel": {
+            "title": "Taxlabel",
+            "type": "string"
+          },
+          "taxRateBps": {
+            "title": "Taxratebps",
+            "type": "integer"
+          },
+          "taxTreatment": {
+            "enum": [
+              "none",
+              "fixed"
+            ],
+            "title": "Taxtreatment",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "manualPaymentEnabled",
+          "manualPaymentInstructions",
+          "bookingTermsEnabled",
+          "bookingTermsContent",
+          "taxTreatment",
+          "taxRateBps",
+          "taxLabel",
+          "taxJurisdiction",
+          "sellerTaxNumber",
+          "updatedAt"
+        ],
+        "title": "PaymentSettingsResponse",
+        "type": "object"
+      },
       "PlatformWorkspaceDetail": {
         "properties": {
           "bookingsCount": {
@@ -2068,6 +2310,14 @@
           },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "operationalStatus": {
+            "enum": [
+              "active",
+              "suspended"
+            ],
+            "title": "Operationalstatus",
             "type": "string"
           },
           "ownerEmail": {
@@ -2116,6 +2366,7 @@
           "ownerName",
           "ownerEmail",
           "createdAt",
+          "operationalStatus",
           "servicesCount",
           "clientsCount",
           "bookingsCount",
@@ -2227,6 +2478,14 @@
             "title": "Name",
             "type": "string"
           },
+          "operationalStatus": {
+            "enum": [
+              "active",
+              "suspended"
+            ],
+            "title": "Operationalstatus",
+            "type": "string"
+          },
           "ownerEmail": {
             "anyOf": [
               {
@@ -2269,12 +2528,623 @@
           "ownerName",
           "ownerEmail",
           "createdAt",
+          "operationalStatus",
           "servicesCount",
           "clientsCount",
           "bookingsCount",
           "sessionsCount"
         ],
         "title": "PlatformWorkspaceSummary",
+        "type": "object"
+      },
+      "PublicAvailabilityResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicAvailabilitySlot"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timezone",
+          "items"
+        ],
+        "title": "PublicAvailabilityResponse",
+        "type": "object"
+      },
+      "PublicAvailabilitySlot": {
+        "properties": {
+          "endAt": {
+            "format": "date-time",
+            "title": "Endat",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "startAt",
+          "endAt"
+        ],
+        "title": "PublicAvailabilitySlot",
+        "type": "object"
+      },
+      "PublicBookingBillingAddress": {
+        "additionalProperties": false,
+        "properties": {
+          "city": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "City",
+            "type": "string"
+          },
+          "country": {
+            "pattern": "^[A-Za-z]{2}$",
+            "title": "Country",
+            "type": "string"
+          },
+          "postalCode": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Postalcode",
+            "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "street": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Street",
+            "type": "string"
+          },
+          "street2": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street2"
+          }
+        },
+        "required": [
+          "street",
+          "city",
+          "postalCode",
+          "country"
+        ],
+        "title": "PublicBookingBillingAddress",
+        "type": "object"
+      },
+      "PublicBookingCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "billingAddress": {
+            "$ref": "#/components/schemas/PublicBookingBillingAddress"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/PublicBookingCustomer"
+          },
+          "formResponses": {
+            "items": {
+              "$ref": "#/components/schemas/PublicFormSubmission"
+            },
+            "maxItems": 50,
+            "title": "Formresponses",
+            "type": "array"
+          },
+          "paymentMethod": {
+            "enum": [
+              "free",
+              "manual"
+            ],
+            "title": "Paymentmethod",
+            "type": "string"
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          },
+          "termsAccepted": {
+            "const": true,
+            "title": "Termsaccepted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "serviceId",
+          "startAt",
+          "customer",
+          "billingAddress",
+          "paymentMethod",
+          "termsAccepted"
+        ],
+        "title": "PublicBookingCreate",
+        "type": "object"
+      },
+      "PublicBookingCustomer": {
+        "additionalProperties": false,
+        "properties": {
+          "company": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "firstName": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Firstname",
+            "type": "string"
+          },
+          "lastName": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Lastname",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "email"
+        ],
+        "title": "PublicBookingCustomer",
+        "type": "object"
+      },
+      "PublicBookingResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "paymentDueAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paymentdueat"
+          },
+          "paymentMethod": {
+            "enum": [
+              "free",
+              "manual"
+            ],
+            "title": "Paymentmethod",
+            "type": "string"
+          },
+          "paymentStatus": {
+            "enum": [
+              "pending",
+              "free",
+              "overdue"
+            ],
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/PublicTaxQuote"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "sessionEndAt": {
+            "format": "date-time",
+            "title": "Sessionendat",
+            "type": "string"
+          },
+          "sessionStartAt": {
+            "format": "date-time",
+            "title": "Sessionstartat",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reference",
+          "status",
+          "paymentStatus",
+          "paymentMethod",
+          "sessionStartAt",
+          "sessionEndAt",
+          "paymentDueAt",
+          "quote"
+        ],
+        "title": "PublicBookingResponse",
+        "type": "object"
+      },
+      "PublicFormAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "fieldId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Fieldid",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "fieldId",
+          "value"
+        ],
+        "title": "PublicFormAnswer",
+        "type": "object"
+      },
+      "PublicFormListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicFormResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PublicFormListResponse",
+        "type": "object"
+      },
+      "PublicFormResponse": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FormFieldInput"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "requiredBeforePayment": {
+            "title": "Requiredbeforepayment",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "fields",
+          "requiredBeforePayment"
+        ],
+        "title": "PublicFormResponse",
+        "type": "object"
+      },
+      "PublicFormSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/PublicFormAnswer"
+            },
+            "maxItems": 100,
+            "title": "Answers",
+            "type": "array"
+          },
+          "formTemplateId": {
+            "format": "uuid",
+            "title": "Formtemplateid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "formTemplateId",
+          "answers"
+        ],
+        "title": "PublicFormSubmission",
+        "type": "object"
+      },
+      "PublicServiceListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicServiceResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PublicServiceListResponse",
+        "type": "object"
+      },
+      "PublicServiceResponse": {
+        "properties": {
+          "cancellationRule": {
+            "title": "Cancellationrule",
+            "type": "string"
+          },
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "durationMin": {
+            "title": "Durationmin",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "locationType": {
+            "enum": [
+              "online",
+              "physical",
+              "hybrid"
+            ],
+            "title": "Locationtype",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/PublicTaxQuote"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "durationMin",
+          "capacity",
+          "locationType",
+          "location",
+          "cancellationRule",
+          "quote"
+        ],
+        "title": "PublicServiceResponse",
+        "type": "object"
+      },
+      "PublicTaxQuote": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "grossAmountCents": {
+            "title": "Grossamountcents",
+            "type": "integer"
+          },
+          "jurisdiction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jurisdiction"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "netAmountCents": {
+            "title": "Netamountcents",
+            "type": "integer"
+          },
+          "rateBps": {
+            "title": "Ratebps",
+            "type": "integer"
+          },
+          "taxAmountCents": {
+            "title": "Taxamountcents",
+            "type": "integer"
+          },
+          "treatment": {
+            "enum": [
+              "none",
+              "fixed"
+            ],
+            "title": "Treatment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "treatment",
+          "rateBps",
+          "label",
+          "jurisdiction",
+          "grossAmountCents",
+          "netAmountCents",
+          "taxAmountCents",
+          "currency"
+        ],
+        "title": "PublicTaxQuote",
+        "type": "object"
+      },
+      "PublicWorkspaceResponse": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "bio": {
+            "title": "Bio",
+            "type": "string"
+          },
+          "bookingTermsContent": {
+            "title": "Bookingtermscontent",
+            "type": "string"
+          },
+          "bookingTermsEnabled": {
+            "title": "Bookingtermsenabled",
+            "type": "boolean"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "manualPaymentEnabled": {
+            "title": "Manualpaymentenabled",
+            "type": "boolean"
+          },
+          "manualPaymentInstructions": {
+            "title": "Manualpaymentinstructions",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "displayName",
+          "bio",
+          "email",
+          "address",
+          "currency",
+          "timezone",
+          "manualPaymentEnabled",
+          "manualPaymentInstructions",
+          "bookingTermsEnabled",
+          "bookingTermsContent"
+        ],
+        "title": "PublicWorkspaceResponse",
         "type": "object"
       },
       "ReadinessResponse": {
@@ -3924,6 +4794,81 @@
         ]
       }
     },
+    "/auth/password-reset/consume": {
+      "post": {
+        "operationId": "consumePasswordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConsume"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Consume Password Reset",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/password-reset/request": {
+      "post": {
+        "operationId": "requestPasswordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Password Reset",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/auth/session": {
       "get": {
         "operationId": "getCurrentSession",
@@ -5298,6 +6243,363 @@
         ]
       }
     },
+    "/platform/workspaces/{workspace_id}/reactivate": {
+      "post": {
+        "operationId": "reactivatePlatformWorkspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWorkspaceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reactivate Platform Workspace",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/workspaces/{workspace_id}/suspend": {
+      "post": {
+        "operationId": "suspendPlatformWorkspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWorkspaceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suspend Platform Workspace",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/public/workspaces/{workspace_slug}": {
+      "get": {
+        "operationId": "getPublicWorkspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_slug",
+            "required": true,
+            "schema": {
+              "title": "Workspace Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicWorkspaceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Public Workspace",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/workspaces/{workspace_slug}/bookings": {
+      "post": {
+        "operationId": "createPublicBooking",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_slug",
+            "required": true,
+            "schema": {
+              "title": "Workspace Slug",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicBookingCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Public Booking",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/workspaces/{workspace_slug}/services": {
+      "get": {
+        "operationId": "listPublicServices",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_slug",
+            "required": true,
+            "schema": {
+              "title": "Workspace Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicServiceListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Public Services",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/workspaces/{workspace_slug}/services/{service_id}/availability": {
+      "get": {
+        "operationId": "listPublicAvailability",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_slug",
+            "required": true,
+            "schema": {
+              "title": "Workspace Slug",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAvailabilityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Public Availability",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/workspaces/{workspace_slug}/services/{service_id}/forms": {
+      "get": {
+        "operationId": "listPublicServiceForms",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_slug",
+            "required": true,
+            "schema": {
+              "title": "Workspace Slug",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFormListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Public Service Forms",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
     "/search": {
       "get": {
         "operationId": "searchWorkspace",
@@ -6297,6 +7599,66 @@
           }
         },
         "summary": "Update Workspace Location",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/settings/payments": {
+      "get": {
+        "operationId": "getPaymentSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentSettingsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Payment Settings",
+        "tags": [
+          "settings"
+        ]
+      },
+      "patch": {
+        "operationId": "updatePaymentSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentSettingsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Payment Settings",
         "tags": [
           "settings"
         ]

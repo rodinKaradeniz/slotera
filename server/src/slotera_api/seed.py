@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, time
 from uuid import UUID, uuid5
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from slotera_api.auth.passwords import PasswordHasher, create_password_hasher
@@ -22,6 +22,7 @@ from slotera_api.db.models import (
     Notification,
     PaymentStatus,
     PlatformRole,
+    RequestRateLimit,
     ReservedWorkspaceSlug,
     Service,
     Session,
@@ -31,6 +32,7 @@ from slotera_api.db.models import (
     WorkspaceBusinessProfile,
     WorkspaceLocation,
     WorkspaceMembership,
+    WorkspacePaymentSettings,
 )
 
 SEED_NAMESPACE = UUID("7d4fc57d-793e-4de1-82f0-950f27f1b1e8")
@@ -426,6 +428,9 @@ async def import_demo_seed(
     password_hasher: PasswordHasher | None = None,
 ) -> SeedSummary:
     async with database.transaction() as session:
+        # Local seed imports are deterministic development/test resets. Do not let
+        # authentication attempts from an earlier run throttle the next seeded run.
+        await session.execute(delete(RequestRateLimit))
         inserted_users = 0
         for user in (DEMO_SEED.operator, DEMO_SEED.superadmin):
             inserted_users += len(
@@ -535,6 +540,29 @@ async def import_demo_seed(
             ).all()
         )
 
+        await session.execute(
+            insert(WorkspacePaymentSettings)
+            .values(
+                workspace_id=workspace_id,
+                manual_payment_enabled=True,
+                manual_payment_instructions=(
+                    "Please use the booking reference when making your bank transfer."
+                ),
+                booking_terms_enabled=True,
+                booking_terms_content=(
+                    "Payment is due before the session. The service cancellation rule applies."
+                ),
+                tax_treatment="none",
+                tax_rate_bps=0,
+                tax_label="Tax",
+                tax_jurisdiction=None,
+                seller_tax_number=None,
+                created_at=workspace.created_at,
+                updated_at=workspace.created_at,
+            )
+            .on_conflict_do_nothing()
+        )
+
         inserted_locations = len(
             (
                 await session.scalars(
@@ -615,9 +643,7 @@ async def import_demo_seed(
                     id=session_id,
                     workspace_id=workspace_id,
                     series_id=None,
-                    service_id=_seed_id(
-                        f"service:hartmann-strategy:{demo_session['service_key']}"
-                    ),
+                    service_id=_seed_id(f"service:hartmann-strategy:{demo_session['service_key']}"),
                     calendar_owner_id=operator_id,
                     **values,
                     created_at=values["start_at"],
@@ -630,6 +656,7 @@ async def import_demo_seed(
         inserted_bookings = 0
         for booking in DEMO_BOOKINGS:
             key = str(booking["key"])
+            booking_id = _seed_id(f"booking:hartmann-strategy:{key}")
             values = {
                 field: value
                 for field, value in booking.items()
@@ -640,14 +667,23 @@ async def import_demo_seed(
                     await session.scalars(
                         insert(Booking)
                         .values(
-                            id=_seed_id(f"booking:hartmann-strategy:{key}"),
+                            id=booking_id,
                             workspace_id=workspace_id,
-                            client_id=_seed_id(
-                                f"client:hartmann-strategy:{booking['client_key']}"
-                            ),
+                            client_id=_seed_id(f"client:hartmann-strategy:{booking['client_key']}"),
                             session_id=_seed_id(
                                 f"session:hartmann-strategy:{booking['session_key']}"
                             ),
+                            reference=f"SLT-{booking_id.hex[:12].upper()}",
+                            payment_method=("free" if values["amount_cents"] == 0 else "manual"),
+                            net_amount_cents=values["amount_cents"],
+                            tax_amount_cents=0,
+                            tax_treatment="none",
+                            tax_rate_bps=0,
+                            tax_label=None,
+                            tax_jurisdiction=None,
+                            seller_tax_number=None,
+                            billing_address={},
+                            payment_due_at=None,
                             **values,
                             updated_at=values["created_at"],
                         )
@@ -695,11 +731,7 @@ async def import_demo_seed(
         inserted_notifications = 0
         for notification in DEMO_NOTIFICATIONS:
             key = str(notification["key"])
-            values = {
-                field: value
-                for field, value in notification.items()
-                if field != "key"
-            }
+            values = {field: value for field, value in notification.items() if field != "key"}
             inserted_notifications += len(
                 (
                     await session.scalars(

@@ -27,6 +27,8 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import type { SettingsData } from "@/types/settings";
 import type { FormTemplate } from "@/types/form";
 import type { DemoPersona } from "@/types/demo";
+import { dataSource } from "@/lib/env";
+import { createPublicBooking } from "@/services/public-booking.service";
 
 const DRAFT_KEY = "slotera.booking.draft";
 
@@ -116,7 +118,8 @@ export default function BookingPage() {
       case "service":
         return !!draft.service;
       case "time":
-        return !!draft.date && !!draft.time;
+        return !!draft.date && !!draft.time &&
+          (dataSource === "mock" || !!draft.startAt);
       case "details":
         return (
           draft.customer.firstName.trim() &&
@@ -136,6 +139,7 @@ export default function BookingPage() {
         return true;
       case "pay":
         return (
+          draft.service?.priceCents === 0 ||
           (draft.payment.method !== "card") ||
           (draft.payment.cardNumber.replace(/\s/g, "").length >= 12 &&
             draft.payment.cardName.trim().length > 1)
@@ -163,6 +167,26 @@ export default function BookingPage() {
   const submit = async () => {
     setError(null);
     setSubmitting(true);
+    if (dataSource === "api") {
+      try {
+        const booking = await createPublicBooking(draft);
+        window.sessionStorage.setItem(
+          "slotera.booking.last",
+          JSON.stringify({ ref: booking.reference, draft, booking }),
+        );
+        window.sessionStorage.removeItem(DRAFT_KEY);
+        router.push("/booking/confirmation");
+      } catch (submitError) {
+        setError(
+          submitError instanceof Error
+            ? submitError.message
+            : "The booking could not be completed.",
+        );
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
     await new Promise((r) => setTimeout(r, 900));
     const raw = draft.payment.cardNumber.replace(/\s/g, "");
     const failing = raw.endsWith("0002");
@@ -261,6 +285,7 @@ export default function BookingPage() {
               service={draft.service}
               date={draft.date}
               time={draft.time}
+              startAt={draft.startAt}
               onChange={(p) => setDraft({ ...draft, ...p })}
             />
           )}

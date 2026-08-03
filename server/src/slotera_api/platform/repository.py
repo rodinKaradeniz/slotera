@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
 from sqlalchemy import text
 
 from slotera_api.database import Database
+
+WorkspaceOperationalStatus = Literal["active", "suspended"]
 
 
 @dataclass(frozen=True)
@@ -18,6 +20,7 @@ class PlatformWorkspace:
     created_at: datetime
     currency: str
     timezone: str
+    operational_status: WorkspaceOperationalStatus
     services_count: int
     clients_count: int
     bookings_count: int
@@ -34,6 +37,7 @@ def _workspace(row: Any) -> PlatformWorkspace:
         created_at=row["created_at"],
         currency=row["currency"],
         timezone=row["timezone"],
+        operational_status=cast(WorkspaceOperationalStatus, row["operational_status"]),
         services_count=int(row["services_count"]),
         clients_count=int(row["clients_count"]),
         bookings_count=int(row["bookings_count"]),
@@ -45,16 +49,11 @@ class PlatformRepository:
     def __init__(self, database: Database) -> None:
         self.database = database
 
-    async def list_workspaces(
-        self, *, limit: int, offset: int
-    ) -> list[PlatformWorkspace]:
+    async def list_workspaces(self, *, limit: int, offset: int) -> list[PlatformWorkspace]:
         async with self.database.transaction() as session:
             rows = (
                 await session.execute(
-                    text(
-                        "SELECT * FROM public.slotera_platform_list_workspaces("
-                        ":limit, :offset)"
-                    ),
+                    text("SELECT * FROM public.slotera_platform_list_workspaces(:limit, :offset)"),
                     {"limit": limit, "offset": offset},
                 )
             ).mappings()
@@ -63,14 +62,15 @@ class PlatformRepository:
     async def get_workspace(self, workspace_id: UUID) -> PlatformWorkspace | None:
         async with self.database.transaction() as session:
             row = (
-                await session.execute(
-                    text(
-                        "SELECT * FROM public.slotera_platform_get_workspace("
-                        ":workspace_id)"
-                    ),
-                    {"workspace_id": workspace_id},
+                (
+                    await session.execute(
+                        text("SELECT * FROM public.slotera_platform_get_workspace(:workspace_id)"),
+                        {"workspace_id": workspace_id},
+                    )
                 )
-            ).mappings().one_or_none()
+                .mappings()
+                .one_or_none()
+            )
             return _workspace(row) if row is not None else None
 
     async def provision_workspace(
@@ -118,4 +118,44 @@ class PlatformRepository:
                     "timezone": timezone,
                 },
             )
+            if result_code == "created":
+                await session.execute(
+                    text("SELECT set_config('app.current_workspace_id', :workspace_id, true)"),
+                    {"workspace_id": str(workspace_id)},
+                )
+                await session.execute(
+                    text(
+                        "INSERT INTO workspace_payment_settings (workspace_id) "
+                        "VALUES (:workspace_id)"
+                    ),
+                    {"workspace_id": workspace_id},
+                )
         return str(result_code), workspace_id
+
+    async def set_operational_status(
+        self,
+        *,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        operational_status: str,
+    ) -> str:
+        async with self.database.transaction() as session:
+            result_code = await session.scalar(
+                text(
+                    """
+                    SELECT public.slotera_platform_set_workspace_operational_status(
+                      :workspace_id,
+                      :actor_user_id,
+                      :operational_status,
+                      :audit_event_id
+                    )
+                    """
+                ),
+                {
+                    "workspace_id": workspace_id,
+                    "actor_user_id": actor_user_id,
+                    "operational_status": operational_status,
+                    "audit_event_id": uuid4(),
+                },
+            )
+        return str(result_code)

@@ -83,9 +83,7 @@ def _availability_response(
     )
 
 
-def _session_response(
-    item: Session, series: SessionSeries | None
-) -> SchedulingSessionResponse:
+def _session_response(item: Session, series: SessionSeries | None) -> SchedulingSessionResponse:
     recurring: Literal["one-off", "weekly", "custom"] = "one-off"
     if series is not None:
         local_weekday = item.start_at.astimezone(ZoneInfo(series.timezone)).isoweekday()

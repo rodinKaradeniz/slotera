@@ -54,14 +54,10 @@ async def test_operator_search_is_private_bounded_and_workspace_scoped() -> None
             transport=ASGITransport(app=app), base_url="http://test"
         ) as anonymous:
             denied = await anonymous.get("/search", params={"query": "strategy"})
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
             invalid = await client.get("/search", params={"query": ""})
-            matched = await client.get(
-                "/search", params={"query": "strategy", "limitPerKind": 1}
-            )
+            matched = await client.get("/search", params={"query": "strategy", "limitPerKind": 1})
             private = await client.get("/search", params={"query": "private search"})
     finally:
         async with owner.transaction() as session:

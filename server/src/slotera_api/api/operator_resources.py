@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Response
@@ -15,6 +15,7 @@ from slotera_api.db.models import (
     Workspace,
     WorkspaceBusinessProfile,
     WorkspaceLocation,
+    WorkspacePaymentSettings,
 )
 from slotera_api.errors import ApiError
 from slotera_api.operator_resources.repository import OperatorResourcesRepository
@@ -22,6 +23,8 @@ from slotera_api.schemas.operator_resources import (
     Address,
     BusinessSettingsPatch,
     BusinessSettingsResponse,
+    PaymentSettingsPatch,
+    PaymentSettingsResponse,
     ServiceCreate,
     ServiceListResponse,
     ServicePatch,
@@ -60,6 +63,21 @@ def _business_response(
         address=profile.address,
         booking_page_enabled=profile.booking_page_enabled,
         updated_at=max(workspace.updated_at, profile.updated_at),
+    )
+
+
+def _payment_response(item: WorkspacePaymentSettings) -> PaymentSettingsResponse:
+    return PaymentSettingsResponse(
+        manual_payment_enabled=item.manual_payment_enabled,
+        manual_payment_instructions=item.manual_payment_instructions,
+        booking_terms_enabled=item.booking_terms_enabled,
+        booking_terms_content=item.booking_terms_content,
+        tax_treatment=cast(Literal["none", "fixed"], item.tax_treatment),
+        tax_rate_bps=item.tax_rate_bps,
+        tax_label=item.tax_label,
+        tax_jurisdiction=item.tax_jurisdiction,
+        seller_tax_number=item.seller_tax_number,
+        updated_at=item.updated_at,
     )
 
 
@@ -163,6 +181,51 @@ async def update_business_settings(
         raise _not_found("business_settings_not_found", "Business settings were not found")
     _private(response)
     return _business_response(*result)
+
+
+@settings_router.get(
+    "/payments",
+    response_model=PaymentSettingsResponse,
+    operation_id="getPaymentSettings",
+)
+async def get_payment_settings(
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> PaymentSettingsResponse:
+    item = await OperatorResourcesRepository(database).get_payment_settings(operator.workspace_id)
+    if item is None:
+        raise _not_found("payment_settings_not_found", "Payment settings were not found")
+    _private(response)
+    return _payment_response(item)
+
+
+@settings_router.patch(
+    "/payments",
+    response_model=PaymentSettingsResponse,
+    operation_id="updatePaymentSettings",
+)
+async def update_payment_settings(
+    payload: PaymentSettingsPatch,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> PaymentSettingsResponse:
+    repository = OperatorResourcesRepository(database)
+    changes = payload.model_dump(exclude_unset=True)
+    item = (
+        await repository.update_payment_settings(operator.workspace_id, operator.user_id, changes)
+        if changes
+        else await repository.get_payment_settings(operator.workspace_id)
+    )
+    if item is None:
+        raise ApiError(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            code="payment_settings_invalid",
+            message="Payment settings are invalid",
+        )
+    _private(response)
+    return _payment_response(item)
 
 
 @settings_router.get(

@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     csrf_cookie_domain: str | None = None
     session_ttl_hours: int = 12
     remembered_session_ttl_days: int = 30
+    password_reset_ttl_minutes: int = 60
+    public_web_base_url: str = "http://localhost:3344"
+    email_provider: Literal["console", "resend"] = "console"
+    email_from_address: str = "Slotera <no-reply@slotera.app>"
+    resend_api_key: SecretStr | None = None
 
     @field_validator("cors_origins")
     @classmethod
@@ -47,6 +52,16 @@ class Settings(BaseSettings):
             raise ValueError("production requires a shared CSRF cookie domain")
         if self.session_ttl_hours < 1 or self.remembered_session_ttl_days < 1:
             raise ValueError("session lifetimes must be positive")
+        if self.password_reset_ttl_minutes < 5:
+            raise ValueError("password reset lifetime must be at least five minutes")
+        if not self.public_web_base_url.startswith(("http://", "https://")):
+            raise ValueError("public web base URL must be HTTP(S)")
+        self.public_web_base_url = self.public_web_base_url.rstrip("/")
+        if self.environment == "production":
+            if self.email_provider != "resend" or self.resend_api_key is None:
+                raise ValueError("production requires the Resend email provider and API key")
+            if not self.public_web_base_url.startswith("https://"):
+                raise ValueError("production public web base URL must use HTTPS")
         return self
 
     @property

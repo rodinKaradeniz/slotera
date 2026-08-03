@@ -31,7 +31,9 @@ async def test_operator_can_create_and_read_form_template() -> None:
         "name": "Discovery prep",
         "description": "A few questions before we meet.",
         "status": "active",
-        "fields": [{"id": "focus", "label": "What should we cover?", "type": "long_text", "required": True}],
+        "fields": [
+            {"id": "focus", "label": "What should we cover?", "type": "long_text", "required": True}
+        ],
         "attachedServiceIds": [],
         "requiredBeforePayment": True,
     }

@@ -38,6 +38,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/password-reset/consume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consume Password Reset */
+        post: operations["consumePasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password-reset/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Password Reset */
+        post: operations["requestPasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/session": {
         parameters: {
             query?: never;
@@ -422,6 +456,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/workspaces/{workspace_id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate Platform Workspace */
+        post: operations["reactivatePlatformWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/workspaces/{workspace_id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend Platform Workspace */
+        post: operations["suspendPlatformWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/workspaces/{workspace_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Workspace */
+        get: operations["getPublicWorkspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/workspaces/{workspace_slug}/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Public Booking */
+        post: operations["createPublicBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/workspaces/{workspace_slug}/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Public Services */
+        get: operations["listPublicServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/workspaces/{workspace_slug}/services/{service_id}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Public Availability */
+        get: operations["listPublicAvailability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/workspaces/{workspace_slug}/services/{service_id}/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Public Service Forms */
+        get: operations["listPublicServiceForms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/search": {
         parameters: {
             query?: never;
@@ -600,6 +753,24 @@ export interface paths {
         head?: never;
         /** Update Workspace Location */
         patch: operations["updateWorkspaceLocation"];
+        trace?: never;
+    };
+    "/settings/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Payment Settings */
+        get: operations["getPaymentSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Payment Settings */
+        patch: operations["updatePaymentSettings"];
         trace?: never;
     };
 }
@@ -1262,6 +1433,29 @@ export interface components {
              */
             sessionId: string;
         };
+        /** PasswordResetAccepted */
+        PasswordResetAccepted: {
+            /**
+             * Accepted
+             * @default true
+             */
+            accepted: boolean;
+        };
+        /** PasswordResetConsume */
+        PasswordResetConsume: {
+            /** Newpassword */
+            newPassword: string;
+            /** Token */
+            token: string;
+        };
+        /** PasswordResetRequest */
+        PasswordResetRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
         /** PaymentPendingNotification */
         PaymentPendingNotification: {
             /**
@@ -1298,6 +1492,56 @@ export interface components {
             /** Servicename */
             serviceName: string;
         };
+        /** PaymentSettingsPatch */
+        PaymentSettingsPatch: {
+            /** Bookingtermscontent */
+            bookingTermsContent?: string | null;
+            /** Bookingtermsenabled */
+            bookingTermsEnabled?: boolean | null;
+            /** Manualpaymentenabled */
+            manualPaymentEnabled?: boolean | null;
+            /** Manualpaymentinstructions */
+            manualPaymentInstructions?: string | null;
+            /** Sellertaxnumber */
+            sellerTaxNumber?: string | null;
+            /** Taxjurisdiction */
+            taxJurisdiction?: string | null;
+            /** Taxlabel */
+            taxLabel?: string | null;
+            /** Taxratebps */
+            taxRateBps?: number | null;
+            /** Taxtreatment */
+            taxTreatment?: ("none" | "fixed") | null;
+        };
+        /** PaymentSettingsResponse */
+        PaymentSettingsResponse: {
+            /** Bookingtermscontent */
+            bookingTermsContent: string;
+            /** Bookingtermsenabled */
+            bookingTermsEnabled: boolean;
+            /** Manualpaymentenabled */
+            manualPaymentEnabled: boolean;
+            /** Manualpaymentinstructions */
+            manualPaymentInstructions: string;
+            /** Sellertaxnumber */
+            sellerTaxNumber: string | null;
+            /** Taxjurisdiction */
+            taxJurisdiction: string | null;
+            /** Taxlabel */
+            taxLabel: string;
+            /** Taxratebps */
+            taxRateBps: number;
+            /**
+             * Taxtreatment
+             * @enum {string}
+             */
+            taxTreatment: "none" | "fixed";
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
         /** PlatformWorkspaceDetail */
         PlatformWorkspaceDetail: {
             /** Bookingscount */
@@ -1318,6 +1562,11 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /**
+             * Operationalstatus
+             * @enum {string}
+             */
+            operationalStatus: "active" | "suspended";
             /** Owneremail */
             ownerEmail: string | null;
             /** Ownername */
@@ -1379,6 +1628,11 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /**
+             * Operationalstatus
+             * @enum {string}
+             */
+            operationalStatus: "active" | "suspended";
             /** Owneremail */
             ownerEmail: string | null;
             /** Ownername */
@@ -1389,6 +1643,243 @@ export interface components {
             sessionsCount: number;
             /** Slug */
             slug: string;
+        };
+        /** PublicAvailabilityResponse */
+        PublicAvailabilityResponse: {
+            /** Items */
+            items: components["schemas"]["PublicAvailabilitySlot"][];
+            /** Timezone */
+            timezone: string;
+        };
+        /** PublicAvailabilitySlot */
+        PublicAvailabilitySlot: {
+            /**
+             * Endat
+             * Format: date-time
+             */
+            endAt: string;
+            /**
+             * Startat
+             * Format: date-time
+             */
+            startAt: string;
+        };
+        /** PublicBookingBillingAddress */
+        PublicBookingBillingAddress: {
+            /** City */
+            city: string;
+            /** Country */
+            country: string;
+            /** Postalcode */
+            postalCode: string;
+            /** Region */
+            region?: string | null;
+            /** Street */
+            street: string;
+            /** Street2 */
+            street2?: string | null;
+        };
+        /** PublicBookingCreate */
+        PublicBookingCreate: {
+            billingAddress: components["schemas"]["PublicBookingBillingAddress"];
+            customer: components["schemas"]["PublicBookingCustomer"];
+            /** Formresponses */
+            formResponses?: components["schemas"]["PublicFormSubmission"][];
+            /**
+             * Paymentmethod
+             * @enum {string}
+             */
+            paymentMethod: "free" | "manual";
+            /**
+             * Serviceid
+             * Format: uuid
+             */
+            serviceId: string;
+            /**
+             * Startat
+             * Format: date-time
+             */
+            startAt: string;
+            /**
+             * Termsaccepted
+             * @constant
+             */
+            termsAccepted: true;
+        };
+        /** PublicBookingCustomer */
+        PublicBookingCustomer: {
+            /** Company */
+            company?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Firstname */
+            firstName: string;
+            /** Lastname */
+            lastName: string;
+            /** Notes */
+            notes?: string | null;
+            /** Phone */
+            phone?: string | null;
+        };
+        /** PublicBookingResponse */
+        PublicBookingResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Paymentdueat */
+            paymentDueAt: string | null;
+            /**
+             * Paymentmethod
+             * @enum {string}
+             */
+            paymentMethod: "free" | "manual";
+            /**
+             * Paymentstatus
+             * @enum {string}
+             */
+            paymentStatus: "pending" | "free" | "overdue";
+            quote: components["schemas"]["PublicTaxQuote"];
+            /** Reference */
+            reference: string;
+            /**
+             * Sessionendat
+             * Format: date-time
+             */
+            sessionEndAt: string;
+            /**
+             * Sessionstartat
+             * Format: date-time
+             */
+            sessionStartAt: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "confirmed" | "cancelled";
+        };
+        /** PublicFormAnswer */
+        PublicFormAnswer: {
+            /** Fieldid */
+            fieldId: string;
+            /** Value */
+            value: string | string[] | boolean;
+        };
+        /** PublicFormListResponse */
+        PublicFormListResponse: {
+            /** Items */
+            items: components["schemas"]["PublicFormResponse"][];
+        };
+        /** PublicFormResponse */
+        PublicFormResponse: {
+            /** Description */
+            description: string;
+            /** Fields */
+            fields: components["schemas"]["FormFieldInput"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Requiredbeforepayment */
+            requiredBeforePayment: boolean;
+        };
+        /** PublicFormSubmission */
+        PublicFormSubmission: {
+            /** Answers */
+            answers: components["schemas"]["PublicFormAnswer"][];
+            /**
+             * Formtemplateid
+             * Format: uuid
+             */
+            formTemplateId: string;
+        };
+        /** PublicServiceListResponse */
+        PublicServiceListResponse: {
+            /** Items */
+            items: components["schemas"]["PublicServiceResponse"][];
+        };
+        /** PublicServiceResponse */
+        PublicServiceResponse: {
+            /** Cancellationrule */
+            cancellationRule: string;
+            /** Capacity */
+            capacity: number;
+            /** Description */
+            description: string;
+            /** Durationmin */
+            durationMin: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Location */
+            location: string;
+            /**
+             * Locationtype
+             * @enum {string}
+             */
+            locationType: "online" | "physical" | "hybrid";
+            /** Name */
+            name: string;
+            quote: components["schemas"]["PublicTaxQuote"];
+        };
+        /** PublicTaxQuote */
+        PublicTaxQuote: {
+            /** Currency */
+            currency: string;
+            /** Grossamountcents */
+            grossAmountCents: number;
+            /** Jurisdiction */
+            jurisdiction: string | null;
+            /** Label */
+            label: string | null;
+            /** Netamountcents */
+            netAmountCents: number;
+            /** Ratebps */
+            rateBps: number;
+            /** Taxamountcents */
+            taxAmountCents: number;
+            /**
+             * Treatment
+             * @enum {string}
+             */
+            treatment: "none" | "fixed";
+        };
+        /** PublicWorkspaceResponse */
+        PublicWorkspaceResponse: {
+            /** Address */
+            address: string;
+            /** Bio */
+            bio: string;
+            /** Bookingtermscontent */
+            bookingTermsContent: string;
+            /** Bookingtermsenabled */
+            bookingTermsEnabled: boolean;
+            /** Currency */
+            currency: string;
+            /** Displayname */
+            displayName: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Manualpaymentenabled */
+            manualPaymentEnabled: boolean;
+            /** Manualpaymentinstructions */
+            manualPaymentInstructions: string;
+            /** Slug */
+            slug: string;
+            /** Timezone */
+            timezone: string;
         };
         /** ReadinessResponse */
         ReadinessResponse: {
@@ -1999,6 +2490,70 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    consumePasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetConsume"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    requestPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -2967,6 +3522,234 @@ export interface operations {
             };
         };
     };
+    reactivatePlatformWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformWorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suspendPlatformWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformWorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getPublicWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicWorkspaceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createPublicBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workspace_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicBookingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicBookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listPublicServices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicServiceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listPublicAvailability: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path: {
+                workspace_slug: string;
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicAvailabilityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listPublicServiceForms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_slug: string;
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicFormListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     searchWorkspace: {
         parameters: {
             query: {
@@ -3587,6 +4370,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceLocationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getPaymentSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSettingsResponse"];
+                };
+            };
+        };
+    };
+    updatePaymentSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentSettingsPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSettingsResponse"];
                 };
             };
             /** @description Validation Error */

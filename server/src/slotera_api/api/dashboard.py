@@ -38,9 +38,7 @@ def _response(summary: DashboardSummary) -> DashboardSummaryResponse:
         revenue_previous_month_cents=summary.revenue_previous_month_cents,
         bookings_this_month=summary.bookings_this_month,
         bookings_previous_month=summary.bookings_previous_month,
-        average_booking_value_this_month_cents=(
-            summary.average_booking_value_this_month_cents
-        ),
+        average_booking_value_this_month_cents=(summary.average_booking_value_this_month_cents),
         average_booking_value_previous_month_cents=(
             summary.average_booking_value_previous_month_cents
         ),

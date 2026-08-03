@@ -13,6 +13,7 @@ dependencies = [
   "asyncpg>=0.30,<1",
   "fastapi>=0.115,<1",
   "email-validator>=2.2,<3",
+  "httpx>=0.28,<2",
   "pydantic-settings>=2.10,<3",
   "pwdlib[argon2]>=0.3,<1",
   "sqlalchemy[asyncio]>=2.0.41,<3",
@@ -21,6 +22,8 @@ dependencies = [
 
 [project.scripts]
 slotera-seed = "slotera_api.seed:main"
+slotera-email-worker = "slotera_api.email.worker:main"
+slotera-maintenance = "slotera_api.maintenance:main"
 
 [dependency-groups]
 dev = [

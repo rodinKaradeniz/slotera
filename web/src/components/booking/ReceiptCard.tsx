@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
-import { gbp } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { localeForLang } from "@/lib/i18n";
 import { COUNTRIES } from "./types";
@@ -37,9 +37,17 @@ export function ReceiptCard({
   };
   const country =
     COUNTRIES.find((c) => c.code === draft.billing.country) ?? COUNTRIES[0];
-  const subtotal = draft.service?.priceCents ?? 0;
-  const tax = Math.round(subtotal * country.vat);
-  const total = subtotal + tax;
+  const serverQuote = draft.service?.publicQuote;
+  const subtotal = serverQuote?.netAmountCents ?? draft.service?.priceCents ?? 0;
+  const tax =
+    serverQuote?.taxAmountCents ?? Math.round(subtotal * country.vat);
+  const total = serverQuote?.grossAmountCents ?? subtotal + tax;
+  const taxLabel = serverQuote?.label ?? country.vatLabel;
+  const taxRate = serverQuote
+    ? serverQuote.rateBps / 100
+    : Math.round(country.vat * 100);
+  const money = (amount: number) =>
+    formatMoney(amount, draft.service?.currency ?? "GBP");
   const isFree = total === 0;
 
   const dateLabel =
@@ -154,11 +162,11 @@ export function ReceiptCard({
       <div className="px-6 py-5 flex flex-col gap-1.5">
         <Row
           label={t("booking.receipt.subtotal")}
-          value={subtotal === 0 ? t("common.free") : gbp(subtotal)}
+          value={subtotal === 0 ? t("common.free") : money(subtotal)}
         />
         <Row
-          label={`${country.vatLabel} (${Math.round(country.vat * 100)}%)`}
-          value={tax === 0 ? "—" : gbp(tax)}
+          label={`${taxLabel} (${taxRate}%)`}
+          value={tax === 0 ? "—" : money(tax)}
         />
       </div>
 
@@ -172,7 +180,7 @@ export function ReceiptCard({
           className="font-serif text-ink"
           style={{ fontSize: 28, fontWeight: 400, lineHeight: 1 }}
         >
-          {isFree ? t("common.free") : gbp(total)}
+          {isFree ? t("common.free") : money(total)}
         </span>
       </div>
 
@@ -180,10 +188,14 @@ export function ReceiptCard({
 
       <div className="px-6 py-5 flex flex-col gap-3">
         <ReceiptSection title={t("booking.receipt.paymentMethod")}>
-          <div className="flex items-center gap-2 text-[14px] text-ink">
-            <Icon name={METHOD_ICON[draft.payment.method]} size={14} />
-            {methodLabel[draft.payment.method]}
-          </div>
+          {isFree ? (
+            <div className="text-[14px] text-ink">No payment required</div>
+          ) : (
+            <div className="flex items-center gap-2 text-[14px] text-ink">
+              <Icon name={METHOD_ICON[draft.payment.method]} size={14} />
+              {methodLabel[draft.payment.method]}
+            </div>
+          )}
         </ReceiptSection>
 
         {draft.payment.method === "manual" && manualInstructions && (

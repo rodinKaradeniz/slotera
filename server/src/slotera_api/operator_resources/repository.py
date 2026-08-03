@@ -12,6 +12,7 @@ from slotera_api.db.models import (
     Workspace,
     WorkspaceBusinessProfile,
     WorkspaceLocation,
+    WorkspacePaymentSettings,
 )
 
 
@@ -66,14 +67,51 @@ class OperatorResourcesRepository:
             await session.refresh(profile)
             return workspace, profile
 
+    async def get_payment_settings(self, workspace_id: UUID) -> WorkspacePaymentSettings | None:
+        async with self.database.tenant_transaction(workspace_id) as session:
+            result = await session.get(WorkspacePaymentSettings, workspace_id)
+            return result if isinstance(result, WorkspacePaymentSettings) else None
+
+    async def update_payment_settings(
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        changes: Mapping[str, Any],
+    ) -> WorkspacePaymentSettings | None:
+        async with self.database.tenant_transaction(workspace_id) as session:
+            item = await session.get(WorkspacePaymentSettings, workspace_id)
+            if item is None:
+                return None
+            treatment = changes.get("tax_treatment", item.tax_treatment)
+            rate = changes.get("tax_rate_bps", item.tax_rate_bps)
+            if treatment == "none":
+                changes = {**changes, "tax_rate_bps": 0}
+            elif int(rate) == 0:
+                return None
+            for key, value in changes.items():
+                setattr(item, key, value)
+            session.add(
+                AuditEvent(
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    action="payment_settings.updated",
+                    resource_type="workspace_payment_settings",
+                    resource_id=workspace_id,
+                    details={"fields": sorted(changes)},
+                )
+            )
+            await session.flush()
+            await session.refresh(item)
+            return item
+
     async def list_locations(self, workspace_id: UUID) -> list[WorkspaceLocation]:
         async with self.database.tenant_transaction(workspace_id) as session:
             return list(
                 (
                     await session.scalars(
-                    select(WorkspaceLocation).order_by(
-                        WorkspaceLocation.created_at, WorkspaceLocation.id
-                    ).where(WorkspaceLocation.workspace_id == workspace_id)
+                        select(WorkspaceLocation)
+                        .order_by(WorkspaceLocation.created_at, WorkspaceLocation.id)
+                        .where(WorkspaceLocation.workspace_id == workspace_id)
                     )
                 ).all()
             )

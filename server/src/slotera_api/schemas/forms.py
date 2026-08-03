@@ -12,7 +12,15 @@ from slotera_api.schemas.operator_resources import NonBlank, StrictApiModel
 class FormFieldInput(StrictApiModel):
     id: NonBlank
     label: NonBlank
-    type: Literal["short_text", "long_text", "single_select", "multi_select", "date", "yes_no", "consent_checkbox"]
+    type: Literal[
+        "short_text",
+        "long_text",
+        "single_select",
+        "multi_select",
+        "date",
+        "yes_no",
+        "consent_checkbox",
+    ]
     required: bool
     placeholder: str | None = Field(default=None, max_length=300)
     help_text: str | None = Field(default=None, max_length=500)

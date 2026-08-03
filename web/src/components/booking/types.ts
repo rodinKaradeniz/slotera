@@ -5,6 +5,8 @@ export type BookingDraft = {
   service: Service | null;
   date: string | null; // ISO date yyyy-mm-dd
   time: string | null; // HH:mm
+  /** Exact server-issued slot instant. API mode never reconstructs this from browser time. */
+  startAt: string | null;
   /** Answers keyed by form template id — populated on the conditional Forms step. */
   formResponses: Record<string, FormAnswer[]>;
   customer: {
@@ -37,6 +39,7 @@ export const EMPTY_DRAFT: BookingDraft = {
   service: null,
   date: null,
   time: null,
+  startAt: null,
   formResponses: {},
   customer: {
     firstName: "",

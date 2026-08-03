@@ -74,9 +74,7 @@ class DashboardRepository:
     def __init__(self, database: Database) -> None:
         self.database = database
 
-    async def get_summary(
-        self, workspace_id: UUID, user_id: UUID
-    ) -> DashboardSummary | None:
+    async def get_summary(self, workspace_id: UUID, user_id: UUID) -> DashboardSummary | None:
         async with self.database.principal_transaction(workspace_id, user_id) as session:
             workspace = await session.get(Workspace, workspace_id)
             if workspace is None:
@@ -298,16 +296,20 @@ class DashboardRepository:
         for booking in bookings:
             bookings_by_session[booking.session_id].append(booking)
         client_ids = {booking.client_id for booking in bookings}
-        clients = list(
-            (
-                await session.scalars(
-                    select(Client).where(
-                        Client.workspace_id == workspace_id,
-                        Client.id.in_(client_ids),
+        clients = (
+            list(
+                (
+                    await session.scalars(
+                        select(Client).where(
+                            Client.workspace_id == workspace_id,
+                            Client.id.in_(client_ids),
+                        )
                     )
-                )
-            ).all()
-        ) if client_ids else []
+                ).all()
+            )
+            if client_ids
+            else []
+        )
         clients_by_id = {client.id: client for client in clients}
         summaries: list[DashboardSession] = []
         for item, service_name in rows:

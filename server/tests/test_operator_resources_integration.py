@@ -295,3 +295,67 @@ async def test_operator_cannot_read_another_workspace_service_by_id() -> None:
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "service_not_found"
+
+
+@pytest.mark.integration
+async def test_operator_updates_gross_inclusive_payment_and_tax_settings() -> None:
+    owner = Database(get_migration_settings().migration_database_url)
+    application = Database(get_settings().database_url)
+    try:
+        await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
+        app = create_app(database=application)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await _login(client)
+            updated = await client.patch(
+                "/settings/payments",
+                headers=_csrf_headers(client),
+                json={
+                    "manualPaymentEnabled": True,
+                    "manualPaymentInstructions": "Transfer using the booking reference.",
+                    "bookingTermsEnabled": True,
+                    "bookingTermsContent": "Payment is due before the session.",
+                    "taxTreatment": "fixed",
+                    "taxRateBps": 1900,
+                    "taxLabel": "VAT",
+                    "taxJurisdiction": "de",
+                    "sellerTaxNumber": "DE123456789",
+                },
+            )
+            fetched = await client.get("/settings/payments")
+
+        assert updated.status_code == 200
+        assert fetched.status_code == 200
+        assert fetched.json()["taxTreatment"] == "fixed"
+        assert fetched.json()["taxRateBps"] == 1900
+        assert fetched.json()["taxJurisdiction"] == "DE"
+        async with owner.transaction() as session:
+            facts = (
+                (
+                    await session.execute(
+                        text(
+                            """
+                            SELECT p.tax_treatment, p.tax_rate_bps, s.price_cents,
+                                   count(a.id) AS audit_count
+                            FROM workspace_payment_settings p
+                            JOIN services s ON s.workspace_id = p.workspace_id
+                              AND s.name = 'Strategy Session'
+                            LEFT JOIN audit_events a ON a.workspace_id = p.workspace_id
+                              AND a.action = 'payment_settings.updated'
+                            WHERE p.workspace_id = (
+                              SELECT id FROM workspaces WHERE slug = 'lena'
+                            )
+                            GROUP BY p.tax_treatment, p.tax_rate_bps, s.price_cents
+                            """
+                        )
+                    )
+                )
+                .mappings()
+                .one()
+            )
+        assert facts["tax_treatment"] == "fixed"
+        assert facts["tax_rate_bps"] == 1900
+        assert facts["price_cents"] == 38000
+        assert facts["audit_count"] >= 1
+    finally:
+        await application.dispose()
+        await owner.dispose()

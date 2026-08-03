@@ -8,6 +8,11 @@ import { cn } from "@/lib/cn";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { localeForLang } from "@/lib/i18n";
 import type { Service } from "@/types/service";
+import { dataSource } from "@/lib/env";
+import {
+  listPublicAvailability,
+  type PublicAvailability,
+} from "@/services/public-booking.service";
 
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
 
@@ -24,10 +29,37 @@ type Props = {
   service: Service;
   date: string | null;
   time: string | null;
-  onChange: (next: { date: string | null; time: string | null }) => void;
+  startAt: string | null;
+  onChange: (next: {
+    date: string | null;
+    time: string | null;
+    startAt: string | null;
+  }) => void;
 };
 
-export function StepDateTime({ date, time, onChange }: Props) {
+function dateIso(value: Date): string {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+
+function slotParts(startAt: string, timezone: string): { date: string; time: string } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(startAt));
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return {
+    date: `${value("year")}-${value("month")}-${value("day")}`,
+    time: `${value("hour")}:${value("minute")}`,
+  };
+}
+
+export function StepDateTime({ service, date, time, startAt, onChange }: Props) {
   const { t, lang } = useI18n();
   const locale = localeForLang(lang);
   const daysShort = React.useMemo(() => weekdayShorts(locale), [locale]);
@@ -44,9 +76,40 @@ export function StepDateTime({ date, time, onChange }: Props) {
     if (date) return new Date(date);
     return today;
   });
+  const [apiAvailability, setApiAvailability] =
+    React.useState<PublicAvailability | null>(null);
+
+  React.useEffect(() => {
+    if (dataSource !== "api") return;
+    const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+    let cancelled = false;
+    listPublicAvailability(service.id, dateIso(first), dateIso(last)).then((result) => {
+      if (!cancelled) setApiAvailability(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [anchor, service.id]);
 
   const cells = React.useMemo(() => buildMonthGrid(anchor), [anchor]);
   const selectedDate = date ? new Date(date) : null;
+  const apiSlots = React.useMemo(
+    () =>
+      (apiAvailability?.items ?? []).map((slot) => ({
+        ...slot,
+        ...slotParts(slot.startAt, apiAvailability?.timezone ?? "UTC"),
+      })),
+    [apiAvailability],
+  );
+  const availableDates = React.useMemo(
+    () => new Set(apiSlots.map((slot) => slot.date)),
+    [apiSlots],
+  );
+  const visibleTimes =
+    dataSource === "api"
+      ? apiSlots.filter((slot) => slot.date === date)
+      : TIME_SLOTS.map((slotTime) => ({ startAt: "", endAt: "", date: date ?? "", time: slotTime }));
 
   const go = (months: number) => {
     const next = new Date(anchor);
@@ -56,14 +119,19 @@ export function StepDateTime({ date, time, onChange }: Props) {
   };
 
   const pickDate = (d: Date) => {
-    if (d < today || !isAvailable(d)) return;
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    onChange({ date: iso, time });
+    const iso = dateIso(d);
+    const available = dataSource === "api" ? availableDates.has(iso) : isAvailable(d);
+    if (d < today || !available) return;
+    onChange({ date: iso, time: null, startAt: null });
   };
 
-  const pickTime = (t: string) => {
+  const pickTime = (slotTime: string, slotStartAt: string) => {
     if (!date) return;
-    onChange({ date, time: t });
+    onChange({
+      date,
+      time: slotTime,
+      startAt: dataSource === "api" ? slotStartAt : startAt,
+    });
   };
 
   return (
@@ -98,7 +166,8 @@ export function StepDateTime({ date, time, onChange }: Props) {
         <div className="grid grid-cols-7 gap-1 px-4 pb-4 flex-1 auto-rows-fr">
           {cells.map((c) => {
             const past = c.date < today;
-            const avail = isAvailable(c.date);
+            const avail =
+              dataSource === "api" ? availableDates.has(c.iso) : isAvailable(c.date);
             const selected = !!selectedDate && sameDay(c.date, selectedDate);
             const disabled = past || !avail || !c.inMonth;
             return (
@@ -139,13 +208,14 @@ export function StepDateTime({ date, time, onChange }: Props) {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2 flex-1 auto-rows-fr">
-            {TIME_SLOTS.map((t) => {
-              const active = time === t;
+            {visibleTimes.map((slot) => {
+              const active = time === slot.time &&
+                (dataSource !== "api" || startAt === slot.startAt);
               return (
                 <button
-                  key={t}
+                  key={slot.startAt || slot.time}
                   type="button"
-                  onClick={() => pickTime(t)}
+                  onClick={() => pickTime(slot.time, slot.startAt)}
                   className={cn(
                     "min-h-11 rounded-md border text-[14px] font-medium transition-colors",
                     active
@@ -153,7 +223,7 @@ export function StepDateTime({ date, time, onChange }: Props) {
                       : "bg-surface text-ink border-line hover:border-ink-3",
                   )}
                 >
-                  {t}
+                  {slot.time}
                 </button>
               );
             })}

@@ -15,7 +15,11 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { NewWorkspaceDrawer } from "./NewWorkspaceDrawer";
 import { listWorkspaces } from "@/services/platform.service";
 import { dataSource } from "@/lib/env";
-import { PLAN_LABEL, SUBSCRIPTION_STATUS } from "@/lib/status-maps";
+import {
+  PLAN_LABEL,
+  SUBSCRIPTION_STATUS,
+  WORKSPACE_OPERATIONAL_STATUS,
+} from "@/lib/status-maps";
 import { fmtDate, fmtRelative } from "@/lib/time";
 import { isMockWorkspace, type PlatformWorkspace } from "@/types/platform";
 import type { PlanId, SubscriptionStatus } from "@/types/billing";
@@ -144,7 +148,7 @@ function ApiDirectory({ items }: { items: PlatformWorkspace[] }) {
   return (
     <>
       <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-line-soft text-micro uppercase tracking-wide text-ink-3 bg-surface-warm rounded-t-lg">
-        <span>Workspace</span>
+        <span>Workspace / status</span>
         <span>Owner</span>
         <span>Created</span>
         <span>Services</span>
@@ -159,6 +163,14 @@ function ApiDirectory({ items }: { items: PlatformWorkspace[] }) {
         >
           <div className="min-w-0">
             <div className="text-[14px] text-ink truncate">{workspace.name}</div>
+            <div className="mt-1">
+              <Pill
+                tone={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].tone}
+                icon={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].icon}
+              >
+                {WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label}
+              </Pill>
+            </div>
             <div className="text-small md:hidden truncate">
               {workspace.ownerName ?? "No operator assigned"}
             </div>

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { CardHead } from "@/components/shared/CardHead";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Select } from "@/components/ui/Select";
 import { Pill } from "@/components/ui/Pill";
 import { Textarea } from "@/components/ui/Textarea";
@@ -20,7 +21,11 @@ import {
   suspendWorkspace,
 } from "@/services/platform.service";
 import { dataSource } from "@/lib/env";
-import { PLAN_LABEL, SUBSCRIPTION_STATUS } from "@/lib/status-maps";
+import {
+  PLAN_LABEL,
+  SUBSCRIPTION_STATUS,
+  WORKSPACE_OPERATIONAL_STATUS,
+} from "@/lib/status-maps";
 import { fmtDate, fmtRelative } from "@/lib/time";
 import {
   isMockWorkspace,
@@ -43,6 +48,7 @@ export function WorkspaceDetailView({ id }: { id: string }) {
   const [notFound, setNotFound] = React.useState(false);
   const [notes, setNotes] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [confirmStatusChange, setConfirmStatusChange] = React.useState(false);
 
   React.useEffect(() => {
     getWorkspace(id).then((item) => {
@@ -77,6 +83,9 @@ export function WorkspaceDetailView({ id }: { id: string }) {
   const subscription = mockWorkspace
     ? SUBSCRIPTION_STATUS[workspace.subscriptionStatus]
     : undefined;
+  const isSuspended = mockWorkspace
+    ? Boolean(workspace.suspended)
+    : workspace.operationalStatus === "suspended";
 
   const handlePlanChange = async (planId: PlanId) => {
     if (!isMockWorkspace(workspace) || planId === workspace.planId) return;
@@ -89,10 +98,21 @@ export function WorkspaceDetailView({ id }: { id: string }) {
   };
 
   const handleSuspend = async () => {
-    if (!isMockWorkspace(workspace)) return;
     setBusy(true);
     try {
-      setWorkspace(await suspendWorkspace(workspace.id, !workspace.suspended));
+      setWorkspace(await suspendWorkspace(workspace.id, !isSuspended));
+      setConfirmStatusChange(false);
+      if (isSuspended) {
+        toast.success("Workspace reactivated", {
+          description: "The operator can sign in with a new session.",
+        });
+      } else {
+        toast.info("Workspace suspended", {
+          description: "Existing operator sessions have been revoked.",
+        });
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update workspace");
     } finally {
       setBusy(false);
     }
@@ -122,12 +142,21 @@ export function WorkspaceDetailView({ id }: { id: string }) {
               <span>Joined {fmtDate(new Date(workspace.createdAtISO))}</span>
             </span>
           ) : (
-            <span>Joined {fmtDate(new Date(workspace.createdAtISO))} · Read-only platform view</span>
+            <span className="inline-flex items-center gap-2 flex-wrap">
+              <Pill
+                tone={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].tone}
+                icon={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].icon}
+              >
+                {WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label}
+              </Pill>
+              <span aria-hidden>·</span>
+              <span>Joined {fmtDate(new Date(workspace.createdAtISO))}</span>
+            </span>
           )
         }
         actions={
-          !apiMode && mockWorkspace ? (
-            <>
+          <>
+            {!apiMode && mockWorkspace && (
               <Button
                 variant="secondary"
                 size="md"
@@ -136,17 +165,17 @@ export function WorkspaceDetailView({ id }: { id: string }) {
               >
                 View as operator
               </Button>
-              <Button
-                variant={workspace.suspended ? "primary" : "danger"}
-                size="md"
-                icon={workspace.suspended ? "play" : "pause"}
-                loading={busy}
-                onClick={handleSuspend}
-              >
-                {workspace.suspended ? "Reactivate" : "Suspend"}
-              </Button>
-            </>
-          ) : undefined
+            )}
+            <Button
+              variant={isSuspended ? "primary" : "danger"}
+              size="md"
+              icon={isSuspended ? "play" : "pause"}
+              disabled={busy}
+              onClick={() => setConfirmStatusChange(true)}
+            >
+              {isSuspended ? "Reactivate" : "Suspend"}
+            </Button>
+          </>
         }
       />
 
@@ -173,6 +202,21 @@ export function WorkspaceDetailView({ id }: { id: string }) {
       ) : (
         <ApiDetail workspace={workspace} />
       )}
+
+      <ConfirmDialog
+        open={confirmStatusChange}
+        onClose={() => setConfirmStatusChange(false)}
+        onConfirm={handleSuspend}
+        title={isSuspended ? "Reactivate workspace?" : "Suspend workspace?"}
+        description={
+          isSuspended
+            ? "The operator will be able to sign in again. Previously revoked sessions stay revoked."
+            : "The operator will lose access immediately and all existing workspace sessions will be revoked. Workspace data is retained."
+        }
+        confirmLabel={isSuspended ? "Reactivate" : "Suspend"}
+        destructive={!isSuspended}
+        busy={busy}
+      />
     </PageContainer>
   );
 }

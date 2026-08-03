@@ -35,8 +35,7 @@ class SessionActionItemsRepository:
                         .order_by(
                             case(
                                 (
-                                    SessionActionItem.status
-                                    == SessionActionItemStatus.TODO,
+                                    SessionActionItem.status == SessionActionItemStatus.TODO,
                                     0,
                                 ),
                                 else_=1,
@@ -118,9 +117,7 @@ class SessionActionItemsRepository:
             await session.refresh(item)
             return item
 
-    async def delete_item(
-        self, workspace_id: UUID, actor_user_id: UUID, item_id: UUID
-    ) -> bool:
+    async def delete_item(self, workspace_id: UUID, actor_user_id: UUID, item_id: UUID) -> bool:
         async with self.database.tenant_transaction(workspace_id) as session:
             item = await session.scalar(
                 select(SessionActionItem).where(

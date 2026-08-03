@@ -7,6 +7,7 @@ import { makeId } from "@/lib/id";
 import type { Address, WorkspaceLocation } from "@/types/address";
 import type { SettingsData } from "@/types/settings";
 import { NotFoundError, NotImplementedError } from "./_errors";
+import { getPublicBookingWorkspace } from "./public-booking.service";
 
 type AddressDto = components["schemas"]["Address"];
 type BusinessResponseDto = components["schemas"]["BusinessSettingsResponse"];
@@ -17,6 +18,20 @@ type LocationPatchDto = components["schemas"]["WorkspaceLocationPatch"];
 type LocationListDto = components["schemas"]["WorkspaceLocationListResponse"];
 type AvailabilityResponseDto = components["schemas"]["AvailabilityResponse"];
 type AvailabilityUpdateDto = components["schemas"]["AvailabilityUpdate"];
+type PaymentResponseDto = components["schemas"]["PaymentSettingsResponse"];
+type PaymentPatchDto = components["schemas"]["PaymentSettingsPatch"];
+
+export type PaymentSettings = {
+  manualPaymentEnabled: boolean;
+  manualPaymentInstructions: string;
+  bookingTermsEnabled: boolean;
+  bookingTermsContent: string;
+  taxTreatment: "none" | "fixed";
+  taxRateBps: number;
+  taxLabel: string;
+  taxJurisdiction: string;
+  sellerTaxNumber: string;
+};
 
 export type AvailabilityWindow = {
   dayOfWeek: number;
@@ -194,7 +209,34 @@ export async function updateAvailabilitySettings(
 }
 
 export async function getSettings(): Promise<SettingsData> {
-  if (dataSource !== "mock") throw new NotImplementedError("getSettings");
+  if (dataSource === "api") {
+    const workspace = await getPublicBookingWorkspace();
+    return {
+      ...JSON.parse(JSON.stringify(settingsJson)) as SettingsData,
+      business: {
+        ...mock.business,
+        displayName: workspace.displayName,
+        bio: workspace.bio,
+        email: workspace.email,
+        address: workspace.address,
+        bookingPageUrl: workspace.slug,
+        bookingPageEnabled: true,
+      },
+      payments: {
+        ...mock.payments,
+        processors: [],
+        taxRate: 0,
+        vatNumber: "",
+        manualPaymentEnabled: workspace.manualPaymentEnabled,
+        manualPaymentInstructions: workspace.manualPaymentInstructions,
+        defaultPaymentMethods: ["manual"],
+        bookingTerms: {
+          enabled: workspace.bookingTermsEnabled,
+          content: workspace.bookingTermsContent,
+        },
+      },
+    };
+  }
   await sleep(60);
   return mock;
 }
@@ -206,6 +248,63 @@ export async function updateSettings(
   await sleep(120);
   mock = { ...mock, ...patch } as SettingsData;
   return mock;
+}
+
+function mapPaymentSettings(item: PaymentResponseDto): PaymentSettings {
+  return {
+    manualPaymentEnabled: item.manualPaymentEnabled,
+    manualPaymentInstructions: item.manualPaymentInstructions,
+    bookingTermsEnabled: item.bookingTermsEnabled,
+    bookingTermsContent: item.bookingTermsContent,
+    taxTreatment: item.taxTreatment,
+    taxRateBps: item.taxRateBps,
+    taxLabel: item.taxLabel,
+    taxJurisdiction: item.taxJurisdiction ?? "",
+    sellerTaxNumber: item.sellerTaxNumber ?? "",
+  };
+}
+
+export async function getPaymentSettings(): Promise<PaymentSettings> {
+  if (dataSource === "mock") {
+    return {
+      manualPaymentEnabled: mock.payments.manualPaymentEnabled,
+      manualPaymentInstructions: mock.payments.manualPaymentInstructions,
+      bookingTermsEnabled: mock.payments.bookingTerms.enabled,
+      bookingTermsContent: mock.payments.bookingTerms.content,
+      taxTreatment: mock.payments.taxRate > 0 ? "fixed" : "none",
+      taxRateBps: Math.round(mock.payments.taxRate * 100),
+      taxLabel: "Tax",
+      taxJurisdiction: "",
+      sellerTaxNumber: mock.payments.vatNumber,
+    };
+  }
+  return mapPaymentSettings(
+    await apiRequest<PaymentResponseDto>("/settings/payments"),
+  );
+}
+
+export async function updatePaymentSettings(
+  input: PaymentSettings,
+): Promise<PaymentSettings> {
+  if (dataSource === "mock") throw new NotImplementedError("updatePaymentSettings");
+  const payload: PaymentPatchDto = {
+    manualPaymentEnabled: input.manualPaymentEnabled,
+    manualPaymentInstructions: input.manualPaymentInstructions,
+    bookingTermsEnabled: input.bookingTermsEnabled,
+    bookingTermsContent: input.bookingTermsContent,
+    taxTreatment: input.taxTreatment,
+    taxRateBps: input.taxTreatment === "none" ? 0 : input.taxRateBps,
+    taxLabel: input.taxLabel,
+    taxJurisdiction: input.taxJurisdiction || null,
+    sellerTaxNumber: input.sellerTaxNumber || null,
+  };
+  return mapPaymentSettings(
+    await apiRequest<PaymentResponseDto, PaymentPatchDto>("/settings/payments", {
+      method: "PATCH",
+      body: payload,
+      csrf: true,
+    }),
+  );
 }
 
 export async function getBusinessSettings(): Promise<BusinessSettings> {

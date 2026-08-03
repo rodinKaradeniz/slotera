@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Query, Response
 
 from slotera_api.auth.dependencies import (
+    AuthServiceDependency,
     CsrfPlatformSuperadminDependency,
     DatabaseDependency,
     PlatformSuperadminDependency,
@@ -29,6 +30,7 @@ def _summary(workspace: PlatformWorkspace) -> PlatformWorkspaceSummary:
         owner_name=workspace.owner_name,
         owner_email=workspace.owner_email,
         created_at=workspace.created_at,
+        operational_status=workspace.operational_status,
         services_count=workspace.services_count,
         clients_count=workspace.clients_count,
         bookings_count=workspace.bookings_count,
@@ -70,6 +72,7 @@ async def provision_platform_workspace(
     response: Response,
     superadmin: CsrfPlatformSuperadminDependency,
     database: DatabaseDependency,
+    auth_service: AuthServiceDependency,
 ) -> PlatformWorkspaceDetail:
     repository = PlatformRepository(database)
     result_code, workspace_id = await repository.provision_workspace(
@@ -101,6 +104,10 @@ async def provision_platform_workspace(
         )
     if result_code != "created":
         raise RuntimeError(f"unexpected platform provisioning result: {result_code}")
+    await auth_service.request_password_reset(
+        email=str(payload.owner_email),
+        client_key=f"platform:{superadmin.user_id}",
+    )
     workspace = await repository.get_workspace(workspace_id)
     if workspace is None:
         raise RuntimeError("provisioned workspace was not readable")
@@ -128,3 +135,78 @@ async def get_platform_workspace(
         )
     response.headers["Cache-Control"] = "no-store"
     return _detail(workspace)
+
+
+async def _set_workspace_operational_status(
+    *,
+    workspace_id: UUID,
+    operational_status: str,
+    response: Response,
+    superadmin: CsrfPlatformSuperadminDependency,
+    database: DatabaseDependency,
+) -> PlatformWorkspaceDetail:
+    repository = PlatformRepository(database)
+    result_code = await repository.set_operational_status(
+        workspace_id=workspace_id,
+        actor_user_id=superadmin.user_id,
+        operational_status=operational_status,
+    )
+    if result_code == "workspace_not_found":
+        raise ApiError(
+            status_code=HTTPStatus.NOT_FOUND,
+            code="platform_workspace_not_found",
+            message="Workspace was not found",
+        )
+    if result_code == "actor_not_superadmin":
+        raise ApiError(
+            status_code=HTTPStatus.FORBIDDEN,
+            code="platform_superadmin_required",
+            message="A platform superadmin is required",
+        )
+    if result_code not in {"updated", "unchanged"}:
+        raise RuntimeError(f"unexpected workspace operational status result: {result_code}")
+    workspace = await repository.get_workspace(workspace_id)
+    if workspace is None:
+        raise RuntimeError("updated workspace was not readable")
+    response.headers["Cache-Control"] = "no-store"
+    return _detail(workspace)
+
+
+@router.post(
+    "/{workspace_id}/suspend",
+    response_model=PlatformWorkspaceDetail,
+    operation_id="suspendPlatformWorkspace",
+)
+async def suspend_platform_workspace(
+    workspace_id: UUID,
+    response: Response,
+    superadmin: CsrfPlatformSuperadminDependency,
+    database: DatabaseDependency,
+) -> PlatformWorkspaceDetail:
+    return await _set_workspace_operational_status(
+        workspace_id=workspace_id,
+        operational_status="suspended",
+        response=response,
+        superadmin=superadmin,
+        database=database,
+    )
+
+
+@router.post(
+    "/{workspace_id}/reactivate",
+    response_model=PlatformWorkspaceDetail,
+    operation_id="reactivatePlatformWorkspace",
+)
+async def reactivate_platform_workspace(
+    workspace_id: UUID,
+    response: Response,
+    superadmin: CsrfPlatformSuperadminDependency,
+    database: DatabaseDependency,
+) -> PlatformWorkspaceDetail:
+    return await _set_workspace_operational_status(
+        workspace_id=workspace_id,
+        operational_status="active",
+        response=response,
+        superadmin=superadmin,
+        database=database,
+    )

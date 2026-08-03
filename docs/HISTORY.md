@@ -1035,6 +1035,70 @@ become a demonstrated product need.
 
 ---
 
+### Entry 042 — Workspace suspension is an access state, not a billing state
+
+*2026-08-01.* Persisted workspaces now carry a separate `active | suspended` operational
+status. A platform superadmin can suspend or reactivate through explicit CSRF-protected
+commands backed by one fixed-search-path `SECURITY DEFINER` capability. Only real state
+transitions write audit events, so retries are idempotent without a separate command-key
+table. Suspension revokes every current operator session for that workspace, and the
+login/session database functions reject suspended workspaces. Reactivation permits a new
+login but never resurrects a revoked credential.
+
+**Why this is separate from subscriptions:** loss of access may be an operational or
+security intervention and cannot safely be inferred from a mocked plan, invoice, or
+payment status. The command retains all tenant data and changes no booking, payment,
+subscription, or billing fact. This keeps the two payment domains out of the access-control
+boundary and prevents a future billing retry from silently becoming an authorisation
+decision.
+
+The restricted runtime role can execute the narrow status capability but can no longer
+update the workspace root table directly. Forced tenant RLS and the two display-safe
+platform projections remain unchanged; no global table grant or superadmin RLS bypass was
+added.
+
+**Alternative rejected:** implement activation/password reset as the next platform
+bundle. Provisioned operators have no safe credential-delivery channel yet, and returning
+an activation secret to platform staff would create the credential-handoff problem the
+activation-pending model deliberately avoids. That bundle remains paired with the
+transactional-email boundary. Notification producers were also left with their owning
+future public-booking/payment events rather than emitting notifications for an operator's
+own administrative commands.
+
+---
+
+### Entry 043 — Release MVP uses activation links, offline payments, and open capacity-one slots
+
+*2026-08-03.* The first release bundle closes three independent but connected gaps. A
+platform-provisioned operator now receives a hashed, one-time activation/password-reset
+credential through a PostgreSQL outbox worker; consuming it rotates the password and
+revokes every existing session. Login and reset requests use shared PostgreSQL throttles,
+and maintenance removes stale auth/rate-limit/outbox rows. Production configuration
+requires the Resend provider; the console provider is explicitly local/test-only.
+
+Workspace client-payment settings now persist manual-payment instructions, provider terms,
+and `none | fixed` tax configuration. Service prices are gross/tax-inclusive. Each booking
+stores immutable gross, net, tax, rate, treatment, label, jurisdiction, seller-number,
+currency, and billing-address snapshots; this is a booking/payment summary, not a numbered
+tax invoice. No card, bank-account, Stripe, refund, or tax-provider behavior was introduced.
+
+The public API publishes only active open-mode services with capacity one. Availability
+returns open slots, never occupied blocks. Creation rederives the slot in the workspace
+timezone under advisory idempotency/slot locks, materialises a capacity-one session, and
+creates either a confirmed free booking or a capacity-consuming pending manual booking.
+Attached active pre-payment forms are validated and snapshotted in that same tenant/RLS
+transaction. The browser keeps the exact server-issued instant so client timezone cannot
+silently change the booking.
+
+**Alternatives rejected:** returning activation secrets to platform staff; direct card or
+bank handling by Slotera; showing booked blocks on the public calendar; broad platform
+table privileges; and API-mode fallback to mock availability or checkout. Each would
+weaken either credential custody, payment/legal boundaries, privacy, tenancy, or transport
+coherence. Scheduled/group public booking, confirmation/magic-link email, payment
+reconciliation, holds, Stripe, reminders, and impersonation remain separate milestones.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

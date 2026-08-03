@@ -109,11 +109,12 @@ frontend integration lands.
   render). This is the single load-bearing "trusted author" assumption in the codebase —
   see HISTORY.md Entry 018.
 
-- **The session token is fabricated client-side and never verified.**
+- **The default mock session token is fabricated client-side and never verified.**
   `auth.service.ts` mints `mock.<random>.<timestamp>` and `AuthGuard` trusts whatever is in
   `localStorage`. Role is derived from an email pattern. Every route protection in the app
-  is therefore cosmetic. Phase 2 must move authorisation server-side; the guard should
-  become a UX affordance, never the boundary.
+  is therefore cosmetic in the demo. **API mode is DONE:** it uses server-verified,
+  revocable opaque sessions and role/workspace dependencies; the guard is only a UX
+  affordance there. The mock behavior remains deliberately isolated to mock mode.
 
 - **A booking must not become `confirmed` on the success route.** Today it does. In the
   real state machine a free booking confirms atomically, a manual-payment booking confirms
@@ -129,7 +130,10 @@ frontend integration lands.
   mutations now have exact-Origin, session-bound CSRF, strict Pydantic validation, and
   tenant authorization. Login throttling remains a production gate. Every future public
   form (booking, contact, forms step) needs endpoint-specific server-side validation and
-  abuse controls; client-side validation remains only a UX check.
+  abuse controls; client-side validation remains only a UX check. **The real password-
+  reset and public-booking endpoints are DONE:** both use shared PostgreSQL rate limits,
+  strict external schemas, trusted-origin checks on mutations, and safe error contracts.
+  Future contact and magic-link surfaces inherit the same requirement.
 
 ---
 
@@ -287,9 +291,11 @@ built and exercised separately.
    - **Recurrence horizon maintenance.** Add the database-backed worker that extends
      active series and split series metadata when `this_and_following` edits must survive
      beyond the currently materialised horizon.
-   - **Capacity consumption.** Session capacity is range-validated now; locking and
-     counting capacity-consuming bookings/holds lands with the booking schema because no
-     such rows exist yet.
+   - **~~Capacity consumption.~~ DONE for MVP bookings.** Scheduled commands lock the
+     session and count pending/confirmed bookings; public open-mode capacity-one creation
+     takes slot/idempotency advisory locks, rederives availability, materialises the
+     session, and relies on the exclusion constraint as the final race safeguard. Card
+     holds and group public booking remain deferred.
 6. Operator core:
    - **~~Clients API bundle.~~ DONE.** Tenant-scoped client profiles now have normalized,
      workspace-unique emails, operator CRUD/search, audit events, forced RLS, generated
@@ -298,7 +304,8 @@ built and exercised separately.
    - **~~Bookings read baseline.~~ DONE.** Tenant-scoped ledger rows now persist client and
      session references plus amount/currency snapshots, with forced RLS and API-mode
      list/detail reads. Scheduled-session commands and attendance are recorded separately
-     below; public/open-mode transactions remain deferred.
+     below; public/open-mode transactions were deferred in that bundle and are now covered
+     by the capacity-one MVP slice in item 7.
    - **~~Form-template operator CRUD.~~ DONE.** Operator form templates and their
      single-sourced service attachments persist under RLS, with API-mode create/edit/
      activate/deactivate/delete. Public rendering and responses remain deferred.
@@ -320,12 +327,19 @@ built and exercised separately.
      `present`/`late`/`absent` outcomes. Its idempotent operator command locks booking and
      session, rejects capacity-1 and ineligible lifecycle states, completes the booking
      without touching payment state, and powers the API-mode Calendar roster/tab.
-   - **Form responses.** Persisted public/post-booking form answers belong with the real
-     public booking transaction, not the operator-template CRUD bundle.
-7. Public booking: public catalog/availability, free/manual booking transactions, tax
-   snapshots, idempotency, and expiry.
-8. Transactional email and booking workspace: outbox worker, confirmation/magic links,
-   post-booking forms, reschedule/cancel requests, and client messages.
+   - **~~Form responses.~~ DONE for pre-booking responses.** The public transaction
+     validates active attached templates and snapshots submitted answers against the
+     booking under forced RLS. Post-booking optional responses remain with magic-link
+     access.
+7. **~~Public booking: public catalog/availability, free/manual booking transactions, tax
+   snapshots, idempotency, and expiry.~~ DONE for the MVP open-mode/capacity-one slice.**
+   API mode now publishes only active `open` services with capacity one, exposes only
+   available slots, creates free-confirmed or manual-pending bookings atomically, snapshots
+   gross-inclusive `none | fixed` tax facts, and removes the claimed slot. Scheduled/group
+   public booking, card holds, and operator payment reconciliation remain deferred.
+8. Transactional email and booking workspace: the outbox worker/provider boundary is DONE
+   for activation/reset; booking confirmation/magic links, post-booking forms,
+   reschedule/cancel requests, and client messages remain.
 9. Derived/platform resources:
    - **~~Operator dashboard summary.~~ DONE.** `GET /dashboard/summary` provides a
      tenant- and principal-scoped read model for monthly booking facts, a 30-day trend,
@@ -338,13 +352,19 @@ built and exercised separately.
    - **~~Superadmin workspace reads.~~ DONE.** Global-superadmin-only directory/detail
      reads now use two fixed, display-safe database projections; the runtime role has
      `EXECUTE` on those projections rather than direct cross-workspace table access or a
-     generic RLS bypass. API mode exposes only that read-only platform island.
+     generic RLS bypass. API mode established its platform island with these reads.
    - **~~Superadmin workspace provisioning.~~ DONE.** The single CSRF-protected command
      atomically creates a EUR workspace, activation-pending initial operator identity and
-     membership, baseline business profile, and tenant audit event through a fixed
+     membership, baseline business/payment settings, and tenant audit event through a fixed
      `SECURITY DEFINER` capability; no broad superadmin RLS exception or direct global
-     table access was introduced.
-   - Notification producers, additional superadmin workspace commands, subscriptions, and
+     table access was introduced. The API now queues that operator's one-time activation
+     link through the separately restricted auth/outbox capability.
+   - **~~Superadmin workspace suspension/reactivation.~~ DONE.** Explicit idempotent
+     commands now change a persisted `active | suspended` operational state through one
+     audited fixed database capability. Suspension revokes current operator sessions and
+     auth rejects new ones until reactivation; data and subscription/payment state are
+     untouched, and the runtime role cannot update the workspace root directly.
+   - Notification producers, further superadmin workspace commands, subscriptions, and
      inquiries.
 10. Production-readiness gate, then later hosting/deployment selection.
 
@@ -355,8 +375,8 @@ built and exercised separately.
 - **~~Scheduled-session booking capacity consumption and commands.~~ DONE.** Pending and
   confirmed operator-created bookings now consume capacity under a locked-session,
   idempotent transaction; explicit lifecycle commands are audit logged. **Holds and
-  open-mode/public booking creation remain deferred** and need their own lock targets and
-  expiry rules.
+  **Open-mode capacity-one public creation is also DONE** with advisory slot locking and a
+  server-derived expiry for manual-payment capacity. Card holds remain deferred.
 - **~~Group-session attendance.~~ DONE.** Confirmed/completed bookings on sessions with
   capacity greater than one can now record/correct `present`/`late`/`absent` through an
   actor-idempotent, audited command; it completes the booking and does not alter payment
@@ -364,17 +384,21 @@ built and exercised separately.
   not a new broad mutation endpoint.
 - **Payments:** Stripe, payment holds, webhooks, refunds, and tax-provider work remain
   Phase 3.
-- **Email:** booking confirmation/magic-link delivery waits for real public bookings;
-  reminders and follow-ups remain Phase 3.
+- **Email:** the PostgreSQL outbox, retry-safe worker, local console provider, production
+  Resend provider, and activation/password-reset delivery are DONE. Booking confirmation
+  and magic-link events remain paired with the customer booking workspace; reminders and
+  follow-ups remain Phase 3.
 - **External calendars:** Google Calendar/Meet and all connection/sync work remain
   display-only/deferred.
 
-Before any live auth deployment, add shared login throttling, expired/revoked-session
-cleanup, password reset delivery/consumption, password-change session revocation, and
-operational security monitoring. In-process rate limiting is deliberately not being used:
-it would reset on deploy and disagree across multiple workers. Multi-workspace login
-already fails closed with `workspace_selection_required`; the workspace chooser waits for
-the Team/member product surface.
+**~~Before any live auth deployment, add shared login throttling, expired/revoked-session
+cleanup, password reset delivery/consumption, and password-change session revocation.~~
+DONE.** Fixed-window throttles and cleanup are PostgreSQL-backed; reset credentials are
+hashed, one-time, expiring, and revoke every existing session when consumed. Operational
+security monitoring remains part of the production-readiness gate. In-process rate
+limiting was not used because it would reset on deploy and disagree across multiple
+workers. Multi-workspace login already fails closed with `workspace_selection_required`;
+the workspace chooser waits for the Team/member product surface.
 
 ## 5. Phase 3 — external integrations
 

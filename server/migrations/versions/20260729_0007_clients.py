@@ -35,9 +35,7 @@ def upgrade() -> None:
         sa.Column(
             "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
-        sa.CheckConstraint(
-            "email = lower(btrim(email))", name=op.f("ck_clients_email_normalized")
-        ),
+        sa.CheckConstraint("email = lower(btrim(email))", name=op.f("ck_clients_email_normalized")),
         sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_clients")),
         sa.UniqueConstraint("workspace_id", "email", name=op.f("uq_clients_workspace_id_email")),

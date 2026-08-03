@@ -33,9 +33,7 @@ async def test_operator_can_manage_sanitized_client_notes() -> None:
     try:
         await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
         app = create_app(database=application)
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
             created = await client.post(
                 f"/clients/{CLIENT_ID}/notes",
@@ -53,9 +51,7 @@ async def test_operator_can_manage_sanitized_client_notes() -> None:
                 json={"body": "<img src=x onerror=alert(1)><p>Changed</p>"},
             )
             listed = await client.get(f"/clients/{CLIENT_ID}/notes")
-            removed = await client.delete(
-                f"/client-notes/{note_id}", headers=_csrf_headers(client)
-            )
+            removed = await client.delete(f"/client-notes/{note_id}", headers=_csrf_headers(client))
             remaining = await client.get(f"/clients/{CLIENT_ID}/notes")
     finally:
         await application.dispose()

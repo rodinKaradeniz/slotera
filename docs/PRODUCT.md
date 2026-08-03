@@ -46,10 +46,12 @@ locations, services, the structured notification baseline, generated OpenAPI tra
 types, coherent operator frontend wiring, the scheduling bundle (workspace
 availability, materialised recurrence, sessions, database overlap enforcement, Calendar,
 Calendar Settings), and a narrow superadmin workspace directory/detail plus initial
-provisioning command exist. The
+provisioning, activation/password reset, operational suspension/reactivation, operator
+payment settings, and capacity-one open-mode public booking commands exist. The
 public portfolio/demo deployment stays mock-backed; the API is developed and exercised in
-a separate local/API environment. Real public bookings include durable transactional
-confirmation + booking-workspace magic-link email through a PostgreSQL outbox worker.
+a separate local/API environment. Activation/reset delivery now uses the PostgreSQL
+outbox worker; booking confirmation and booking-workspace magic links remain the next
+customer-access bundle.
 Hosting is deliberately undecided (Railway is a later candidate, not a current dependency).
 The mock/api switch in `web/src/lib/env.ts` remains the transition seam (see Data layer below).
 
@@ -106,7 +108,7 @@ await sleep(N);                 // simulated latency
 return ...                      // returns from / mutates an in-memory copy of web/src/data/mock/*.json
 ```
 
-`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The wired API bundles implement auth/session, business settings/saved locations, services, notifications, availability, sessions, clients, booking-ledger reads, forms, client notes, session action items, the dashboard summary, and superadmin workspace reads through `web/src/api/client.ts`; every other API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
+`dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The wired API bundles implement auth/session and password reset, business and client-payment settings, saved locations, services, notifications, availability, sessions, clients, booking-ledger reads, forms, client notes, session action items, dashboard/search, the narrow superadmin workspace reads/commands, and the capacity-one public booking flow through `web/src/api/client.ts`; every unwired API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
 
 In mock mode, `getDashboard()` is the only service that composes from other services live: it imports bookings, sessions, and action items to prepend derived attention entries to the fixture. In API mode it maps the single tenant-scoped `GET /dashboard/summary` read model; it must not compose a real dashboard from unrelated mock data or make client-side aggregate queries.
 
@@ -266,13 +268,17 @@ Mock auth routes by role via `homePathForRole()`. `/superadmin/*` is protected b
 other platform pages to that directory. `GET /platform/workspaces` and its item read are
 available only to an authenticated superadmin and return a display-safe allow-list:
 workspace identity/configuration, the first operator owner’s name/email, creation time,
-and service/client/booking/session counts. `POST /platform/workspaces` is the one
+and service/client/booking/session counts. `POST /platform/workspaces` is the initial
 persisted command: it creates a EUR workspace, initial operator identity/membership,
-baseline business profile, and audit event. It does **not** set a password or send an
-invitation; owner activation waits for the separately modelled password-reset/invitation
-and email work. The API must not invent or show mock plan/subscription status,
-billing/activity history, admin notes, suspend/reactivate, or impersonate controls. Those
-features await their own persisted models and commands.
+baseline business profile/payment settings, and audit event. It does **not** set or return
+a password; it queues a one-time activation link to the initial operator through the
+transactional email outbox. Explicit item suspend/reactivate commands change only the workspace's
+operational access state. Suspension revokes current operator sessions and prevents new
+workspace sessions; reactivation permits a fresh login but never restores revoked
+sessions. Workspace data is retained, and these commands do not imply cancellation,
+non-payment, or any subscription/billing state. The API must not invent or show mock
+plan/subscription status, billing/activity history, admin notes, or impersonate controls.
+Those features await their own persisted models and commands.
 
 Mock files under `web/src/data/mock/`: `platform-workspaces.json`, `platform-subscriptions.json`, `platform-inquiries.json`, `platform-overview.json`. **Everything platform-side lives in `web/src/services/platform.service.ts`** — workspaces, subscriptions, and inquiries together. There is no separate `platform-billing.service.ts`; both share `setSubscriptionStatus` (with different semantics from `billing.service.ts`'s same-name method — different import sites).
 
@@ -369,14 +375,22 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
   fixed treatment; international tax detection waits for a provider tax service and
   professional review. The customer receives a booking/payment summary, not a legally
   numbered tax invoice.
+- **The API-mode MVP is deliberately narrower than the mock showcase.** It publishes
+  active `bookingMode=open`, `capacity=1` services only, and its availability response
+  contains open slots only—never occupied blocks or client/session details. Free bookings
+  confirm atomically; manual-payment bookings remain payment-pending and consume the slot
+  until their server-owned `paymentDueAt`. The browser submits the exact server-issued
+  instant and never reconstructs it from its own timezone.
 - When `settings.business.bookingPageEnabled === false`, the page renders `BookingsPausedCard` (operator name + Get in touch button) instead of the stepper. The route still returns 200 — don't 404 it, that would break shared links silently.
 - Card inputs are auto-formatted via `web/src/lib/card.ts` (`formatCardNumber` → `"4242 4242 4242 4242"`, `formatCardExpiry` → `"12 / 30"`, `formatCardCvc` digits-only). Apply these in every card form (booking, register payment, billing update card).
 - **Address surfacing** — `SessionItem.address` is stored but not yet shown to the public client. The booking flow's date/time picker doesn't resolve to a specific `SessionItem` (free-form slots), so there's no plumbed-through session reference at confirmation. Surfacing the address publicly is the natural pairing with the `bookingMode: "scheduled"` flow when it gets built — the "scheduled" mode resolves the chosen session and can pass its address to the receipt and confirmation.
 
 ### Forms
 
-The local API form bundle is operator-only: it persists and manages reusable templates and
-their service attachments. It does not render forms publicly or accept/store client responses.
+The local API form bundle persists and manages reusable templates and their service
+attachments. The capacity-one public booking slice returns attached active templates,
+validates required responses, and snapshots answers in the booking transaction. Optional
+post-booking responses remain deferred until booking-scoped magic access exists.
 
 - Reusable `FormTemplate`s (`web/src/types/form.ts`) are created under `/admin/forms` and attached to services. Attachment is **single-sourced on `FormTemplate.attachedServiceIds`** — there is no `Service.attachedFormIds` field. The public flow resolves attachment via `listFormsForService(serviceId)`. Don't reintroduce a dual-write relationship.
 - **Simplified shape (no `purpose`).** A `FormTemplate` is `{ id, name, description, status, fields, attachedServiceIds, requiredBeforePayment, createdAtISO }`. There is **no `purpose`/`FormPurpose` field, category, or filter** — don't reintroduce one. Mock forms are curated around the consultant/coach/instructor ICP (Discovery Call prep, Business context questions, Workshop intake, Mutual NDA acknowledgement). Don't add back profession-specific forms (pet/therapy/trainer).
@@ -442,7 +456,7 @@ Intentionally more editorial than generic SaaS. **Keep:**
 - Prominent `NextSessionCard` (also embeds today's schedule timeline — don't add a separate "Today's schedule" card).
 - `PendingActions` ("Needs your attention"). Mock mode prepends derived attendance/action-item entries. API mode reports only persisted summary facts: open session action-item and unread-notification counts.
 - API mode maps `GET /dashboard/summary` into the same component-facing contract: monthly paid-booking revenue plus active booking count/average, a 30-day trend, today/next session context, weekly session count, and the two attention counts. Currency formatting remains in the service/UI; the API returns currency and minor-unit facts.
-- `Greeting`'s right-hand column has the **booking-page toggle** in mock mode: a `Toggle` + status pill ("Booking page live" / "Bookings paused") + confirmation modal + `toast.info("Bookings paused", { description })` / `toast.success("Bookings live")`. It is intentionally hidden in API mode until the public booking bundle is real; API mode must not imply that its mock public page is live.
+- `Greeting`'s right-hand column has the **booking-page toggle** in mock mode: a `Toggle` + status pill ("Booking page live" / "Bookings paused") + confirmation modal + `toast.info("Bookings paused", { description })` / `toast.success("Bookings live")`. It remains hidden on the API dashboard; the real publication flag is owned by Business Settings and the public endpoint, not by this mock-derived dashboard control.
 
 **Do not reintroduce:** "Recent bookings" card, "This week" card. Those live on other pages.
 Do not add a conversion KPI until a persisted, unambiguous funnel denominator exists; dashboard facts must not be fabricated from the mock model.

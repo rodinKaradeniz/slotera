@@ -255,9 +255,10 @@ async def test_runtime_can_only_update_notification_read_state() -> None:
             DEMO_SEED.workspace.id, DEMO_SEED.operator.id
         ) as session:
             privileges = (
-                await session.execute(
-                    text(
-                        """
+                (
+                    await session.execute(
+                        text(
+                            """
                         SELECT
                           has_table_privilege(current_user, 'notifications', 'INSERT')
                             AS can_insert,
@@ -270,17 +271,18 @@ async def test_runtime_can_only_update_notification_read_state() -> None:
                             current_user, 'notifications', 'payload', 'UPDATE'
                           ) AS can_update_payload
                         """
+                        )
                     )
                 )
-            ).mappings().one()
+                .mappings()
+                .one()
+            )
 
         with pytest.raises(ProgrammingError):
             async with application.principal_transaction(
                 DEMO_SEED.workspace.id, DEMO_SEED.operator.id
             ) as session:
-                await session.execute(
-                    text("UPDATE notifications SET payload = '{}'::jsonb")
-                )
+                await session.execute(text("UPDATE notifications SET payload = '{}'::jsonb"))
     finally:
         await application.dispose()
         await owner.dispose()

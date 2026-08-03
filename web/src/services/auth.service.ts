@@ -17,6 +17,9 @@ import { ApiRequestError, NotImplementedError } from "./_errors";
 
 type LoginRequestDto = components["schemas"]["LoginRequest"];
 type SessionResponseDto = components["schemas"]["SessionResponse"];
+type PasswordResetRequestDto = components["schemas"]["PasswordResetRequest"];
+type PasswordResetConsumeDto = components["schemas"]["PasswordResetConsume"];
+type PasswordResetAcceptedDto = components["schemas"]["PasswordResetAccepted"];
 
 const SEED_OPERATOR = authJson.operator as Operator;
 const SEED_SUPERADMIN = authJson.superadmin as Operator;
@@ -195,16 +198,29 @@ export async function restoreSession(): Promise<Session | null> {
   }
 }
 
-export async function requestPasswordReset(_email: string): Promise<void> {
-  if (dataSource !== "mock") throw new NotImplementedError("requestPasswordReset");
+export async function requestPasswordReset(email: string): Promise<void> {
+  if (dataSource === "api") {
+    await apiRequest<PasswordResetAcceptedDto, PasswordResetRequestDto>(
+      "/auth/password-reset/request",
+      { method: "POST", body: { email: email.trim().toLowerCase() } },
+    );
+    return;
+  }
   await sleep(200);
 }
 
 export async function resetPassword(
-  _token: string,
-  _newPassword: string,
+  token: string,
+  newPassword: string,
 ): Promise<void> {
-  if (dataSource !== "mock") throw new NotImplementedError("resetPassword");
+  if (dataSource === "api") {
+    await apiRequest<void, PasswordResetConsumeDto>("/auth/password-reset/consume", {
+      method: "POST",
+      body: { token, newPassword },
+    });
+    clearSession();
+    return;
+  }
   await sleep(200);
 }
 

@@ -34,9 +34,7 @@ async def test_operator_manages_session_action_items_without_public_visibility()
     try:
         await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
         app = create_app(database=application)
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
             sessions = await client.get("/sessions", params={"limit": 1})
             session_id = sessions.json()["items"][0]["id"]

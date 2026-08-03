@@ -74,21 +74,12 @@ async def test_openapi_exposes_stable_health_operation_ids() -> None:
     assert document["paths"]["/health/live"]["get"]["operationId"] == "getLiveness"
     assert document["paths"]["/health/ready"]["get"]["operationId"] == "getReadiness"
     assert document["paths"]["/auth/login"]["post"]["operationId"] == "login"
-    assert (
-        document["paths"]["/auth/session"]["get"]["operationId"]
-        == "getCurrentSession"
-    )
+    assert document["paths"]["/auth/session"]["get"]["operationId"] == "getCurrentSession"
     assert document["paths"]["/auth/logout"]["post"]["operationId"] == "logout"
-    assert (
-        document["paths"]["/settings/business"]["get"]["operationId"]
-        == "getBusinessSettings"
-    )
+    assert document["paths"]["/settings/business"]["get"]["operationId"] == "getBusinessSettings"
     assert document["paths"]["/services"]["get"]["operationId"] == "listServices"
     assert document["paths"]["/services"]["post"]["operationId"] == "createService"
-    assert (
-        document["paths"]["/notifications"]["get"]["operationId"]
-        == "listNotifications"
-    )
+    assert document["paths"]["/notifications"]["get"]["operationId"] == "listNotifications"
     assert (
         document["paths"]["/notifications/mark-all-read"]["post"]["operationId"]
         == "markAllNotificationsRead"
