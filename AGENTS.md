@@ -52,10 +52,11 @@ server-side operator search, a narrow superadmin workspace directory/detail plus
 workspace-provisioning and operational suspension/reactivation commands, transaction-safe
 scheduled-session booking/attendance commands, PostgreSQL-backed activation/password
 reset and transactional email delivery, operator client-payment/tax settings, a
-capacity-one open-mode public booking transaction, and
-a user-targeted notification baseline over the identity/tenancy model. See
+capacity-one open-mode public booking transaction with separate payment/approval gates,
+operator reconciliation/approval commands, provider-neutral booking email events, and a
+user-targeted notification baseline over the identity/tenancy model. See
 `docs/PRODUCT.md` for the full positioning rules and
-phase plan (Phase 2 later adds booking confirmation/magic-link email;
+phase plan (Phase 2 later adds booking-workspace magic-link access;
 Phase 3 adds Stripe, scheduled email, and calendar integrations).
 
 ---
@@ -139,8 +140,9 @@ Authentication is cookie-backed and the operator lands on `/admin/dashboard`; Da
 Calendar, Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are
 exposed in API-mode navigation. The navbar and Cmd/Ctrl-K operator search are also
 API-backed. Calendar uses persisted sessions, booking/client context, session action
-items, and group-session attendance; the persisted Bookings screen remains read-only while
-the new operator booking commands remain an API foundation.
+items, and group-session attendance. The persisted booking detail exposes narrow,
+idempotent approval, decline, manual-payment receipt, and cancellation actions while
+booking creation remains API-only.
 API-mode superadmins land on the persisted Workspaces directory; its detail route shows
 only safe owner, workspace, and aggregate facts, and platform staff can provision a
 workspace plus activation-pending initial operator or suspend/reactivate operator access.
@@ -285,12 +287,13 @@ implemented HTTP surface is deliberately limited to:
 - `GET/PATCH /settings/payments` — workspace manual-payment instructions, provider terms,
   and gross-inclusive `none | fixed` tax settings;
 - `GET/POST /settings/locations` plus item `PATCH/DELETE` — saved locations;
-- `GET/POST /services` plus item `GET/PATCH/DELETE` — operator service management;
+- `GET/POST /services` plus item `GET/PATCH/DELETE` — operator service management,
+  including per-service automatic/operator-approval confirmation policy;
 - `GET/POST /clients` plus item `GET/PATCH` — operator client profiles and search;
 - `GET /bookings` (optionally filtered by `sessionId`) plus item `GET`, `POST /bookings`,
-  and explicit item `POST` confirm/cancel/complete/no-show/attendance commands — tenant-
-  scoped operator booking-ledger reads plus idempotent, audited scheduled-session booking
-  and group-attendance commands;
+  and explicit item `POST` approve/decline/mark-payment-received/confirm/cancel/complete/
+  no-show/attendance commands — tenant-scoped reads plus idempotent, audited booking gate,
+  lifecycle, and group-attendance commands;
 - `GET/POST /forms` plus item `GET/PATCH/DELETE` — operator form-template management;
 - `GET/POST /clients/{client_id}/notes` plus note `PATCH/DELETE` — private operator
   client context, allow-list sanitised before persistence;
@@ -311,7 +314,8 @@ implemented HTTP surface is deliberately limited to:
 - `GET /search` — a bounded tenant-scoped projection over searchable operator resources;
 - public workspace/catalog/forms/availability reads plus `POST
   /public/workspaces/{slug}/bookings` — display-safe capacity-one open-mode booking with
-  server-derived slots, free/manual state, financial/form snapshots, rate limiting, and
+  server-derived slots, separate approval/payment gates, immutable contact/terms/
+  financial/form/manual-instruction snapshots, safe slot release, rate limiting, and
   idempotency;
 - `/openapi.json` and `/docs` — the future generated-transport contract.
 
@@ -503,8 +507,10 @@ Present tense — what exists in the working tree today.
   (provider booking terms + platform terms), and confirmation/failure routes.
 - API mode persists the seeded `lena` flow for active open-mode, capacity-one services.
   It shows only server-issued available slots, validates and snapshots required attached
-  forms, and creates either a confirmed free booking or payment-pending manual booking;
-  mock-mode card/package demonstrations remain outside that real transaction.
+  forms, and derives confirmation from the service approval policy plus free/manual
+  payment state. The confirmation page reports the exact persisted pending gates and
+  queues receipt/confirmation email; mock card/package demonstrations remain outside that
+  real transaction.
 - The service list on `/booking` is curated in `demo.service.ts`
   (`STANDARD_BOOKING_SERVICE_IDS` → Discovery Call, Strategy Session, Coaching Session,
   Group Workshop). Persona demos are reachable via `?demo=<slug>`.
@@ -583,20 +589,20 @@ Present tense — what exists in the working tree today.
   backed by forced PostgreSQL RLS.
 - Structured operator notifications with a typed event/payload response, aggregate unread
   count, and CSRF-protected mark-all-read command. Both repository predicates and forced
-  PostgreSQL RLS isolate workspace and recipient; booking notification producers remain
-  deferred.
+  PostgreSQL RLS isolate workspace and recipient; public booking receipt/confirmation
+  producers use resource ids and non-PII facts only.
 - Generated OpenAPI transport types and a shared credentialed HTTP client back an opt-in
   local operator UI for auth, services, business settings/locations, notifications,
   availability/sessions, clients, booking-ledger reads, forms, client notes, session
-  action items, dashboard facts, workspace search, and group-session attendance. The new
-  booking command transport remains otherwise unexposed by the API-mode Bookings ledger;
-  API-mode Calendar uses its real roster/attendance resources without mock fallback. The
-  public/Vercel experience continues to default to mock mode.
+  action items, dashboard facts, workspace search, group-session attendance, and narrow
+  booking detail approval/payment/cancel commands. API-mode Calendar uses its real roster/
+  attendance resources without mock fallback. The public/Vercel experience continues to
+  default to mock mode.
 - API mode also wires Client Payments and the seeded `lena` public booking flow. Public
   responses allow-list workspace/catalog/form facts and open slots only; creation supports
-  capacity-one open services, free/manual payment state, gross-inclusive fixed tax,
-  persisted pre-payment form answers, slot/idempotency locks, and immutable booking
-  financial snapshots without mock fallback.
+  capacity-one open services, separate confirmation/payment state, gross-inclusive fixed
+  tax, persisted contact/terms/pre-payment form evidence, slot/idempotency locks, safe slot
+  release, and immutable booking financial/manual-payment snapshots without mock fallback.
 - The local API also has a separate superadmin workspace island. Its two database
   projections are fixed, safe allow-lists and its one provisioning function is an atomic,
   audited capability under `SECURITY DEFINER`. A second narrow capability changes only
@@ -606,8 +612,8 @@ Present tense — what exists in the working tree today.
 - Workspace availability and authenticated session APIs persist one-off or rolling six-
   month recurring occurrences. PostgreSQL owns the same-calendar-owner overlap invariant.
   Operator booking creation locks the existing scheduled session, counts pending/confirmed
-  bookings in the same transaction, and rejects a full session; booking status commands
-  are idempotent and audit logged without changing payment state. Group attendance locks
+  bookings in the same transaction, and rejects a full session; booking gate/lifecycle
+  commands are idempotent and audit logged, with payment and approval kept separate. Group attendance locks
   the booking/session pair, completes a confirmed booking atomically, and permits only
   `present`/`late`/`absent` for sessions with capacity greater than one.
 - Tenant-scoped client profiles persist stable UUIDs and normalized, workspace-unique
@@ -858,3 +864,13 @@ live API-mode smoke returned HTTP 200/database-ok for readiness, HTTP 200 for th
 workspace/catalog resources, and HTTP 200 for `/booking`. Production Resend delivery was
 not exercised without a real provider credential; configuration rejects the local console
 provider in production.
+
+On 2026-08-06, migrations `20260806_0020` and `20260806_0021` added service-level
+confirmation policy, independent booking approval/payment gates, immutable public booking
+contact/terms/manual-payment evidence, public-session origin, and deduplicated booking
+email/notification events. API-mode booking detail now exposes narrow approve, decline,
+mark-payment-received, and cancel actions; public confirmation truthfully reports pending
+gates. The database reached `20260806_0021 (head)` and the repeat seed inserted zero rows.
+Backend verification reports 34 isolated and 43 PostgreSQL integration passes, with Ruff
+and strict mypy clean. Generated OpenAPI transport, TypeScript, ESLint, and both mock/API
+production builds pass. External email provider/domain setup was deliberately not run.

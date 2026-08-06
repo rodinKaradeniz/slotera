@@ -183,6 +183,7 @@ DEMO_SERVICES = (
         "location": "Zoom · link sent on booking",
         "address": None,
         "booking_mode": "open",
+        "confirmation_policy": "automatic",
         "cancellation_rule": (
             "Free reschedule up to 12h before. Free cancellation up to 2h before."
         ),
@@ -203,6 +204,7 @@ DEMO_SERVICES = (
         "location": "Zoom · link sent on confirmation",
         "address": None,
         "booking_mode": "open",
+        "confirmation_policy": "operator_approval",
         "cancellation_rule": "Refundable up to 24h before. After that 50% refund.",
         "active": True,
         "notes": None,
@@ -221,6 +223,7 @@ DEMO_SERVICES = (
         "location": "Zoom or Berlin office · your choice",
         "address": None,
         "booking_mode": "open",
+        "confirmation_policy": "automatic",
         "cancellation_rule": "Refundable up to 48h before.",
         "active": True,
         "notes": None,
@@ -247,6 +250,7 @@ DEMO_SERVICES = (
             "notes": "Buzzer for the studio — second floor, glass door on the left.",
         },
         "booking_mode": "scheduled",
+        "confirmation_policy": "operator_approval",
         "cancellation_rule": "Reschedule up to 5 days before. No refunds within 48h.",
         "active": True,
         "notes": (
@@ -268,6 +272,7 @@ DEMO_SERVICES = (
         "location": "Zoom · link sent on confirmation",
         "address": None,
         "booking_mode": "open",
+        "confirmation_policy": "automatic",
         "cancellation_rule": "Free reschedule up to 24h before.",
         "active": False,
         "notes": ("Currently paused — re-enable when there's capacity for retainer clients."),
@@ -280,8 +285,6 @@ DEMO_NOTIFICATIONS = (
         "key": "booking-confirmed",
         "kind": "booking_confirmed",
         "payload": {
-            "clientName": "Sofia Marin",
-            "serviceName": "Strategy Session",
             "startsAt": "2026-07-28T14:00:00Z",
         },
         "resource_type": None,
@@ -293,8 +296,6 @@ DEMO_NOTIFICATIONS = (
         "key": "payment-pending",
         "kind": "payment_pending",
         "payload": {
-            "clientName": "Helena Kreutzer",
-            "serviceName": "Group Workshop",
             "amountCents": 18000,
             "currency": "EUR",
         },
@@ -307,8 +308,6 @@ DEMO_NOTIFICATIONS = (
         "key": "session-starting",
         "kind": "session_starting",
         "payload": {
-            "clientName": "Mila Ozawa",
-            "serviceName": "Strategy Session",
             "startsAt": "2026-07-28T12:14:00Z",
         },
         "resource_type": None,
@@ -320,8 +319,6 @@ DEMO_NOTIFICATIONS = (
         "key": "reschedule-requested",
         "kind": "reschedule_requested",
         "payload": {
-            "clientName": "Tariq Hassan",
-            "serviceName": "Discovery Call",
             "requestedFor": "2026-07-30T09:00:00Z",
         },
         "resource_type": None,

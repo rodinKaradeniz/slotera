@@ -79,7 +79,13 @@ class ServiceBookingMode(StrEnum):
     SCHEDULED = "scheduled"
 
 
+class ConfirmationPolicy(StrEnum):
+    AUTOMATIC = "automatic"
+    OPERATOR_APPROVAL = "operator_approval"
+
+
 class NotificationKind(StrEnum):
+    BOOKING_PENDING = "booking_pending"
     BOOKING_CONFIRMED = "booking_confirmed"
     PAYMENT_PENDING = "payment_pending"
     SESSION_STARTING = "session_starting"
@@ -93,12 +99,29 @@ class SessionStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class SessionOrigin(StrEnum):
+    OPERATOR = "operator"
+    PUBLIC_OPEN = "public_open"
+
+
 class BookingStatus(StrEnum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     NOSHOW = "noshow"
+
+
+class BookingOrigin(StrEnum):
+    OPERATOR = "operator"
+    PUBLIC = "public"
+
+
+class BookingApprovalStatus(StrEnum):
+    NOT_REQUIRED = "not_required"
+    PENDING = "pending"
+    APPROVED = "approved"
+    DECLINED = "declined"
 
 
 class BookingAttendance(StrEnum):
@@ -263,15 +286,24 @@ class RequestRateLimit(Base):
 
 class EmailOutbox(Base):
     __tablename__ = "email_outbox"
-    __table_args__ = (CheckConstraint("attempt_count >= 0", name="attempt_count_nonnegative"),)
+    __table_args__ = (
+        CheckConstraint("attempt_count >= 0", name="attempt_count_nonnegative"),
+        UniqueConstraint("kind", "related_booking_id", name="uq_email_outbox_booking_event"),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     kind: Mapped[str] = mapped_column(String(80))
     recipient_email: Mapped[str] = mapped_column(String(320))
     subject: Mapped[str] = mapped_column(String(300))
     text_body: Mapped[str] = mapped_column(Text)
+    template_data: Mapped[dict[str, object]] = mapped_column(
+        JSONB, server_default=text("'{}'::jsonb")
+    )
     related_password_reset_token_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("password_reset_tokens.id", ondelete="SET NULL")
+    )
+    related_booking_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("bookings.id", ondelete="SET NULL")
     )
     attempt_count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     available_at: Mapped[datetime] = mapped_column(
@@ -419,6 +451,10 @@ class Service(Base):
     address: Mapped[dict[str, object] | None] = mapped_column(JSONB)
     booking_mode: Mapped[ServiceBookingMode] = mapped_column(
         Enum(ServiceBookingMode, name="service_booking_mode", values_callable=_enum_values)
+    )
+    confirmation_policy: Mapped[ConfirmationPolicy] = mapped_column(
+        Enum(ConfirmationPolicy, name="confirmation_policy", values_callable=_enum_values),
+        server_default=text("'automatic'"),
     )
     cancellation_rule: Mapped[str] = mapped_column(String(1000), server_default=text("''"))
     active: Mapped[bool] = mapped_column(server_default=text("true"))
@@ -580,6 +616,10 @@ class Session(Base):
         Enum(SessionStatus, name="session_status", values_callable=_enum_values),
         server_default=text("'scheduled'"),
     )
+    origin: Mapped[SessionOrigin] = mapped_column(
+        Enum(SessionOrigin, name="session_origin", values_callable=_enum_values),
+        server_default=text("'operator'"),
+    )
     location_type: Mapped[LocationType] = mapped_column(
         Enum(LocationType, name="location_type", values_callable=_enum_values)
     )
@@ -622,6 +662,22 @@ class Booking(Base):
     payment_status: Mapped[PaymentStatus] = mapped_column(
         Enum(PaymentStatus, name="payment_status", values_callable=_enum_values)
     )
+    origin: Mapped[BookingOrigin] = mapped_column(
+        Enum(BookingOrigin, name="booking_origin", values_callable=_enum_values),
+        server_default=text("'operator'"),
+    )
+    confirmation_policy_snapshot: Mapped[ConfirmationPolicy] = mapped_column(
+        Enum(ConfirmationPolicy, name="confirmation_policy", values_callable=_enum_values),
+        server_default=text("'automatic'"),
+    )
+    approval_status: Mapped[BookingApprovalStatus] = mapped_column(
+        Enum(
+            BookingApprovalStatus,
+            name="booking_approval_status",
+            values_callable=_enum_values,
+        ),
+        server_default=text("'not_required'"),
+    )
     reference: Mapped[str] = mapped_column(String(32))
     payment_method: Mapped[str] = mapped_column(String(16))
     attendance: Mapped[BookingAttendance | None] = mapped_column(
@@ -644,6 +700,20 @@ class Booking(Base):
         JSONB, server_default=text("'{}'::jsonb")
     )
     payment_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    payment_received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    declined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    customer_first_name: Mapped[str] = mapped_column(String(80), server_default=text("''"))
+    customer_last_name: Mapped[str] = mapped_column(String(80), server_default=text("''"))
+    customer_email: Mapped[str] = mapped_column(String(320), server_default=text("''"))
+    customer_phone: Mapped[str | None] = mapped_column(String(40))
+    customer_company: Mapped[str | None] = mapped_column(String(160))
+    provider_terms_snapshot: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    platform_terms_version: Mapped[str] = mapped_column(String(80), server_default=text("''"))
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    manual_payment_instructions_snapshot: Mapped[str] = mapped_column(
+        Text, server_default=text("''")
+    )
     notes: Mapped[str | None] = mapped_column(String(2000))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -857,6 +927,14 @@ class Notification(Base):
             "recipient_user_id",
             postgresql_where=text("read_at IS NULL"),
         ),
+        UniqueConstraint(
+            "workspace_id",
+            "recipient_user_id",
+            "kind",
+            "resource_type",
+            "resource_id",
+            name="uq_notifications_resource_event",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -881,11 +959,14 @@ __all__ = [
     "AvailabilityPolicy",
     "AvailabilityWindow",
     "Booking",
+    "BookingApprovalStatus",
     "BookingCommandIdempotency",
+    "BookingOrigin",
     "BookingStatus",
     "BookingAttendance",
     "Client",
     "ClientNote",
+    "ConfirmationPolicy",
     "FormStatus",
     "FormTemplate",
     "FormTemplateService",
@@ -904,6 +985,7 @@ __all__ = [
     "Session",
     "SessionActionItem",
     "SessionActionItemStatus",
+    "SessionOrigin",
     "SessionSeries",
     "SessionStatus",
     "User",

@@ -1,11 +1,12 @@
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,15 +14,20 @@ from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
     Booking,
+    BookingApprovalStatus,
     BookingAttendance,
     BookingCommandIdempotency,
+    BookingOrigin,
     BookingStatus,
     Client,
+    ConfirmationPolicy,
     PaymentStatus,
     Service,
     Session,
+    SessionOrigin,
     SessionStatus,
     Workspace,
+    WorkspacePaymentSettings,
 )
 
 
@@ -38,6 +44,14 @@ class BookingTransitionError(Exception):
 
 
 class BookingAttendanceError(Exception):
+    pass
+
+
+class BookingApprovalError(Exception):
+    pass
+
+
+class BookingPaymentError(Exception):
     pass
 
 
@@ -70,6 +84,13 @@ def _fingerprint(command: str, values: Mapping[str, Any]) -> str:
         default=str,
     )
     return sha256(serialized.encode()).hexdigest()
+
+
+def _confirmation_ready(booking: Booking) -> bool:
+    return booking.payment_status in (PaymentStatus.FREE, PaymentStatus.PAID) and (
+        booking.approval_status
+        in (BookingApprovalStatus.NOT_REQUIRED, BookingApprovalStatus.APPROVED)
+    )
 
 
 class BookingsRepository:
@@ -154,13 +175,18 @@ class BookingsRepository:
             )
             if replay is not None:
                 return BookingCommandResult(booking=replay, replayed=True)
-            client_exists = await database_session.scalar(
-                select(Client.id).where(
+            client = await database_session.scalar(
+                select(Client).where(
                     Client.workspace_id == workspace_id,
                     Client.id == client_id,
                 )
             )
-            if client_exists is None or scheduled_session.status == SessionStatus.CANCELLED:
+            payment_settings = await database_session.get(WorkspacePaymentSettings, workspace_id)
+            if (
+                client is None
+                or payment_settings is None
+                or scheduled_session.status == SessionStatus.CANCELLED
+            ):
                 return None
             consumed = await database_session.scalar(
                 select(func.count(Booking.id)).where(
@@ -172,13 +198,19 @@ class BookingsRepository:
             if int(consumed or 0) >= scheduled_session.capacity:
                 raise BookingCapacityExceededError
             booking_id = uuid4()
+            payment_status = (
+                PaymentStatus.FREE if service.price_cents == 0 else PaymentStatus.PENDING
+            )
             booking = Booking(
                 id=booking_id,
                 workspace_id=workspace_id,
                 session_id=session_id,
                 client_id=client_id,
                 status=BookingStatus.PENDING,
-                payment_status=PaymentStatus.PENDING,
+                payment_status=payment_status,
+                origin=BookingOrigin.OPERATOR,
+                confirmation_policy_snapshot=ConfirmationPolicy.AUTOMATIC,
+                approval_status=BookingApprovalStatus.NOT_REQUIRED,
                 reference=f"SLT-{booking_id.hex[:12].upper()}",
                 payment_method="free" if service.price_cents == 0 else "manual",
                 amount_cents=service.price_cents,
@@ -192,6 +224,22 @@ class BookingsRepository:
                 currency=workspace.currency,
                 billing_address={},
                 payment_due_at=None,
+                payment_received_at=None,
+                approved_at=None,
+                declined_at=None,
+                customer_first_name=client.name,
+                customer_last_name="",
+                customer_email=client.email,
+                customer_phone=client.phone,
+                customer_company=client.company,
+                provider_terms_snapshot="",
+                platform_terms_version="",
+                terms_accepted_at=None,
+                manual_payment_instructions_snapshot=(
+                    payment_settings.manual_payment_instructions
+                    if service.price_cents > 0
+                    else ""
+                ),
                 notes=values.get("notes"),
             )
             database_session.add(booking)
@@ -300,6 +348,155 @@ class BookingsRepository:
             await database_session.refresh(booking)
             return BookingCommandResult(booking=booking, replayed=False)
 
+    async def record_payment_received(
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        booking_id: UUID,
+        idempotency_key: str,
+    ) -> BookingCommandResult | None:
+        command = "mark_payment_received"
+        fingerprint = _fingerprint(command, {"booking_id": str(booking_id)})
+        async with self.database.tenant_transaction(workspace_id) as database_session:
+            locked = await self._lock_booking_and_session(
+                database_session, workspace_id, booking_id
+            )
+            if locked is None:
+                return None
+            booking, _scheduled_session = locked
+            replay = await self._replay_or_conflict(
+                database_session,
+                workspace_id,
+                actor_user_id,
+                idempotency_key,
+                fingerprint,
+            )
+            if replay is not None:
+                return BookingCommandResult(booking=replay, replayed=True)
+            if (
+                booking.payment_method != "manual"
+                or booking.payment_status != PaymentStatus.PENDING
+                or booking.status != BookingStatus.PENDING
+            ):
+                raise BookingPaymentError
+
+            booking.payment_status = PaymentStatus.PAID
+            booking.payment_received_at = datetime.now(UTC)
+            confirmed = _confirmation_ready(booking)
+            if confirmed:
+                booking.status = BookingStatus.CONFIRMED
+            database_session.add(
+                AuditEvent(
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    action="booking.payment_received",
+                    resource_type="booking",
+                    resource_id=booking.id,
+                    details={"payment_status": "paid", "confirmed": confirmed},
+                )
+            )
+            if confirmed:
+                self._add_confirmation_audit(
+                    database_session, workspace_id, actor_user_id, booking, command
+                )
+            await self._record_idempotency(
+                database_session,
+                workspace_id,
+                actor_user_id,
+                idempotency_key,
+                command,
+                fingerprint,
+                booking.id,
+            )
+            await database_session.flush()
+            if confirmed:
+                await self._emit_confirmed_event(database_session, booking)
+            await database_session.refresh(booking)
+            return BookingCommandResult(booking=booking, replayed=False)
+
+    async def set_approval(
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        booking_id: UUID,
+        command: str,
+        idempotency_key: str,
+    ) -> BookingCommandResult | None:
+        if command not in {"approve", "decline"}:
+            raise ValueError("unknown booking approval command")
+        fingerprint = _fingerprint(command, {"booking_id": str(booking_id)})
+        async with self.database.tenant_transaction(workspace_id) as database_session:
+            locked = await self._lock_booking_and_session(
+                database_session, workspace_id, booking_id
+            )
+            if locked is None:
+                return None
+            booking, scheduled_session = locked
+            replay = await self._replay_or_conflict(
+                database_session,
+                workspace_id,
+                actor_user_id,
+                idempotency_key,
+                fingerprint,
+            )
+            if replay is not None:
+                return BookingCommandResult(booking=replay, replayed=True)
+            if (
+                booking.confirmation_policy_snapshot != ConfirmationPolicy.OPERATOR_APPROVAL
+                or booking.approval_status != BookingApprovalStatus.PENDING
+                or booking.status != BookingStatus.PENDING
+            ):
+                raise BookingApprovalError
+
+            confirmed = False
+            if command == "approve":
+                booking.approval_status = BookingApprovalStatus.APPROVED
+                booking.approved_at = datetime.now(UTC)
+                confirmed = _confirmation_ready(booking)
+                if confirmed:
+                    booking.status = BookingStatus.CONFIRMED
+            else:
+                booking.approval_status = BookingApprovalStatus.DECLINED
+                booking.declined_at = datetime.now(UTC)
+                booking.status = BookingStatus.CANCELLED
+
+            database_session.add(
+                AuditEvent(
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    action=f"booking.{command}d",
+                    resource_type="booking",
+                    resource_id=booking.id,
+                    details={
+                        "approval_status": booking.approval_status.value,
+                        "payment_status": booking.payment_status.value,
+                        "confirmed": confirmed,
+                    },
+                )
+            )
+            if confirmed:
+                self._add_confirmation_audit(
+                    database_session, workspace_id, actor_user_id, booking, command
+                )
+            await self._record_idempotency(
+                database_session,
+                workspace_id,
+                actor_user_id,
+                idempotency_key,
+                command,
+                fingerprint,
+                booking.id,
+            )
+            await database_session.flush()
+            if command == "decline":
+                await self._release_public_session(
+                    database_session, workspace_id, booking, scheduled_session
+                )
+            if confirmed:
+                await self._emit_confirmed_event(database_session, booking)
+            await database_session.refresh(booking)
+            return BookingCommandResult(booking=booking, replayed=False)
+
     async def transition_booking(
         self,
         workspace_id: UUID,
@@ -314,23 +511,12 @@ class BookingsRepository:
             {"booking_id": str(booking_id)},
         )
         async with self.database.tenant_transaction(workspace_id) as database_session:
-            booking = await database_session.scalar(
-                select(Booking)
-                .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
-                .with_for_update()
+            locked = await self._lock_booking_and_session(
+                database_session, workspace_id, booking_id
             )
-            if booking is None:
+            if locked is None:
                 return None
-            scheduled_session = await database_session.scalar(
-                select(Session)
-                .where(
-                    Session.workspace_id == workspace_id,
-                    Session.id == booking.session_id,
-                )
-                .with_for_update()
-            )
-            if scheduled_session is None:
-                return None
+            booking, scheduled_session = locked
             replay = await self._replay_or_conflict(
                 database_session,
                 workspace_id,
@@ -341,6 +527,8 @@ class BookingsRepository:
             if replay is not None:
                 return BookingCommandResult(booking=replay, replayed=True)
             if booking.status not in allowed:
+                raise BookingTransitionError
+            if command == "confirm" and not _confirmation_ready(booking):
                 raise BookingTransitionError
             previous_status = booking.status
             booking.status = target
@@ -367,8 +555,96 @@ class BookingsRepository:
                 booking.id,
             )
             await database_session.flush()
+            if command == "cancel":
+                await self._release_public_session(
+                    database_session, workspace_id, booking, scheduled_session
+                )
+            if command == "confirm":
+                await self._emit_confirmed_event(database_session, booking)
             await database_session.refresh(booking)
             return BookingCommandResult(booking=booking, replayed=False)
+
+    @staticmethod
+    async def _lock_booking_and_session(
+        database_session: AsyncSession,
+        workspace_id: UUID,
+        booking_id: UUID,
+    ) -> tuple[Booking, Session] | None:
+        booking = await database_session.scalar(
+            select(Booking)
+            .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
+            .with_for_update()
+        )
+        if booking is None:
+            return None
+        scheduled_session = await database_session.scalar(
+            select(Session)
+            .where(
+                Session.workspace_id == workspace_id,
+                Session.id == booking.session_id,
+            )
+            .with_for_update()
+        )
+        if scheduled_session is None:
+            return None
+        return booking, scheduled_session
+
+    @staticmethod
+    def _add_confirmation_audit(
+        database_session: AsyncSession,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        booking: Booking,
+        trigger: str,
+    ) -> None:
+        database_session.add(
+            AuditEvent(
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                action="booking.confirmed",
+                resource_type="booking",
+                resource_id=booking.id,
+                details={"trigger": trigger},
+            )
+        )
+
+    @staticmethod
+    async def _emit_confirmed_event(
+        database_session: AsyncSession,
+        booking: Booking,
+    ) -> None:
+        if booking.origin != BookingOrigin.PUBLIC:
+            return
+        emitted = await database_session.scalar(
+            text("SELECT public.slotera_booking_emit_event(:booking_id, 'confirmed')"),
+            {"booking_id": booking.id},
+        )
+        if emitted is not True:
+            raise RuntimeError("booking confirmation event could not be enqueued")
+
+    @staticmethod
+    async def _release_public_session(
+        database_session: AsyncSession,
+        workspace_id: UUID,
+        booking: Booking,
+        scheduled_session: Session,
+    ) -> None:
+        if (
+            scheduled_session.origin != SessionOrigin.PUBLIC_OPEN
+            or scheduled_session.capacity != 1
+            or scheduled_session.status == SessionStatus.CANCELLED
+        ):
+            return
+        remaining = await database_session.scalar(
+            select(func.count(Booking.id)).where(
+                Booking.workspace_id == workspace_id,
+                Booking.session_id == scheduled_session.id,
+                Booking.id != booking.id,
+                Booking.status.in_(_CAPACITY_CONSUMING_STATUSES),
+            )
+        )
+        if int(remaining or 0) == 0:
+            scheduled_session.status = SessionStatus.CANCELLED
 
     async def _replay_or_conflict(
         self,

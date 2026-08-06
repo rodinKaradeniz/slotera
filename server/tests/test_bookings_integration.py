@@ -139,13 +139,18 @@ async def test_booking_status_commands_preserve_payment_state_and_reject_invalid
             )
             booking_id = UUID(created.json()["id"])
             confirm_key = f"confirm-{uuid4()}"
-            confirmed = await client.post(
+            blocked_confirm = await client.post(
                 f"/bookings/{booking_id}/confirm",
                 headers=_csrf_headers(client, idempotency_key=confirm_key),
             )
+            payment_key = f"payment-{uuid4()}"
+            confirmed = await client.post(
+                f"/bookings/{booking_id}/mark-payment-received",
+                headers=_csrf_headers(client, idempotency_key=payment_key),
+            )
             repeated_confirm = await client.post(
-                f"/bookings/{booking_id}/confirm",
-                headers=_csrf_headers(client, idempotency_key=confirm_key),
+                f"/bookings/{booking_id}/mark-payment-received",
+                headers=_csrf_headers(client, idempotency_key=payment_key),
             )
             cancelled = await client.post(
                 f"/bookings/{booking_id}/cancel",
@@ -157,10 +162,10 @@ async def test_booking_status_commands_preserve_payment_state_and_reject_invalid
             )
             reused_key = await client.post(
                 f"/bookings/{booking_id}/complete",
-                headers=_csrf_headers(client, idempotency_key=confirm_key),
+                headers=_csrf_headers(client, idempotency_key=payment_key),
             )
             csrf_rejected = await client.post(
-                f"/bookings/{booking_id}/confirm",
+                f"/bookings/{booking_id}/mark-payment-received",
                 headers={"Origin": "http://localhost:3344", "Idempotency-Key": str(uuid4())},
             )
             async with owner.transaction() as session:
@@ -199,26 +204,33 @@ async def test_booking_status_commands_preserve_payment_state_and_reject_invalid
         await owner.dispose()
 
     assert created.status_code == 201
+    assert blocked_confirm.status_code == 409
+    assert blocked_confirm.json()["error"]["code"] == "booking_transition_invalid"
     assert confirmed.status_code == 200
     assert confirmed.json()["status"] == "confirmed"
-    assert confirmed.json()["paymentStatus"] == "pending"
+    assert confirmed.json()["paymentStatus"] == "paid"
     assert repeated_confirm.status_code == 200
     assert repeated_confirm.json()["id"] == str(booking_id)
     assert cancelled.status_code == 200
     assert cancelled.json()["status"] == "cancelled"
-    assert cancelled.json()["paymentStatus"] == "pending"
+    assert cancelled.json()["paymentStatus"] == "paid"
     assert invalid.status_code == 409
     assert invalid.json()["error"]["code"] == "booking_transition_invalid"
     assert reused_key.status_code == 409
     assert reused_key.json()["error"]["code"] == "idempotency_key_reused"
     assert csrf_rejected.status_code == 403
     assert csrf_rejected.json()["error"]["code"] == "csrf_validation_failed"
-    assert [action for action, _ in audit_rows] == [
+    assert sorted(action for action, _ in audit_rows) == sorted(
+        [
         "booking.created",
+        "booking.payment_received",
         "booking.confirmed",
         "booking.cancelled",
-    ]
-    assert audit_rows[0][1] == "Operator arranged this pending manual payment booking."
+        ]
+    )
+    assert next(reason for action, reason in audit_rows if action == "booking.created") == (
+        "Operator arranged this pending manual payment booking."
+    )
 
 
 @pytest.mark.integration
@@ -248,8 +260,8 @@ async def test_confirmed_bookings_can_complete_or_end_as_noshow() -> None:
                 booking_id = UUID(created.json()["id"])
                 booking_ids.append(booking_id)
                 confirmed = await client.post(
-                    f"/bookings/{booking_id}/confirm",
-                    headers=_csrf_headers(client, idempotency_key=f"confirm-{command}-{uuid4()}"),
+                    f"/bookings/{booking_id}/mark-payment-received",
+                    headers=_csrf_headers(client, idempotency_key=f"payment-{command}-{uuid4()}"),
                 )
                 final_responses.append(
                     await client.post(
@@ -278,7 +290,7 @@ async def test_confirmed_bookings_can_complete_or_end_as_noshow() -> None:
 
     assert [response.status_code for response in final_responses] == [200, 200]
     assert [response.json()["status"] for response in final_responses] == ["completed", "noshow"]
-    assert all(response.json()["paymentStatus"] == "pending" for response in final_responses)
+    assert all(response.json()["paymentStatus"] == "paid" for response in final_responses)
 
 
 @pytest.mark.integration
@@ -306,8 +318,8 @@ async def test_group_attendance_completes_a_booking_and_supports_safe_correction
             )
             booking_id = UUID(created.json()["id"])
             confirmed = await client.post(
-                f"/bookings/{booking_id}/confirm",
-                headers=_csrf_headers(client, idempotency_key=f"confirm-attendance-{uuid4()}"),
+                f"/bookings/{booking_id}/mark-payment-received",
+                headers=_csrf_headers(client, idempotency_key=f"payment-attendance-{uuid4()}"),
             )
             attendance_key = f"attendance-{uuid4()}"
             recorded = await client.post(
@@ -358,7 +370,7 @@ async def test_group_attendance_completes_a_booking_and_supports_safe_correction
     assert recorded.status_code == 200
     assert recorded.json()["status"] == "completed"
     assert recorded.json()["attendance"] == "late"
-    assert recorded.json()["paymentStatus"] == "pending"
+    assert recorded.json()["paymentStatus"] == "paid"
     assert replayed.status_code == 200
     assert replayed.json()["attendance"] == "late"
     assert corrected.status_code == 200
@@ -370,12 +382,15 @@ async def test_group_attendance_completes_a_booking_and_supports_safe_correction
         item for item in roster.json()["items"] if item["id"] == str(booking_id)
     )
     assert recorded_roster_booking["attendance"] == "absent"
-    assert audit_actions == [
-        "booking.created",
-        "booking.confirmed",
-        "booking.attendance_recorded",
-        "booking.attendance_recorded",
-    ]
+    assert sorted(audit_actions) == sorted(
+        [
+            "booking.created",
+            "booking.payment_received",
+            "booking.confirmed",
+            "booking.attendance_recorded",
+            "booking.attendance_recorded",
+        ]
+    )
 
 
 @pytest.mark.integration

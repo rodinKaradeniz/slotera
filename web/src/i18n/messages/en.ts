@@ -332,9 +332,15 @@ export const en = {
     "Payment instructions will be shared after you confirm.",
   "booking.payment.pendingNote":
     "Your booking will be marked pending until the operator confirms receipt of payment.",
+  "booking.service.approvalRequired": "Provider approval required",
 
   // Booking — confirmation page
   "booking.confirm.title": "Your booking is confirmed.",
+  "booking.confirm.pendingTitle": "Your booking was received.",
+  "booking.confirm.emailQueued":
+    "A booking email has been queued for {email}.",
+  "booking.confirm.pendingApproval": "Waiting for provider approval",
+  "booking.confirm.pendingPayment": "Waiting for manual payment confirmation",
   "booking.confirm.emailSent": "We've sent a confirmation email to {email}.",
   "booking.confirm.emailSentNoAddress": "We've sent a confirmation email.",
   "booking.confirm.reference": "Reference {ref}",

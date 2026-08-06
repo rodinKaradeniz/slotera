@@ -142,6 +142,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bookings/{booking_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Booking */
+        post: operations["approveBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bookings/{booking_id}/attendance": {
         parameters: {
             query?: never;
@@ -204,6 +221,40 @@ export interface paths {
         put?: never;
         /** Confirm Booking */
         post: operations["confirmBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{booking_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Booking */
+        post: operations["declineBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{booking_id}/mark-payment-received": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Booking Payment Received */
+        post: operations["markBookingPaymentReceived"];
         delete?: never;
         options?: never;
         head?: never;
@@ -931,15 +982,24 @@ export interface components {
         };
         /** BookingConfirmedPayload */
         BookingConfirmedPayload: {
-            /** Clientname */
-            clientName: string;
-            /** Servicename */
-            serviceName: string;
             /**
              * Startsat
              * Format: date-time
              */
             startsAt: string;
+        };
+        /** BookingCustomerSnapshot */
+        BookingCustomerSnapshot: {
+            /** Company */
+            company: string | null;
+            /** Email */
+            email: string;
+            /** Firstname */
+            firstName: string;
+            /** Lastname */
+            lastName: string;
+            /** Phone */
+            phone: string | null;
         };
         /** BookingListResponse */
         BookingListResponse: {
@@ -952,10 +1012,64 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** BookingPendingNotification */
+        BookingPendingNotification: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "booking_pending";
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt: string;
+            payload: components["schemas"]["BookingPendingPayload"];
+            /** Readat */
+            readAt: string | null;
+            /** Resourceid */
+            resourceId: string | null;
+            /** Resourcetype */
+            resourceType: string | null;
+        };
+        /** BookingPendingPayload */
+        BookingPendingPayload: {
+            /** Amountcents */
+            amountCents: number;
+            /**
+             * Approvalstatus
+             * @enum {string}
+             */
+            approvalStatus: "not_required" | "pending" | "approved" | "declined";
+            /** Currency */
+            currency: string;
+            /**
+             * Paymentstatus
+             * @enum {string}
+             */
+            paymentStatus: "paid" | "pending" | "refunded" | "free" | "overdue";
+            /**
+             * Startsat
+             * Format: date-time
+             */
+            startsAt: string;
+        };
         /** BookingResponse */
         BookingResponse: {
             /** Amountcents */
             amountCents: number;
+            /**
+             * Approvalstatus
+             * @enum {string}
+             */
+            approvalStatus: "not_required" | "pending" | "approved" | "declined";
+            /** Approvedat */
+            approvedAt: string | null;
             /** Attendance */
             attendance: ("present" | "late" | "absent") | null;
             /**
@@ -964,24 +1078,55 @@ export interface components {
              */
             clientId: string;
             /**
+             * Confirmationpolicy
+             * @enum {string}
+             */
+            confirmationPolicy: "automatic" | "operator_approval";
+            /**
              * Createdat
              * Format: date-time
              */
             createdAt: string;
             /** Currency */
             currency: string;
+            customer: components["schemas"]["BookingCustomerSnapshot"];
+            /** Declinedat */
+            declinedAt: string | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Manualpaymentinstructionssnapshot */
+            manualPaymentInstructionsSnapshot: string;
+            /** Netamountcents */
+            netAmountCents: number;
             /** Notes */
             notes: string | null;
+            /** Paymentdueat */
+            paymentDueAt: string | null;
+            /**
+             * Paymentmethod
+             * @enum {string}
+             */
+            paymentMethod: "free" | "manual";
+            /** Paymentreceivedat */
+            paymentReceivedAt: string | null;
             /**
              * Paymentstatus
              * @enum {string}
              */
             paymentStatus: "paid" | "pending" | "refunded" | "free" | "overdue";
+            /** Pendingreasons */
+            pendingReasons: ("approval" | "payment")[];
+            /** Platformtermsversion */
+            platformTermsVersion: string;
+            /** Providertermssnapshot */
+            providerTermsSnapshot: string;
+            /** Reference */
+            reference: string;
+            /** Sellertaxnumber */
+            sellerTaxNumber: string | null;
             /**
              * Sessionid
              * Format: uuid
@@ -992,6 +1137,21 @@ export interface components {
              * @enum {string}
              */
             status: "pending" | "confirmed" | "completed" | "cancelled" | "noshow";
+            /** Taxamountcents */
+            taxAmountCents: number;
+            /** Taxjurisdiction */
+            taxJurisdiction: string | null;
+            /** Taxlabel */
+            taxLabel: string | null;
+            /** Taxratebps */
+            taxRateBps: number;
+            /**
+             * Taxtreatment
+             * @enum {string}
+             */
+            taxTreatment: "none" | "fixed";
+            /** Termsacceptedat */
+            termsAcceptedAt: string | null;
             /**
              * Updatedat
              * Format: date-time
@@ -1412,7 +1572,7 @@ export interface components {
         /** NotificationListResponse */
         NotificationListResponse: {
             /** Items */
-            items: (components["schemas"]["BookingConfirmedNotification"] | components["schemas"]["PaymentPendingNotification"] | components["schemas"]["SessionStartingNotification"] | components["schemas"]["RescheduleRequestedNotification"])[];
+            items: (components["schemas"]["BookingPendingNotification"] | components["schemas"]["BookingConfirmedNotification"] | components["schemas"]["PaymentPendingNotification"] | components["schemas"]["SessionStartingNotification"] | components["schemas"]["RescheduleRequestedNotification"])[];
             /** Unreadcount */
             unreadCount: number;
         };
@@ -1485,12 +1645,8 @@ export interface components {
         PaymentPendingPayload: {
             /** Amountcents */
             amountCents: number;
-            /** Clientname */
-            clientName: string;
             /** Currency */
             currency: string;
-            /** Servicename */
-            serviceName: string;
         };
         /** PaymentSettingsPatch */
         PaymentSettingsPatch: {
@@ -1727,6 +1883,16 @@ export interface components {
         /** PublicBookingResponse */
         PublicBookingResponse: {
             /**
+             * Approvalstatus
+             * @enum {string}
+             */
+            approvalStatus: "not_required" | "pending" | "approved" | "declined";
+            /**
+             * Confirmationpolicy
+             * @enum {string}
+             */
+            confirmationPolicy: "automatic" | "operator_approval";
+            /**
              * Id
              * Format: uuid
              */
@@ -1742,7 +1908,9 @@ export interface components {
              * Paymentstatus
              * @enum {string}
              */
-            paymentStatus: "pending" | "free" | "overdue";
+            paymentStatus: "pending" | "paid" | "free" | "overdue";
+            /** Pendingreasons */
+            pendingReasons: ("approval" | "payment")[];
             quote: components["schemas"]["PublicTaxQuote"];
             /** Reference */
             reference: string;
@@ -1760,7 +1928,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "pending" | "confirmed" | "cancelled";
+            status: "pending" | "confirmed" | "completed" | "cancelled" | "noshow";
         };
         /** PublicFormAnswer */
         PublicFormAnswer: {
@@ -1811,6 +1979,11 @@ export interface components {
             cancellationRule: string;
             /** Capacity */
             capacity: number;
+            /**
+             * Confirmationpolicy
+             * @enum {string}
+             */
+            confirmationPolicy: "automatic" | "operator_approval";
             /** Description */
             description: string;
             /** Durationmin */
@@ -1929,15 +2102,11 @@ export interface components {
         };
         /** RescheduleRequestedPayload */
         RescheduleRequestedPayload: {
-            /** Clientname */
-            clientName: string;
             /**
              * Requestedfor
              * Format: date-time
              */
             requestedFor: string;
-            /** Servicename */
-            serviceName: string;
         };
         /** SchedulingSessionResponse */
         SchedulingSessionResponse: {
@@ -2055,6 +2224,12 @@ export interface components {
             /** Capacity */
             capacity: number;
             /**
+             * Confirmationpolicy
+             * @default automatic
+             * @enum {string}
+             */
+            confirmationPolicy: "automatic" | "operator_approval";
+            /**
              * Description
              * @default
              */
@@ -2097,6 +2272,8 @@ export interface components {
             cancellationRule?: string | null;
             /** Capacity */
             capacity?: number | null;
+            /** Confirmationpolicy */
+            confirmationPolicy?: ("automatic" | "operator_approval") | null;
             /** Description */
             description?: string | null;
             /** Durationmin */
@@ -2126,6 +2303,11 @@ export interface components {
             cancellationRule: string;
             /** Capacity */
             capacity: number;
+            /**
+             * Confirmationpolicy
+             * @enum {string}
+             */
+            confirmationPolicy: "automatic" | "operator_approval";
             /**
              * Createdat
              * Format: date-time
@@ -2334,10 +2516,6 @@ export interface components {
         };
         /** SessionStartingPayload */
         SessionStartingPayload: {
-            /** Clientname */
-            clientName: string;
-            /** Servicename */
-            serviceName: string;
             /**
              * Startsat
              * Format: date-time
@@ -2729,6 +2907,39 @@ export interface operations {
             };
         };
     };
+    approveBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     recordBookingAttendance: {
         parameters: {
             query?: never;
@@ -2833,6 +3044,72 @@ export interface operations {
         };
     };
     confirmBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    declineBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    markBookingPaymentReceived: {
         parameters: {
             query?: never;
             header: {

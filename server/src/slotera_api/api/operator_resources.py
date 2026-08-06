@@ -116,6 +116,7 @@ def _service_response(service: Service, currency: str) -> ServiceResponse:
         location=service.location,
         address=Address.model_validate(service.address) if service.address else None,
         booking_mode=service.booking_mode.value,
+        confirmation_policy=service.confirmation_policy.value,
         cancellation_rule=service.cancellation_rule,
         active=service.active,
         notes=service.notes,

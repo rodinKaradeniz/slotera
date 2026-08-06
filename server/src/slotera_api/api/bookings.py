@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Header, Query, Response
@@ -10,9 +10,11 @@ from slotera_api.auth.dependencies import (
     OperatorWorkspaceDependency,
 )
 from slotera_api.bookings.repository import (
+    BookingApprovalError,
     BookingAttendanceError,
     BookingCapacityExceededError,
     BookingIdempotencyConflictError,
+    BookingPaymentError,
     BookingsRepository,
     BookingTransitionError,
 )
@@ -20,6 +22,7 @@ from slotera_api.db.models import Booking, BookingAttendance
 from slotera_api.errors import ApiError
 from slotera_api.schemas.bookings import (
     BookingAttendanceCommand,
+    BookingCustomerSnapshot,
     BookingListResponse,
     BookingResponse,
     OperatorBookingCreate,
@@ -34,15 +37,47 @@ IdempotencyKey = Annotated[
 
 
 def _response(item: Booking) -> BookingResponse:
+    pending_reasons: list[Literal["approval", "payment"]] = []
+    if item.approval_status.value == "pending":
+        pending_reasons.append("approval")
+    if item.payment_status.value == "pending":
+        pending_reasons.append("payment")
     return BookingResponse(
         id=item.id,
         session_id=item.session_id,
         client_id=item.client_id,
+        reference=item.reference,
         status=item.status.value,
         payment_status=item.payment_status.value,
+        payment_method=cast(Literal["free", "manual"], item.payment_method),
+        confirmation_policy=item.confirmation_policy_snapshot.value,
+        approval_status=item.approval_status.value,
+        pending_reasons=pending_reasons,
         attendance=item.attendance.value if item.attendance is not None else None,
         amount_cents=item.amount_cents,
+        net_amount_cents=item.net_amount_cents,
+        tax_amount_cents=item.tax_amount_cents,
+        tax_treatment=cast(Literal["none", "fixed"], item.tax_treatment),
+        tax_rate_bps=item.tax_rate_bps,
+        tax_label=item.tax_label,
+        tax_jurisdiction=item.tax_jurisdiction,
+        seller_tax_number=item.seller_tax_number,
         currency=item.currency,
+        payment_due_at=item.payment_due_at,
+        payment_received_at=item.payment_received_at,
+        approved_at=item.approved_at,
+        declined_at=item.declined_at,
+        customer=BookingCustomerSnapshot(
+            first_name=item.customer_first_name,
+            last_name=item.customer_last_name,
+            email=item.customer_email,
+            phone=item.customer_phone,
+            company=item.customer_company,
+        ),
+        provider_terms_snapshot=item.provider_terms_snapshot,
+        platform_terms_version=item.platform_terms_version,
+        terms_accepted_at=item.terms_accepted_at,
+        manual_payment_instructions_snapshot=item.manual_payment_instructions_snapshot,
         notes=item.notes,
         created_at=item.created_at,
         updated_at=item.updated_at,
@@ -87,6 +122,18 @@ def _command_error(error: Exception) -> ApiError:
             message=(
                 "Attendance can only be recorded for confirmed or completed group-session bookings"
             ),
+        )
+    if isinstance(error, BookingApprovalError):
+        return ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="booking_approval_invalid",
+            message="The booking is not awaiting an approval decision",
+        )
+    if isinstance(error, BookingPaymentError):
+        return ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="booking_payment_transition_invalid",
+            message="Manual payment receipt cannot be recorded for this booking",
         )
     raise error
 
@@ -199,6 +246,91 @@ async def confirm_booking(
     idempotency_key: IdempotencyKey,
 ) -> BookingResponse:
     return await _transition(booking_id, "confirm", response, operator, database, idempotency_key)
+
+
+@router.post(
+    "/{booking_id}/mark-payment-received",
+    response_model=BookingResponse,
+    operation_id="markBookingPaymentReceived",
+)
+async def mark_booking_payment_received(
+    booking_id: UUID,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    idempotency_key: IdempotencyKey,
+) -> BookingResponse:
+    try:
+        result = await BookingsRepository(database).record_payment_received(
+            operator.workspace_id,
+            operator.user_id,
+            booking_id,
+            idempotency_key,
+        )
+    except (BookingIdempotencyConflictError, BookingPaymentError) as exc:
+        raise _command_error(exc) from exc
+    if result is None:
+        raise _booking_not_found()
+    _private(response)
+    return _response(result.booking)
+
+
+async def _approval(
+    booking_id: UUID,
+    command: Literal["approve", "decline"],
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    idempotency_key: IdempotencyKey,
+) -> BookingResponse:
+    try:
+        result = await BookingsRepository(database).set_approval(
+            operator.workspace_id,
+            operator.user_id,
+            booking_id,
+            command,
+            idempotency_key,
+        )
+    except (BookingApprovalError, BookingIdempotencyConflictError) as exc:
+        raise _command_error(exc) from exc
+    if result is None:
+        raise _booking_not_found()
+    _private(response)
+    return _response(result.booking)
+
+
+@router.post(
+    "/{booking_id}/approve",
+    response_model=BookingResponse,
+    operation_id="approveBooking",
+)
+async def approve_booking(
+    booking_id: UUID,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    idempotency_key: IdempotencyKey,
+) -> BookingResponse:
+    return await _approval(
+        booking_id, "approve", response, operator, database, idempotency_key
+    )
+
+
+@router.post(
+    "/{booking_id}/decline",
+    response_model=BookingResponse,
+    operation_id="declineBooking",
+)
+async def decline_booking(
+    booking_id: UUID,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    idempotency_key: IdempotencyKey,
+) -> BookingResponse:
+    return await _approval(
+        booking_id, "decline", response, operator, database, idempotency_key
+    )
 
 
 @router.post("/{booking_id}/cancel", response_model=BookingResponse, operation_id="cancelBooking")

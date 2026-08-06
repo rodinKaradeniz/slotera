@@ -81,7 +81,12 @@ raw session/CSRF credentials are never stored.
   structured saved locations.
 - `GET/POST /services` and `GET/PATCH/DELETE /services/{id}` — manages operator services;
   list filters are `search`, `active`, and `locationType`, and currency is inherited from
-  the workspace rather than accepted in service input.
+  the workspace rather than accepted in service input. Each service owns an
+  `automatic | operator_approval` booking-confirmation policy.
+- `GET/POST /bookings` plus item reads and explicit command endpoints — manages the
+  tenant booking ledger. Approval, manual-payment receipt, lifecycle, and group-attendance
+  commands are idempotent and audited; confirmation requires all applicable approval and
+  payment gates.
 - `GET /notifications` — returns the verified operator's structured notification events
   plus the total unread count;
 - `POST /notifications/mark-all-read` — acknowledges that operator's unread events and
@@ -96,17 +101,19 @@ raw session/CSRF credentials are never stored.
 - `GET/POST /sessions` and `GET/PATCH /sessions/{id}` — manages one-off and recurring
   materialised sessions; patches choose `scope=this` or `scope=this_and_following`.
 - `/public/workspaces/{slug}` catalog/forms/availability reads and `POST .../bookings` —
-  allow-listed capacity-one open-mode booking with free/manual state, server tax/form
-  snapshots, rate limiting, exact-Origin validation, and idempotency.
+  allow-listed capacity-one open-mode booking with separate approval/payment gates,
+  immutable contact/terms/tax/form/manual-payment snapshots, slot release, rate limiting,
+  exact-Origin validation, and idempotency.
 
 All operator mutations use the same Origin and session-bound CSRF checks as logout.
 Superadmin sessions do not implicitly enter an operator workspace. Authenticated resource
 responses are `no-store`, and service notes remain operator-only; the public catalog is a
 separate explicit allow-list.
 
-`slotera-email-worker` claims outbox rows with `FOR UPDATE SKIP LOCKED`, retries failures
-with bounded backoff, and redacts delivered credential-bearing bodies. The `console`
-provider is local/test-only and prints activation URLs to sensitive local logs. Production
+`slotera-email-worker` claims activation/reset and booking receipt/confirmation rows with
+`FOR UPDATE SKIP LOCKED`, renders typed templates, retries failures with bounded backoff,
+and redacts delivered credential-bearing bodies. The `console` provider is local/test-only
+and prints delivery content—including activation URLs—to sensitive local logs. Production
 configuration requires `SLOTERA_EMAIL_PROVIDER=resend`, an API key, HTTPS public web URL,
 and the existing production cookie settings. Run `slotera-maintenance` periodically to
 remove stale sessions, reset tokens, rate-limit buckets, and delivered outbox rows.

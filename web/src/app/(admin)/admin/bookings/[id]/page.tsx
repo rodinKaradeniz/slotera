@@ -14,13 +14,19 @@ import { LoadingRows } from "@/components/shared/LoadingRows";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
-import { getBooking } from "@/services/bookings.service";
+import {
+  approveBooking,
+  cancelBooking,
+  declineBooking,
+  getBooking,
+  markBookingPaymentReceived,
+} from "@/services/bookings.service";
 import { getSession } from "@/services/sessions.service";
 import { getService } from "@/services/services.service";
 import { getClient } from "@/services/clients.service";
 import { getSettings } from "@/services/settings.service";
 import { formatAddressSummary } from "@/components/shared/forms/AddressForm";
-import { gbp } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/time";
 import { LOC_TYPE_META } from "@/lib/status-maps";
 import { dataSource } from "@/lib/env";
@@ -29,17 +35,24 @@ import type { Client } from "@/types/client";
 import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
 import type { SettingsData } from "@/types/settings";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
+
+type BookingAction = "approve" | "decline" | "payment" | "cancel";
 
 export default function BookingDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { openBookingDrawer } = useDrawers();
+  const { toast } = useToast();
   const [booking, setBooking] = React.useState<Booking | null>(null);
   const [client, setClient] = React.useState<Client | null>(null);
   const [session, setSession] = React.useState<SessionItem | null>(null);
   const [service, setService] = React.useState<Service | null>(null);
   const [settings, setSettings] = React.useState<SettingsData | null>(null);
   const [reload, setReload] = React.useState(0);
+  const [pendingAction, setPendingAction] = React.useState<BookingAction | null>(null);
+  const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
     let live = true;
@@ -80,7 +93,38 @@ export default function BookingDetailPage() {
     { label: booking ? booking.id : "Detail" },
   ]);
 
-  const taxRate = settings?.payments.taxRate ?? 19;
+  const runAction = async () => {
+    if (!booking || !pendingAction) return;
+    setBusy(true);
+    try {
+      const next =
+        pendingAction === "approve"
+          ? await approveBooking(booking.id)
+          : pendingAction === "decline"
+            ? await declineBooking(booking.id)
+            : pendingAction === "payment"
+              ? await markBookingPaymentReceived(booking.id)
+              : await cancelBooking(booking.id);
+      setBooking(next);
+      setReload((value) => value + 1);
+      toast.success(
+        pendingAction === "payment"
+          ? "Payment recorded"
+          : pendingAction === "approve"
+            ? "Booking approved"
+            : pendingAction === "decline"
+              ? "Booking declined"
+              : "Booking cancelled",
+      );
+      setPendingAction(null);
+    } catch (error) {
+      toast.error("The booking could not be updated", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <>
@@ -107,7 +151,7 @@ export default function BookingDetailPage() {
               meta={
                 <span className="inline-flex items-center gap-2 flex-wrap">
                   <span className="font-mono uppercase tracking-widest text-micro">
-                    {booking.id}
+                    {booking.reference ?? booking.id}
                   </span>
                   <span aria-hidden>·</span>
                   <StatusBadge kind="booking" status={booking.status} />
@@ -240,6 +284,60 @@ export default function BookingDetailPage() {
 
               {/* Right: what is the payment situation? */}
               <div className="flex flex-col gap-6 lg:sticky lg:top-24">
+                {dataSource === "api" &&
+                  (booking.status === "pending" || booking.status === "confirmed") && (
+                  <Card padded={false}>
+                    <CardHead
+                      title={booking.status === "pending" ? "Actions needed" : "Booking actions"}
+                    />
+                    <div className="p-5 space-y-4">
+                      {booking.status === "pending" && (
+                        <div className="text-small">
+                          {booking.pendingReasons?.includes("approval") && (
+                            <p>This booking is waiting for your approval.</p>
+                          )}
+                          {booking.pendingReasons?.includes("payment") && (
+                            <p>Manual payment has not been recorded yet.</p>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {booking.approvalStatus === "pending" && (
+                          <>
+                            <Button size="sm" onClick={() => setPendingAction("approve")}>
+                              Approve booking
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => setPendingAction("decline")}
+                            >
+                              Decline
+                            </Button>
+                          </>
+                        )}
+                        {booking.paymentMethod === "manual" &&
+                          booking.paymentStatus === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setPendingAction("payment")}
+                            >
+                              Mark payment received
+                            </Button>
+                          )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setPendingAction("cancel")}
+                        >
+                          Cancel booking
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
                 <Card padded={false}>
                   <CardHead title="Payment" />
                   <div className="p-5">
@@ -247,28 +345,39 @@ export default function BookingDetailPage() {
                       <span className="text-ink-3 text-[14px]">Status</span>
                       <StatusBadge kind="payment" status={booking.paymentStatus} />
                     </div>
-                    <Row label="Subtotal" value={gbp(booking.amountCents)} />
                     <Row
-                      label={`Tax (${taxRate}%)`}
-                      value={gbp(Math.round(booking.amountCents * (taxRate / 100)))}
+                      label="Subtotal"
+                      value={formatMoney(
+                        booking.netAmountCents ?? booking.amountCents,
+                        booking.currency,
+                      )}
+                    />
+                    <Row
+                      label={
+                        booking.taxRateBps
+                          ? `${booking.taxLabel ?? "Tax"} (${booking.taxRateBps / 100}%)`
+                          : booking.taxLabel ?? "Tax"
+                      }
+                      value={formatMoney(booking.taxAmountCents ?? 0, booking.currency)}
                     />
                     <div className="border-t border-line-soft my-3" />
                     <Row
                       label="Total"
-                      value={gbp(
-                        Math.round(booking.amountCents * (1 + taxRate / 100)),
-                      )}
+                      value={formatMoney(booking.amountCents, booking.currency)}
                       bold
                     />
 
-                    {settings?.payments.manualPaymentEnabled &&
-                      settings.payments.manualPaymentInstructions.trim() && (
+                    {(booking.manualPaymentInstructionsSnapshot?.trim() ||
+                      (dataSource === "mock" &&
+                        settings?.payments.manualPaymentEnabled &&
+                        settings.payments.manualPaymentInstructions.trim())) && (
                         <div className="mt-5">
                           <div className="eyebrow mb-2">
                             Manual payment instructions
                           </div>
                           <div className="rounded-lg bg-paper-2 border border-line-soft p-3 text-[13px] text-ink-2 whitespace-pre-line">
-                            {settings.payments.manualPaymentInstructions}
+                            {booking.manualPaymentInstructionsSnapshot ||
+                              settings?.payments.manualPaymentInstructions}
                           </div>
                         </div>
                       )}
@@ -279,6 +388,38 @@ export default function BookingDetailPage() {
           </>
         )}
       </PageContainer>
+      <ConfirmDialog
+        open={pendingAction !== null}
+        onClose={() => !busy && setPendingAction(null)}
+        onConfirm={runAction}
+        title={
+          pendingAction === "payment"
+            ? "Record manual payment?"
+            : pendingAction === "approve"
+              ? "Approve this booking?"
+              : pendingAction === "decline"
+                ? "Decline this booking?"
+                : "Cancel this booking?"
+        }
+        description={
+          pendingAction === "payment"
+            ? "This records that the provider received payment. The booking confirms automatically once every required gate is satisfied."
+            : pendingAction === "approve"
+              ? "The booking confirms now if payment is already satisfied; otherwise it remains payment-pending."
+              : "The slot will become available again when this is a public capacity-one booking. Payment state is not changed."
+        }
+        confirmLabel={
+          pendingAction === "payment"
+            ? "Record payment"
+            : pendingAction === "approve"
+              ? "Approve"
+              : pendingAction === "decline"
+                ? "Decline"
+                : "Cancel booking"
+        }
+        destructive={pendingAction === "decline" || pendingAction === "cancel"}
+        busy={busy}
+      />
     </>
   );
 }

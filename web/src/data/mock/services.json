@@ -10,6 +10,7 @@
     "locationType": "online",
     "location": "Zoom · link sent on booking",
     "bookingMode": "open",
+    "confirmationPolicy": "automatic",
     "cancellationRule": "Free reschedule up to 12h before. Free cancellation up to 2h before.",
     "active": true,
     "createdAtISO": "2026-01-12T10:00:00.000Z"
@@ -25,6 +26,7 @@
     "locationType": "online",
     "location": "Zoom · link sent on confirmation",
     "bookingMode": "open",
+    "confirmationPolicy": "operator_approval",
     "cancellationRule": "Refundable up to 24h before. After that 50% refund.",
     "active": true,
     "createdAtISO": "2026-01-12T10:00:00.000Z"
@@ -40,6 +42,7 @@
     "locationType": "hybrid",
     "location": "Zoom or Berlin office · your choice",
     "bookingMode": "open",
+    "confirmationPolicy": "automatic",
     "cancellationRule": "Refundable up to 48h before.",
     "active": true,
     "createdAtISO": "2026-01-14T10:00:00.000Z"
@@ -64,6 +67,7 @@
       "notes": "Buzzer for the studio — second floor, glass door on the left."
     },
     "bookingMode": "scheduled",
+    "confirmationPolicy": "operator_approval",
     "cancellationRule": "Reschedule up to 5 days before. No refunds within 48h.",
     "active": true,
     "createdAtISO": "2026-02-02T10:00:00.000Z",
@@ -80,6 +84,7 @@
     "locationType": "online",
     "location": "Zoom · link sent on confirmation",
     "bookingMode": "open",
+    "confirmationPolicy": "automatic",
     "cancellationRule": "Free reschedule up to 24h before.",
     "active": false,
     "createdAtISO": "2026-02-20T10:00:00.000Z",

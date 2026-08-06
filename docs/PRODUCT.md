@@ -50,8 +50,8 @@ provisioning, activation/password reset, operational suspension/reactivation, op
 payment settings, and capacity-one open-mode public booking commands exist. The
 public portfolio/demo deployment stays mock-backed; the API is developed and exercised in
 a separate local/API environment. Activation/reset delivery now uses the PostgreSQL
-outbox worker; booking confirmation and booking-workspace magic links remain the next
-customer-access bundle.
+outbox worker. Public booking receipt/confirmation events and local templates now use the
+same worker; booking-workspace magic-link access remains the next customer-access bundle.
 Hosting is deliberately undecided (Railway is a later candidate, not a current dependency).
 The mock/api switch in `web/src/lib/env.ts` remains the transition seam (see Data layer below).
 
@@ -68,11 +68,14 @@ Phase 1 but must not survive into the real system.
 
 Use these terms consistently in code, types, and copy:
 
-- **Service** — the template the operator offers (name, description, duration, price, capacity, location type, booking mode, optional default address, optional internal notes). Examples: "Strategy Call", "Yoga Class".
+- **Service** — the template the operator offers (name, description, duration, price, capacity, location type, booking mode, confirmation policy, optional default address, optional internal notes). Examples: "Strategy Call", "Yoga Class".
 - **Session** — a scheduled occurrence of a service (date, time, capacity, booked count, status, location, optional address, optional internal notes).
 - **Booking** — a client's booked place in a session. One session can have many bookings when `capacity > 1`. Bookings carry optional `attendance` (`"present" | "late" | "absent"`) recorded post-session.
 - **Capacity** — `1` is a 1:1 appointment; `>1` is a group/class/workshop. **Do not branch logic on a separate "1:1 vs group" service type — branch on capacity.** Group sessions are not a distinct entity.
 - **Booking mode** — `service.bookingMode: "open" | "scheduled"` controls *how* a service is booked. **This is not a service category — never reintroduce a `type` enum like "consulting / yoga / workshop".** `open` = generate slots from working hours (consultations, drop-in classes); `scheduled` = operator pre-creates sessions, clients pick from the list (workshops, courses).
+- **Confirmation policy** — `service.confirmationPolicy: "automatic" | "operator_approval"`
+  controls whether a public booking needs operator approval. It is snapshotted on the
+  booking and remains separate from payment and lifecycle state.
 - **Address** — structured postal address (`Address` type, ISO-3166-1 alpha-2 country code). Operators save named places as `WorkspaceLocation`s under Settings → Business Profile and attach them to services (as defaults) and to sessions (as one-off overrides).
 - **Workspace** — one operator + their settings + their data. The `(superadmin)` views manage all workspaces from a platform perspective.
 - **Workspace currency** — one client-payment currency per workspace. The initial backend
@@ -192,9 +195,12 @@ The sections below capture decisions that go beyond the code's structure — wha
 
 ### Services
 
-- **No `type` field, ever.** A service is defined by name, description, duration, price, capacity, location type, booking mode, optional default address, active state, and optional internal notes. Do not reintroduce service-type fields, filters, badges, color stripes, or hardcoded categories. If grouping is needed later, add a flexible tag/category system intentionally.
+- **No `type` field, ever.** A service is defined by name, description, duration, price, capacity, location type, booking mode, confirmation policy, optional default address, active state, and optional internal notes. Do not reintroduce service-type fields, filters, badges, color stripes, or hardcoded categories. If grouping is needed later, add a flexible tag/category system intentionally.
 - **Allowed service filters:** search, active/inactive status, location type. (The Services page currently has no filter UI; when filters are added, restrict to these three.)
 - **`bookingMode: "open" | "scheduled"`** is a booking *mechanic*, not a category — see Domain terminology above. Do not branch UI on it the way you would on a category enum.
+- **`confirmationPolicy: "automatic" | "operator_approval"`** is a booking gate. Public
+  steps stay unchanged; the resulting booking is pending until every required approval/
+  payment gate passes.
 - **Default address** — when `locationType` is physical/hybrid, a service can carry an `address?: Address` which is the default inherited by new sessions of that service. The session can override. Switching the chosen service in `SessionDrawer` re-inherits the new service's address.
 - **Internal notes** — `service.notes`, displayed only to the operator. Prep instructions, materials, context. Never shown to clients.
 - **Currency migration rule.** Phase 1 keeps `Service.currency` because that is the current
@@ -377,10 +383,12 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
   numbered tax invoice.
 - **The API-mode MVP is deliberately narrower than the mock showcase.** It publishes
   active `bookingMode=open`, `capacity=1` services only, and its availability response
-  contains open slots only—never occupied blocks or client/session details. Free bookings
-  confirm atomically; manual-payment bookings remain payment-pending and consume the slot
-  until their server-owned `paymentDueAt`. The browser submits the exact server-issued
-  instant and never reconstructs it from its own timezone.
+  contains open slots only—never occupied blocks or client/session details. Each service
+  chooses `automatic | operator_approval`; approval is snapshotted separately from payment.
+  Free automatic bookings confirm atomically, while approval-required and/or manual-
+  payment bookings remain pending and consume the slot until every required gate passes
+  or the booking is declined/cancelled/expires. The browser submits the exact server-
+  issued instant and never reconstructs it from its own timezone.
 - When `settings.business.bookingPageEnabled === false`, the page renders `BookingsPausedCard` (operator name + Get in touch button) instead of the stepper. The route still returns 200 — don't 404 it, that would break shared links silently.
 - Card inputs are auto-formatted via `web/src/lib/card.ts` (`formatCardNumber` → `"4242 4242 4242 4242"`, `formatCardExpiry` → `"12 / 30"`, `formatCardCvc` digits-only). Apply these in every card form (booking, register payment, billing update card).
 - **Address surfacing** — `SessionItem.address` is stored but not yet shown to the public client. The booking flow's date/time picker doesn't resolve to a specific `SessionItem` (free-form slots), so there's no plumbed-through session reference at confirmation. Surfacing the address publicly is the natural pairing with the `bookingMode: "scheduled"` flow when it gets built — the "scheduled" mode resolves the chosen session and can pass its address to the receipt and confirmation.
@@ -437,7 +445,7 @@ A production version would use **secure magic links/tokens sent by email + backe
 
 **Deliberately simplified — do not re-add to this surface:** "Shared resources" / resource links and a client-facing "Your next steps" / shared action-items list were **removed**. The resources feature (type/service/mock data) was deleted as unused. `clientVisible` remains on `SessionActionItem` for a possible future client surface, but action items are **admin-only today** and must not be surfaced on the booking workspace in this pass.
 
-**Future backend-heavy ideas are represented, not built.** Email reminders/follow-ups (the reminder line), real customer magic-link access (the disclaimer copy), approval-before-booking (a future *service-level* workflow only — do **not** change the public booking step sequence), and package checkout/credits (package context stays display-only) are all documented as future work. Don't implement any of them in this surface.
+**Future backend-heavy ideas are represented, not built.** Email reminders/follow-ups (the reminder line), real customer magic-link access (the disclaimer copy), and package checkout/credits (package context stays display-only) are documented as future work. Service-level approval now exists in the real API flow but does **not** change this demo workspace or the public booking step sequence.
 
 ### Calendar
 
@@ -463,25 +471,26 @@ Do not add a conversion KPI until a persisted, unambiguous funnel denominator ex
 
 ### Bookings
 
-The API now has an operator-only transaction foundation for scheduled-session bookings:
-creation starts a pending, capacity-consuming booking from server-owned service price and
-workspace currency snapshots; explicit confirm/cancel/complete/no-show commands are
-idempotent and audit logged. It locks the session and counts pending/confirmed bookings in
-one transaction, so an operator bypass can never overfill capacity. It never changes
-payment state: cancellation is not a refund, and confirmation is not a payment signal.
+The API has an operator transaction boundary for scheduled and public-created bookings.
+Lifecycle, payment, and approval are separate state machines. Manual-payment receipt and
+service-level approval/decline are idempotent audited commands; confirmation occurs only
+when payment is `free | paid` and approval is `not_required | approved`. Cancellation and
+decline never imply a refund. Public-created capacity-one sessions are released on
+decline, cancellation, or payment expiry; operator-created sessions are never cancelled
+as a side effect.
 
-The API-mode Bookings UI remains an operator read-only ledger while a dedicated command
-surface is designed. It displays persisted booking, client, session, service, and monetary
-snapshot data; it does not create, edit, cancel, or confirm bookings. Group-session
-attendance is intentionally available only in the Calendar SessionDrawer, where the
-session roster provides its necessary context.
+The API-mode Bookings list remains a ledger. Its focused detail route exposes only the
+narrow valid commands: approve/decline when approval is pending, mark payment received
+when manual payment is pending, and cancel an active booking. Booking creation/editing and
+refund behavior are not UI features. Group-session attendance remains in the Calendar
+SessionDrawer, where the session roster provides its necessary context.
 
 - Grouped into status accordions in order: **Pending → Confirmed → Completed → No-show → Cancelled**.
 - Accordion headers: color-coded dot + bold label + count + a muted truncated preview like `Maya 10:00 · John 14:30 · +6 more`. **No status badges in headers** — the dot is the indicator.
 - Row-level edit/cancel icons stay removed. Use the `BookingDrawer` for everything.
 - `BookingStatus` includes `"noshow"`. Its `BOOKING_STATUS` entry uses tone `warning` and icon `alert` so it's visually distinct from `cancelled` (tone `danger`, icon `x`). Don't make them look the same.
 - Per-booking attendance — `Booking.attendance?: "present" | "late" | "absent"` — is set via the SessionDrawer's **Attendance** tab (renders only when `capacity > 1`). Only confirmed/completed bookings appear; recording an outcome completes the booking but never changes payment state. It is recorded per row with a `SegGroup`; "Mark all present" sends individually idempotent commands and gives one toast.
-- **Booking detail page (`/admin/bookings/[id]`)** is a focused two-column layout: **left = Session + Location** (+ the optional booking note), **right = Payment**. It deliberately does **not** duplicate the full client info card — the Session section shows the client **name as a link to `/admin/clients/<clientId>`** instead. Payment shows status, subtotal/tax/total, and the workspace manual payment instructions when enabled — display-only, no real payment actions or Stripe workflow.
+- **Booking detail page (`/admin/bookings/[id]`)** is a focused two-column layout: **left = Session + Location** (+ the optional booking note), **right = Payment**. It deliberately does **not** duplicate the full client info card — the Session section shows the client **name as a link to `/admin/clients/<clientId>`** instead. API mode renders stored financial/manual-instruction snapshots and the narrow approval/payment/cancel command card; it has no Stripe, refund, or generic edit workflow.
 
 ### Settings
 

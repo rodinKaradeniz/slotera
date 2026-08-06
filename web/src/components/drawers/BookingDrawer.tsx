@@ -24,6 +24,7 @@ import type { Client } from "@/types/client";
 import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
 import type { BookingStatus, PaymentStatus } from "@/types/common";
+import { dataSource } from "@/lib/env";
 
 export type BookingDrawerMode = "view" | "edit";
 
@@ -199,9 +200,11 @@ export function BookingDrawer({
             <Button variant="ghost" onClick={onClose}>
               Close
             </Button>
-            <Button icon="edit" onClick={() => setMode("edit")}>
-              Edit booking
-            </Button>
+            {dataSource === "mock" && (
+              <Button icon="edit" onClick={() => setMode("edit")}>
+                Edit booking
+              </Button>
+            )}
           </>
         ) : (
           <>

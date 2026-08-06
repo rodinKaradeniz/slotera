@@ -30,9 +30,11 @@ class StubProvider:
 async def test_worker_claims_and_marks_transactional_email_sent() -> None:
     message = OutboxMessage(
         id=uuid4(),
+        kind="account_activation",
         recipient_email="owner@example.com",
         subject="Set your password",
         text_body="credential-bearing body",
+        template_data={},
         attempt_count=1,
     )
     repository = StubRepository([message])

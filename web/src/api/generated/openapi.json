@@ -417,14 +417,6 @@
       },
       "BookingConfirmedPayload": {
         "properties": {
-          "clientName": {
-            "title": "Clientname",
-            "type": "string"
-          },
-          "serviceName": {
-            "title": "Servicename",
-            "type": "string"
-          },
           "startsAt": {
             "format": "date-time",
             "title": "Startsat",
@@ -432,11 +424,56 @@
           }
         },
         "required": [
-          "clientName",
-          "serviceName",
           "startsAt"
         ],
         "title": "BookingConfirmedPayload",
+        "type": "object"
+      },
+      "BookingCustomerSnapshot": {
+        "properties": {
+          "company": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "firstName": {
+            "title": "Firstname",
+            "type": "string"
+          },
+          "lastName": {
+            "title": "Lastname",
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "company"
+        ],
+        "title": "BookingCustomerSnapshot",
         "type": "object"
       },
       "BookingListResponse": {
@@ -470,11 +507,148 @@
         "title": "BookingListResponse",
         "type": "object"
       },
+      "BookingPendingNotification": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "booking_pending",
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/BookingPendingPayload"
+          },
+          "readAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readat"
+          },
+          "resourceId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resourceid"
+          },
+          "resourceType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resourcetype"
+          }
+        },
+        "required": [
+          "id",
+          "resourceType",
+          "resourceId",
+          "occurredAt",
+          "readAt",
+          "kind",
+          "payload"
+        ],
+        "title": "BookingPendingNotification",
+        "type": "object"
+      },
+      "BookingPendingPayload": {
+        "properties": {
+          "amountCents": {
+            "title": "Amountcents",
+            "type": "integer"
+          },
+          "approvalStatus": {
+            "enum": [
+              "not_required",
+              "pending",
+              "approved",
+              "declined"
+            ],
+            "title": "Approvalstatus",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "paymentStatus": {
+            "enum": [
+              "paid",
+              "pending",
+              "refunded",
+              "free",
+              "overdue"
+            ],
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "title": "Startsat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "approvalStatus",
+          "paymentStatus",
+          "amountCents",
+          "currency",
+          "startsAt"
+        ],
+        "title": "BookingPendingPayload",
+        "type": "object"
+      },
       "BookingResponse": {
         "properties": {
           "amountCents": {
             "title": "Amountcents",
             "type": "integer"
+          },
+          "approvalStatus": {
+            "enum": [
+              "not_required",
+              "pending",
+              "approved",
+              "declined"
+            ],
+            "title": "Approvalstatus",
+            "type": "string"
+          },
+          "approvedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedat"
           },
           "attendance": {
             "anyOf": [
@@ -497,6 +671,14 @@
             "title": "Clientid",
             "type": "string"
           },
+          "confirmationPolicy": {
+            "enum": [
+              "automatic",
+              "operator_approval"
+            ],
+            "title": "Confirmationpolicy",
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -506,10 +688,33 @@
             "title": "Currency",
             "type": "string"
           },
+          "customer": {
+            "$ref": "#/components/schemas/BookingCustomerSnapshot"
+          },
+          "declinedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declinedat"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "manualPaymentInstructionsSnapshot": {
+            "title": "Manualpaymentinstructionssnapshot",
+            "type": "string"
+          },
+          "netAmountCents": {
+            "title": "Netamountcents",
+            "type": "integer"
           },
           "notes": {
             "anyOf": [
@@ -522,6 +727,38 @@
             ],
             "title": "Notes"
           },
+          "paymentDueAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paymentdueat"
+          },
+          "paymentMethod": {
+            "enum": [
+              "free",
+              "manual"
+            ],
+            "title": "Paymentmethod",
+            "type": "string"
+          },
+          "paymentReceivedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paymentreceivedat"
+          },
           "paymentStatus": {
             "enum": [
               "paid",
@@ -532,6 +769,40 @@
             ],
             "title": "Paymentstatus",
             "type": "string"
+          },
+          "pendingReasons": {
+            "items": {
+              "enum": [
+                "approval",
+                "payment"
+              ],
+              "type": "string"
+            },
+            "title": "Pendingreasons",
+            "type": "array"
+          },
+          "platformTermsVersion": {
+            "title": "Platformtermsversion",
+            "type": "string"
+          },
+          "providerTermsSnapshot": {
+            "title": "Providertermssnapshot",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "sellerTaxNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sellertaxnumber"
           },
           "sessionId": {
             "format": "uuid",
@@ -549,6 +820,56 @@
             "title": "Status",
             "type": "string"
           },
+          "taxAmountCents": {
+            "title": "Taxamountcents",
+            "type": "integer"
+          },
+          "taxJurisdiction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxjurisdiction"
+          },
+          "taxLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxlabel"
+          },
+          "taxRateBps": {
+            "title": "Taxratebps",
+            "type": "integer"
+          },
+          "taxTreatment": {
+            "enum": [
+              "none",
+              "fixed"
+            ],
+            "title": "Taxtreatment",
+            "type": "string"
+          },
+          "termsAcceptedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Termsacceptedat"
+          },
           "updatedAt": {
             "format": "date-time",
             "title": "Updatedat",
@@ -559,11 +880,32 @@
           "id",
           "sessionId",
           "clientId",
+          "reference",
           "status",
           "paymentStatus",
+          "paymentMethod",
+          "confirmationPolicy",
+          "approvalStatus",
+          "pendingReasons",
           "attendance",
           "amountCents",
+          "netAmountCents",
+          "taxAmountCents",
+          "taxTreatment",
+          "taxRateBps",
+          "taxLabel",
+          "taxJurisdiction",
+          "sellerTaxNumber",
           "currency",
+          "paymentDueAt",
+          "paymentReceivedAt",
+          "approvedAt",
+          "declinedAt",
+          "customer",
+          "providerTermsSnapshot",
+          "platformTermsVersion",
+          "termsAcceptedAt",
+          "manualPaymentInstructionsSnapshot",
           "notes",
           "createdAt",
           "updatedAt"
@@ -1870,6 +2212,7 @@
               "discriminator": {
                 "mapping": {
                   "booking_confirmed": "#/components/schemas/BookingConfirmedNotification",
+                  "booking_pending": "#/components/schemas/BookingPendingNotification",
                   "payment_pending": "#/components/schemas/PaymentPendingNotification",
                   "reschedule_requested": "#/components/schemas/RescheduleRequestedNotification",
                   "session_starting": "#/components/schemas/SessionStartingNotification"
@@ -1877,6 +2220,9 @@
                 "propertyName": "kind"
               },
               "oneOf": [
+                {
+                  "$ref": "#/components/schemas/BookingPendingNotification"
+                },
                 {
                   "$ref": "#/components/schemas/BookingConfirmedNotification"
                 },
@@ -2067,22 +2413,12 @@
             "title": "Amountcents",
             "type": "integer"
           },
-          "clientName": {
-            "title": "Clientname",
-            "type": "string"
-          },
           "currency": {
             "title": "Currency",
-            "type": "string"
-          },
-          "serviceName": {
-            "title": "Servicename",
             "type": "string"
           }
         },
         "required": [
-          "clientName",
-          "serviceName",
           "amountCents",
           "currency"
         ],
@@ -2757,6 +3093,24 @@
       },
       "PublicBookingResponse": {
         "properties": {
+          "approvalStatus": {
+            "enum": [
+              "not_required",
+              "pending",
+              "approved",
+              "declined"
+            ],
+            "title": "Approvalstatus",
+            "type": "string"
+          },
+          "confirmationPolicy": {
+            "enum": [
+              "automatic",
+              "operator_approval"
+            ],
+            "title": "Confirmationpolicy",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2785,11 +3139,23 @@
           "paymentStatus": {
             "enum": [
               "pending",
+              "paid",
               "free",
               "overdue"
             ],
             "title": "Paymentstatus",
             "type": "string"
+          },
+          "pendingReasons": {
+            "items": {
+              "enum": [
+                "approval",
+                "payment"
+              ],
+              "type": "string"
+            },
+            "title": "Pendingreasons",
+            "type": "array"
           },
           "quote": {
             "$ref": "#/components/schemas/PublicTaxQuote"
@@ -2812,7 +3178,9 @@
             "enum": [
               "pending",
               "confirmed",
-              "cancelled"
+              "completed",
+              "cancelled",
+              "noshow"
             ],
             "title": "Status",
             "type": "string"
@@ -2824,6 +3192,9 @@
           "status",
           "paymentStatus",
           "paymentMethod",
+          "confirmationPolicy",
+          "approvalStatus",
+          "pendingReasons",
           "sessionStartAt",
           "sessionEndAt",
           "paymentDueAt",
@@ -2969,6 +3340,14 @@
             "title": "Capacity",
             "type": "integer"
           },
+          "confirmationPolicy": {
+            "enum": [
+              "automatic",
+              "operator_approval"
+            ],
+            "title": "Confirmationpolicy",
+            "type": "string"
+          },
           "description": {
             "title": "Description",
             "type": "string"
@@ -3011,6 +3390,7 @@
           "capacity",
           "locationType",
           "location",
+          "confirmationPolicy",
           "cancellationRule",
           "quote"
         ],
@@ -3276,23 +3656,13 @@
       },
       "RescheduleRequestedPayload": {
         "properties": {
-          "clientName": {
-            "title": "Clientname",
-            "type": "string"
-          },
           "requestedFor": {
             "format": "date-time",
             "title": "Requestedfor",
             "type": "string"
-          },
-          "serviceName": {
-            "title": "Servicename",
-            "type": "string"
           }
         },
         "required": [
-          "clientName",
-          "serviceName",
           "requestedFor"
         ],
         "title": "RescheduleRequestedPayload",
@@ -3549,6 +3919,15 @@
             "title": "Capacity",
             "type": "integer"
           },
+          "confirmationPolicy": {
+            "default": "automatic",
+            "enum": [
+              "automatic",
+              "operator_approval"
+            ],
+            "title": "Confirmationpolicy",
+            "type": "string"
+          },
           "description": {
             "default": "",
             "maxLength": 4000,
@@ -3707,6 +4086,21 @@
             ],
             "title": "Capacity"
           },
+          "confirmationPolicy": {
+            "anyOf": [
+              {
+                "enum": [
+                  "automatic",
+                  "operator_approval"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmationpolicy"
+          },
           "description": {
             "anyOf": [
               {
@@ -3834,6 +4228,14 @@
             "title": "Capacity",
             "type": "integer"
           },
+          "confirmationPolicy": {
+            "enum": [
+              "automatic",
+              "operator_approval"
+            ],
+            "title": "Confirmationpolicy",
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -3906,6 +4308,7 @@
           "location",
           "address",
           "bookingMode",
+          "confirmationPolicy",
           "cancellationRule",
           "active",
           "notes",
@@ -4488,14 +4891,6 @@
       },
       "SessionStartingPayload": {
         "properties": {
-          "clientName": {
-            "title": "Clientname",
-            "type": "string"
-          },
-          "serviceName": {
-            "title": "Servicename",
-            "type": "string"
-          },
           "startsAt": {
             "format": "date-time",
             "title": "Startsat",
@@ -4503,8 +4898,6 @@
           }
         },
         "required": [
-          "clientName",
-          "serviceName",
           "startsAt"
         ],
         "title": "SessionStartingPayload",
@@ -5118,6 +5511,60 @@
         ]
       }
     },
+    "/bookings/{booking_id}/approve": {
+      "post": {
+        "operationId": "approveBooking",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
     "/bookings/{booking_id}/attendance": {
       "post": {
         "operationId": "recordBookingAttendance",
@@ -5339,6 +5786,114 @@
           }
         },
         "summary": "Confirm Booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{booking_id}/decline": {
+      "post": {
+        "operationId": "declineBooking",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decline Booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{booking_id}/mark-payment-received": {
+      "post": {
+        "operationId": "markBookingPaymentReceived",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mark Booking Payment Received",
         "tags": [
           "bookings"
         ]

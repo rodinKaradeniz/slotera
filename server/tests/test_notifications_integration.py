@@ -128,11 +128,7 @@ async def test_notifications_are_structured_and_mark_all_is_principal_scoped() -
                         workspace_id=DEMO_SEED.workspace.id,
                         recipient_user_id=DEMO_SEED.operator.id,
                         kind="booking_confirmed",
-                        payload={
-                            "clientName": "Test Client",
-                            "serviceName": "Strategy Session",
-                            "startsAt": "2030-01-01T09:00:00Z",
-                        },
+                        payload={"startsAt": "2030-01-01T09:00:00Z"},
                         occurred_at=datetime(2030, 1, 1, tzinfo=UTC),
                     ),
                     Notification(
@@ -141,8 +137,6 @@ async def test_notifications_are_structured_and_mark_all_is_principal_scoped() -
                         recipient_user_id=other_user_id,
                         kind="payment_pending",
                         payload={
-                            "clientName": "Private Client",
-                            "serviceName": "Group Workshop",
                             "amountCents": 18000,
                             "currency": "EUR",
                         },
@@ -153,11 +147,7 @@ async def test_notifications_are_structured_and_mark_all_is_principal_scoped() -
                         workspace_id=other_workspace_id,
                         recipient_user_id=DEMO_SEED.operator.id,
                         kind="session_starting",
-                        payload={
-                            "clientName": "Other Workspace Client",
-                            "serviceName": "Private Session",
-                            "startsAt": "2030-01-01T10:00:00Z",
-                        },
+                        payload={"startsAt": "2030-01-01T10:00:00Z"},
                         occurred_at=datetime(2030, 1, 1, tzinfo=UTC),
                     ),
                 ]
@@ -230,11 +220,7 @@ async def test_notifications_are_structured_and_mark_all_is_principal_scoped() -
     assert str(other_user_notification_id) not in by_id
     assert str(cross_workspace_notification_id) not in by_id
     assert by_id[own_id]["kind"] == "booking_confirmed"
-    assert by_id[own_id]["payload"] == {
-        "clientName": "Test Client",
-        "serviceName": "Strategy Session",
-        "startsAt": "2030-01-01T09:00:00Z",
-    }
+    assert by_id[own_id]["payload"] == {"startsAt": "2030-01-01T09:00:00Z"}
     assert not ({"title", "detail", "icon", "tone", "age", "unread"} & by_id[own_id].keys())
     assert before.json()["unreadCount"] >= 1
     assert marked.status_code == 204

@@ -9,9 +9,11 @@ from slotera_api.database import Database
 @dataclass(frozen=True)
 class OutboxMessage:
     id: UUID
+    kind: str
     recipient_email: str
     subject: str
     text_body: str
+    template_data: dict[str, object]
     attempt_count: int
 
 

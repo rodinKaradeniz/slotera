@@ -128,6 +128,7 @@ async def test_service_crud_derives_currency_and_preserves_patch_fields() -> Non
             "country": "DE",
         },
         "bookingMode": "open",
+        "confirmationPolicy": "operator_approval",
         "cancellationRule": "Free cancellation up to 24h before.",
         "active": True,
         "notes": "Operator-only preparation note.",
@@ -169,9 +170,11 @@ async def test_service_crud_derives_currency_and_preserves_patch_fields() -> Non
 
     assert created.status_code == 201
     assert created.json()["currency"] == "EUR"
+    assert created.json()["confirmationPolicy"] == "operator_approval"
     assert changed.status_code == 200
     assert changed.json()["address"] == created.json()["address"]
     assert changed.json()["notes"] == "Operator-only preparation note."
+    assert changed.json()["confirmationPolicy"] == "operator_approval"
     assert fetched.json()["name"] == "Architecture Deep Dive"
     assert deleted.status_code == 204
     assert missing.status_code == 404

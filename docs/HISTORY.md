@@ -1099,12 +1099,49 @@ reconciliation, holds, Stripe, reminders, and impersonation remain separate mile
 
 ---
 
+### Entry 044 — Confirmation is the conjunction of independent approval and payment gates
+
+*2026-08-06.* Each service now owns `automatic | operator_approval`, snapshotted on every
+booking. Approval is persisted separately as `not_required | pending | approved |
+declined`; it is neither a payment state nor a new booking-lifecycle synonym. A booking
+can become confirmed only when payment is `free | paid` and approval is `not_required |
+approved`. This yields four truthful initial outcomes: automatic/free confirms;
+automatic/manual waits for payment; approval/free waits for approval; approval/manual
+waits for both. The operator commands for approval, decline, manual-payment receipt, and
+cancellation are narrow, actor-idempotent, and audited, and the API-mode detail surface
+only offers commands valid for the current gates.
+
+Public bookings now retain their submitted contact independently of the matched client
+profile, along with provider/platform terms acceptance, exact manual-payment instructions,
+and financial snapshots. Reusing a normalized client email never overwrites the saved
+profile or discards what was submitted for that transaction. Public-created capacity-one
+sessions are marked distinctly so decline, cancellation, and payment expiry can release
+their slot without cancelling an operator-created session.
+
+The booking transaction emits deduplicated `booking_received` or `booking_confirmed`
+events through the existing PostgreSQL outbox, and later gate completion emits confirmation
+exactly once. Typed provider-neutral templates work with the local console provider now;
+external provider/domain setup remains operational. Matching operator notifications carry
+only resource ids and non-PII facts—client/service names stay out of notification payloads.
+The customer confirmation page reports the persisted outcome and pending gates; it does
+not invent confirmation, a meeting link, or a booking-management credential.
+
+**Alternatives rejected:** treating manual-payment submission as paid; overloading
+`pending` with an unmodelled approval meaning; adding a second “requested” lifecycle;
+using the current client profile as historical booking evidence; cancelling any session
+when a booking ends; introducing Stripe, customer accounts, or an all-history client
+dashboard in this pass. Those choices would blur state ownership, weaken evidence, or
+expand the authorization/product boundary before it is needed.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model
 
 - **No `type` field on `Service`.** Ever. A service is name, description, duration, price,
-  capacity, location type, booking mode, optional address, active flag, optional notes. A
+  capacity, location type, booking mode, confirmation policy, optional address, active
+  flag, optional notes. A
   category enum ("consulting / yoga / workshop") was rejected because it hardcodes a
   vertical into the schema, and the product's positioning is expected to keep moving
   across verticals while the model stays generic. If grouping becomes necessary, it should
@@ -1115,6 +1152,9 @@ reconciliation, holds, Stripe, reminders, and impersonation remain separate mile
 - **`bookingMode: "open" | "scheduled"` is a mechanic, not a category.** `open` generates
   slots from working hours; `scheduled` lists operator-created sessions. It answers *how
   is this booked*, and should not be branched on the way a category would be.
+- **`confirmationPolicy: "automatic" | "operator_approval"` is a workflow gate, not a
+  lifecycle.** It is snapshotted on the booking; approval state remains separate from
+  payment and booking status (Entry 044).
 - **`notes?: string` is a single field, not a log**, on Service, Session, and Booking.
   Client notes are the one exception (Entry 018). The recorded rule: if a
   multi-author/audit shape becomes useful, promote **all three together** to

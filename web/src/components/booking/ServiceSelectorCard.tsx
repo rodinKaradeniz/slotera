@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { gbp } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { Service } from "@/types/service";
 
@@ -45,11 +45,18 @@ export function ServiceSelectorCard({ service, selected, onSelect }: Props) {
             {service.name}
           </h3>
           <span className="text-[15px] font-medium text-ink flex-shrink-0">
-            {service.priceCents === 0 ? t("common.free") : gbp(service.priceCents)}
+            {service.priceCents === 0
+              ? t("common.free")
+              : formatMoney(service.priceCents, service.currency)}
           </span>
         </div>
         <p className="text-small mt-1">{service.description}</p>
-        <div className="text-micro mt-2">{service.durationMin} min</div>
+        <div className="text-micro mt-2">
+          {service.durationMin} min
+          {service.confirmationPolicy === "operator_approval" && (
+            <> · {t("booking.service.approvalRequired")}</>
+          )}
+        </div>
       </div>
     </Card>
   );

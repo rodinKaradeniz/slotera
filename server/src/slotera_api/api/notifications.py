@@ -15,6 +15,8 @@ from slotera_api.operator_resources.notifications_repository import Notification
 from slotera_api.schemas.notifications import (
     BookingConfirmedNotification,
     BookingConfirmedPayload,
+    BookingPendingNotification,
+    BookingPendingPayload,
     NotificationItem,
     NotificationListResponse,
     PaymentPendingNotification,
@@ -48,6 +50,12 @@ def _common(notification: Notification) -> _NotificationFields:
 
 def _notification_response(notification: Notification) -> NotificationItem:
     common = _common(notification)
+    if notification.kind == NotificationKind.BOOKING_PENDING:
+        return BookingPendingNotification(
+            **common,
+            kind="booking_pending",
+            payload=BookingPendingPayload.model_validate(notification.payload),
+        )
     if notification.kind == NotificationKind.BOOKING_CONFIRMED:
         return BookingConfirmedNotification(
             **common,

@@ -10,9 +10,11 @@ import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { localeForLang } from "@/lib/i18n";
+import { dataSource } from "@/lib/env";
 import type { BookingDraft } from "@/components/booking/types";
+import type { PublicBookingResult } from "@/services/public-booking.service";
 
-type Stored = { ref: string; draft: BookingDraft };
+type Stored = { ref: string; draft: BookingDraft; booking?: PublicBookingResult };
 
 export default function ConfirmationPage() {
   const { t, lang } = useI18n();
@@ -30,6 +32,8 @@ export default function ConfirmationPage() {
   }, []);
 
   const meetingLink = data ? `https://meet.slotera.app/${data.ref.toLowerCase()}` : "";
+  const apiBooking = dataSource === "api" ? data?.booking : undefined;
+  const isConfirmed = apiBooking?.status === "confirmed";
 
   const copy = async () => {
     if (!meetingLink) return;
@@ -50,11 +54,19 @@ export default function ConfirmationPage() {
           <div className="mx-auto w-16 h-16 rounded-full bg-accent-soft text-accent flex items-center justify-center mb-5">
             <Icon name="check" size={28} strokeWidth={2.5} />
           </div>
-          <h1 className="text-h2 text-ink">{t("booking.confirm.title")}</h1>
+          <h1 className="text-h2 text-ink">
+            {apiBooking && !isConfirmed
+              ? t("booking.confirm.pendingTitle")
+              : t("booking.confirm.title")}
+          </h1>
           <p className="text-body mt-2 text-ink-3">
-            {data?.draft.customer.email
-              ? t("booking.confirm.emailSent", { email: data.draft.customer.email })
-              : t("booking.confirm.emailSentNoAddress")}
+            {apiBooking
+              ? t("booking.confirm.emailQueued", {
+                  email: data?.draft.customer.email ?? "",
+                })
+              : data?.draft.customer.email
+                ? t("booking.confirm.emailSent", { email: data.draft.customer.email })
+                : t("booking.confirm.emailSentNoAddress")}
           </p>
           {data && (
             <div className="mt-3">
@@ -72,7 +84,16 @@ export default function ConfirmationPage() {
               <DetailLine
                 label={t("booking.confirm.when")}
                 value={
-                  data.draft.date
+                  apiBooking
+                    ? new Date(apiBooking.sessionStartAt).toLocaleString(locale, {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZoneName: "short",
+                      })
+                    : data.draft.date
                     ? `${new Date(data.draft.date).toLocaleDateString(locale, {
                         weekday: "long",
                         day: "numeric",
@@ -85,26 +106,45 @@ export default function ConfirmationPage() {
                 label={t("booking.confirm.attendee")}
                 value={`${data.draft.customer.firstName} ${data.draft.customer.lastName}`.trim()}
               />
-              <DetailLine label={t("booking.confirm.meetingLink")} value={meetingLink} />
+              {dataSource === "mock" && (
+                <DetailLine label={t("booking.confirm.meetingLink")} value={meetingLink} />
+              )}
             </div>
           )}
+          {apiBooking?.pendingReasons.length ? (
+            <div className="mt-5 rounded-md border border-line-soft bg-surface-warm px-4 py-3 text-small text-ink-2">
+              {apiBooking.pendingReasons.includes("approval") &&
+                t("booking.confirm.pendingApproval")}
+              {apiBooking.pendingReasons.includes("approval") &&
+                apiBooking.pendingReasons.includes("payment") && (
+                  <span aria-hidden> · </span>
+                )}
+              {apiBooking.pendingReasons.includes("payment") &&
+                t("booking.confirm.pendingPayment")}
+            </div>
+          ) : null}
           <div className="flex flex-wrap justify-center gap-2 mt-8">
-            <Button variant="primary" icon="copy" onClick={copy}>
-              {copied ? t("booking.confirm.copied") : t("booking.confirm.copyLink")}
-            </Button>
-            {/* Demo-only preview of the future customer booking page. */}
-            <Link href="/booking/manage/demo">
-              <Button variant="secondary" icon="eye">
-                {t("booking.confirm.manage")}
-              </Button>
-            </Link>
+            {dataSource === "mock" && (
+              <>
+                <Button variant="primary" icon="copy" onClick={copy}>
+                  {copied ? t("booking.confirm.copied") : t("booking.confirm.copyLink")}
+                </Button>
+                <Link href="/booking/manage/demo">
+                  <Button variant="secondary" icon="eye">
+                    {t("booking.confirm.manage")}
+                  </Button>
+                </Link>
+              </>
+            )}
             <Link href="/booking">
-              <Button variant="ghost">{t("booking.confirm.bookAnother")}</Button>
+              <Button variant={dataSource === "api" ? "primary" : "ghost"}>
+                {t("booking.confirm.bookAnother")}
+              </Button>
             </Link>
           </div>
         </Card>
 
-        <div className="grid sm:grid-cols-3 gap-3 mt-6">
+        {dataSource === "mock" && <div className="grid sm:grid-cols-3 gap-3 mt-6">
           <NextCard
             icon="calendar"
             title={t("booking.confirm.addCalendar.title")}
@@ -120,7 +160,7 @@ export default function ConfirmationPage() {
             title={t("booking.confirm.forward.title")}
             body={t("booking.confirm.forward.body")}
           />
-        </div>
+        </div>}
       </main>
       <BookingFooter />
     </div>

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { gbp } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import type { Booking } from "@/types/booking";
 
 export type BookingRowData = {
@@ -38,7 +38,7 @@ export function BookingRow({ row, onClick }: Props) {
       <div className="text-[14px] font-medium text-ink whitespace-nowrap">
         {row.booking.amountCents === 0
           ? "Free"
-          : gbp(row.booking.amountCents)}
+          : formatMoney(row.booking.amountCents, row.booking.currency)}
       </div>
     </button>
   );

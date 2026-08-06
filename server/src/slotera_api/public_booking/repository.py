@@ -17,7 +17,9 @@ from slotera_api.db.models import (
     AvailabilityPolicy,
     AvailabilityWindow,
     Booking,
+    BookingApprovalStatus,
     BookingFormResponse,
+    BookingOrigin,
     BookingStatus,
     Client,
     FormStatus,
@@ -28,6 +30,7 @@ from slotera_api.db.models import (
     Service,
     ServiceBookingMode,
     Session,
+    SessionOrigin,
     SessionStatus,
     Workspace,
     WorkspaceBusinessProfile,
@@ -35,6 +38,7 @@ from slotera_api.db.models import (
     WorkspaceOperationalStatus,
     WorkspacePaymentSettings,
 )
+from slotera_api.public_booking.terms import PLATFORM_TERMS_VERSION
 
 
 class PublicWorkspaceNotFoundError(Exception):
@@ -302,6 +306,7 @@ class PublicBookingRepository:
                     Booking.payment_due_at.is_not(None),
                     Booking.payment_due_at <= now,
                     Session.capacity == 1,
+                    Session.origin == SessionOrigin.PUBLIC_OPEN,
                     Session.status == SessionStatus.SCHEDULED,
                 )
                 .with_for_update(of=(Booking, Session))
@@ -508,6 +513,7 @@ class PublicBookingRepository:
             if row is None:
                 raise PublicServiceNotFoundError
             service, workspace, _profile, payments = row._tuple()
+            effective_now = datetime.now(UTC)
             start_at = start_at.astimezone(UTC)
             local_day = start_at.astimezone(ZoneInfo(workspace.timezone)).date()
             available = await self._available_slots(
@@ -517,7 +523,7 @@ class PublicBookingRepository:
                 workspace.timezone,
                 local_day,
                 local_day,
-                datetime.now(UTC),
+                effective_now,
             )
             slot = next((item for item in available if item.start_at == start_at), None)
             if slot is None:
@@ -595,6 +601,7 @@ class PublicBookingRepository:
                 end_at=slot.end_at,
                 capacity=1,
                 status=SessionStatus.SCHEDULED,
+                origin=SessionOrigin.PUBLIC_OPEN,
                 location_type=service.location_type,
                 location=service.location,
                 address=service.address,
@@ -607,21 +614,34 @@ class PublicBookingRepository:
             booking_id = uuid4()
             quote = quote_for(service, workspace, payments)
             payment_due_at = (
-                min(datetime.now(UTC) + timedelta(hours=48), slot.start_at)
+                min(effective_now + timedelta(hours=48), slot.start_at)
                 if payment_method == "manual"
                 else None
+            )
+            approval_status = (
+                BookingApprovalStatus.PENDING
+                if service.confirmation_policy.value == "operator_approval"
+                else BookingApprovalStatus.NOT_REQUIRED
+            )
+            payment_status = (
+                PaymentStatus.FREE if payment_method == "free" else PaymentStatus.PENDING
+            )
+            initial_status = (
+                BookingStatus.CONFIRMED
+                if payment_status == PaymentStatus.FREE
+                and approval_status == BookingApprovalStatus.NOT_REQUIRED
+                else BookingStatus.PENDING
             )
             booking = Booking(
                 id=booking_id,
                 workspace_id=workspace_id,
                 session_id=scheduled_session.id,
                 client_id=client.id,
-                status=(
-                    BookingStatus.CONFIRMED if payment_method == "free" else BookingStatus.PENDING
-                ),
-                payment_status=(
-                    PaymentStatus.FREE if payment_method == "free" else PaymentStatus.PENDING
-                ),
+                status=initial_status,
+                payment_status=payment_status,
+                origin=BookingOrigin.PUBLIC,
+                confirmation_policy_snapshot=service.confirmation_policy,
+                approval_status=approval_status,
                 attendance=None,
                 reference=f"SLT-{booking_id.hex[:12].upper()}",
                 payment_method=str(payment_method),
@@ -636,6 +656,24 @@ class PublicBookingRepository:
                 currency=quote.currency,
                 billing_address=dict(values["billing_address"]),
                 payment_due_at=payment_due_at,
+                payment_received_at=None,
+                approved_at=None,
+                declined_at=None,
+                customer_first_name=str(customer["first_name"]),
+                customer_last_name=str(customer["last_name"]),
+                customer_email=email,
+                customer_phone=(str(customer["phone"]) if customer.get("phone") else None),
+                customer_company=(
+                    str(customer["company"]) if customer.get("company") else None
+                ),
+                provider_terms_snapshot=(
+                    payments.booking_terms_content if payments.booking_terms_enabled else ""
+                ),
+                platform_terms_version=PLATFORM_TERMS_VERSION,
+                terms_accepted_at=effective_now,
+                manual_payment_instructions_snapshot=(
+                    payments.manual_payment_instructions if payment_method == "manual" else ""
+                ),
                 notes=customer.get("notes"),
             )
             session.add(booking)
@@ -677,6 +715,19 @@ class PublicBookingRepository:
                 )
             )
             await session.flush()
+            emitted = await session.scalar(
+                text("SELECT public.slotera_booking_emit_event(:booking_id, :event)"),
+                {
+                    "booking_id": booking.id,
+                    "event": (
+                        "confirmed"
+                        if booking.status == BookingStatus.CONFIRMED
+                        else "received"
+                    ),
+                },
+            )
+            if emitted is not True:
+                raise RuntimeError("public booking event could not be enqueued")
             await session.refresh(booking)
             await session.refresh(scheduled_session)
             return PublicBookingResult(booking, scheduled_session, quote, replayed=False)

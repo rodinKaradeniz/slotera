@@ -58,6 +58,7 @@ const DEFAULT_SERVICE: ServiceFormValue = {
   locationType: "online",
   location: "Zoom · link sent on confirmation",
   bookingMode: "open",
+  confirmationPolicy: "automatic",
   cancellationRule: "Free reschedule up to 12h before.",
   active: true,
 };

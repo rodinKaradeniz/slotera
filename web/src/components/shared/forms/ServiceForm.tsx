@@ -122,6 +122,25 @@ export function ServiceForm({
         />
       </Field>
 
+      <Field
+        label="Booking confirmation"
+        hint="Choose whether bookings confirm automatically or wait for your approval."
+      >
+        <Select
+          value={value.confirmationPolicy}
+          onChange={(e) =>
+            onChange({
+              ...value,
+              confirmationPolicy: e.target.value as Service["confirmationPolicy"],
+            })
+          }
+          options={[
+            { value: "automatic", label: "Confirm automatically" },
+            { value: "operator_approval", label: "Review before confirming" },
+          ]}
+        />
+      </Field>
+
       <div className="grid grid-cols-2 gap-4">
         <Field label="Location type">
           <Select

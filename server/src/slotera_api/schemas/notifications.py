@@ -7,28 +7,28 @@ from pydantic import Field
 from slotera_api.schemas.base import ApiModel
 
 
+class BookingPendingPayload(ApiModel):
+    approval_status: Literal["not_required", "pending", "approved", "declined"]
+    payment_status: Literal["paid", "pending", "refunded", "free", "overdue"]
+    amount_cents: int
+    currency: str
+    starts_at: datetime
+
+
 class BookingConfirmedPayload(ApiModel):
-    client_name: str
-    service_name: str
     starts_at: datetime
 
 
 class PaymentPendingPayload(ApiModel):
-    client_name: str
-    service_name: str
     amount_cents: int
     currency: str
 
 
 class SessionStartingPayload(ApiModel):
-    client_name: str
-    service_name: str
     starts_at: datetime
 
 
 class RescheduleRequestedPayload(ApiModel):
-    client_name: str
-    service_name: str
     requested_for: datetime
 
 
@@ -43,6 +43,11 @@ class NotificationBase(ApiModel):
 class BookingConfirmedNotification(NotificationBase):
     kind: Literal["booking_confirmed"]
     payload: BookingConfirmedPayload
+
+
+class BookingPendingNotification(NotificationBase):
+    kind: Literal["booking_pending"]
+    payload: BookingPendingPayload
 
 
 class PaymentPendingNotification(NotificationBase):
@@ -61,7 +66,8 @@ class RescheduleRequestedNotification(NotificationBase):
 
 
 NotificationItem = Annotated[
-    BookingConfirmedNotification
+    BookingPendingNotification
+    | BookingConfirmedNotification
     | PaymentPendingNotification
     | SessionStartingNotification
     | RescheduleRequestedNotification,

@@ -38,6 +38,17 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
             await session.execute(
                 text(
                     """
+                    UPDATE services
+                    SET confirmation_policy = 'operator_approval'
+                    WHERE workspace_id = :workspace_id
+                      AND name = 'Strategy Session'
+                    """
+                ),
+                {"workspace_id": DEMO_SEED.workspace.id},
+            )
+            await session.execute(
+                text(
+                    """
                     INSERT INTO form_templates (
                       id, workspace_id, name, description, status, fields,
                       required_before_payment
@@ -159,6 +170,8 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
         assert created.status_code == 201
         assert created.json()["status"] == "pending"
         assert created.json()["paymentStatus"] == "pending"
+        assert created.json()["approvalStatus"] == "pending"
+        assert created.json()["pendingReasons"] == ["approval", "payment"]
         assert created.json()["quote"] == service["quote"]
         assert replay.status_code == 200
         assert replay.json()["id"] == created.json()["id"]
@@ -173,13 +186,25 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
                             """
                         SELECT b.reference, b.amount_cents, b.net_amount_cents,
                                b.tax_amount_cents, b.tax_rate_bps, s.capacity,
+                               b.customer_first_name, b.customer_last_name,
+                               b.customer_email, b.terms_accepted_at,
+                               b.provider_terms_snapshot,
+                               b.manual_payment_instructions_snapshot,
+                               b.confirmation_policy_snapshot, b.approval_status,
+                               s.origin,
                                count(r.id) AS response_count
                         FROM bookings b
                         JOIN sessions s ON s.id = b.session_id
                         LEFT JOIN booking_form_responses r ON r.booking_id = b.id
                         WHERE b.id = :booking_id
                         GROUP BY b.reference, b.amount_cents, b.net_amount_cents,
-                                 b.tax_amount_cents, b.tax_rate_bps, s.capacity
+                                 b.tax_amount_cents, b.tax_rate_bps, s.capacity,
+                                 b.customer_first_name, b.customer_last_name,
+                                 b.customer_email, b.terms_accepted_at,
+                                 b.provider_terms_snapshot,
+                                 b.manual_payment_instructions_snapshot,
+                                 b.confirmation_policy_snapshot, b.approval_status,
+                                 s.origin
                         """
                         ),
                         {"booking_id": created.json()["id"]},
@@ -191,7 +216,48 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
         assert stored["amount_cents"] == stored["net_amount_cents"] + stored["tax_amount_cents"]
         assert stored["tax_rate_bps"] == 1900
         assert stored["capacity"] == 1
+        assert stored["origin"] == "public_open"
+        assert stored["customer_first_name"] == "Ayla"
+        assert stored["customer_last_name"] == "Demir"
+        assert stored["customer_email"] == "ayla@example.com"
+        assert stored["terms_accepted_at"] is not None
+        assert stored["provider_terms_snapshot"]
+        assert stored["manual_payment_instructions_snapshot"]
+        assert stored["confirmation_policy_snapshot"] == "operator_approval"
+        assert stored["approval_status"] == "pending"
         assert stored["response_count"] == 1
+
+        async with owner.transaction() as session:
+            initial_events = (
+                (
+                    await session.execute(
+                        text(
+                            """
+                            SELECT
+                              (SELECT count(*) FROM email_outbox
+                               WHERE related_booking_id = :booking_id) AS email_count,
+                              (SELECT count(*) FROM notifications
+                               WHERE resource_type = 'booking'
+                                 AND resource_id = :booking_id) AS notification_count,
+                              (SELECT bool_and(
+                                 NOT (payload ? 'clientName')
+                                 AND NOT (payload ? 'serviceName')
+                               ) FROM notifications
+                               WHERE resource_type = 'booking'
+                                 AND resource_id = :booking_id) AS payload_is_pii_free
+                            """
+                        ),
+                        {"booking_id": created.json()["id"]},
+                    )
+                )
+                .mappings()
+                .one()
+            )
+        assert dict(initial_events) == {
+            "email_count": 1,
+            "notification_count": 1,
+            "payload_is_pii_free": True,
+        }
 
         async with owner.transaction() as session:
             await session.execute(
@@ -222,6 +288,89 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
                 .one()
             )
         assert dict(expired) == {"status": "cancelled", "payment_status": "overdue"}
+
+        second_payload = {
+            **payload,
+            "customer": {
+                **payload["customer"],
+                "firstName": "Aylin",
+                "phone": "+49 30 5550199",
+            },
+        }
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            second = await client.post(
+                "/public/workspaces/lena/bookings",
+                headers={
+                    "Origin": "http://localhost:3344",
+                    "Idempotency-Key": f"public-second-{uuid4()}",
+                },
+                json=second_payload,
+            )
+            login = await client.post(
+                "/auth/login",
+                headers={"Origin": "http://localhost:3344"},
+                json={"email": "hello@slotera.app", "password": DEMO_PASSWORD},
+            )
+            assert login.status_code == 200
+            csrf = {
+                "Origin": "http://localhost:3344",
+                "X-CSRF-Token": client.cookies["slotera_csrf"],
+            }
+            approved = await client.post(
+                f"/bookings/{second.json()['id']}/approve",
+                headers={**csrf, "Idempotency-Key": f"approve-{uuid4()}"},
+            )
+            payment_key = f"payment-{uuid4()}"
+            paid = await client.post(
+                f"/bookings/{second.json()['id']}/mark-payment-received",
+                headers={**csrf, "Idempotency-Key": payment_key},
+            )
+            paid_replay = await client.post(
+                f"/bookings/{second.json()['id']}/mark-payment-received",
+                headers={**csrf, "Idempotency-Key": payment_key},
+            )
+
+        assert second.status_code == 201
+        assert approved.status_code == 200
+        assert approved.json()["status"] == "pending"
+        assert approved.json()["approvalStatus"] == "approved"
+        assert approved.json()["pendingReasons"] == ["payment"]
+        assert paid.status_code == 200
+        assert paid.json()["status"] == "confirmed"
+        assert paid.json()["paymentStatus"] == "paid"
+        assert paid.json()["pendingReasons"] == []
+        assert paid_replay.status_code == 200
+        assert paid_replay.json()["id"] == second.json()["id"]
+
+        async with owner.transaction() as session:
+            second_stored = (
+                (
+                    await session.execute(
+                        text(
+                            """
+                            SELECT b.customer_first_name, b.customer_phone, c.name AS client_name,
+                                   count(DISTINCT e.id) AS email_count,
+                                   count(DISTINCT n.id) AS notification_count
+                            FROM bookings b
+                            JOIN clients c ON c.id = b.client_id
+                            LEFT JOIN email_outbox e ON e.related_booking_id = b.id
+                            LEFT JOIN notifications n
+                              ON n.resource_type = 'booking' AND n.resource_id = b.id
+                            WHERE b.id = :booking_id
+                            GROUP BY b.customer_first_name, b.customer_phone, c.name
+                            """
+                        ),
+                        {"booking_id": second.json()["id"]},
+                    )
+                )
+                .mappings()
+                .one()
+            )
+        assert second_stored["customer_first_name"] == "Aylin"
+        assert second_stored["customer_phone"] == "+49 30 5550199"
+        assert second_stored["client_name"] == "Ayla Demir"
+        assert second_stored["email_count"] == 2
+        assert second_stored["notification_count"] == 2
     finally:
         async with owner.transaction() as session:
             await session.execute(

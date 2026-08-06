@@ -127,6 +127,7 @@ async def list_public_services(
                 capacity=item.capacity,
                 location_type=item.location_type.value,
                 location=item.location,
+                confirmation_policy=item.confirmation_policy.value,
                 cancellation_rule=item.cancellation_rule,
                 quote=_tax_response(quote_for(item, context.workspace, context.payments)),
             )
@@ -260,18 +261,23 @@ async def create_public_booking(
     _no_store(response)
     if result.replayed:
         response.status_code = HTTPStatus.OK
+    pending_reasons: list[Literal["approval", "payment"]] = []
+    if result.booking.approval_status.value == "pending":
+        pending_reasons.append("approval")
+    if result.booking.payment_status.value == "pending":
+        pending_reasons.append("payment")
     return PublicBookingResponse(
         id=result.booking.id,
         reference=result.booking.reference,
-        status=cast(
-            Literal["pending", "confirmed", "cancelled"],
-            result.booking.status.value,
-        ),
+        status=result.booking.status.value,
         payment_status=cast(
-            Literal["pending", "free", "overdue"],
+            Literal["pending", "paid", "free", "overdue"],
             result.booking.payment_status.value,
         ),
         payment_method=cast(Literal["free", "manual"], result.booking.payment_method),
+        confirmation_policy=result.booking.confirmation_policy_snapshot.value,
+        approval_status=result.booking.approval_status.value,
+        pending_reasons=pending_reasons,
         session_start_at=result.session.start_at,
         session_end_at=result.session.end_at,
         payment_due_at=result.booking.payment_due_at,

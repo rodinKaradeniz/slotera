@@ -42,6 +42,7 @@ class PublicServiceResponse(ApiModel):
     capacity: int
     location_type: Literal["online", "physical", "hybrid"]
     location: str
+    confirmation_policy: Literal["automatic", "operator_approval"]
     cancellation_rule: str
     quote: PublicTaxQuote
 
@@ -130,9 +131,12 @@ class PublicBookingCreate(StrictApiModel):
 class PublicBookingResponse(ApiModel):
     id: UUID
     reference: str
-    status: Literal["pending", "confirmed", "cancelled"]
-    payment_status: Literal["pending", "free", "overdue"]
+    status: Literal["pending", "confirmed", "completed", "cancelled", "noshow"]
+    payment_status: Literal["pending", "paid", "free", "overdue"]
     payment_method: Literal["free", "manual"]
+    confirmation_policy: Literal["automatic", "operator_approval"]
+    approval_status: Literal["not_required", "pending", "approved", "declined"]
+    pending_reasons: list[Literal["approval", "payment"]]
     session_start_at: datetime
     session_end_at: datetime
     payment_due_at: datetime | None

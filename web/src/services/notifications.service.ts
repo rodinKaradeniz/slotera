@@ -19,6 +19,11 @@ const PRESENTATION: Record<
   NotificationDto["kind"],
   { icon: string; tone: Tone; title: string }
 > = {
+  booking_pending: {
+    icon: "clock",
+    tone: "warning",
+    title: "Booking needs attention",
+  },
   booking_confirmed: {
     icon: "check",
     tone: "accent",
@@ -72,14 +77,24 @@ function notificationCurrency(value: string): Currency {
 
 function detailFor(notification: NotificationDto): string {
   switch (notification.kind) {
+    case "booking_pending": {
+      const gates = [
+        notification.payload.approvalStatus === "pending" ? "approval" : null,
+        notification.payload.paymentStatus === "pending" ? "payment" : null,
+      ].filter(Boolean);
+      return `${gates.join(" + ")} pending · ${formatMoney(notification.payload.amountCents, notificationCurrency(notification.payload.currency))} · ${formatDateTime(notification.payload.startsAt)}`;
+    }
     case "booking_confirmed":
-      return `${notification.payload.clientName} · ${notification.payload.serviceName} · ${formatDateTime(notification.payload.startsAt)}`;
+      return `Confirmed for ${formatDateTime(notification.payload.startsAt)}`;
     case "payment_pending":
-      return `${notification.payload.clientName} · ${notification.payload.serviceName} · ${formatMoney(notification.payload.amountCents, notificationCurrency(notification.payload.currency))}`;
+      return formatMoney(
+        notification.payload.amountCents,
+        notificationCurrency(notification.payload.currency),
+      );
     case "session_starting":
-      return `${notification.payload.serviceName} · ${notification.payload.clientName} · ${formatDateTime(notification.payload.startsAt)}`;
+      return formatDateTime(notification.payload.startsAt);
     case "reschedule_requested":
-      return `${notification.payload.clientName} · ${notification.payload.serviceName} · ${formatDateTime(notification.payload.requestedFor)}`;
+      return formatDateTime(notification.payload.requestedFor);
   }
 }
 

@@ -10,6 +10,7 @@ import type { Currency, LocationType } from "./common";
  * you would on a "yoga vs consulting" service type. See CLAUDE.md.
  */
 export type ServiceBookingMode = "open" | "scheduled";
+export type ServiceConfirmationPolicy = "automatic" | "operator_approval";
 
 export type Service = {
   id: string;
@@ -29,6 +30,7 @@ export type Service = {
    */
   address?: Address;
   bookingMode: ServiceBookingMode;
+  confirmationPolicy: ServiceConfirmationPolicy;
   cancellationRule: string;
   active: boolean;
   createdAtISO: string;

@@ -11,6 +11,7 @@ type FormListDto = components["schemas"]["PublicFormListResponse"];
 type AvailabilityDto = components["schemas"]["PublicAvailabilityResponse"];
 type BookingCreateDto = components["schemas"]["PublicBookingCreate"];
 type BookingResponseDto = components["schemas"]["PublicBookingResponse"];
+export type PublicBookingResult = BookingResponseDto;
 
 export const LOCAL_PUBLIC_WORKSPACE_SLUG = "lena";
 
@@ -39,6 +40,7 @@ export async function listPublicBookingServices(
     locationType: item.locationType,
     location: item.location,
     bookingMode: "open",
+    confirmationPolicy: item.confirmationPolicy,
     cancellationRule: item.cancellationRule,
     active: true,
     createdAtISO: "",
@@ -98,7 +100,7 @@ export async function listPublicAvailability(
 export async function createPublicBooking(
   draft: BookingDraft,
   slug = LOCAL_PUBLIC_WORKSPACE_SLUG,
-): Promise<BookingResponseDto> {
+): Promise<PublicBookingResult> {
   if (!draft.service || !draft.startAt) {
     throw new Error("Choose an available booking time.");
   }

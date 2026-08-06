@@ -162,6 +162,7 @@ class ServiceCreate(StrictApiModel):
     location: Annotated[NonBlank, Field(max_length=240)]
     address: Address | None = None
     booking_mode: Literal["open", "scheduled"]
+    confirmation_policy: Literal["automatic", "operator_approval"] = "automatic"
     cancellation_rule: Annotated[str, Field(max_length=1000)] = ""
     active: bool = True
     notes: Annotated[str | None, Field(max_length=2000)] = None
@@ -177,6 +178,7 @@ class ServicePatch(StrictApiModel):
     location: Annotated[NonBlank | None, Field(max_length=240)] = None
     address: Address | None = None
     booking_mode: Literal["open", "scheduled"] | None = None
+    confirmation_policy: Literal["automatic", "operator_approval"] | None = None
     cancellation_rule: Annotated[str | None, Field(max_length=1000)] = None
     active: bool | None = None
     notes: Annotated[str | None, Field(max_length=2000)] = None
@@ -201,6 +203,7 @@ class ServiceResponse(ApiModel):
     location: str
     address: Address | None
     booking_mode: Literal["open", "scheduled"]
+    confirmation_policy: Literal["automatic", "operator_approval"]
     cancellation_rule: str
     active: bool
     notes: str | None

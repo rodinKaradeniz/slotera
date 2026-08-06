@@ -17,11 +17,39 @@ function mapBooking(booking: BookingDto): Booking {
     id: booking.id,
     sessionId: booking.sessionId,
     clientId: booking.clientId,
+    reference: booking.reference,
     status: booking.status,
     paymentStatus: booking.paymentStatus,
+    paymentMethod: booking.paymentMethod,
+    confirmationPolicy: booking.confirmationPolicy,
+    approvalStatus: booking.approvalStatus,
+    pendingReasons: booking.pendingReasons,
     attendance: booking.attendance ?? undefined,
     amountCents: booking.amountCents,
+    netAmountCents: booking.netAmountCents,
+    taxAmountCents: booking.taxAmountCents,
+    taxTreatment: booking.taxTreatment,
+    taxRateBps: booking.taxRateBps,
+    taxLabel: booking.taxLabel ?? undefined,
+    taxJurisdiction: booking.taxJurisdiction ?? undefined,
+    sellerTaxNumber: booking.sellerTaxNumber ?? undefined,
     currency: booking.currency as Booking["currency"],
+    paymentDueAtISO: booking.paymentDueAt ?? undefined,
+    paymentReceivedAtISO: booking.paymentReceivedAt ?? undefined,
+    approvedAtISO: booking.approvedAt ?? undefined,
+    declinedAtISO: booking.declinedAt ?? undefined,
+    customer: {
+      firstName: booking.customer.firstName,
+      lastName: booking.customer.lastName,
+      email: booking.customer.email,
+      phone: booking.customer.phone ?? undefined,
+      company: booking.customer.company ?? undefined,
+    },
+    providerTermsSnapshot: booking.providerTermsSnapshot,
+    platformTermsVersion: booking.platformTermsVersion,
+    termsAcceptedAtISO: booking.termsAcceptedAt ?? undefined,
+    manualPaymentInstructionsSnapshot:
+      booking.manualPaymentInstructionsSnapshot,
     notes: booking.notes ?? undefined,
     createdAtISO: booking.createdAt,
   };
@@ -92,7 +120,41 @@ export async function updateBooking(
 }
 
 export async function cancelBooking(id: string): Promise<Booking> {
-  return updateBooking(id, { status: "cancelled", paymentStatus: "refunded" });
+  if (dataSource === "api") return commandBooking(id, "cancel");
+  return updateBooking(id, { status: "cancelled" });
+}
+
+async function commandBooking(
+  id: string,
+  command: "approve" | "decline" | "mark-payment-received" | "cancel",
+): Promise<Booking> {
+  return mapBooking(
+    await apiRequest<BookingDto>(
+      `/bookings/${encodeURIComponent(id)}/${command}`,
+      {
+        method: "POST",
+        csrf: true,
+        idempotencyKey: crypto.randomUUID(),
+      },
+    ),
+  );
+}
+
+export async function approveBooking(id: string): Promise<Booking> {
+  if (dataSource !== "api") return updateBooking(id, { status: "confirmed" });
+  return commandBooking(id, "approve");
+}
+
+export async function declineBooking(id: string): Promise<Booking> {
+  if (dataSource !== "api") return cancelBooking(id);
+  return commandBooking(id, "decline");
+}
+
+export async function markBookingPaymentReceived(id: string): Promise<Booking> {
+  if (dataSource !== "api") {
+    return updateBooking(id, { paymentStatus: "paid", status: "confirmed" });
+  }
+  return commandBooking(id, "mark-payment-received");
 }
 
 /**
