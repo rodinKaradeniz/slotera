@@ -34,6 +34,8 @@ export type SettingsData = {
     bookingPageEnabled: boolean;
     /** Structured studios/offices the operator can attach to sessions. */
     locations: WorkspaceLocation[];
+    /** API mode only: set once onboarding is finished or skipped. */
+    onboardingCompletedAt?: string | null;
   };
   branding: {
     accent: string;

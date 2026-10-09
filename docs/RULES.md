@@ -35,6 +35,14 @@ adds 4. Planning adds 5.
 
 ## Do
 
+0. **Keep it simple until it has to be complex.** Slotera is a simple client-management
+   platform that may grow into an insights product later; it is not a distributed system.
+   Write the smallest clean code that delivers the requirement: no speculative
+   abstractions, no extra services, queues, or infrastructure before a real need is
+   demonstrated, and prefer one obvious path over a configurable one. When complexity is
+   genuinely required (security, money, data integrity), add it deliberately and record
+   why in `docs/HISTORY.md`.
+
 1. **Ask when a request is ambiguous or conflicts with existing code.** A wrong assumption
    carried through a multi-file change costs more than the question. Two readings that
    would produce materially different work is the threshold — routine judgment calls are
@@ -54,7 +62,7 @@ adds 4. Planning adds 5.
      `window.alert()` or `window.confirm()`;
    - admin edit/create flows → extend `DrawersProvider`, don't add a local modal;
    - session/local storage keys → the module that owns them (`web/src/lib/session.ts`,
-     `web/src/lib/register-draft.ts`, `web/src/lib/i18n.ts`). One owner per key.
+     `web/src/lib/i18n.ts`). One owner per key.
 
    If the existing pattern is genuinely wrong for the case, say so and propose the change
    — don't quietly open a second path.

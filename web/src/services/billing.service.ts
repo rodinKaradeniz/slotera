@@ -4,6 +4,8 @@ import plansJson from "@/data/mock/plans.json";
 import subscriptionJson from "@/data/mock/subscription.json";
 import invoicesJson from "@/data/mock/invoices.json";
 import { dataSource } from "@/lib/env";
+import { apiRequest } from "@/api/client";
+import type { components } from "@/api/generated/schema";
 import { sleep } from "@/lib/delay";
 import type {
   BillingCycle,
@@ -110,4 +112,14 @@ export async function updateMockPaymentMethod(
   await sleep(120);
   subscription = { ...subscription, paymentMethod: { ...input } };
   return { ...subscription };
+}
+
+// ── Real app (API mode) ─────────────────────────────────────────────────────
+
+export type WorkspaceBilling = components["schemas"]["WorkspaceBillingResponse"];
+
+/** The operator's Slotera plan plus the Free/Pro price list (docs/PRODUCT.md → Pricing). */
+export async function getWorkspaceBilling(): Promise<WorkspaceBilling> {
+  if (dataSource !== "api") throw new NotImplementedError("getWorkspaceBilling");
+  return apiRequest<WorkspaceBilling>("/settings/billing");
 }

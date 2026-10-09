@@ -167,7 +167,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
           {cells.map((c) => {
             const past = c.date < today;
             const avail =
-              dataSource === "api" ? availableDates.has(c.iso) : isAvailable(c.date);
+              dataSource === "api" ? availableDates.has(dateIso(c.date)) : isAvailable(c.date);
             const selected = !!selectedDate && sameDay(c.date, selectedDate);
             const disabled = past || !avail || !c.inMonth;
             return (
@@ -224,6 +224,11 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
                   )}
                 >
                   {slot.time}
+                  {"spotsLeft" in slot && typeof slot.spotsLeft === "number" && (
+                    <span className="block text-micro opacity-80">
+                      {t("booking.datetime.spotsLeft").replace("{count}", String(slot.spotsLeft))}
+                    </span>
+                  )}
                 </button>
               );
             })}

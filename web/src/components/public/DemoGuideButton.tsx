@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/cn";
+import { dataSource } from "@/lib/env";
 import { useDemoGuide } from "./DemoGuideProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -21,6 +22,8 @@ export function DemoGuideButton({ variant = "link", className }: Props) {
   const { open } = useDemoGuide();
   const { t } = useI18n();
 
+  // The guide walks through the mock demo; the real app has nothing to tour.
+  if (dataSource === "api") return null;
   return (
     <button
       type="button"

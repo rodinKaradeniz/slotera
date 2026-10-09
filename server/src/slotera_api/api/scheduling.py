@@ -70,6 +70,7 @@ def _availability_response(
         buffer_after_min=policy.buffer_after_min,
         minimum_notice_min=policy.minimum_notice_min,
         maximum_advance_days=policy.maximum_advance_days,
+        customer_change_notice_hours=policy.customer_change_notice_hours,
         blackouts=[
             AvailabilityBlackoutResponse(
                 id=item.id,
@@ -157,7 +158,14 @@ async def replace_availability(
         operator.workspace_id,
         operator.user_id,
         timezone=payload.timezone,
-        policy_values={name: getattr(payload, name) for name in policy_fields},
+        policy_values={
+            **{name: getattr(payload, name) for name in policy_fields},
+            **(
+                {"customer_change_notice_hours": payload.customer_change_notice_hours}
+                if payload.customer_change_notice_hours is not None
+                else {}
+            ),
+        },
         windows=[item.model_dump() for item in payload.weekly_hours],
         blackouts=[item.model_dump() for item in payload.blackouts],
     )

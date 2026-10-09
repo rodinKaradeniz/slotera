@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { dataSource } from "@/lib/env";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Section } from "./Section";
 import { HeroCollage } from "./HeroCollage";
+import { SignupCta } from "./SignupCta";
 import { useDemoGuide } from "./DemoGuideProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -23,14 +24,12 @@ export function Hero() {
         <h1 className="text-display text-ink">{t("landing.hero.title")}</h1>
         <p className="text-body-lg mt-6 max-w-2xl">{t("landing.hero.subtitle")}</p>
         <div className="flex flex-wrap items-center gap-3 mt-8">
-          <Link href="/register">
-            <Button size="lg" iconRight="arrow-right">
-              {t("landing.cta.startTrial")}
+          <SignupCta size="lg" iconRight="arrow-right" />
+          {dataSource === "mock" && (
+            <Button size="lg" variant="ghost" onClick={open}>
+              {t("landing.cta.tryDemo")}
             </Button>
-          </Link>
-          <Button size="lg" variant="ghost" onClick={open}>
-            {t("landing.cta.tryDemo")}
-          </Button>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 text-small">
           <span className="inline-flex items-center gap-1.5">

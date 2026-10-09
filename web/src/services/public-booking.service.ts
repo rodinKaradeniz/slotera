@@ -4,6 +4,8 @@ import type { BookingDraft } from "@/components/booking/types";
 import type { FormTemplate } from "@/types/form";
 import type { Currency } from "@/types/common";
 import type { Service } from "@/types/service";
+import { readSession } from "@/lib/session";
+import { NotFoundError } from "./_errors";
 
 type WorkspaceDto = components["schemas"]["PublicWorkspaceResponse"];
 type ServiceListDto = components["schemas"]["PublicServiceListResponse"];
@@ -12,21 +14,41 @@ type AvailabilityDto = components["schemas"]["PublicAvailabilityResponse"];
 type BookingCreateDto = components["schemas"]["PublicBookingCreate"];
 type BookingResponseDto = components["schemas"]["PublicBookingResponse"];
 export type PublicBookingResult = BookingResponseDto;
+export type ManagedBooking = components["schemas"]["ManagedBookingResponse"];
+type ManagedRescheduleDto = components["schemas"]["ManagedBookingReschedule"];
 
-export const LOCAL_PUBLIC_WORKSPACE_SLUG = "lena";
+// The public booking flow is shared by many components and services, so the
+// workspace being booked is held here rather than threaded through every call.
+// `/book/[slug]` sets it before its children render; operator pages fall back
+// to the signed-in workspace (e.g. when showing their own public profile).
+let activePublicSlug: string | null = null;
+
+export function setPublicWorkspaceSlug(slug: string | null): void {
+  activePublicSlug = slug;
+}
+
+export function currentPublicWorkspaceSlug(): string | null {
+  return activePublicSlug ?? readSession()?.operator.workspaceSlug ?? null;
+}
+
+function resolveSlug(): string {
+  const slug = currentPublicWorkspaceSlug();
+  if (!slug) throw new NotFoundError("Booking page", "(no workspace selected)");
+  return slug;
+}
 
 function workspacePath(slug: string): string {
   return `/public/workspaces/${encodeURIComponent(slug)}`;
 }
 
 export async function getPublicBookingWorkspace(
-  slug = LOCAL_PUBLIC_WORKSPACE_SLUG,
+  slug = resolveSlug(),
 ): Promise<WorkspaceDto> {
   return apiRequest<WorkspaceDto>(workspacePath(slug));
 }
 
 export async function listPublicBookingServices(
-  slug = LOCAL_PUBLIC_WORKSPACE_SLUG,
+  slug = resolveSlug(),
 ): Promise<Service[]> {
   const response = await apiRequest<ServiceListDto>(`${workspacePath(slug)}/services`);
   return response.items.map((item) => ({
@@ -39,7 +61,7 @@ export async function listPublicBookingServices(
     capacity: item.capacity,
     locationType: item.locationType,
     location: item.location,
-    bookingMode: "open",
+    bookingMode: item.bookingMode,
     confirmationPolicy: item.confirmationPolicy,
     cancellationRule: item.cancellationRule,
     active: true,
@@ -58,7 +80,7 @@ export async function listPublicBookingServices(
 
 export async function listPublicServiceForms(
   serviceId: string,
-  slug = LOCAL_PUBLIC_WORKSPACE_SLUG,
+  slug = resolveSlug(),
 ): Promise<FormTemplate[]> {
   const response = await apiRequest<FormListDto>(
     `${workspacePath(slug)}/services/${encodeURIComponent(serviceId)}/forms`,
@@ -82,14 +104,15 @@ export async function listPublicServiceForms(
 
 export type PublicAvailability = {
   timezone: string;
-  items: { startAt: string; endAt: string }[];
+  /** `spotsLeft` is set for scheduled (group) sessions only. */
+  items: { startAt: string; endAt: string; spotsLeft?: number | null }[];
 };
 
 export async function listPublicAvailability(
   serviceId: string,
   startsOn: string,
   endsOn: string,
-  slug = LOCAL_PUBLIC_WORKSPACE_SLUG,
+  slug = resolveSlug(),
 ): Promise<PublicAvailability> {
   const query = new URLSearchParams({ from: startsOn, to: endsOn });
   return apiRequest<AvailabilityDto>(
@@ -99,7 +122,7 @@ export async function listPublicAvailability(
 
 export async function createPublicBooking(
   draft: BookingDraft,
-  slug = LOCAL_PUBLIC_WORKSPACE_SLUG,
+  slug = resolveSlug(),
 ): Promise<PublicBookingResult> {
   if (!draft.service || !draft.startAt) {
     throw new Error("Choose an available booking time.");
@@ -140,4 +163,34 @@ export async function createPublicBooking(
     `${workspacePath(slug)}/bookings`,
     { method: "POST", body, idempotencyKey },
   );
+}
+
+// ── Customer booking link (API mode) ────────────────────────────────────────
+// The token comes from the emailed link's URL fragment and is only ever sent as a
+// header, never in a URL.
+
+function linkHeaders(token: string): Record<string, string> {
+  return { "X-Booking-Token": token };
+}
+
+export async function getManagedBooking(token: string): Promise<ManagedBooking> {
+  return apiRequest<ManagedBooking>("/public/bookings/manage", { headers: linkHeaders(token) });
+}
+
+export async function cancelManagedBooking(token: string): Promise<ManagedBooking> {
+  return apiRequest<ManagedBooking>("/public/bookings/manage/cancel", {
+    method: "POST",
+    headers: linkHeaders(token),
+  });
+}
+
+export async function rescheduleManagedBooking(
+  token: string,
+  startAt: string,
+): Promise<ManagedBooking> {
+  return apiRequest<ManagedBooking, ManagedRescheduleDto>("/public/bookings/manage/reschedule", {
+    method: "POST",
+    body: { startAt },
+    headers: linkHeaders(token),
+  });
 }

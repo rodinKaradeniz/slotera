@@ -1,10 +1,12 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import EmailStr, Field
+from pydantic import EmailStr, Field, field_validator
 
 from slotera_api.schemas.base import ApiModel
+from slotera_api.schemas.operator_resources import NonBlank, StrictApiModel
 
 
 class LoginRequest(ApiModel):
@@ -47,3 +49,41 @@ class PasswordResetAccepted(ApiModel):
 class PasswordResetConsume(ApiModel):
     token: str = Field(min_length=32, max_length=1024)
     new_password: str = Field(min_length=10, max_length=1024)
+
+
+WorkspaceSlug = Annotated[
+    str,
+    Field(min_length=3, max_length=80, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"),
+]
+
+
+class SignupRequest(StrictApiModel):
+    workspace_name: Annotated[NonBlank, Field(max_length=160)]
+    slug: WorkspaceSlug
+    first_names: Annotated[NonBlank, Field(max_length=160)]
+    last_name: Annotated[NonBlank, Field(max_length=160)]
+    email: EmailStr
+    timezone: Annotated[NonBlank, Field(max_length=64)] = "Europe/Berlin"
+
+    @field_validator("timezone")
+    @classmethod
+    def timezone_must_exist(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError("timezone must be an IANA timezone") from exc
+        return value
+
+
+class PasswordChange(ApiModel):
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=10, max_length=1024)
+
+
+class SignupAccepted(ApiModel):
+    accepted: bool = True
+
+
+class SlugAvailability(ApiModel):
+    slug: str
+    available: bool

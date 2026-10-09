@@ -8,6 +8,8 @@ export type Operator = {
   name: string;
   email: string;
   workspaceName: string;
+  /** API mode: the workspace's public booking-page slug (`/book/{slug}`). */
+  workspaceSlug?: string;
   avatarInitials: string;
   createdAtISO?: string;
   role?: UserRole;
@@ -20,9 +22,3 @@ export type Session = {
   role: UserRole;
 };
 
-export type OnboardingState = {
-  service: boolean;
-  availability: boolean;
-  payments: boolean;
-  share: boolean;
-};

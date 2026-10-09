@@ -2,13 +2,17 @@ import argparse
 import asyncio
 import logging
 from dataclasses import replace
-from typing import Literal, cast
+from typing import cast
 
 from slotera_api.config import get_settings
 from slotera_api.database import Database
 from slotera_api.email.providers import EmailProvider, create_email_provider
 from slotera_api.email.repository import EmailOutboxRepository
-from slotera_api.email.templates import render_booking_email
+from slotera_api.email.templates import (
+    BOOKING_EMAIL_KINDS,
+    BookingEmailKind,
+    render_booking_email,
+)
 from slotera_api.logging import configure_logging
 
 logger = logging.getLogger("slotera.email.worker")
@@ -27,10 +31,8 @@ async def deliver_available(
             break
         try:
             resolved = message
-            if message.kind in {"booking_received", "booking_confirmed"}:
-                kind = cast(
-                    Literal["booking_received", "booking_confirmed"], message.kind
-                )
+            if message.kind in BOOKING_EMAIL_KINDS:
+                kind = cast(BookingEmailKind, message.kind)
                 subject, text_body = render_booking_email(kind, message.template_data)
                 resolved = replace(message, subject=subject, text_body=text_body)
             provider_id = await provider.send(resolved)

@@ -124,16 +124,10 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_CSRF_COOKIE_NAME=slotera_csrf
 ```
 
-**Signing in (mock mode)** — any password works. `web/src/services/auth.service.ts`
-resolves the role from the email address:
-
-| Email | Lands on |
-|---|---|
-| `hello@slotera.app` (seeded operator, Dr. Lena Maria Hartmann) | `/admin/dashboard` |
-| `admin@slotera.app` (seeded superadmin, Avery Quinn) | `/superadmin/overview` |
-| anything starting `admin@` / `super@` / `superadmin@` | `/superadmin/overview` |
-| any other address | `/admin/dashboard` (ad-hoc operator) |
-| `wrong@example.com` | throws — the seeded failure case for testing error states |
+**Signing in (mock mode)** — any email and password work and every sign-in lands on
+`/admin/dashboard` as an operator (`hello@slotera.app` is the seeded Dr. Lena Maria
+Hartmann). `wrong@example.com` throws — the seeded failure case for error states. The mock
+demo has no superadmin area, sign-up, onboarding, or password reset; those 404 there.
 
 **Signing in (local API mode)** — use `hello@slotera.app` / `slotera-local-only`.
 Authentication is cookie-backed and the operator lands on `/admin/dashboard`; Dashboard,
@@ -141,21 +135,40 @@ Calendar, Calendar Settings, Bookings, Clients, Services, Forms, and Business Se
 exposed in API-mode navigation. The navbar and Cmd/Ctrl-K operator search are also
 API-backed. Calendar uses persisted sessions, booking/client context, session action
 items, and group-session attendance. The persisted booking detail exposes narrow,
-idempotent approval, decline, manual-payment receipt, and cancellation actions while
-booking creation remains API-only.
+idempotent approval, decline, manual-payment receipt, and cancellation actions, and
+Bookings → New booking books an existing client into an upcoming session with room
+(`POST /bookings`, audited reason, one idempotency key per opened form). Settings →
+Account shows the sign-in email and changes the password (`POST /auth/password/change`
+re-verifies the current password and signs out other sessions). `AuthGuard` admits in API
+mode exactly the routes `navForRole()` lists.
 API-mode superadmins land on the persisted Workspaces directory; its detail route shows
 only safe owner, workspace, and aggregate facts, and platform staff can provision a
 workspace plus activation-pending initial operator or suspend/reactivate operator access.
 Provisioning queues the initial operator's one-time activation link; local console delivery
 prints that sensitive link in the worker log, while production configuration requires Resend.
 Suspension revokes existing workspace sessions and blocks new ones until reactivation.
-Subscriptions, inquiries,
-impersonation, and platform settings surfaces remain mock-only. API mode wires password
-reset, Client Payments settings, and the seeded `lena` capacity-one open-mode public
-booking flow; registration and the remaining operator routes are not API-wired yet.
+API-mode superadmins land on Overview (platform counts); Workspaces shows each
+workspace's Free/Pro plan and lets staff change it (audited); Inquiries lists contact-form
+submissions, which the public `ContactModal` now persists in API mode. Impersonation is not
+built; the Subscriptions and platform Settings pages were removed. API mode wires
+self-serve sign-up (`/register` → emailed activation link → `/reset-password`),
+onboarding, password reset, Client Payments settings, and the capacity-one open-mode
+public booking flow at `/book/{slug}` (the seed's is `/book/lena`).
 
-**Public routes needing no session:** `/` (landing), `/booking`,
-`/booking/confirmation`, `/booking/failure`, `/booking/manage/demo`.
+**Public routes needing no session:** `/` (landing), `/booking` (mock demo only),
+`/book/[slug]` (API mode), `/booking/confirmation`, `/booking/failure`,
+`/booking/manage/demo`, and `/maintenance`.
+
+**Demo vs app.** The mock demo is a showcase for prospects. Account flows (`/register`,
+`/onboarding`, `/forgot-password`, `/reset-password`) and the `(superadmin)` group call
+`notFound()` in mock mode; landing CTAs go through `SignupCta`, which opens the contact
+form in the demo and links to `/register` in the app. Demo-guide triggers render only in
+mock mode.
+
+**System pages:** `web/src/app/not-found.tsx` is the themed 404 for every unmatched URL.
+`web/src/proxy.ts` rewrites every page request to `/maintenance` while the server-only
+`MAINTENANCE_MODE=1` variable is set at runtime (restart, no rebuild); both use
+`StatusScreen` with logo-only chrome so they suit every role.
 
 ---
 
@@ -178,8 +191,8 @@ booking flow; registration and the remaining operator routes are not API-wired y
 | Lint | ESLint `^9` + `eslint-config-next` (flat config) | `web/eslint.config.mjs` |
 | Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | auth/session + operator settings/locations/services/notifications |
 | Backend data | PostgreSQL 17 via Docker Compose | owner migrations, restricted application role, forced tenant RLS; host port `55432` |
-| Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; no CI yet |
-| Frontend tests | none | no runner, no test files, no CI |
+| Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; GitHub Actions runs quality and PostgreSQL integration gates |
+| Frontend tests | none | no runner or test files; GitHub Actions runs type-check, lint, and production build |
 
 ---
 
@@ -381,7 +394,7 @@ In mock mode, `auth.service.ts` writes a fabricated token to `localStorage`. In 
 it exchanges credentials for server cookies, restores the verified session from
 `GET /auth/session`, and sends the readable CSRF cookie through the shared client on
 logout. `web/src/lib/session.ts` remains the **only** module that touches the
-`slotera.session` and `slotera.onboarding` keys. `AuthGuard`
+`slotera.session` key. `AuthGuard`
 (`web/src/components/layout/AuthGuard.tsx`) takes an optional `requireRole` and redirects to
 `/login?next=…` when there is no session, or to `homePathForRole(session.role)` on a role
 mismatch. `homePathForRole()` in `web/src/lib/nav.ts` is the single source of truth for where
@@ -395,7 +408,7 @@ each role goes home; `OPERATOR_NAV` / `SUPERADMIN_NAV`, API-filtered variants, a
 | Group | Routes | Shell | Guard |
 |---|---|---|---|
 | `(public)` | `/`, `/booking`, `/booking/confirmation`, `/booking/failure`, `/booking/manage/demo` | `PublicNav` / booking chrome | none |
-| `(auth)` | `/login`, `/register`, `/register/plan`, `/register/payment`, `/forgot-password`, `/reset-password`, `/onboarding` | `AuthShell` (width chosen by pathname in the group layout) | none |
+| `(auth)` | `/login`, `/register`, `/forgot-password`, `/reset-password`, `/onboarding` (all but `/login` are API-mode only) | `AuthShell` (width chosen by pathname in the group layout) | none |
 | `(admin)` | `/admin/{dashboard,calendar,bookings,bookings/[id],clients,clients/[id],services,packages,forms,settings}` | `AdminShell` | `AuthGuard requireRole="operator_admin"` + `DrawersProvider` |
 | `(superadmin)` | `/superadmin/{overview,workspaces,workspaces/[id],subscriptions,inquiries,settings}` | `AppShell` with role/API-filtered platform nav | `AuthGuard requireRole="superadmin"` |
 
@@ -499,13 +512,20 @@ descriptions, seeded notes) is English-only by design.
 Present tense — what exists in the working tree today.
 
 **Public**
-- Landing page with hero + collage, features, how-it-works, logo wall, testimonials,
-  pricing, FAQ, final CTA, footer with a single `Legal` link opening a three-tab modal
+- Landing page with hero + collage, features, how-it-works, demo strip (mock only),
+  two-tier pricing (Free / Pro), FAQ, final CTA, footer with a single `Legal` link opening a three-tab modal
   (Imprint / Privacy / Terms). No standalone `/imprint`, `/privacy`, `/terms` routes.
 - Public booking flow: Service → Date & time → Details → (Forms, conditional) → Billing →
   Review → Pay, with a receipt-styled summary, consent linking to a two-tab legal modal
   (provider booking terms + platform terms), and confirmation/failure routes.
-- API mode persists the seeded `lena` flow for active open-mode, capacity-one services.
+- API mode serves each workspace at `/book/[slug]`, which selects the workspace with
+  `setPublicWorkspaceSlug()` and renders the shared `PublicBookingFlow`. It books active
+  open-mode 1:1 services (a session is created per booking) and scheduled services of any
+  capacity (the client joins an operator session with seats left).
+- `/booking/manage#<token>` (API mode) is the customer's page for one booking, linked
+  from every booking email: details, cancel, and one reschedule until the workspace's
+  change cutoff (`/public/bookings/manage*`, token sent as `X-Booking-Token`).
+  `slotera-maintenance` also queues ~24h reminders; run it every 15 minutes.
   It shows only server-issued available slots, validates and snapshots required attached
   forms, and derives confirmation from the service approval policy plus free/manual
   payment state. The confirmation page reports the exact persisted pending gates and
@@ -521,13 +541,14 @@ Present tense — what exists in the working tree today.
   booking belongs to a package). Single fixed demo booking; no tokens or persistence.
 
 **Auth & onboarding**
-- Login, forgot/reset password, and a three-route registration flow
-  (`/register` → `/register/plan` → `/register/payment`) that defers account creation
-  until after mock payment, holding the draft in `sessionStorage` via
-  `web/src/lib/register-draft.ts`. Choosing the Custom plan diverts to a persisting contact
-  inquiry and creates no account.
-- Five-pane onboarding stepper: Welcome → Service → Availability → Payments → Done, reusing
-  `ServiceForm`, `WorkingHoursForm`, and `ManualPaymentForm`.
+- Login, forgot/reset password, and one-step sign-up (API mode). `POST /auth/signup`
+  creates the Free-plan workspace and an activation-pending owner and emails the
+  activation link; an already-registered email gets the same response plus a fresh link,
+  so sign-up never reveals which addresses exist. A taken slug is reported (slugs are public).
+- Five-pane onboarding stepper (API mode): Welcome → Service → Availability → Payments →
+  Done, reusing `ServiceForm`, `WorkingHoursForm`, and `ManualPaymentForm`. It resumes
+  from server state, and Done/Skip set `onboarding_completed_at`; login sends an operator
+  without it to `/onboarding`.
 
 **Operator workspace (`/admin`)**
 - Dashboard: KPI tiles, Recharts revenue trend, `NextSessionCard` (with today's timeline
@@ -598,7 +619,7 @@ Present tense — what exists in the working tree today.
   booking detail approval/payment/cancel commands. API-mode Calendar uses its real roster/
   attendance resources without mock fallback. The public/Vercel experience continues to
   default to mock mode.
-- API mode also wires Client Payments and the seeded `lena` public booking flow. Public
+- API mode also wires Client Payments and the per-workspace `/book/[slug]` booking flow. Public
   responses allow-list workspace/catalog/form facts and open slots only; creation supports
   capacity-one open services, separate confirmation/payment state, gross-inclusive fixed
   tax, persisted contact/terms/pre-payment form evidence, slot/idempotency locks, safe slot

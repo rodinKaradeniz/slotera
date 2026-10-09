@@ -17,6 +17,7 @@ class PlatformWorkspaceSummary(ApiModel):
     owner_email: str | None
     created_at: datetime
     operational_status: Literal["active", "suspended"]
+    plan: Literal["free", "pro"]
     services_count: int
     clients_count: int
     bookings_count: int
@@ -62,3 +63,68 @@ class PlatformWorkspaceProvision(StrictApiModel):
         except ZoneInfoNotFoundError as exc:
             raise ValueError("timezone must be an IANA timezone") from exc
         return value
+
+
+class PlatformPlanChange(StrictApiModel):
+    plan: Literal["free", "pro"]
+
+
+InquiryReason = Literal["business", "development", "feature", "general"]
+
+
+class PlatformInquiryResponse(ApiModel):
+    id: UUID
+    name: str
+    email: str
+    company: str | None
+    reason: str
+    message: str
+    created_at: datetime
+    read_at: datetime | None
+
+
+class PlatformInquiryListResponse(ApiModel):
+    items: list[PlatformInquiryResponse]
+
+
+class PublicInquiryCreate(StrictApiModel):
+    name: Annotated[NonBlank, Field(max_length=160)]
+    email: EmailStr
+    company: Annotated[str | None, Field(max_length=160)] = None
+    reason: InquiryReason = "business"
+    message: Annotated[NonBlank, Field(max_length=4000)]
+
+
+class PlatformInquiryReadChange(StrictApiModel):
+    read: bool
+
+
+class PublicInquiryAccepted(ApiModel):
+    accepted: bool = True
+
+
+class PlatformOverviewResponse(ApiModel):
+    workspaces_total: int
+    workspaces_active: int
+    workspaces_suspended: int
+    workspaces_free: int
+    workspaces_pro: int
+    signups_30d: int
+    bookings_30d: int
+    inquiries_unread: int
+
+
+class PlanResponse(ApiModel):
+    id: Literal["free", "pro"]
+    name: str
+    monthly_price_cents: int
+    currency: str
+    card_fee_bps: int
+
+
+class WorkspaceBillingResponse(ApiModel):
+    """The operator's own plan plus the full price list, for Settings → Billing."""
+
+    plan: Literal["free", "pro"]
+    plan_changed_at: datetime | None
+    plans: list[PlanResponse]

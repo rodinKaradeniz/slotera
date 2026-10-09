@@ -1,3 +1,4 @@
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from hmac import compare_digest
@@ -31,6 +32,10 @@ class RateLimitExceeded(Exception):
 
 
 class InvalidPasswordResetToken(Exception):
+    pass
+
+
+class WorkspaceSlugUnavailable(Exception):
     pass
 
 
@@ -77,6 +82,29 @@ class AuthServiceProtocol(Protocol):
     async def request_password_reset(self, *, email: str, client_key: str) -> None: ...
 
     async def consume_password_reset(self, *, token: str, new_password: str) -> None: ...
+
+    async def signup(
+        self,
+        *,
+        name: str,
+        slug: str,
+        owner_first_names: str,
+        owner_last_name: str,
+        owner_email: str,
+        timezone: str,
+        client_key: str,
+    ) -> None: ...
+
+    async def slug_available(self, slug: str) -> bool: ...
+
+    async def change_password(
+        self,
+        *,
+        session: AuthSession,
+        session_token: str,
+        current_password: str,
+        new_password: str,
+    ) -> None: ...
 
 
 class AuthService:
@@ -195,6 +223,83 @@ class AuthService:
         )
         if result != "consumed":
             raise InvalidPasswordResetToken
+
+    async def signup(
+        self,
+        *,
+        name: str,
+        slug: str,
+        owner_first_names: str,
+        owner_last_name: str,
+        owner_email: str,
+        timezone: str,
+        client_key: str,
+    ) -> None:
+        """Create a workspace and an activation-pending owner, then email the activation link.
+
+        The activation link doubles as email verification: no password exists until the
+        owner proves they control the address. An already-registered email gets the same
+        response and a fresh activation/reset link, so sign-up never reveals which
+        addresses have accounts. Slugs are public, so a taken slug is reported.
+        """
+        allowed = await self._repository.consume_rate_limit(
+            scope="auth.signup",
+            key_hash=hash_opaque_token(client_key),
+            limit=5,
+            window_seconds=60 * 60,
+        )
+        if not allowed:
+            raise RateLimitExceeded
+        normalized_email = normalize_email(owner_email)
+        result = await self._repository.self_signup(
+            name=name,
+            slug=slug,
+            owner_first_names=owner_first_names,
+            owner_last_name=owner_last_name,
+            owner_email=normalized_email,
+            timezone=timezone,
+        )
+        if result in {"workspace_slug_reserved", "workspace_slug_taken"}:
+            raise WorkspaceSlugUnavailable
+        if result not in {"created", "workspace_owner_email_taken"}:
+            raise RuntimeError(f"unexpected sign-up result: {result}")
+        # If the link is throttled the workspace still exists; the owner can request
+        # another activation link from the forgot-password page later.
+        with suppress(RateLimitExceeded):
+            await self.request_password_reset(email=normalized_email, client_key=client_key)
+
+    async def slug_available(self, slug: str) -> bool:
+        return await self._repository.slug_available(slug)
+
+    async def change_password(
+        self,
+        *,
+        session: AuthSession,
+        session_token: str,
+        current_password: str,
+        new_password: str,
+    ) -> None:
+        """Re-verify the current password, then rotate it and sign out other sessions."""
+        allowed = await self._repository.consume_rate_limit(
+            scope="auth.password_change",
+            key_hash=hash_opaque_token(str(session.user_id)),
+            limit=5,
+            window_seconds=15 * 60,
+        )
+        if not allowed:
+            raise RateLimitExceeded
+        identities = await self._repository.login_identities(session.email)
+        password_hash = identities[0].password_hash if identities else None
+        if password_hash is None or not self._password_hasher.verify(
+            current_password, password_hash
+        ):
+            raise InvalidCredentials
+        result = await self._repository.change_password(
+            session_token_hash=hash_opaque_token(session_token),
+            password_hash=self._password_hasher.hash(new_password),
+        )
+        if result != "changed":
+            raise AccountUnavailable
 
     @staticmethod
     def _select_identity(

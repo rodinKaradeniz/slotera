@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { dataSource } from "@/lib/env";
 import { Modal } from "@/components/ui/Modal";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
@@ -107,7 +108,8 @@ export function ContactModal({
     if (!valid) return;
     setSubmitting(true);
     try {
-      if (persist) {
+      // The real app always records inquiries for platform staff.
+      if (persist || dataSource === "api") {
         await createInquiry({
           name: form.name,
           email: form.email,

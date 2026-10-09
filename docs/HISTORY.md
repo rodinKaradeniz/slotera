@@ -1133,6 +1133,68 @@ when a booking ends; introducing Stripe, customer accounts, or an all-history cl
 dashboard in this pass. Those choices would blur state ownership, weaken evidence, or
 expand the authorization/product boundary before it is needed.
 
+### Entry 045 — The demo is a showcase; sign-up is one step and email-verified
+
+*2026-10-09.* The mock demo exists for prospects and portfolio visitors, so account
+flows (sign-up, onboarding, password reset) and the superadmin area now 404 there and the
+landing CTAs open the contact form instead. In the real app, sign-up is a single form:
+`POST /auth/signup` creates the workspace, an activation-pending owner, and baseline
+settings (payment settings and an availability policy), then sends the existing
+activation link. The link is the email verification; no password exists until it is
+used. Sign-up answers the same way for an already-registered email (and sends that owner
+a fresh link), so it cannot be used to enumerate accounts; slugs are public and a taken
+slug is reported. Superadmin provisioning and sign-up share one internal database
+function so the two paths cannot drift. Pricing is two identical-feature tiers, Free
+(€0 + 3% per card payment) and Pro (€19 + 1%); Free replaces a trial.
+
+Each workspace's public page is `/book/{slug}`. The booking flow's many components and
+services read the selected workspace from one module-level value set by that route,
+rather than threading a slug through every call. Onboarding completion is a single
+timestamp on the business profile, and resume is derived from data.
+
+**Alternatives rejected:** keeping plan choice and a mock card form in sign-up (no real
+billing exists yet); choosing a password at sign-up (unverified addresses); a client-side
+onboarding checklist in `localStorage` (lost across devices); a separate sign-up SQL
+function duplicating provisioning.
+
+### Entry 046 — Customers manage one booking through an emailed link
+
+*2026-10-09.* Customers still have no accounts. Each booking email carries a fresh link
+to that booking; the token sits in the URL fragment (never sent to servers, so never
+logged), only its hash is stored, and it expires 30 days after the session. One fixed
+database function maps token to booking; all reads and changes then run inside that
+booking's tenant transaction and return an allow-list.
+
+Customers may cancel, and reschedule once, until a workspace-wide cutoff (default 24h).
+"Once" keeps the existing one-email-per-kind outbox rule and avoids a customer endlessly
+moving a slot; further changes go through the provider. Cancelling never changes payment
+state. Reminders are queued by the existing maintenance job, not a new worker or
+scheduler: a query finds confirmed bookings starting within 24h with no reminder, and the
+outbox's per-booking uniqueness makes reruns harmless.
+
+Scheduled services became publicly bookable by reusing the operator path: lock the
+session, count pending/confirmed bookings, refuse when full. Joining never creates or
+cancels an operator session; only public 1:1 sessions are released.
+
+**Alternatives rejected:** token in the path or query string (logged by proxies);
+customer accounts or an all-bookings dashboard; unlimited reschedules (needs a new outbox
+key per change); a dedicated reminder worker or Redis/Celery.
+
+### Entry 047 — Plans are a column, not a subscription system
+
+*2026-10-09.* Platform billing is two identical-feature plans (Free €0 + 3%, Pro €19 + 1%
+of card payments). Until Stripe exists, a plan is a `workspaces.plan` value changed only
+by an audited superadmin command, Pro is invoiced manually, and Settings → Billing turns
+"Upgrade" into an inquiry. There is no trial, status machine, or invoice model: Free is the
+trial, and real billing state arrives with Stripe Billing. Inquiries are global platform
+data reached only through fixed functions, and the overview is one aggregate query. The
+mock-only Subscriptions/Settings superadmin pages and the MRR-style overview were removed
+because the platform area is no longer part of the demo.
+
+**Alternatives rejected:** porting the mock subscription model (trialing/past_due,
+invoices) before any payment provider exists; a self-serve plan switch that nothing
+charges for.
+
 ---
 
 ## Thematic sections

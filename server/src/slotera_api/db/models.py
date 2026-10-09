@@ -45,6 +45,7 @@ TENANT_TABLES = frozenset(
         "bookings",
         "booking_command_idempotency",
         "booking_form_responses",
+        "booking_access_tokens",
         "public_booking_idempotency",
         "form_templates",
         "form_template_services",
@@ -90,6 +91,7 @@ class NotificationKind(StrEnum):
     PAYMENT_PENDING = "payment_pending"
     SESSION_STARTING = "session_starting"
     RESCHEDULE_REQUESTED = "reschedule_requested"
+    BOOKING_CANCELLED = "booking_cancelled"
 
 
 class SessionStatus(StrEnum):
@@ -208,6 +210,9 @@ class Workspace(Base):
         ),
         server_default=text("'active'"),
     )
+    # Platform plan; changed only by the audited superadmin database command.
+    plan: Mapped[str] = mapped_column(String(16), server_default=text("'free'"))
+    plan_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -372,6 +377,7 @@ class WorkspaceBusinessProfile(Base):
     phone: Mapped[str] = mapped_column(String(40), server_default=text("''"))
     address: Mapped[str] = mapped_column(String(500), server_default=text("''"))
     booking_page_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -509,6 +515,8 @@ class AvailabilityPolicy(Base):
     buffer_after_min: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     minimum_notice_min: Mapped[int] = mapped_column(Integer, server_default=text("1440"))
     maximum_advance_days: Mapped[int] = mapped_column(Integer, server_default=text("90"))
+    # Customers may cancel/reschedule themselves until this many hours before start.
+    customer_change_notice_hours: Mapped[int] = mapped_column(Integer, server_default=text("24"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -703,6 +711,8 @@ class Booking(Base):
     payment_received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     declined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Set when the customer moved the booking themselves (allowed once).
+    customer_rescheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     customer_first_name: Mapped[str] = mapped_column(String(80), server_default=text("''"))
     customer_last_name: Mapped[str] = mapped_column(String(80), server_default=text("''"))
     customer_email: Mapped[str] = mapped_column(String(320), server_default=text("''"))
@@ -748,6 +758,27 @@ class BookingCommandIdempotency(Base):
     command: Mapped[str] = mapped_column(String(64))
     request_fingerprint: Mapped[str] = mapped_column(String(64))
     booking_id: Mapped[UUID]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class BookingAccessToken(Base):
+    """A customer's link to one booking. Only the SHA-256 of the token is stored."""
+
+    __tablename__ = "booking_access_tokens"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["workspace_id", "booking_id"],
+            ["bookings.workspace_id", "bookings.id"],
+            ondelete="CASCADE",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"))
+    booking_id: Mapped[UUID]
+    token_hash: Mapped[bytes] = mapped_column(LargeBinary, unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -975,6 +1006,7 @@ __all__ = [
     "MembershipRole",
     "LocationType",
     "Notification",
+    "BookingAccessToken",
     "NotificationKind",
     "PasswordResetToken",
     "PlatformRole",

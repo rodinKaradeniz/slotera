@@ -51,6 +51,8 @@ class AvailabilityUpdate(StrictApiModel):
     buffer_after_min: int = Field(ge=0, le=1440)
     minimum_notice_min: int = Field(ge=0, le=525600)
     maximum_advance_days: int = Field(ge=1, le=730)
+    # Optional so existing clients keep working; omitted means "leave unchanged".
+    customer_change_notice_hours: int | None = Field(default=None, ge=0, le=720)
     blackouts: list[AvailabilityBlackoutInput] = Field(max_length=500)
 
     @field_validator("timezone")
@@ -85,6 +87,7 @@ class AvailabilityResponse(ApiModel):
     buffer_after_min: int
     minimum_notice_min: int
     maximum_advance_days: int
+    customer_change_notice_hours: int
     blackouts: list[AvailabilityBlackoutResponse]
     updated_at: datetime
 

@@ -29,6 +29,8 @@ import {
   getSettings,
   updateBusinessSettings,
   updateAvailabilitySettings,
+  availabilityToWorkingDays,
+  workingDaysToWeeklyHours,
   updateSettings,
   updatePaymentSettings,
   updateWorkspaceLocation,
@@ -36,11 +38,12 @@ import {
   type AvailabilitySettings,
   type PaymentSettings,
 } from "@/services/settings.service";
-import { BillingPanel } from "./BillingPanel";
+import { ApiBillingPanel } from "./ApiBillingPanel";
 import { EMPTY_ADDRESS, type WorkspaceLocation } from "@/types/address";
 import type { SettingsData, WorkingDay } from "@/types/settings";
 import { cn } from "@/lib/cn";
 import { dataSource } from "@/lib/env";
+import { changePassword, currentSession } from "@/services/auth.service";
 
 type SectionId =
   | "business"
@@ -93,11 +96,12 @@ export function SettingsView() {
     void load();
   }, []);
 
+  // Platform billing is a real-app concern; the mock demo never shows it.
   const visibleNav = dataSource === "api"
     ? NAV.filter((item) =>
-        item.id === "business" || item.id === "payments" || item.id === "calendar"
+        ["business", "payments", "billing", "calendar", "account"].includes(item.id)
       )
-    : NAV;
+    : NAV.filter((item) => item.id !== "billing");
   const activeMeta = visibleNav.find((n) => n.id === section);
   const handleBusinessChange = (next: BusinessSettings) => {
     setBusiness(next);
@@ -169,7 +173,7 @@ export function SettingsView() {
                   onChange={setPaymentSettings}
                 />
               )}
-              {section === "billing" && <BillingPanel />}
+              {section === "billing" && dataSource === "api" && <ApiBillingPanel />}
               {section === "calendar" && dataSource === "api" && availability && (
                 <ApiCalendarPanel
                   availability={availability}
@@ -180,7 +184,10 @@ export function SettingsView() {
                 <CalendarPanel data={data} onChange={setData} />
               )}
               {section === "emails" && data && <EmailsPanel data={data} onChange={setData} />}
-              {section === "account" && data && <AccountPanel data={data} onChange={setData} />}
+              {section === "account" && dataSource === "api" && <ApiAccountPanel />}
+              {section === "account" && dataSource === "mock" && data && (
+                <AccountPanel data={data} onChange={setData} />
+              )}
             </div>
           )}
         </section>
@@ -280,20 +287,52 @@ function BusinessPanel({
             onChange={(e) => setLocal({ ...local, phone: e.target.value })}
           />
         </Field>
-        <Field
-          label={dataSource === "api" ? "Workspace slug" : "Booking page URL"}
-          className="sm:col-span-2"
-        >
-          <Input
-            value={local.bookingPageUrl}
-            disabled={dataSource === "api"}
-            onChange={(e) =>
-              setLocal({ ...local, bookingPageUrl: e.target.value })
-            }
-          />
-        </Field>
+        {dataSource === "api" ? (
+          <Field
+            label="Booking page link"
+            hint="Share this link with clients. The address is set when the workspace is created."
+            className="sm:col-span-2"
+          >
+            <ShareLink path={`/book/${local.bookingPageUrl}`} />
+          </Field>
+        ) : (
+          <Field label="Booking page URL" className="sm:col-span-2">
+            <Input
+              value={local.bookingPageUrl}
+              onChange={(e) =>
+                setLocal({ ...local, bookingPageUrl: e.target.value })
+              }
+            />
+          </Field>
+        )}
       </div>
     </PanelCard>
+  );
+}
+
+function ShareLink({ path }: { path: string }) {
+  const { toast } = useToast();
+  const url = typeof window === "undefined" ? path : `${window.location.origin}${path}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy the link");
+    }
+  };
+  return (
+    <div className="flex gap-2">
+      <Input value={url} readOnly className="flex-1" />
+      <Button variant="secondary" icon="copy" onClick={copy}>
+        Copy
+      </Button>
+      <a href={path} target="_blank" rel="noreferrer">
+        <Button variant="ghost" icon="eye">
+          Open
+        </Button>
+      </a>
+    </div>
   );
 }
 
@@ -685,32 +724,6 @@ function CalendarPanel({ data, onChange }: PanelProps) {
   );
 }
 
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function availabilityWorkingDays(availability: AvailabilitySettings): WorkingDay[] {
-  const days: WorkingDay[] = [];
-  WEEKDAY_LABELS.forEach((day, index) => {
-    const dayOfWeek = index + 1;
-    const windows = availability.weeklyHours.filter(
-      (window) => window.dayOfWeek === dayOfWeek,
-    );
-    if (windows.length === 0) {
-      days.push({ day, dayOfWeek, enabled: false, start: "09:00", end: "17:00" });
-      return;
-    }
-    days.push(
-      ...windows.map((window) => ({
-        day,
-        dayOfWeek,
-        enabled: true,
-        start: window.startLocal,
-        end: window.endLocal,
-      })),
-    );
-  });
-  return days;
-}
-
 function ApiCalendarPanel({
   availability,
   onChange,
@@ -721,23 +734,17 @@ function ApiCalendarPanel({
   const { toast } = useToast();
   const [local, setLocal] = React.useState(availability);
   const [hours, setHours] = React.useState<WorkingDay[]>(() =>
-    availabilityWorkingDays(availability),
+    availabilityToWorkingDays(availability),
   );
   const [saving, setSaving] = React.useState(false);
 
   const save = async () => {
-    const weeklyHours = hours
-      .filter((day) => day.enabled)
-      .map((day) => ({
-        dayOfWeek: day.dayOfWeek ?? WEEKDAY_LABELS.indexOf(day.day) + 1,
-        startLocal: day.start,
-        endLocal: day.end,
-      }));
+    const weeklyHours = workingDaysToWeeklyHours(hours);
     setSaving(true);
     try {
       const next = await updateAvailabilitySettings({ ...local, weeklyHours });
       setLocal(next);
-      setHours(availabilityWorkingDays(next));
+      setHours(availabilityToWorkingDays(next));
       onChange(next);
       toast.success("Calendar settings saved");
     } catch (error) {
@@ -755,7 +762,8 @@ function ApiCalendarPanel({
       | "bufferBeforeMin"
       | "bufferAfterMin"
       | "minimumNoticeMin"
-      | "maximumAdvanceDays",
+      | "maximumAdvanceDays"
+      | "customerChangeNoticeHours",
   ) => (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(event.target.value);
     setLocal({ ...local, [key]: Number.isFinite(value) ? value : 0 });
@@ -802,6 +810,12 @@ function ApiCalendarPanel({
           </Field>
           <Field label="Maximum advance (days)">
             <Input type="number" min={1} value={String(local.maximumAdvanceDays)} onChange={numericField("maximumAdvanceDays")} />
+          </Field>
+          <Field
+            label="Client changes allowed until (hours before)"
+            hint="Clients can cancel or move a booking themselves from their email link until then."
+          >
+            <Input type="number" min={0} max={720} value={String(local.customerChangeNoticeHours)} onChange={numericField("customerChangeNoticeHours")} />
           </Field>
         </div>
         <div className="border-t border-line-soft pt-5">
@@ -948,6 +962,90 @@ function CheckRow({
       />
       <span className="text-[14px] text-ink">{label}</span>
     </label>
+  );
+}
+
+function ApiAccountPanel() {
+  const { toast } = useToast();
+  const email = currentSession()?.operator.email ?? "";
+  const [current, setCurrent] = React.useState("");
+  const [next, setNext] = React.useState("");
+  const [confirm, setConfirm] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const mismatch = confirm.length > 0 && next !== confirm;
+
+  const save = async () => {
+    if (next.length < 10) {
+      toast.error("Your new password needs at least 10 characters.");
+      return;
+    }
+    if (next !== confirm) {
+      toast.error("The new passwords don't match.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await changePassword(current, next);
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+      toast.success("Password changed", {
+        description: "Other devices have been signed out.",
+      });
+    } catch (error) {
+      toast.error("Couldn't change your password", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <PanelCard title="Account">
+      <div className="flex flex-col gap-4">
+        <Field label="Account email" hint="Contact us to change the email you sign in with.">
+          <Input value={email} readOnly />
+        </Field>
+        <div className="pt-4 border-t border-line-soft grid sm:grid-cols-3 gap-4">
+          <Field label="Current password">
+            <Input
+              type="password"
+              autoComplete="current-password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+            />
+          </Field>
+          <Field label="New password" hint="At least 10 characters.">
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+            />
+          </Field>
+          <Field label="Confirm new password" error={mismatch ? "Passwords don't match." : undefined}>
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={confirm}
+              error={mismatch}
+              onChange={(e) => setConfirm(e.target.value)}
+            />
+          </Field>
+        </div>
+        <div className="flex justify-end">
+          <Button
+            variant="primary"
+            loading={saving}
+            disabled={!current || !next || mismatch}
+            onClick={save}
+          >
+            Change password
+          </Button>
+        </div>
+      </div>
+    </PanelCard>
   );
 }
 

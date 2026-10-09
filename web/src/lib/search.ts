@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { IconName } from "@/components/ui/Icon";
 import { dataSource } from "@/lib/env";
+import { bookingPageHref } from "@/lib/nav";
 import { getWorkspaceSearchMatches } from "@/services/search.service";
 import type { WorkspaceSearchMatch } from "@/types/search";
 
@@ -172,7 +173,10 @@ function navigationResults(): SearchResult[] {
       "nav-services",
       "nav-settings",
       "nav-settings-calendar",
+      "nav-booking-page",
     ].includes(item.id),
+  ).map((item) =>
+    item.id === "nav-booking-page" ? { ...item, href: bookingPageHref() } : item,
   );
 }
 

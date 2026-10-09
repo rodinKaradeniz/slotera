@@ -10,6 +10,8 @@ type RequestOptions<TBody> = {
   body?: TBody;
   csrf?: boolean;
   idempotencyKey?: string;
+  /** Extra request headers, e.g. a customer's booking-link token. */
+  headers?: Record<string, string>;
 };
 
 function readCookie(name: string): string | null {
@@ -61,6 +63,9 @@ export async function apiRequest<TResponse, TBody = never>(
   }
   if (options.idempotencyKey) {
     headers.set("Idempotency-Key", options.idempotencyKey);
+  }
+  for (const [name, value] of Object.entries(options.headers ?? {})) {
+    headers.set(name, value);
   }
 
   let response: Response;

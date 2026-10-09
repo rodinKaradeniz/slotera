@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { DemoGuideButton } from "@/components/public/DemoGuideButton";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { cn } from "@/lib/cn";
+import { dataSource } from "@/lib/env";
 
 type Size = "default" | "wide" | "medium";
 
@@ -29,12 +30,14 @@ export function AuthShell({ children, size = "default" }: Props) {
           <div className="flex items-center gap-4">
             <LanguageSwitcher className="hidden sm:inline-flex" />
             <DemoGuideButton variant="link" />
-            <Link
-              href="/booking"
-              className="text-[13px] text-ink-3 hover:text-ink inline-flex items-center gap-1"
-            >
-              <Icon name="eye" size={14} /> View public booking page
-            </Link>
+            {dataSource === "mock" && (
+              <Link
+                href="/booking"
+                className="text-[13px] text-ink-3 hover:text-ink inline-flex items-center gap-1"
+              >
+                <Icon name="eye" size={14} /> View public booking page
+              </Link>
+            )}
           </div>
         </div>
       </header>

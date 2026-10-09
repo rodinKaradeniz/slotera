@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 from http import HTTPStatus
+from typing import Annotated
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Query, Request, Response
 
 from slotera_api.auth.dependencies import (
     AuthenticatedRequestDependency,
@@ -18,17 +19,23 @@ from slotera_api.auth.service import (
     InvalidPasswordResetToken,
     RateLimitExceeded,
     WorkspaceSelectionRequired,
+    WorkspaceSlugUnavailable,
 )
 from slotera_api.config import Settings
 from slotera_api.errors import ApiError
 from slotera_api.schemas.auth import (
     LoginRequest,
+    PasswordChange,
     PasswordResetAccepted,
     PasswordResetConsume,
     PasswordResetRequest,
     SessionResponse,
     SessionUser,
     SessionWorkspace,
+    SignupAccepted,
+    SignupRequest,
+    SlugAvailability,
+    WorkspaceSlug,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -242,3 +249,96 @@ async def consume_password_reset(
         status_code=HTTPStatus.NO_CONTENT,
         headers={"Cache-Control": "no-store"},
     )
+
+
+def _rate_limited() -> ApiError:
+    return ApiError(
+        status_code=HTTPStatus.TOO_MANY_REQUESTS,
+        code="rate_limit_exceeded",
+        message="Too many attempts. Try again later",
+    )
+
+
+@router.post(
+    "/signup",
+    response_model=SignupAccepted,
+    status_code=HTTPStatus.ACCEPTED,
+    operation_id="signup",
+)
+async def signup(
+    payload: SignupRequest,
+    request: Request,
+    response: Response,
+    service: AuthServiceDependency,
+    settings: SettingsDependency,
+) -> SignupAccepted:
+    require_trusted_origin(request, settings)
+    try:
+        await service.signup(
+            name=payload.workspace_name,
+            slug=payload.slug,
+            owner_first_names=payload.first_names,
+            owner_last_name=payload.last_name,
+            owner_email=str(payload.email),
+            timezone=payload.timezone,
+            client_key=request.client.host if request.client else "unknown",
+        )
+    except RateLimitExceeded as exc:
+        raise _rate_limited() from exc
+    except WorkspaceSlugUnavailable as exc:
+        raise ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="workspace_slug_unavailable",
+            message="That booking page address is already taken",
+        ) from exc
+    response.headers["Cache-Control"] = "no-store"
+    return SignupAccepted()
+
+
+@router.get(
+    "/signup/slug-availability",
+    response_model=SlugAvailability,
+    operation_id="getSlugAvailability",
+)
+async def get_slug_availability(
+    slug: Annotated[WorkspaceSlug, Query()],
+    response: Response,
+    service: AuthServiceDependency,
+) -> SlugAvailability:
+    response.headers["Cache-Control"] = "no-store"
+    return SlugAvailability(slug=slug, available=await service.slug_available(slug))
+
+
+@router.post(
+    "/password/change",
+    status_code=HTTPStatus.NO_CONTENT,
+    response_class=Response,
+    operation_id="changePassword",
+)
+async def change_password(
+    payload: PasswordChange,
+    authenticated: CsrfProtectedRequestDependency,
+    service: AuthServiceDependency,
+) -> Response:
+    try:
+        await service.change_password(
+            session=authenticated.session,
+            session_token=authenticated.session_token,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+        )
+    except RateLimitExceeded as exc:
+        raise _rate_limited() from exc
+    except InvalidCredentials as exc:
+        raise ApiError(
+            status_code=HTTPStatus.BAD_REQUEST,
+            code="current_password_incorrect",
+            message="Your current password is incorrect",
+        ) from exc
+    except AccountUnavailable as exc:
+        raise ApiError(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            code="authentication_required",
+            message="Sign in again to change your password",
+        ) from exc
+    return Response(status_code=HTTPStatus.NO_CONTENT, headers={"Cache-Control": "no-store"})

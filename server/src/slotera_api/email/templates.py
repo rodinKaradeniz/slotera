@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, get_args
 from zoneinfo import ZoneInfo
 
 from pydantic import Field
@@ -22,6 +22,23 @@ class BookingEmailTemplateData(ApiModel):
     payment_due_at: datetime | None
     manual_payment_instructions: str
     cancellation_rule: str
+    manage_url: str | None = None
+
+
+BookingEmailKind = Literal[
+    "booking_received",
+    "booking_confirmed",
+    "booking_reminder",
+    "booking_rescheduled",
+    "booking_cancelled",
+]
+BOOKING_EMAIL_KINDS: frozenset[str] = frozenset(get_args(BookingEmailKind))
+
+
+def _manage_lines(data: BookingEmailTemplateData) -> list[str]:
+    if not data.manage_url:
+        return []
+    return ["", "View, reschedule, or cancel your booking:", data.manage_url]
 
 
 def _booking_facts(data: BookingEmailTemplateData) -> list[str]:
@@ -44,7 +61,7 @@ def _booking_facts(data: BookingEmailTemplateData) -> list[str]:
 
 
 def render_booking_email(
-    kind: Literal["booking_received", "booking_confirmed"],
+    kind: BookingEmailKind,
     raw_data: dict[str, object],
 ) -> tuple[str, str]:
     data = BookingEmailTemplateData.model_validate(raw_data)
@@ -56,8 +73,31 @@ def render_booking_email(
                 "Your booking is confirmed.",
                 "",
                 *facts,
+                *_manage_lines(data),
                 "",
                 "Keep this email and reference for your records.",
+            ]
+        )
+        return subject, body
+    if kind == "booking_reminder":
+        subject = f"Reminder — {data.service_name}"
+        body = "\n".join(["Your session is coming up.", "", *facts, *_manage_lines(data)])
+        return subject, body
+    if kind == "booking_rescheduled":
+        subject = f"Booking moved — {data.service_name}"
+        body = "\n".join(
+            ["Your booking has a new time.", "", *facts, *_manage_lines(data)]
+        )
+        return subject, body
+    if kind == "booking_cancelled":
+        subject = f"Booking cancelled — {data.service_name}"
+        body = "\n".join(
+            [
+                "Your booking has been cancelled.",
+                "",
+                *facts,
+                "",
+                "Any refund is handled by the provider under their cancellation policy.",
             ]
         )
         return subject, body
@@ -84,6 +124,7 @@ def render_booking_email(
             *facts,
             "",
             *next_steps,
+            *_manage_lines(data),
             "",
             "You will receive another email when the booking is confirmed.",
         ]

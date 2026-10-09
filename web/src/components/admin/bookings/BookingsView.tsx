@@ -131,20 +131,18 @@ export function BookingsView() {
             <Button variant="secondary" size="md" icon="download">
               Export
             </Button>
-            {dataSource === "mock" && (
-              <Button
-                variant="primary"
-                size="md"
-                icon="plus"
-                onClick={() =>
-                  openBookingDrawer({
-                    onSaved: () => setReload((k) => k + 1),
-                  })
-                }
-              >
-                New booking
-              </Button>
-            )}
+            <Button
+              variant="primary"
+              size="md"
+              icon="plus"
+              onClick={() =>
+                openBookingDrawer({
+                  onSaved: () => setReload((k) => k + 1),
+                })
+              }
+            >
+              New booking
+            </Button>
           </>
         }
       />

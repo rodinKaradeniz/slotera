@@ -15,6 +15,8 @@ export type PlatformWorkspace = {
   ownerEmail: string | null;
   createdAtISO: string;
   operationalStatus: PlatformWorkspaceOperationalStatus;
+  /** API mode: the Slotera plan (Free / Pro). */
+  plan?: "free" | "pro";
   bookingsCount: number;
   servicesCount: number;
   clientsCount: number;
@@ -72,28 +74,14 @@ export type PlatformInquiry = {
   createdAtISO: string;
 };
 
+/** Platform-wide counts for the superadmin home (`GET /platform/overview`). */
 export type PlatformOverview = {
-  totals: {
-    workspaces: number;
-    activeSubscriptions: number;
-    trialingAccounts: number;
-    mrr: number;
-    pastDue: number;
-    newSignupsThisWeek: number;
-    openInquiries: number;
-  };
-  recentWorkspaces: Array<{
-    id: string;
-    name: string;
-    ownerName: string;
-    planId: PlanId;
-    createdAtISO: string;
-  }>;
-  recentEvents: Array<{
-    id: string;
-    type: "subscription_created" | "subscription_cancelled" | "payment_failed" | "trial_ended" | "plan_changed";
-    workspaceName: string;
-    description: string;
-    atISO: string;
-  }>;
+  workspacesTotal: number;
+  workspacesActive: number;
+  workspacesSuspended: number;
+  workspacesFree: number;
+  workspacesPro: number;
+  signups30d: number;
+  bookings30d: number;
+  inquiriesUnread: number;
 };

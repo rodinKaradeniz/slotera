@@ -11,10 +11,17 @@ import { Pill } from "@/components/ui/Pill";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { localeForLang } from "@/lib/i18n";
 import { dataSource } from "@/lib/env";
+import { formatAddressSummary } from "@/components/shared/forms/AddressForm";
 import type { BookingDraft } from "@/components/booking/types";
 import type { PublicBookingResult } from "@/services/public-booking.service";
 
-type Stored = { ref: string; draft: BookingDraft; booking?: PublicBookingResult };
+type Stored = {
+  ref: string;
+  draft: BookingDraft;
+  booking?: PublicBookingResult;
+  /** API mode: the workspace that was booked, for "book another". */
+  slug?: string | null;
+};
 
 export default function ConfirmationPage() {
   const { t, lang } = useI18n();
@@ -109,6 +116,21 @@ export default function ConfirmationPage() {
               {dataSource === "mock" && (
                 <DetailLine label={t("booking.confirm.meetingLink")} value={meetingLink} />
               )}
+              {apiBooking && (
+                <DetailLine
+                  label={t("booking.confirm.where")}
+                  value={
+                    apiBooking.sessionAddress
+                      ? `${apiBooking.sessionLocation} · ${formatAddressSummary({
+                          ...apiBooking.sessionAddress,
+                          street2: apiBooking.sessionAddress.street2 ?? undefined,
+                          region: apiBooking.sessionAddress.region ?? undefined,
+                          notes: apiBooking.sessionAddress.notes ?? undefined,
+                        })}`
+                      : apiBooking.sessionLocation || "—"
+                  }
+                />
+              )}
             </div>
           )}
           {apiBooking?.pendingReasons.length ? (
@@ -136,7 +158,7 @@ export default function ConfirmationPage() {
                 </Link>
               </>
             )}
-            <Link href="/booking">
+            <Link href={data?.slug ? `/book/${data.slug}` : "/booking"}>
               <Button variant={dataSource === "api" ? "primary" : "ghost"}>
                 {t("booking.confirm.bookAnother")}
               </Button>

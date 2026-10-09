@@ -1,6 +1,7 @@
 import type { IconName } from "@/components/ui/Icon";
 import type { UserRole } from "@/types/auth";
 import { dataSource } from "@/lib/env";
+import { readSession } from "@/lib/session";
 
 export type NavItem = {
   id: string;
@@ -27,14 +28,11 @@ export const API_OPERATOR_NAV: NavItem[] = OPERATOR_NAV.filter((item) =>
 export const SUPERADMIN_NAV: NavItem[] = [
   { id: "overview",      label: "Overview",      icon: "grid",     href: "/superadmin/overview" },
   { id: "workspaces",    label: "Workspaces",    icon: "building", href: "/superadmin/workspaces" },
-  { id: "subscriptions", label: "Subscriptions", icon: "card",     href: "/superadmin/subscriptions" },
   { id: "inquiries",     label: "Inquiries",     icon: "mail",     href: "/superadmin/inquiries" },
-  { id: "settings",      label: "Settings",      icon: "cog",      href: "/superadmin/settings" },
 ];
 
-export const API_SUPERADMIN_NAV: NavItem[] = SUPERADMIN_NAV.filter(
-  (item) => item.id === "workspaces",
-);
+// The platform area exists only in the real app, so both lists are the same.
+export const API_SUPERADMIN_NAV: NavItem[] = SUPERADMIN_NAV;
 
 export function navForRole(role: UserRole): NavItem[] {
   if (role === "superadmin") {
@@ -44,12 +42,17 @@ export function navForRole(role: UserRole): NavItem[] {
 }
 
 export function homePathForRole(role: UserRole): string {
-  if (role === "superadmin") {
-    return dataSource === "api" ? "/superadmin/workspaces" : "/superadmin/overview";
-  }
+  if (role === "superadmin") return "/superadmin/overview";
   return "/admin/dashboard";
 }
 
 export function eyebrowForRole(role: UserRole): string {
   return role === "superadmin" ? "Platform" : "Workspace";
+}
+
+/** Where "view my booking page" links go: the demo flow, or the workspace's real page. */
+export function bookingPageHref(): string {
+  if (dataSource === "mock") return "/booking";
+  const slug = readSession()?.operator.workspaceSlug;
+  return slug ? `/book/${slug}` : "/admin/settings";
 }

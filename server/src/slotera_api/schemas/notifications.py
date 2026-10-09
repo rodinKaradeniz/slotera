@@ -32,6 +32,10 @@ class RescheduleRequestedPayload(ApiModel):
     requested_for: datetime
 
 
+class BookingCancelledPayload(ApiModel):
+    starts_at: datetime
+
+
 class NotificationBase(ApiModel):
     id: UUID
     resource_type: str | None
@@ -65,12 +69,18 @@ class RescheduleRequestedNotification(NotificationBase):
     payload: RescheduleRequestedPayload
 
 
+class BookingCancelledNotification(NotificationBase):
+    kind: Literal["booking_cancelled"]
+    payload: BookingCancelledPayload
+
+
 NotificationItem = Annotated[
     BookingPendingNotification
     | BookingConfirmedNotification
     | PaymentPendingNotification
     | SessionStartingNotification
-    | RescheduleRequestedNotification,
+    | RescheduleRequestedNotification
+    | BookingCancelledNotification,
     Field(discriminator="kind"),
 ]
 

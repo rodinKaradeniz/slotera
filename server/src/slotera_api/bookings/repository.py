@@ -6,10 +6,11 @@ from hashlib import sha256
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from slotera_api.booking_access import emit_booking_event
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
@@ -615,11 +616,22 @@ class BookingsRepository:
     ) -> None:
         if booking.origin != BookingOrigin.PUBLIC:
             return
-        emitted = await database_session.scalar(
-            text("SELECT public.slotera_booking_emit_event(:booking_id, 'confirmed')"),
-            {"booking_id": booking.id},
+        scheduled_session = await database_session.scalar(
+            select(Session).where(
+                Session.workspace_id == booking.workspace_id,
+                Session.id == booking.session_id,
+            )
         )
-        if emitted is not True:
+        if scheduled_session is None:
+            raise RuntimeError("booking confirmation lost its session")
+        emitted = await emit_booking_event(
+            database_session,
+            workspace_id=booking.workspace_id,
+            booking_id=booking.id,
+            session_ends_at=scheduled_session.end_at,
+            event="confirmed",
+        )
+        if not emitted:
             raise RuntimeError("booking confirmation event could not be enqueued")
 
     @staticmethod

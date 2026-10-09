@@ -39,6 +39,7 @@ class BusinessSettingsResponse(ApiModel):
     phone: str
     address: str
     booking_page_enabled: bool
+    onboarding_completed_at: datetime | None
     updated_at: datetime
 
 
@@ -51,6 +52,8 @@ class BusinessSettingsPatch(StrictApiModel):
     phone: Annotated[str | None, Field(max_length=40)] = None
     address: Annotated[str | None, Field(max_length=500)] = None
     booking_page_enabled: bool | None = None
+    # One-way: onboarding can be marked complete (Done or Skip), never reopened.
+    onboarding_completed: Literal[True] | None = None
 
     @field_validator("timezone")
     @classmethod

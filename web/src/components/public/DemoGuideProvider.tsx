@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { dataSource } from "@/lib/env";
 import { DemoGuidelinesModal } from "./DemoGuidelinesModal";
 
 /**
@@ -64,7 +65,7 @@ export function DemoGuideProvider({ children }: { children: React.ReactNode }) {
 export function DemoGuideAutoOpen() {
   const { openOnce } = useDemoGuide();
   React.useEffect(() => {
-    openOnce();
+    if (dataSource === "mock") openOnce();
   }, [openOnce]);
   return null;
 }

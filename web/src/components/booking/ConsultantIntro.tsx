@@ -4,6 +4,7 @@ import * as React from "react";
 import { getSettings } from "@/services/settings.service";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { SettingsData } from "@/types/settings";
+import { dataSource } from "@/lib/env";
 
 type Props = {
   /** Demo-persona overrides. When set, take precedence over workspace settings. */
@@ -24,13 +25,19 @@ export function ConsultantIntro({
     getSettings().then(setSettings);
   }, []);
 
-  const name = nameOverride ?? settings?.business.displayName ?? "Dr. Lena Hartmann";
-  const title = titleOverride ?? t("booking.intro.title");
-  const location = settings?.business.address ?? "Berlin";
+  // The demo story fills gaps with Lena's copy; a real workspace shows only
+  // what the operator actually entered.
+  const demo = dataSource === "mock";
+  const name =
+    nameOverride ?? settings?.business.displayName ?? (demo ? "Dr. Lena Hartmann" : "");
+  const title = titleOverride ?? (demo ? t("booking.intro.title") : "");
+  const location = settings?.business.address ?? (demo ? "Berlin" : "");
   const description =
     bioOverride ??
     settings?.business.bio ??
-    "I work with founders on hard strategic decisions — pricing, positioning, and the messy choices between them. Most clients come to me before a fundraise, a pivot, or a launch.";
+    (demo
+      ? "I work with founders on hard strategic decisions — pricing, positioning, and the messy choices between them. Most clients come to me before a fundraise, a pivot, or a launch."
+      : "");
 
   const initials = name
     .split(/\s+/)
@@ -61,10 +68,10 @@ export function ConsultantIntro({
         >
           {name}
         </h2>
-        <div className="text-small text-ink-2">{title}</div>
-        <div className="text-small text-ink-3">{location}</div>
+        {title && <div className="text-small text-ink-2">{title}</div>}
+        {location && <div className="text-small text-ink-3">{location}</div>}
       </div>
-      <p className="text-body max-w-md">{description}</p>
+      {description && <p className="text-body max-w-md">{description}</p>}
     </div>
   );
 }

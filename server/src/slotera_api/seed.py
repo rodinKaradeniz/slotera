@@ -528,6 +528,7 @@ async def import_demo_seed(
                         phone="+49 30 12345678",
                         address="Mitte, Berlin · 10115",
                         booking_page_enabled=True,
+                        onboarding_completed_at=workspace.created_at,
                         created_at=workspace.created_at,
                         updated_at=workspace.created_at,
                     )

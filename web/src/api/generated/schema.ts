@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/password/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Password */
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/session": {
         parameters: {
             query?: never;
@@ -81,6 +98,40 @@ export interface paths {
         };
         /** Get Current Session */
         get: operations["getCurrentSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signup */
+        post: operations["signup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/signup/slug-availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Slug Availability */
+        get: operations["getSlugAvailability"];
         put?: never;
         post?: never;
         delete?: never;
@@ -472,6 +523,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/inquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Platform Inquiries */
+        get: operations["listPlatformInquiries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/inquiries/{inquiry_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Platform Inquiry Read */
+        post: operations["setPlatformInquiryRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Platform Overview */
+        get: operations["getPlatformOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/workspaces": {
         parameters: {
             query?: never;
@@ -507,6 +609,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/workspaces/{workspace_id}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Platform Workspace Plan
+         * @description Pro is invoiced manually until Stripe Billing exists; staff record it here.
+         */
+        post: operations["setPlatformWorkspacePlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/workspaces/{workspace_id}/reactivate": {
         parameters: {
             query?: never;
@@ -535,6 +657,74 @@ export interface paths {
         put?: never;
         /** Suspend Platform Workspace */
         post: operations["suspendPlatformWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/bookings/manage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Managed Booking */
+        get: operations["getManagedBooking"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/bookings/manage/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Managed Booking */
+        post: operations["cancelManagedBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/bookings/manage/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reschedule Managed Booking */
+        post: operations["rescheduleManagedBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/inquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Public Inquiry */
+        post: operations["createPublicInquiry"];
         delete?: never;
         options?: never;
         head?: never;
@@ -752,6 +942,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Workspace Billing */
+        get: operations["getWorkspaceBilling"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/business": {
         parameters: {
             query?: never;
@@ -888,6 +1095,8 @@ export interface components {
             bufferAfterMin: number;
             /** Bufferbeforemin */
             bufferBeforeMin: number;
+            /** Customerchangenoticehours */
+            customerChangeNoticeHours: number;
             /** Maximumadvancedays */
             maximumAdvanceDays: number;
             /** Minimumnoticemin */
@@ -912,6 +1121,8 @@ export interface components {
             bufferAfterMin: number;
             /** Bufferbeforemin */
             bufferBeforeMin: number;
+            /** Customerchangenoticehours */
+            customerChangeNoticeHours?: number | null;
             /** Maximumadvancedays */
             maximumAdvanceDays: number;
             /** Minimumnoticemin */
@@ -954,6 +1165,39 @@ export interface components {
              * @enum {string}
              */
             attendance: "present" | "late" | "absent";
+        };
+        /** BookingCancelledNotification */
+        BookingCancelledNotification: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "booking_cancelled";
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt: string;
+            payload: components["schemas"]["BookingCancelledPayload"];
+            /** Readat */
+            readAt: string | null;
+            /** Resourceid */
+            resourceId: string | null;
+            /** Resourcetype */
+            resourceType: string | null;
+        };
+        /** BookingCancelledPayload */
+        BookingCancelledPayload: {
+            /**
+             * Startsat
+             * Format: date-time
+             */
+            startsAt: string;
         };
         /** BookingConfirmedNotification */
         BookingConfirmedNotification: {
@@ -1172,6 +1416,8 @@ export interface components {
             email?: string | null;
             /** Name */
             name?: string | null;
+            /** Onboardingcompleted */
+            onboardingCompleted?: true | null;
             /** Phone */
             phone?: string | null;
             /** Timezone */
@@ -1196,6 +1442,8 @@ export interface components {
             email: string;
             /** Name */
             name: string;
+            /** Onboardingcompletedat */
+            onboardingCompletedAt: string | null;
             /** Phone */
             phone: string;
             /** Slug */
@@ -1569,10 +1817,104 @@ export interface components {
             /** Workspaceid */
             workspaceId?: string | null;
         };
+        /** ManagedBookingReschedule */
+        ManagedBookingReschedule: {
+            /**
+             * Startat
+             * Format: date-time
+             */
+            startAt: string;
+        };
+        /**
+         * ManagedBookingResponse
+         * @description What a customer sees through their booking link: an allow-list, never notes.
+         */
+        ManagedBookingResponse: {
+            /** Amountcents */
+            amountCents: number;
+            /**
+             * Approvalstatus
+             * @enum {string}
+             */
+            approvalStatus: "not_required" | "pending" | "approved" | "declined";
+            /** Cancancel */
+            canCancel: boolean;
+            /** Canreschedule */
+            canReschedule: boolean;
+            /** Cancellationrule */
+            cancellationRule: string;
+            /**
+             * Changedeadline
+             * Format: date-time
+             */
+            changeDeadline: string;
+            /** Currency */
+            currency: string;
+            /** Manualpaymentinstructions */
+            manualPaymentInstructions: string;
+            /** Paymentdueat */
+            paymentDueAt: string | null;
+            /**
+             * Paymentmethod
+             * @enum {string}
+             */
+            paymentMethod: "free" | "manual";
+            /**
+             * Paymentstatus
+             * @enum {string}
+             */
+            paymentStatus: "pending" | "paid" | "refunded" | "free" | "overdue";
+            /** Pendingreasons */
+            pendingReasons: ("approval" | "payment")[];
+            /** Provideremail */
+            providerEmail: string;
+            /** Providername */
+            providerName: string;
+            /** Providerphone */
+            providerPhone: string;
+            /** Reference */
+            reference: string;
+            /** Rescheduled */
+            rescheduled: boolean;
+            /**
+             * Serviceid
+             * Format: uuid
+             */
+            serviceId: string;
+            /** Servicename */
+            serviceName: string;
+            sessionAddress: components["schemas"]["Address"] | null;
+            /**
+             * Sessionendat
+             * Format: date-time
+             */
+            sessionEndAt: string;
+            /** Sessionlocation */
+            sessionLocation: string;
+            /**
+             * Sessionlocationtype
+             * @enum {string}
+             */
+            sessionLocationType: "online" | "physical" | "hybrid";
+            /**
+             * Sessionstartat
+             * Format: date-time
+             */
+            sessionStartAt: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "confirmed" | "completed" | "cancelled" | "noshow";
+            /** Timezone */
+            timezone: string;
+            /** Workspaceslug */
+            workspaceSlug: string;
+        };
         /** NotificationListResponse */
         NotificationListResponse: {
             /** Items */
-            items: (components["schemas"]["BookingPendingNotification"] | components["schemas"]["BookingConfirmedNotification"] | components["schemas"]["PaymentPendingNotification"] | components["schemas"]["SessionStartingNotification"] | components["schemas"]["RescheduleRequestedNotification"])[];
+            items: (components["schemas"]["BookingPendingNotification"] | components["schemas"]["BookingConfirmedNotification"] | components["schemas"]["PaymentPendingNotification"] | components["schemas"]["SessionStartingNotification"] | components["schemas"]["RescheduleRequestedNotification"] | components["schemas"]["BookingCancelledNotification"])[];
             /** Unreadcount */
             unreadCount: number;
         };
@@ -1592,6 +1934,13 @@ export interface components {
              * Format: uuid
              */
             sessionId: string;
+        };
+        /** PasswordChange */
+        PasswordChange: {
+            /** Currentpassword */
+            currentPassword: string;
+            /** Newpassword */
+            newPassword: string;
         };
         /** PasswordResetAccepted */
         PasswordResetAccepted: {
@@ -1698,6 +2047,84 @@ export interface components {
              */
             updatedAt: string;
         };
+        /** PlanResponse */
+        PlanResponse: {
+            /** Cardfeebps */
+            cardFeeBps: number;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "free" | "pro";
+            /** Monthlypricecents */
+            monthlyPriceCents: number;
+            /** Name */
+            name: string;
+        };
+        /** PlatformInquiryListResponse */
+        PlatformInquiryListResponse: {
+            /** Items */
+            items: components["schemas"]["PlatformInquiryResponse"][];
+        };
+        /** PlatformInquiryReadChange */
+        PlatformInquiryReadChange: {
+            /** Read */
+            read: boolean;
+        };
+        /** PlatformInquiryResponse */
+        PlatformInquiryResponse: {
+            /** Company */
+            company: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Email */
+            email: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Message */
+            message: string;
+            /** Name */
+            name: string;
+            /** Readat */
+            readAt: string | null;
+            /** Reason */
+            reason: string;
+        };
+        /** PlatformOverviewResponse */
+        PlatformOverviewResponse: {
+            /** Bookings30D */
+            bookings30D: number;
+            /** Inquiriesunread */
+            inquiriesUnread: number;
+            /** Signups30D */
+            signups30D: number;
+            /** Workspacesactive */
+            workspacesActive: number;
+            /** Workspacesfree */
+            workspacesFree: number;
+            /** Workspacespro */
+            workspacesPro: number;
+            /** Workspacessuspended */
+            workspacesSuspended: number;
+            /** Workspacestotal */
+            workspacesTotal: number;
+        };
+        /** PlatformPlanChange */
+        PlatformPlanChange: {
+            /**
+             * Plan
+             * @enum {string}
+             */
+            plan: "free" | "pro";
+        };
         /** PlatformWorkspaceDetail */
         PlatformWorkspaceDetail: {
             /** Bookingscount */
@@ -1727,6 +2154,11 @@ export interface components {
             ownerEmail: string | null;
             /** Ownername */
             ownerName: string | null;
+            /**
+             * Plan
+             * @enum {string}
+             */
+            plan: "free" | "pro";
             /** Servicescount */
             servicesCount: number;
             /** Sessionscount */
@@ -1793,6 +2225,11 @@ export interface components {
             ownerEmail: string | null;
             /** Ownername */
             ownerName: string | null;
+            /**
+             * Plan
+             * @enum {string}
+             */
+            plan: "free" | "pro";
             /** Servicescount */
             servicesCount: number;
             /** Sessionscount */
@@ -1814,6 +2251,8 @@ export interface components {
              * Format: date-time
              */
             endAt: string;
+            /** Spotsleft */
+            spotsLeft?: number | null;
             /**
              * Startat
              * Format: date-time
@@ -1914,11 +2353,19 @@ export interface components {
             quote: components["schemas"]["PublicTaxQuote"];
             /** Reference */
             reference: string;
+            sessionAddress: components["schemas"]["Address"] | null;
             /**
              * Sessionendat
              * Format: date-time
              */
             sessionEndAt: string;
+            /** Sessionlocation */
+            sessionLocation: string;
+            /**
+             * Sessionlocationtype
+             * @enum {string}
+             */
+            sessionLocationType: "online" | "physical" | "hybrid";
             /**
              * Sessionstartat
              * Format: date-time
@@ -1968,6 +2415,34 @@ export interface components {
              */
             formTemplateId: string;
         };
+        /** PublicInquiryAccepted */
+        PublicInquiryAccepted: {
+            /**
+             * Accepted
+             * @default true
+             */
+            accepted: boolean;
+        };
+        /** PublicInquiryCreate */
+        PublicInquiryCreate: {
+            /** Company */
+            company?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Message */
+            message: string;
+            /** Name */
+            name: string;
+            /**
+             * Reason
+             * @default business
+             * @enum {string}
+             */
+            reason: "business" | "development" | "feature" | "general";
+        };
         /** PublicServiceListResponse */
         PublicServiceListResponse: {
             /** Items */
@@ -1975,6 +2450,11 @@ export interface components {
         };
         /** PublicServiceResponse */
         PublicServiceResponse: {
+            /**
+             * Bookingmode
+             * @enum {string}
+             */
+            bookingMode: "open" | "scheduled";
             /** Cancellationrule */
             cancellationRule: string;
             /** Capacity */
@@ -2560,6 +3040,42 @@ export interface components {
             /** Slug */
             slug: string;
         };
+        /** SignupAccepted */
+        SignupAccepted: {
+            /**
+             * Accepted
+             * @default true
+             */
+            accepted: boolean;
+        };
+        /** SignupRequest */
+        SignupRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Firstnames */
+            firstNames: string;
+            /** Lastname */
+            lastName: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Timezone
+             * @default Europe/Berlin
+             */
+            timezone: string;
+            /** Workspacename */
+            workspaceName: string;
+        };
+        /** SlugAvailability */
+        SlugAvailability: {
+            /** Available */
+            available: boolean;
+            /** Slug */
+            slug: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -2572,6 +3088,21 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * WorkspaceBillingResponse
+         * @description The operator's own plan plus the full price list, for Settings → Billing.
+         */
+        WorkspaceBillingResponse: {
+            /**
+             * Plan
+             * @enum {string}
+             */
+            plan: "free" | "pro";
+            /** Planchangedat */
+            planChangedAt: string | null;
+            /** Plans */
+            plans: components["schemas"]["PlanResponse"][];
         };
         /** WorkspaceLocationCreate */
         WorkspaceLocationCreate: {
@@ -2735,6 +3266,37 @@ export interface operations {
             };
         };
     };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getCurrentSession: {
         parameters: {
             query?: never;
@@ -2751,6 +3313,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+        };
+    };
+    signup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getSlugAvailability: {
+        parameters: {
+            query: {
+                slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlugAvailability"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3703,6 +4329,79 @@ export interface operations {
             };
         };
     };
+    listPlatformInquiries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformInquiryListResponse"];
+                };
+            };
+        };
+    };
+    setPlatformInquiryRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inquiry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformInquiryReadChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getPlatformOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformOverviewResponse"];
+                };
+            };
+        };
+    };
     listPlatformWorkspaces: {
         parameters: {
             query?: {
@@ -3799,6 +4498,41 @@ export interface operations {
             };
         };
     };
+    setPlatformWorkspacePlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformPlanChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformWorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reactivatePlatformWorkspace: {
         parameters: {
             query?: never;
@@ -3848,6 +4582,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlatformWorkspaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getManagedBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Booking-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedBookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancelManagedBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Booking-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedBookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rescheduleManagedBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Booking-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManagedBookingReschedule"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedBookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createPublicInquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicInquiryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicInquiryAccepted"];
                 };
             };
             /** @description Validation Error */
@@ -4486,6 +5350,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getWorkspaceBilling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceBillingResponse"];
                 };
             };
         };

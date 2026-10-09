@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { login } from "@/services/auth.service";
+import { getBusinessSettings } from "@/services/settings.service";
+import type { UserRole } from "@/types/auth";
 import { homePathForRole } from "@/lib/nav";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { dataSource } from "@/lib/env";
@@ -23,9 +25,11 @@ function LoginForm() {
       ? nextParam
       : null;
 
-  const [email, setEmail] = React.useState("hello@slotera.app");
+  // Prefill demo credentials only in the mock demo and in local API development;
+  // a production app login starts empty.
+  const [email, setEmail] = React.useState(PREFILL ? "hello@slotera.app" : "");
   const [password, setPassword] = React.useState(
-    dataSource === "api" ? "slotera-local-only" : "•••••••••",
+    !PREFILL ? "" : dataSource === "api" ? "slotera-local-only" : "•••••••••",
   );
   const [remember, setRemember] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
@@ -37,6 +41,10 @@ function LoginForm() {
     setLoading(true);
     try {
       const session = await login(email, password, remember);
+      if (!next && (await needsOnboarding(session.role))) {
+        router.push("/onboarding");
+        return;
+      }
       router.push(next ?? homePathForRole(session.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
@@ -77,12 +85,14 @@ function LoginForm() {
           />
           Remember me
         </label>
-        <Link
-          href="/forgot-password"
-          className="text-small text-ink-2 hover:text-ink underline"
-        >
-          Forgot password?
-        </Link>
+        {dataSource === "api" && (
+          <Link
+            href="/forgot-password"
+            className="text-small text-ink-2 hover:text-ink underline"
+          >
+            Forgot password?
+          </Link>
+        )}
       </div>
       {error && (
         <div
@@ -98,16 +108,28 @@ function LoginForm() {
       </Button>
       {dataSource === "mock" ? (
         <p className="text-micro text-center">
-          Demo: any password works. Use <code>admin@slotera.app</code> to enter
-          the superadmin area, or <code>wrong@example.com</code> to see an error.
+          Demo: any email and password work, or use <code>wrong@example.com</code>{" "}
+          to see an error.
         </p>
-      ) : (
+      ) : PREFILL ? (
         <p className="text-micro text-center">
           Local seed: <code>hello@slotera.app</code> / <code>slotera-local-only</code>
         </p>
-      )}
+      ) : null}
     </form>
   );
+}
+
+const PREFILL = dataSource === "mock" || process.env.NODE_ENV !== "production";
+
+/** A newly activated operator lands in onboarding until they finish or skip it. */
+async function needsOnboarding(role: UserRole): Promise<boolean> {
+  if (dataSource !== "api" || role !== "operator_admin") return false;
+  try {
+    return !(await getBusinessSettings()).onboardingCompletedAt;
+  } catch {
+    return false;
+  }
 }
 
 export default function LoginPage() {
@@ -117,12 +139,14 @@ export default function LoginPage() {
       title="Welcome back."
       subtitle="Sign in to manage bookings, sessions, and clients."
       footer={
-        <span>
-          No account yet?{" "}
-          <Link href="/register" className="text-ink underline">
-            Start a free trial
-          </Link>
-        </span>
+        dataSource === "api" ? (
+          <span>
+            No account yet?{" "}
+            <Link href="/register" className="text-ink underline">
+              Start for free
+            </Link>
+          </span>
+        ) : undefined
       }
     >
       <React.Suspense fallback={null}>

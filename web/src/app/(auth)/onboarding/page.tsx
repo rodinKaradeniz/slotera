@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
-import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import {
@@ -19,10 +18,21 @@ import {
   ManualPaymentForm,
   type ManualPaymentValue,
 } from "@/components/shared/forms/ManualPaymentForm";
-import { currentSession, markOnboardingStep } from "@/services/auth.service";
-import { createService } from "@/services/services.service";
-import { getSettings, updateSettings } from "@/services/settings.service";
-import type { SettingsData, WorkingDay } from "@/types/settings";
+import { currentSession } from "@/services/auth.service";
+import { createService, listServices } from "@/services/services.service";
+import {
+  availabilityToWorkingDays,
+  completeOnboarding,
+  getAvailabilitySettings,
+  getBusinessSettings,
+  getPaymentSettings,
+  updateAvailabilitySettings,
+  updatePaymentSettings,
+  workingDaysToWeeklyHours,
+  type AvailabilitySettings,
+  type PaymentSettings,
+} from "@/services/settings.service";
+import type { WorkingDay } from "@/types/settings";
 import { cn } from "@/lib/cn";
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -33,9 +43,10 @@ import { cn } from "@/lib/cn";
      3 — Set up payments
      4 — Done
 
-   On mount, completion is data-derived from existing services + settings,
-   and the stepper jumps to the first incomplete pane. "Skip for now" exits
-   to the dashboard at any point — re-entry resumes from data state again.
+   Real app only (the route 404s in the mock demo). On mount, completion is
+   derived from the workspace's services, availability and payment settings,
+   and the stepper jumps to the first incomplete pane. "Skip for now" and
+   "Go to dashboard" both mark onboarding complete on the server.
    ────────────────────────────────────────────────────────────────────────── */
 
 type StepKey = "intro" | "service" | "availability" | "payments" | "done";
@@ -53,7 +64,7 @@ const DEFAULT_SERVICE: ServiceFormValue = {
   description: "",
   durationMin: 60,
   priceCents: 12000,
-  currency: "GBP",
+  currency: "EUR",
   capacity: 1,
   locationType: "online",
   location: "Zoom · link sent on confirmation",
@@ -63,28 +74,20 @@ const DEFAULT_SERVICE: ServiceFormValue = {
   active: true,
 };
 
-const DEFAULT_HOURS: WorkingDay[] = [
-  { day: "Mon", enabled: true, start: "09:00", end: "18:00" },
-  { day: "Tue", enabled: true, start: "09:00", end: "18:00" },
-  { day: "Wed", enabled: true, start: "09:00", end: "18:00" },
-  { day: "Thu", enabled: true, start: "09:00", end: "18:00" },
-  { day: "Fri", enabled: true, start: "09:00", end: "17:00" },
-  { day: "Sat", enabled: false, start: "10:00", end: "14:00" },
-  { day: "Sun", enabled: false, start: "10:00", end: "14:00" },
-];
-
 export default function OnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
 
   const [step, setStep] = React.useState<number>(0);
-  const [settings, setSettings] = React.useState<SettingsData | null>(null);
+  const [availability, setAvailability] = React.useState<AvailabilitySettings | null>(null);
+  const [payments, setPayments] = React.useState<PaymentSettings | null>(null);
+  const [bookingSlug, setBookingSlug] = React.useState<string>("");
   const [ready, setReady] = React.useState(false);
 
-  const [operatorName, setOperatorName] = React.useState<string>("Operator");
+  const [operatorName, setOperatorName] = React.useState<string>("there");
   const [serviceForm, setServiceForm] =
     React.useState<ServiceFormValue>(DEFAULT_SERVICE);
-  const [hours, setHours] = React.useState<WorkingDay[]>(DEFAULT_HOURS);
+  const [hours, setHours] = React.useState<WorkingDay[]>([]);
   const [manualPayment, setManualPayment] = React.useState<ManualPaymentValue>({
     enabled: false,
     instructions: "",
@@ -95,38 +98,61 @@ export default function OnboardingPage() {
     const session = currentSession();
     const first = session?.operator.firstNames?.trim().split(/\s+/)[0];
     if (first) setOperatorName(first);
-    else if (session?.operator.name)
-      setOperatorName(session.operator.name.split(/\s+/)[0]);
 
     let cancelled = false;
     (async () => {
-      const s = await getSettings();
-      if (cancelled) return;
-      setSettings(s);
-      setHours(s.calendar.workingHours);
-      setManualPayment({
-        enabled: s.payments.manualPaymentEnabled,
-        instructions: s.payments.manualPaymentInstructions,
-      });
-
-      // Visual-testing mode: always start on the intro pane so the full
-      // five-pane walkthrough is reachable even when the seed mocks already
-      // satisfy every completion check. To restore partial-progress resume:
-      //   const services = await listServices();
-      //   const hasService = services.length > 0;
-      //   const hasAvailability = s.calendar.workingHours.some((d) => d.enabled);
-      //   const hasPayments = ...;
-      //   setStep(resumeStep(hasService, hasAvailability, hasPayments));
-      setStep(0);
-      setReady(true);
+      try {
+        const [business, services, nextAvailability, nextPayments] = await Promise.all([
+          getBusinessSettings(),
+          listServices(),
+          getAvailabilitySettings(),
+          getPaymentSettings(),
+        ]);
+        if (cancelled) return;
+        setBookingSlug(business.bookingPageUrl);
+        setAvailability(nextAvailability);
+        // A brand-new workspace has no hours yet; suggest a working week to edit.
+        setHours(
+          availabilityToWorkingDays(nextAvailability).map((day) =>
+            nextAvailability.weeklyHours.length === 0 && (day.dayOfWeek ?? 7) <= 5
+              ? { ...day, enabled: true }
+              : day,
+          ),
+        );
+        setPayments(nextPayments);
+        setManualPayment({
+          enabled: nextPayments.manualPaymentEnabled,
+          instructions: nextPayments.manualPaymentInstructions,
+        });
+        // Resume from server state so a half-finished setup picks up where it stopped.
+        setStep(
+          resumeStep(
+            services.length > 0,
+            nextAvailability.weeklyHours.length > 0,
+            nextPayments.manualPaymentEnabled,
+          ),
+        );
+        setReady(true);
+      } catch (err) {
+        toast.error("Couldn't load your workspace", {
+          description: err instanceof Error ? err.message : undefined,
+        });
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [toast]);
 
-  const skipToDashboard = () => router.push("/admin/dashboard");
+  // Done and Skip both close onboarding for good; settings stay editable later.
+  const finish = async () => {
+    try {
+      await completeOnboarding();
+    } finally {
+      router.push("/admin/dashboard");
+    }
+  };
 
   const saveService = async () => {
     if (!serviceForm.name.trim()) {
@@ -136,7 +162,6 @@ export default function OnboardingPage() {
     setBusy(true);
     try {
       await createService(serviceForm);
-      markOnboardingStep("service", true);
       toast.success("Service created");
       setStep(2);
     } catch (err) {
@@ -149,18 +174,15 @@ export default function OnboardingPage() {
   };
 
   const saveAvailability = async () => {
-    if (!settings) return;
-    if (!hours.some((d) => d.enabled)) {
+    if (!availability) return;
+    const weeklyHours = workingDaysToWeeklyHours(hours);
+    if (weeklyHours.length === 0) {
       toast.error("Enable at least one day so clients can book.");
       return;
     }
     setBusy(true);
     try {
-      const next = await updateSettings({
-        calendar: { ...settings.calendar, workingHours: hours },
-      });
-      setSettings(next);
-      markOnboardingStep("availability", true);
+      setAvailability(await updateAvailabilitySettings({ ...availability, weeklyHours }));
       toast.success("Availability saved");
       setStep(3);
     } catch (err) {
@@ -173,18 +195,16 @@ export default function OnboardingPage() {
   };
 
   const savePayments = async () => {
-    if (!settings) return;
+    if (!payments) return;
     setBusy(true);
     try {
-      const next = await updateSettings({
-        payments: {
-          ...settings.payments,
+      setPayments(
+        await updatePaymentSettings({
+          ...payments,
           manualPaymentEnabled: manualPayment.enabled,
           manualPaymentInstructions: manualPayment.instructions,
-        },
-      });
-      setSettings(next);
-      markOnboardingStep("payments", true);
+        }),
+      );
       toast.success("Payment setup saved");
       setStep(4);
     } catch (err) {
@@ -202,7 +222,7 @@ export default function OnboardingPage() {
         <Logo />
         <button
           type="button"
-          onClick={skipToDashboard}
+          onClick={finish}
           className="text-small text-ink-3 hover:text-ink"
         >
           Skip for now
@@ -243,30 +263,10 @@ export default function OnboardingPage() {
                   <PaymentsPane
                     value={manualPayment}
                     onChange={setManualPayment}
-                    stripeConnected={
-                      settings?.payments.processors.some(
-                        (p) => p.id === "stripe" && p.status === "connected",
-                      ) ?? false
-                    }
-                    onConnectStripe={async () => {
-                      if (!settings) return;
-                      const next = await updateSettings({
-                        payments: {
-                          ...settings.payments,
-                          processors: settings.payments.processors.map((p) =>
-                            p.id === "stripe"
-                              ? { ...p, status: "connected" }
-                              : p,
-                          ),
-                        },
-                      });
-                      setSettings(next);
-                      toast.success("Stripe connected (mock)");
-                    }}
                     disabled={busy}
                   />
                 )}
-                {step === 4 && <DonePane />}
+                {step === 4 && <DonePane bookingSlug={bookingSlug} />}
               </div>
 
               <StepFooter
@@ -277,7 +277,7 @@ export default function OnboardingPage() {
                 onSaveService={saveService}
                 onSaveAvailability={saveAvailability}
                 onSavePayments={savePayments}
-                onFinish={skipToDashboard}
+                onFinish={finish}
               />
             </>
           )}
@@ -396,7 +396,7 @@ function IntroPane({ operatorName }: { operatorName: string }) {
     {
       icon: "card",
       title: "Set up payments",
-      body: "Stripe for cards, or manual instructions for bank transfer.",
+      body: "Manual bank-transfer instructions, or skip it if your services are free.",
     },
   ];
   return (
@@ -431,88 +431,40 @@ function IntroPane({ operatorName }: { operatorName: string }) {
 function PaymentsPane({
   value,
   onChange,
-  stripeConnected,
-  onConnectStripe,
   disabled,
 }: {
   value: ManualPaymentValue;
   onChange: (next: ManualPaymentValue) => void;
-  stripeConnected: boolean;
-  onConnectStripe: () => Promise<void>;
   disabled?: boolean;
 }) {
-  const [connecting, setConnecting] = React.useState(false);
-  const connect = async () => {
-    setConnecting(true);
-    try {
-      await onConnectStripe();
-    } finally {
-      setConnecting(false);
-    }
-  };
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] items-start">
-      <div className="rounded-lg border border-line bg-surface p-5 flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-md bg-paper-2 text-ink-2 flex items-center justify-center">
-            <Icon name="card" size={16} />
-          </span>
-          <span className="text-[15px] font-medium text-ink">
-            Stripe (mock)
-          </span>
-        </div>
-        <p className="text-small">
-          Take card payments via Stripe. Mocked for the demo — no real account
-          needed.
-        </p>
-        <div className="flex items-start gap-2 rounded-md border border-line-soft bg-paper-2 px-3 py-2 text-small text-ink-2">
-          <Icon name="info" size={14} className="mt-0.5 shrink-0 text-ink-3" />
-          <span>
-            Stripe-powered card payments may include processing fees. Fees vary
-            by payment method and region. Review Stripe pricing before enabling
-            live payments.
-          </span>
-        </div>
-        {stripeConnected ? (
-          <Pill tone="accent" icon="check">
-            Connected
-          </Pill>
-        ) : (
-          <Button
-            variant="primary"
-            size="sm"
-            icon="card"
-            loading={connecting}
-            disabled={disabled}
-            onClick={connect}
-          >
-            Connect Stripe (mock)
-          </Button>
-        )}
-        <p className="text-micro text-ink-3 mt-1">
-          You can also set this up later from Settings → Client Payments.
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
       <div className="rounded-lg border border-line bg-surface p-5">
         <div className="flex items-center gap-2 mb-3">
           <span className="w-8 h-8 rounded-md bg-paper-2 text-ink-2 flex items-center justify-center">
             <Icon name="wallet" size={16} />
           </span>
-          <span className="text-[15px] font-medium text-ink">
-            Manual payment
-          </span>
+          <span className="text-[15px] font-medium text-ink">Manual payment</span>
         </div>
         <p className="text-small mb-4">
           Show clients custom instructions (bank transfer, Interac, etc.) at
-          checkout. Bookings stay pending until you confirm receipt.
+          checkout. Bookings stay pending until you confirm receipt. Free
+          services need no payment setup.
         </p>
         <ManualPaymentForm value={value} onChange={onChange} disabled={disabled} />
+      </div>
+      <div className="flex items-start gap-2 rounded-md border border-line-soft bg-paper-2 px-3 py-2 text-small text-ink-2">
+        <Icon name="info" size={14} className="mt-0.5 shrink-0 text-ink-3" />
+        <span>
+          Card payments are coming soon. You&apos;ll be able to connect them from
+          Settings → Client Payments.
+        </span>
       </div>
     </div>
   );
 }
 
-function DonePane() {
+function DonePane({ bookingSlug }: { bookingSlug: string }) {
   return (
     <div className="flex flex-col items-center text-center gap-5 py-6">
       <span className="w-14 h-14 rounded-full bg-accent-soft text-accent flex items-center justify-center">
@@ -530,7 +482,7 @@ function DonePane() {
           services, hours, and payment instructions any time.
         </p>
       </div>
-      <Link href="/booking" target="_blank" rel="noreferrer">
+      <Link href={`/book/${bookingSlug}`} target="_blank" rel="noreferrer">
         <Button variant="secondary" size="md" icon="eye">
           Preview your booking page
         </Button>
@@ -616,9 +568,6 @@ function StepFooter({
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 
-// Kept around for the partial-progress resume flow (currently disabled for
-// visual testing — see the mount effect above).
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function resumeStep(
   serviceDone: boolean,
   availabilityDone: boolean,

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from http import HTTPStatus
 from typing import Annotated, Any, Literal, cast
 from uuid import UUID
@@ -19,6 +20,7 @@ from slotera_api.db.models import (
 )
 from slotera_api.errors import ApiError
 from slotera_api.operator_resources.repository import OperatorResourcesRepository
+from slotera_api.plans import PLANS
 from slotera_api.schemas.operator_resources import (
     Address,
     BusinessSettingsPatch,
@@ -34,6 +36,7 @@ from slotera_api.schemas.operator_resources import (
     WorkspaceLocationPatch,
     WorkspaceLocationResponse,
 )
+from slotera_api.schemas.platform import PlanResponse, WorkspaceBillingResponse
 
 settings_router = APIRouter(prefix="/settings", tags=["settings"])
 services_router = APIRouter(prefix="/services", tags=["services"])
@@ -62,6 +65,7 @@ def _business_response(
         phone=profile.phone,
         address=profile.address,
         booking_page_enabled=profile.booking_page_enabled,
+        onboarding_completed_at=profile.onboarding_completed_at,
         updated_at=max(workspace.updated_at, profile.updated_at),
     )
 
@@ -170,6 +174,8 @@ async def update_business_settings(
     changes = payload.model_dump(exclude_unset=True)
     workspace_changes = {key: changes[key] for key in ("name", "timezone") if key in changes}
     profile_changes = {key: value for key, value in changes.items() if key not in workspace_changes}
+    if profile_changes.pop("onboarding_completed", None):
+        profile_changes["onboarding_completed_at"] = datetime.now(UTC)
     repository = OperatorResourcesRepository(database)
     result = (
         await repository.update_business(
@@ -414,3 +420,23 @@ async def delete_service(
     if not deleted:
         raise _not_found("service_not_found", "Service was not found")
     return Response(status_code=HTTPStatus.NO_CONTENT, headers={"Cache-Control": "no-store"})
+
+
+@settings_router.get(
+    "/billing", response_model=WorkspaceBillingResponse, operation_id="getWorkspaceBilling"
+)
+async def get_workspace_billing(
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> WorkspaceBillingResponse:
+    result = await OperatorResourcesRepository(database).get_business(operator.workspace_id)
+    if result is None:
+        raise _not_found("business_settings_not_found", "Business settings were not found")
+    workspace, _profile = result
+    _private(response)
+    return WorkspaceBillingResponse(
+        plan=cast(Literal["free", "pro"], workspace.plan),
+        plan_changed_at=workspace.plan_changed_at,
+        plans=[PlanResponse(**vars(plan)) for plan in PLANS.values()],
+    )

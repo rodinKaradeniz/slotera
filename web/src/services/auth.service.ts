@@ -5,39 +5,24 @@ import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
-import {
-  clearSession,
-  readOnboarding,
-  readSession,
-  writeOnboarding,
-  writeSession,
-} from "@/lib/session";
-import type { OnboardingState, Operator, Session, UserRole } from "@/types/auth";
-import { ApiRequestError, NotImplementedError } from "./_errors";
+import { clearSession, readSession, writeSession } from "@/lib/session";
+import type { Operator, Session, UserRole } from "@/types/auth";
+import { ApiRequestError } from "./_errors";
 
 type LoginRequestDto = components["schemas"]["LoginRequest"];
 type SessionResponseDto = components["schemas"]["SessionResponse"];
 type PasswordResetRequestDto = components["schemas"]["PasswordResetRequest"];
 type PasswordResetConsumeDto = components["schemas"]["PasswordResetConsume"];
 type PasswordResetAcceptedDto = components["schemas"]["PasswordResetAccepted"];
+type SignupRequestDto = components["schemas"]["SignupRequest"];
+type SignupAcceptedDto = components["schemas"]["SignupAccepted"];
+type SlugAvailabilityDto = components["schemas"]["SlugAvailability"];
+type PasswordChangeDto = components["schemas"]["PasswordChange"];
 
 const SEED_OPERATOR = authJson.operator as Operator;
-const SEED_SUPERADMIN = authJson.superadmin as Operator;
-const SEED_ONBOARDING = authJson.onboarding as OnboardingState;
 
 function makeToken(): string {
   return `mock.${Math.random().toString(36).slice(2)}.${Date.now().toString(36)}`;
-}
-
-function composeDisplayName(input: {
-  title?: string;
-  firstNames: string;
-  lastName: string;
-}): string {
-  return [input.title, input.firstNames, input.lastName]
-    .map((p) => p?.trim())
-    .filter(Boolean)
-    .join(" ");
 }
 
 function initialsFor(firstNames: string, lastName: string): string {
@@ -56,37 +41,23 @@ function mapApiSession(response: SessionResponseDto): Session {
     name: user.name,
     email: user.email,
     workspaceName: workspace?.name ?? "Slotera HQ",
+    workspaceSlug: workspace?.slug,
     avatarInitials: initialsFor(user.firstNames, user.lastName),
     role: user.role,
   };
   return { operator, role: user.role };
 }
 
+// Mock mode is the prospect-facing demo: every sign-in lands in the operator
+// workspace. The platform (superadmin) area exists only in the real app.
 function resolveSeedForEmail(email: string): {
   operator: Operator;
   role: UserRole;
 } {
-  if (email === SEED_SUPERADMIN.email) {
-    return { operator: { ...SEED_SUPERADMIN, role: "superadmin" }, role: "superadmin" };
-  }
   if (email === SEED_OPERATOR.email) {
     return {
       operator: { ...SEED_OPERATOR, role: "operator_admin" },
       role: "operator_admin",
-    };
-  }
-  // Heuristic: treat any address starting with "admin@" or "super@" as superadmin
-  // so reviewers can test the role without hard-coding more seed users.
-  const looksLikeSuper = /^(admin|super(admin)?)@/i.test(email);
-  if (looksLikeSuper) {
-    return {
-      operator: {
-        ...SEED_SUPERADMIN,
-        id: `su-${Math.random().toString(36).slice(2, 8)}`,
-        email,
-        role: "superadmin",
-      },
-      role: "superadmin",
     };
   }
   return {
@@ -130,43 +101,41 @@ export async function login(
   return session;
 }
 
+/**
+ * Self-serve sign-up (real app only — the route 404s in the mock demo). Creates
+ * the workspace and an activation-pending owner; the emailed activation link
+ * sets the password via /reset-password. No session is created here.
+ */
 export async function register(input: {
-  title?: string;
   firstNames: string;
   lastName: string;
   email: string;
   workspaceName: string;
-}): Promise<Session> {
-  if (dataSource !== "mock") throw new NotImplementedError("register");
-  await sleep(260);
-  const firstNames = input.firstNames.trim();
-  const lastName = input.lastName.trim();
-  const title = input.title?.trim() || undefined;
-  const operator: Operator = {
-    id: `op-${Math.random().toString(36).slice(2, 8)}`,
-    title,
-    firstNames,
-    lastName,
-    name: composeDisplayName({ title, firstNames, lastName }),
-    email: input.email.trim().toLowerCase(),
-    workspaceName: input.workspaceName,
-    avatarInitials: initialsFor(firstNames, lastName),
-    createdAtISO: new Date().toISOString(),
-    role: "operator_admin",
-  };
-  const session: Session = {
-    token: makeToken(),
-    operator,
-    role: "operator_admin",
-  };
-  writeSession(session);
-  writeOnboarding({
-    service: false,
-    availability: false,
-    payments: false,
-    share: false,
+  slug: string;
+}): Promise<void> {
+  if (dataSource === "mock") {
+    await sleep(260);
+    return;
+  }
+  await apiRequest<SignupAcceptedDto, SignupRequestDto>("/auth/signup", {
+    method: "POST",
+    body: {
+      firstNames: input.firstNames.trim(),
+      lastName: input.lastName.trim(),
+      email: input.email.trim().toLowerCase(),
+      workspaceName: input.workspaceName.trim(),
+      slug: input.slug,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin",
+    },
   });
-  return session;
+}
+
+export async function isSlugAvailable(slug: string): Promise<boolean> {
+  if (dataSource === "mock") return true;
+  const result = await apiRequest<SlugAvailabilityDto>(
+    `/auth/signup/slug-availability?slug=${encodeURIComponent(slug)}`,
+  );
+  return result.available;
 }
 
 export async function logout(): Promise<void> {
@@ -238,24 +207,18 @@ export function currentRole(): UserRole | null {
   return currentSession()?.role ?? null;
 }
 
-export function getOnboarding(): OnboardingState {
-  const stored = readOnboarding();
-  if (
-    stored.service === false &&
-    stored.availability === false &&
-    stored.payments === false &&
-    stored.share === false
-  ) {
-    return SEED_ONBOARDING;
+/** Re-verifies the current password; other signed-in devices are signed out. */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  if (dataSource === "mock") {
+    await sleep(200);
+    return;
   }
-  return stored;
-}
-
-export function markOnboardingStep(
-  step: keyof OnboardingState,
-  value = true,
-): OnboardingState {
-  const next = { ...getOnboarding(), [step]: value };
-  writeOnboarding(next);
-  return next;
+  await apiRequest<void, PasswordChangeDto>("/auth/password/change", {
+    method: "POST",
+    body: { currentPassword, newPassword },
+    csrf: true,
+  });
 }

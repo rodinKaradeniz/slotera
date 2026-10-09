@@ -18,6 +18,7 @@ import { LoadingRows } from "@/components/shared/LoadingRows";
 import {
   getWorkspace,
   setWorkspacePlan,
+  setPlatformWorkspacePlan,
   suspendWorkspace,
 } from "@/services/platform.service";
 import { dataSource } from "@/lib/env";
@@ -97,6 +98,21 @@ export function WorkspaceDetailView({ id }: { id: string }) {
     }
   };
 
+  const handleApiPlanChange = async () => {
+    const next = workspace.plan === "pro" ? "free" : "pro";
+    setBusy(true);
+    try {
+      setWorkspace(await setPlatformWorkspacePlan(workspace.id, next));
+      toast.success(next === "pro" ? "Moved to Pro" : "Moved to Free", {
+        description: "Recorded in the audit log. Invoice Pro manually until card billing exists.",
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not change the plan");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleSuspend = async () => {
     setBusy(true);
     try {
@@ -149,6 +165,9 @@ export function WorkspaceDetailView({ id }: { id: string }) {
               >
                 {WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label}
               </Pill>
+              <Pill tone={workspace.plan === "pro" ? "accent" : "neutral"}>
+                {workspace.plan === "pro" ? "Pro plan" : "Free plan"}
+              </Pill>
               <span aria-hidden>·</span>
               <span>Joined {fmtDate(new Date(workspace.createdAtISO))}</span>
             </span>
@@ -164,6 +183,17 @@ export function WorkspaceDetailView({ id }: { id: string }) {
                 onClick={() => toast.info("View-as is a placeholder in this mock build.")}
               >
                 View as operator
+              </Button>
+            )}
+            {apiMode && !mockWorkspace && (
+              <Button
+                variant="secondary"
+                size="md"
+                icon="refresh"
+                disabled={busy}
+                onClick={handleApiPlanChange}
+              >
+                {workspace.plan === "pro" ? "Move to Free" : "Move to Pro"}
               </Button>
             )}
             <Button

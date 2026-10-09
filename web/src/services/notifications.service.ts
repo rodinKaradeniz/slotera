@@ -42,7 +42,12 @@ const PRESENTATION: Record<
   reschedule_requested: {
     icon: "refresh",
     tone: "info",
-    title: "Client requested reschedule",
+    title: "Client rescheduled",
+  },
+  booking_cancelled: {
+    icon: "x",
+    tone: "warning",
+    title: "Client cancelled",
   },
 };
 
@@ -94,7 +99,9 @@ function detailFor(notification: NotificationDto): string {
     case "session_starting":
       return formatDateTime(notification.payload.startsAt);
     case "reschedule_requested":
-      return formatDateTime(notification.payload.requestedFor);
+      return `Now ${formatDateTime(notification.payload.requestedFor)}`;
+    case "booking_cancelled":
+      return `Was ${formatDateTime(notification.payload.startsAt)}`;
   }
 }
 

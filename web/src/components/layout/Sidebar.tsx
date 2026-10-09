@@ -9,7 +9,7 @@ import { ContactModal } from "@/components/public/ContactModal";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { logout } from "@/services/auth.service";
 import { cn } from "@/lib/cn";
-import type { NavItem } from "@/lib/nav";
+import { bookingPageHref, type NavItem } from "@/lib/nav";
 import { dataSource } from "@/lib/env";
 
 type Props = {
@@ -135,16 +135,19 @@ export function Sidebar({
               collapsed && "left-2 right-auto w-44",
             )}
           >
+            {/* Operator shells only: platform staff have no booking page. */}
+            {homeHref.startsWith("/admin") && (
+              <Link
+                href={bookingPageHref()}
+                target="_blank"
+                className="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Icon name="eye" size={14} /> View page
+              </Link>
+            )}
             {dataSource === "mock" && (
               <>
-                <Link
-                  href="/booking"
-                  target="_blank"
-                  className="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Icon name="eye" size={14} /> View page
-                </Link>
                 <button
                   type="button"
                   className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2 text-left"

@@ -13,6 +13,7 @@ from slotera_api.auth.dependencies import (
 from slotera_api.errors import ApiError
 from slotera_api.platform.repository import PlatformRepository, PlatformWorkspace
 from slotera_api.schemas.platform import (
+    PlatformPlanChange,
     PlatformWorkspaceDetail,
     PlatformWorkspaceListResponse,
     PlatformWorkspaceProvision,
@@ -31,6 +32,7 @@ def _summary(workspace: PlatformWorkspace) -> PlatformWorkspaceSummary:
         owner_email=workspace.owner_email,
         created_at=workspace.created_at,
         operational_status=workspace.operational_status,
+        plan=workspace.plan,
         services_count=workspace.services_count,
         clients_count=workspace.clients_count,
         bookings_count=workspace.bookings_count,
@@ -210,3 +212,41 @@ async def reactivate_platform_workspace(
         superadmin=superadmin,
         database=database,
     )
+
+
+@router.post(
+    "/{workspace_id}/plan",
+    response_model=PlatformWorkspaceDetail,
+    operation_id="setPlatformWorkspacePlan",
+)
+async def set_platform_workspace_plan(
+    workspace_id: UUID,
+    payload: PlatformPlanChange,
+    response: Response,
+    superadmin: CsrfPlatformSuperadminDependency,
+    database: DatabaseDependency,
+) -> PlatformWorkspaceDetail:
+    """Pro is invoiced manually until Stripe Billing exists; staff record it here."""
+    repository = PlatformRepository(database)
+    result_code = await repository.set_plan(
+        workspace_id=workspace_id, actor_user_id=superadmin.user_id, plan=payload.plan
+    )
+    if result_code == "workspace_not_found":
+        raise ApiError(
+            status_code=HTTPStatus.NOT_FOUND,
+            code="platform_workspace_not_found",
+            message="Workspace was not found",
+        )
+    if result_code == "actor_not_superadmin":
+        raise ApiError(
+            status_code=HTTPStatus.FORBIDDEN,
+            code="platform_superadmin_required",
+            message="A platform superadmin is required",
+        )
+    if result_code not in {"updated", "unchanged"}:
+        raise RuntimeError(f"unexpected workspace plan result: {result_code}")
+    workspace = await repository.get_workspace(workspace_id)
+    if workspace is None:
+        raise RuntimeError("updated workspace was not readable")
+    response.headers["Cache-Control"] = "no-store"
+    return _detail(workspace)

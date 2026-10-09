@@ -9,6 +9,7 @@ import { ApiRequestError, NotFoundError, NotImplementedError } from "./_errors";
 
 type BookingDto = components["schemas"]["BookingResponse"];
 type BookingListDto = components["schemas"]["BookingListResponse"];
+type OperatorBookingCreateDto = components["schemas"]["OperatorBookingCreate"];
 
 let mock: Booking[] = JSON.parse(JSON.stringify(bookingsJson)) as Booking[];
 
@@ -104,6 +105,31 @@ export async function createBooking(input: BookingInput): Promise<Booking> {
   };
   mock = [created, ...mock];
   return created;
+}
+
+/**
+ * API mode: the operator books a client into an existing session. The server
+ * snapshots price/currency, enforces capacity, and records `auditReason`.
+ * Reuse one `idempotencyKey` per form so a retried submit cannot double-book.
+ */
+export async function createOperatorBooking(
+  input: { clientId: string; sessionId: string; notes?: string; auditReason: string },
+  idempotencyKey: string,
+): Promise<Booking> {
+  if (dataSource !== "api") throw new NotImplementedError("createOperatorBooking");
+  return mapBooking(
+    await apiRequest<BookingDto, OperatorBookingCreateDto>("/bookings", {
+      method: "POST",
+      body: {
+        clientId: input.clientId,
+        sessionId: input.sessionId,
+        notes: input.notes?.trim() || null,
+        auditReason: input.auditReason.trim(),
+      },
+      csrf: true,
+      idempotencyKey,
+    }),
+  );
 }
 
 export async function updateBooking(

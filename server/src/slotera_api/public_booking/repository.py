@@ -7,9 +7,10 @@ from typing import Any
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select, text
+from sqlalchemy import ColumnElement, and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from slotera_api.booking_access import emit_booking_event
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
@@ -88,6 +89,20 @@ class PublicWorkspaceContext:
 class AvailabilitySlot:
     start_at: datetime
     end_at: datetime
+    # Scheduled services only: seats still free in that existing session.
+    spots_left: int | None = None
+
+
+_CAPACITY_CONSUMING = (BookingStatus.PENDING, BookingStatus.CONFIRMED)
+
+
+def _publicly_bookable() -> ColumnElement[bool]:
+    """Open-mode 1:1 services (a session is created per booking) and scheduled
+    services of any capacity (clients join a session the operator created)."""
+    return or_(
+        and_(Service.booking_mode == ServiceBookingMode.OPEN, Service.capacity == 1),
+        Service.booking_mode == ServiceBookingMode.SCHEDULED,
+    )
 
 
 @dataclass(frozen=True)
@@ -211,8 +226,7 @@ class PublicBookingRepository:
                         .where(
                             Service.workspace_id == workspace_id,
                             Service.active.is_(True),
-                            Service.booking_mode == ServiceBookingMode.OPEN,
-                            Service.capacity == 1,
+                            _publicly_bookable(),
                         )
                         .order_by(Service.created_at, Service.id)
                     )
@@ -230,8 +244,7 @@ class PublicBookingRepository:
                     Service.workspace_id == workspace_id,
                     Service.id == service_id,
                     Service.active.is_(True),
-                    Service.booking_mode == ServiceBookingMode.OPEN,
-                    Service.capacity == 1,
+                    _publicly_bookable(),
                 )
             )
             if service is None:
@@ -273,6 +286,16 @@ class PublicBookingRepository:
         async with self.database.tenant_transaction(workspace_id) as session:
             effective_now = now or datetime.now(UTC)
             await self._expire_manual_bookings(session, workspace_id, effective_now)
+            if service.booking_mode == ServiceBookingMode.SCHEDULED:
+                return context.workspace.timezone, await self._scheduled_slots(
+                    session,
+                    workspace_id,
+                    service,
+                    context.workspace.timezone,
+                    starts_on,
+                    ends_on,
+                    effective_now,
+                )
             slots = await self._available_slots(
                 session,
                 workspace_id,
@@ -305,8 +328,6 @@ class PublicBookingRepository:
                     Booking.payment_method == "manual",
                     Booking.payment_due_at.is_not(None),
                     Booking.payment_due_at <= now,
-                    Session.capacity == 1,
-                    Session.origin == SessionOrigin.PUBLIC_OPEN,
                     Session.status == SessionStatus.SCHEDULED,
                 )
                 .with_for_update(of=(Booking, Session))
@@ -315,7 +336,10 @@ class PublicBookingRepository:
         for booking, scheduled_session in rows:
             booking.status = BookingStatus.CANCELLED
             booking.payment_status = PaymentStatus.OVERDUE
-            scheduled_session.status = SessionStatus.CANCELLED
+            # A public-open session existed only for this booking; an operator's
+            # scheduled session stays and simply regains the seat.
+            if scheduled_session.origin == SessionOrigin.PUBLIC_OPEN:
+                scheduled_session.status = SessionStatus.CANCELLED
             session.add(
                 AuditEvent(
                     workspace_id=workspace_id,
@@ -328,6 +352,97 @@ class PublicBookingRepository:
             )
         if rows:
             await session.flush()
+
+    async def _scheduled_slots(
+        self,
+        session: AsyncSession,
+        workspace_id: UUID,
+        service: Service,
+        timezone_name: str,
+        starts_on: date,
+        ends_on: date,
+        now: datetime,
+    ) -> list[AvailabilitySlot]:
+        policy = await session.get(AvailabilityPolicy, workspace_id)
+        if policy is None:
+            return []
+        timezone = ZoneInfo(timezone_name)
+        range_start = datetime.combine(starts_on, time.min, timezone).astimezone(UTC)
+        range_end = datetime.combine(ends_on + timedelta(days=1), time.min, timezone).astimezone(
+            UTC
+        )
+        earliest = max(range_start, now + timedelta(minutes=policy.minimum_notice_min))
+        latest = min(range_end, now + timedelta(days=policy.maximum_advance_days))
+        consumed = (
+            select(func.count(Booking.id))
+            .where(
+                Booking.workspace_id == Session.workspace_id,
+                Booking.session_id == Session.id,
+                Booking.status.in_(_CAPACITY_CONSUMING),
+            )
+            .scalar_subquery()
+        )
+        rows = (
+            await session.execute(
+                select(Session, consumed)
+                .where(
+                    Session.workspace_id == workspace_id,
+                    Session.service_id == service.id,
+                    Session.status == SessionStatus.SCHEDULED,
+                    Session.start_at >= earliest,
+                    Session.start_at < latest,
+                )
+                .order_by(Session.start_at)
+            )
+        ).all()
+        return [
+            AvailabilitySlot(
+                start_at=item.start_at,
+                end_at=item.end_at,
+                spots_left=item.capacity - int(taken or 0),
+            )
+            for item, taken in rows
+            if int(taken or 0) < item.capacity
+        ]
+
+    async def _lock_scheduled_session(
+        self,
+        session: AsyncSession,
+        workspace_id: UUID,
+        service: Service,
+        start_at: datetime,
+        now: datetime,
+    ) -> Session:
+        """Lock the operator's session at `start_at` and confirm a seat is free."""
+        policy = await session.get(AvailabilityPolicy, workspace_id)
+        scheduled_session = await session.scalar(
+            select(Session)
+            .where(
+                Session.workspace_id == workspace_id,
+                Session.service_id == service.id,
+                Session.status == SessionStatus.SCHEDULED,
+                Session.start_at == start_at,
+            )
+            .with_for_update()
+        )
+        if scheduled_session is None or policy is None:
+            raise PublicSlotUnavailableError
+        if not (
+            now + timedelta(minutes=policy.minimum_notice_min)
+            <= scheduled_session.start_at
+            <= now + timedelta(days=policy.maximum_advance_days)
+        ):
+            raise PublicSlotUnavailableError
+        taken = await session.scalar(
+            select(func.count(Booking.id)).where(
+                Booking.workspace_id == workspace_id,
+                Booking.session_id == scheduled_session.id,
+                Booking.status.in_(_CAPACITY_CONSUMING),
+            )
+        )
+        if int(taken or 0) >= scheduled_session.capacity:
+            raise PublicSlotUnavailableError
+        return scheduled_session
 
     async def _available_slots(
         self,
@@ -502,8 +617,7 @@ class PublicBookingRepository:
                         Service.workspace_id == workspace_id,
                         Service.id == service_id,
                         Service.active.is_(True),
-                        Service.booking_mode == ServiceBookingMode.OPEN,
-                        Service.capacity == 1,
+                        _publicly_bookable(),
                         Workspace.operational_status == WorkspaceOperationalStatus.ACTIVE,
                         WorkspaceBusinessProfile.booking_page_enabled.is_(True),
                     )
@@ -515,19 +629,27 @@ class PublicBookingRepository:
             service, workspace, _profile, payments = row._tuple()
             effective_now = datetime.now(UTC)
             start_at = start_at.astimezone(UTC)
-            local_day = start_at.astimezone(ZoneInfo(workspace.timezone)).date()
-            available = await self._available_slots(
-                session,
-                workspace_id,
-                service,
-                workspace.timezone,
-                local_day,
-                local_day,
-                effective_now,
-            )
-            slot = next((item for item in available if item.start_at == start_at), None)
-            if slot is None:
-                raise PublicSlotUnavailableError
+            existing_session: Session | None = None
+            if service.booking_mode == ServiceBookingMode.SCHEDULED:
+                existing_session = await self._lock_scheduled_session(
+                    session, workspace_id, service, start_at, effective_now
+                )
+                slot = AvailabilitySlot(existing_session.start_at, existing_session.end_at)
+            else:
+                local_day = start_at.astimezone(ZoneInfo(workspace.timezone)).date()
+                available = await self._available_slots(
+                    session,
+                    workspace_id,
+                    service,
+                    workspace.timezone,
+                    local_day,
+                    local_day,
+                    effective_now,
+                )
+                open_slot = next((item for item in available if item.start_at == start_at), None)
+                if open_slot is None:
+                    raise PublicSlotUnavailableError
+                slot = open_slot
 
             payment_method = values["payment_method"]
             if service.price_cents == 0:
@@ -591,7 +713,7 @@ class PublicBookingRepository:
                 session.add(client)
                 await session.flush()
 
-            scheduled_session = Session(
+            scheduled_session = existing_session or Session(
                 id=uuid4(),
                 workspace_id=workspace_id,
                 series_id=None,
@@ -607,10 +729,11 @@ class PublicBookingRepository:
                 address=service.address,
                 notes=None,
             )
-            session.add(scheduled_session)
-            # The booking uses a composite tenant FK to the materialized session.
-            # Persist the occurrence first so the database can validate that FK.
-            await session.flush()
+            if existing_session is None:
+                session.add(scheduled_session)
+                # The booking uses a composite tenant FK to the materialized session.
+                # Persist the occurrence first so the database can validate that FK.
+                await session.flush()
             booking_id = uuid4()
             quote = quote_for(service, workspace, payments)
             payment_due_at = (
@@ -715,18 +838,14 @@ class PublicBookingRepository:
                 )
             )
             await session.flush()
-            emitted = await session.scalar(
-                text("SELECT public.slotera_booking_emit_event(:booking_id, :event)"),
-                {
-                    "booking_id": booking.id,
-                    "event": (
-                        "confirmed"
-                        if booking.status == BookingStatus.CONFIRMED
-                        else "received"
-                    ),
-                },
+            emitted = await emit_booking_event(
+                session,
+                workspace_id=workspace_id,
+                booking_id=booking.id,
+                session_ends_at=scheduled_session.end_at,
+                event="confirmed" if booking.status == BookingStatus.CONFIRMED else "received",
             )
-            if emitted is not True:
+            if not emitted:
                 raise RuntimeError("public booking event could not be enqueued")
             await session.refresh(booking)
             await session.refresh(scheduled_session)

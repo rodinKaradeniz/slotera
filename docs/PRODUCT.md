@@ -55,7 +55,7 @@ same worker; booking-workspace magic-link access remains the next customer-acces
 Hosting is deliberately undecided (Railway is a later candidate, not a current dependency).
 The mock/api switch in `web/src/lib/env.ts` remains the transition seam (see Data layer below).
 
-**Phase 3 — later and deliberately de-prioritised.** Stripe connected-account onboarding,
+**Phase 3 — later and deliberately de-prioritised; starts after Merulio (the operating company) is incorporated.** Stripe connected-account onboarding,
 Checkout/Elements + webhooks, advanced email reminders/follow-ups, and Google
 Calendar/Meet arrive only after identity, tenancy, scheduling, tracking, free/manual
 booking, and the booking workspace work reliably. Forward-looking rule worth remembering
@@ -133,7 +133,7 @@ prop and:
 `web/src/app` uses four Next.js route groups, each with its own layout and shell:
 
 - `(public)` — marketing landing + the public booking flow (`/booking`, `/booking/confirmation`, `/booking/failure`). No auth.
-- `(auth)` — `/login`, `/register`, `/register/plan`, `/register/payment`, `/forgot-password`, `/reset-password`, `/onboarding`. Uses `AuthShell`. Size is set by pathname in `(auth)/layout.tsx` (`/onboarding` → wide, `/register*` → medium, others → default).
+- `(auth)` — `/login`, `/register`, `/forgot-password`, `/reset-password`, `/onboarding` (all but `/login` exist only in the real app). Uses `AuthShell`. Size is set by pathname in `(auth)/layout.tsx` (`/onboarding` → wide, `/register*` → medium, others → default).
 - `(admin)` — everything under `/admin/*`. Wrapped by `AuthGuard requireRole="operator_admin"` + `DrawersProvider`. Uses `AdminShell` (sidebar + topbar).
 - `(superadmin)` — everything under `/superadmin/*`. Wrapped by `AuthGuard requireRole="superadmin"`. Uses the same `AppShell` as admin but with the platform nav from `SUPERADMIN_NAV` in `web/src/lib/nav.ts`.
 
@@ -216,7 +216,7 @@ Slotera has two completely separate payment domains. Keep them separate in code,
 | Domain | What it means | Settings section |
 |---|---|---|
 | **Client payments** | How clients pay the operator (card mock + manual instructions). | Settings → Client Payments |
-| **Platform billing** | How the operator pays Slotera (Solo/Team/Custom plans, trial, invoices, card on file). | Settings → Billing & Subscription |
+| **Platform billing** | How the operator pays Slotera (Free / Pro plans). | Settings → Billing & Subscription |
 
 **`PaymentMethod = "card" | "manual"`**. PayPal was removed everywhere and should not be reintroduced. SEPA was removed and should stay removed.
 
@@ -241,6 +241,28 @@ payments: {
 They appear in: the public booking payment step, the receipt/pay summary when manual is selected, Settings → Client Payments, and the onboarding payments step.
 
 ### Platform billing / subscription (operator-side)
+
+**Pricing (decided 2026-10-09).** Two tiers, identical features:
+
+| Plan | Monthly | Cut per card payment |
+|---|---|---|
+| Free | €0 | 3% |
+| Pro | €19 | 1% |
+
+- The cut applies to **card payments only** and is collected through Stripe Connect's
+  application fee once Stripe is live (after Merulio is incorporated). Manual bank
+  transfers are never charged.
+- No trial: Free is the trial. No Team or Custom tier until a member model exists.
+- Landing copy (`Pricing.tsx`) must match this table.
+
+**How it works today (real app).** `workspaces.plan` is `free | pro`; new workspaces
+start on Free. A superadmin moves a workspace between plans from its detail page (audited;
+Pro is invoiced manually until Stripe Billing exists under Merulio). Settings → Billing
+shows the operator's plan and price list; "Upgrade to Pro" sends an inquiry. Rates live in
+`server/src/slotera_api/plans.py`.
+
+The rest of this section describes the older mock (Solo/Team/Custom); the demo no longer
+shows it and it is kept only as history.
 
 Mocked SaaS subscription. Settings → Billing & Subscription shows: current plan, status pill, billing cycle, trial end / next billing date, team-member usage, payment method card, invoice history, change plan, cancel/reactivate. Defaults: currency **GBP**, Solo £20/mo, Team £50/mo (10 members), Custom is negotiated.
 
@@ -296,22 +318,21 @@ Mock files under `web/src/data/mock/`: `platform-workspaces.json`, `platform-sub
 
 Customers do not have accounts. Only operators authenticate. Public navbar uses **"Log in"** for the action label, not "Login".
 
-Registration is now a three-route flow that defers account creation until after payment:
+Sign-up is a single step and exists only in the real app (API mode); the mock demo 404s
+`/register`, `/onboarding`, `/forgot-password`, and `/reset-password`, and its CTAs open
+the contact form instead.
 
 ```
-/register             account form  → writeRegisterDraft → /register/plan
-/register/plan        plan picker
-  ├─ Solo or Team     write planId+cycle → /register/payment
-  └─ Custom           opens persisting ContactModal → inquiry created, NO account
-/register/payment     mock card form → register() + changePlan() + updateMockPaymentMethod()
-                                      → clear draft → /onboarding
+/register         name(s), last name, email, workspace name, booking-page slug
+  → POST /auth/signup → "check your inbox"
+emailed link      /reset-password?token=… sets the first password (activation = email check)
+/login            → /onboarding until onboarding is completed or skipped
 ```
 
-The form data lives in `slotera.register.draft` (sessionStorage) until either:
-- payment succeeds — draft is cleared, account is created, plan + card persisted, lands on `/onboarding`; or
-- the user picks Custom — draft stays, no account created, contact inquiry persisted. Helpers live in `web/src/lib/register-draft.ts`.
+No password is chosen at sign-up and no session is created before the email is proven.
+Sign-up never reveals whether an email already has an account.
 
-Register form fields: title (Dr./Mr./Ms./Mrs./Mx./Prof./Other), name(s), last name, email, password, confirm password (frontend-only validation), workspace name, what-do-you-offer dropdown. **Use the first word of `firstNames` in the dashboard greeting** (e.g. "Lena Maria" → "Welcome back, Lena"). Full display name composes title + names + last name (e.g. "Dr. Lena Maria Hartmann").
+**Use the first word of `firstNames` in the dashboard greeting** (e.g. "Lena Maria" → "Welcome back, Lena"). Full display name composes title + names + last name (e.g. "Dr. Lena Maria Hartmann").
 
 ### Onboarding
 
@@ -321,11 +342,11 @@ Onboarding is a five-pane linear stepper in `/onboarding`:
 0. Welcome      — intro + bullet list of upcoming steps + "Get started"
 1. Service      — inline ServiceForm (showActiveToggle=false)
 2. Availability — inline WorkingHoursForm
-3. Payments     — two-card layout: Stripe (mock) connect + ManualPaymentForm
+3. Payments     — ManualPaymentForm + "card payments coming soon" note
 4. Done         — share booking page CTA + "Go to dashboard"
 ```
 
-"Skip for now" exits to `/admin/dashboard` at any point. The page is currently in **visual-testing mode** — it always starts at step 0 regardless of completion. The original resume-from-first-incomplete-step logic is kept around as the `resumeStep()` helper at the bottom of the file behind an eslint-disable, plus a commented-out call site. Flip those two lines back on when you want the real resume behavior.
+Real app only. "Skip for now" and "Go to dashboard" both mark onboarding complete on the server (`onboardingCompleted: true` on the business-settings PATCH) and exit to `/admin/dashboard`. On mount the stepper resumes at the first incomplete step via `resumeStep()`; a workspace with no hours yet gets Mon–Fri 09:00–17:00 pre-enabled to edit.
 
 Step 1's button reads **"Add and continue"** unconditionally — no "Add another" variant. Don't auto-mark Step 1 done when Step 2 is marked done. Step completion is data-derived from existing services + settings (not from a checklist of clicks).
 
@@ -417,7 +438,23 @@ Lightweight Phase 1 demo entities for selling/presenting **multi-session offers*
 - **Public booking is informational only.** When a selected service is included in active packages, the Service step shows a `PackageOptionsHint` (a hint + a modal listing the offers), resolved via `listPackagesForService` (active packages whose `items[].serviceId` matches). **No package checkout, no required choice, no payment changes, no step-sequence changes.** Copy: "Available in packages" / "View package options" — never "programs", "memberships", "credits", "subscriptions", or "available with services".
 - **`/booking/manage/demo`** shows a **display-only** Package tab ("Session N of M" + included services in order) when the booking is part of a package. No credit ledger, balance, or consumption.
 - **This is a product/demo model only.** It does **not** implement real checkout, credit/balance ledgers, session consumption, entitlement rules, recurring billing, memberships, coupons, gift cards, or Stripe product/price objects. Future iterations may add package purchase, remaining credits, enrollment, reminders, and customer package management.
-- **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Solo/Team/Custom). Packages = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
+- **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Free / Pro). Packages = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
+
+### Customer booking link (real app)
+
+Every customer booking email (received, confirmed, reminder, rescheduled) carries a link to
+`/booking/manage#<token>`: one booking, no account. The token is in the URL fragment so it
+never reaches server logs, is stored only as a SHA-256 hash, and expires 30 days after the
+session. The page shows an allow-list (service, time, place, provider, amount, payment
+instructions, policy) — never notes or action items.
+
+- **Self-service policy.** Until `customer_change_notice_hours` before the start (Calendar
+  Settings, default 24h) a customer may cancel, and may **reschedule once**, to another
+  available slot of the same service at the same price. After the cutoff, or after one
+  move, the page points them to the provider.
+- **Cancellation never refunds.** Payment state is untouched; the operator handles refunds
+  under their own policy. The operator gets a notification for every customer change.
+- **Reminders** go out ~24h before confirmed sessions from the maintenance job.
 
 ### Customer booking workspace (demo)
 
@@ -602,7 +639,7 @@ All live in `web/src/components/shared/forms/`. Controlled — caller owns state
 ### Helper libraries
 
 - **`web/src/lib/card.ts`** — `detectCardBrand`, `formatCardNumber`, `formatCardExpiry`, `formatCardCvc`, `isValidCardExpiry`, `parseCardExpiry`. All pure, all client-side. Use these for every card input across the codebase; do not roll new formatters.
-- **`web/src/lib/register-draft.ts`** — sessionStorage helpers for the deferred-account registration flow. `slotera.register.draft` key is owned exclusively here.
+- ~~`web/src/lib/register-draft.ts`~~ — removed with the one-step sign-up (2026-10-09). Was: sessionStorage helpers for the deferred-account registration flow. `slotera.register.draft` key is owned exclusively here.
 - **`web/src/lib/status-maps.ts`** — single source of truth for status tone + label + icon. Always extend this rather than hardcoding tones per page.
 - **`web/src/lib/nav.ts`** — `OPERATOR_NAV`, `SUPERADMIN_NAV`, `navForRole`, `homePathForRole`, `eyebrowForRole`. The role-routing source of truth.
 

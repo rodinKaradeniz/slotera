@@ -1,17 +1,57 @@
 import asyncio
+import logging
+from datetime import timedelta
+
+from sqlalchemy import text
 
 from slotera_api.auth.repository import AuthRepository
+from slotera_api.booking_access import emit_booking_event
 from slotera_api.config import get_settings
 from slotera_api.database import Database
 from slotera_api.logging import configure_logging
 
+logger = logging.getLogger("slotera.maintenance")
+
+REMINDER_LEAD = timedelta(hours=24)
+
+
+async def queue_booking_reminders(database: Database) -> int:
+    """Queue one reminder per confirmed booking starting within `REMINDER_LEAD`.
+
+    The email worker sends them; the outbox's per-booking uniqueness makes a repeat run
+    a no-op. Each reminder carries a fresh manage link, issued in the booking's tenant.
+    """
+    async with database.transaction() as session:
+        due = (
+            await session.execute(
+                text("SELECT * FROM public.slotera_booking_due_reminders(:within)"),
+                {"within": REMINDER_LEAD},
+            )
+        ).all()
+    queued = 0
+    for row in due:
+        async with database.tenant_transaction(row.workspace_id) as session:
+            if await emit_booking_event(
+                session,
+                workspace_id=row.workspace_id,
+                booking_id=row.booking_id,
+                session_ends_at=row.ends_at,
+                event="reminder",
+            ):
+                queued += 1
+    return queued
+
 
 async def run() -> int:
+    """Run every periodic job once. Schedule it every ~15 minutes."""
     settings = get_settings()
     configure_logging(settings.log_level)
     database = Database(settings.database_url)
     try:
-        return await AuthRepository(database).run_maintenance()
+        cleaned = await AuthRepository(database).run_maintenance()
+        reminders = await queue_booking_reminders(database)
+        logger.info("maintenance_completed", extra={"auth_rows": cleaned, "reminders": reminders})
+        return cleaned + reminders
     finally:
         await database.dispose()
 

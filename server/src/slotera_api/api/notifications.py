@@ -13,6 +13,8 @@ from slotera_api.auth.dependencies import (
 from slotera_api.db.models import Notification, NotificationKind
 from slotera_api.operator_resources.notifications_repository import NotificationsRepository
 from slotera_api.schemas.notifications import (
+    BookingCancelledNotification,
+    BookingCancelledPayload,
     BookingConfirmedNotification,
     BookingConfirmedPayload,
     BookingPendingNotification,
@@ -73,6 +75,12 @@ def _notification_response(notification: Notification) -> NotificationItem:
             **common,
             kind="session_starting",
             payload=SessionStartingPayload.model_validate(notification.payload),
+        )
+    if notification.kind == NotificationKind.BOOKING_CANCELLED:
+        return BookingCancelledNotification(
+            **common,
+            kind="booking_cancelled",
+            payload=BookingCancelledPayload.model_validate(notification.payload),
         )
     return RescheduleRequestedNotification(
         **common,

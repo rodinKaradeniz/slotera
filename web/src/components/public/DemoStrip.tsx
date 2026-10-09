@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { dataSource } from "@/lib/env";
 import { Button } from "@/components/ui/Button";
 import { useDemoGuide } from "./DemoGuideProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -9,6 +10,7 @@ export function DemoStrip() {
   const { open } = useDemoGuide();
   const { t } = useI18n();
 
+  if (dataSource === "api") return null;
   return (
     <section className="my-6">
       <div className="max-w-[1200px] mx-auto px-6">

@@ -21,20 +21,13 @@ Items are grouped by kind, then roughly by how soon they matter.
 
 ## 1. Correctness & hygiene — small, worth doing soon
 
-- **`web/src/types/index.ts` is an incomplete barrel.** It re-exports `common`, `address`,
-  `service`, `session`, `booking`, `client`, `dashboard`, `notification`, `settings`,
-  `auth`, `billing`, and `platform` — but **not** `form`, `package`, `client-note`,
-  `session-action-item`, or `demo`. Those five are imported from their modules directly
-  everywhere, so nothing is broken, but the barrel now lies about being the domain
-  surface. Either complete it or delete it; a half-barrel is the worst of both. Check for
-  name collisions before completing it (several modules export a `*Status` type).
+- **~~`web/src/types/index.ts` is an incomplete barrel.~~ DONE.** It now re-exports
+  `form`, `package`, `client-note`, `session-action-item`, and `demo` alongside the
+  existing domain modules. The export set was checked for name collisions.
 
-- **`@tiptap/extensions` is imported but not declared.** `NoteEditor.tsx` imports
-  `Placeholder` from `@tiptap/extensions`, which resolves only because it is a transitive
-  dependency of `@tiptap/starter-kit`. It works today and will keep working until a
-  StarterKit release drops or repackages it, at which point the failure is an unresolved
-  import at build time. Add `@tiptap/extensions` to `dependencies` at the version already
-  in the lockfile.
+- **~~`@tiptap/extensions` is imported but not declared.~~ DONE.** It is now a direct
+  dependency at the existing `3.27.1` package line, so `NoteEditor.tsx` no longer relies on
+  a transitive install.
 
 - **`setSubscriptionStatus` exists twice with different semantics.** `billing.service.ts`
   changes *the operator's own* subscription; `platform.service.ts` changes *any workspace's*.
@@ -47,15 +40,11 @@ Items are grouped by kind, then roughly by how soon they matter.
   catches). When data fetching moves to a real backend and can be restructured, re-enable
   the rule and fix the genuine cases it surfaces.
 
-- **Onboarding is pinned to visual-testing mode.** `/onboarding` always starts at step 0
-  regardless of completion state. The real resume logic survives as the `resumeStep()`
-  helper at the bottom of the page behind an `eslint-disable`, with the call site
-  commented out one line above. Two lines to flip back on when the demo no longer needs a
-  fixed entry point.
+- **~~Onboarding is pinned to visual-testing mode.~~ DONE.** Onboarding is now real-app
+  only and resumes from server state; completion is persisted.
 
-- **No `README.md`.** The scaffold's was deleted in the first cleanup (HISTORY.md,
-  Entry 001) and never replaced. `AGENTS.md` covers agent-facing needs; a human landing on
-  the repository cold still gets nothing. Low priority while the project is private.
+- **~~No `README.md`.~~ DONE.** The new root README gives a human-facing product summary,
+  the supported local entry points, and links to the architecture and deployment guides.
 
 ---
 
@@ -65,11 +54,14 @@ Items are grouped by kind, then roughly by how soon they matter.
   DONE.** `server/` now uses pytest, pytest-asyncio, Ruff, and strict mypy. Isolated tests
   cover configuration, health/error contracts, request ids, safe 500 responses, and
   OpenAPI operation ids; opt-in PostgreSQL integration tests cover live readiness and the
-  restricted application role. CI remains deferred.
+  restricted application role. GitHub Actions now runs these gates on pull requests and
+  `main`.
 
-The **frontend still has no test runner or test files**, and the repository has no CI.
-Frontend verification currently means type-check clean, lint clean, and routes exercised
-by hand in a dev server. The highest-value frontend targets remain:
+**GitHub Actions CI is now in place:** it runs frontend type-check, lint, and production
+build plus backend isolated and PostgreSQL integration gates on pull requests and `main`.
+The **frontend still has no test runner or test files**. Frontend verification currently
+means type-check clean, lint clean, and routes exercised by hand in a dev server. The
+highest-value frontend targets remain:
 
 When tests arrive, the highest-value targets — the places where a bug is silent — are:
 
@@ -406,7 +398,9 @@ live environment.
    - **~~Booking/payment/approval notification producers.~~ DONE.** Public receipt and
      confirmation transitions create PII-safe, user-targeted events. Further superadmin
      workspace commands, subscriptions, and inquiries remain later.
-10. Production-readiness gate, then later hosting/deployment selection.
+10. Production-readiness gate, then hosting/deployment selection. See
+   `docs/DEPLOYMENT.md` for the supported topology and the remaining operational release
+   requirements.
 
 ### Explicitly deferred dependencies
 
@@ -443,6 +437,10 @@ the workspace chooser waits for the Team/member product surface.
 
 ## 5. Phase 3 — external integrations
 
+- **Gate: Merulio incorporation.** Slotera will be operated as a product of Merulio.
+  Third-party integrations that need a legal entity — Stripe (Connect and platform
+  billing), a production email-sending domain, Google Calendar/Meet OAuth apps — are
+  registered under Merulio and start only after the company is incorporated.
 - **Stripe is deliberately mocked and de-prioritised.** Prove identity, tenancy,
   scheduling, tracking, free/manual booking, and the booking workspace first. Then add
   connected-account onboarding, short-lived card holds, Checkout/Elements, verified
@@ -467,7 +465,7 @@ the workspace chooser waits for the Team/member product surface.
 These exist as *demonstrations* of a future capability. The recorded intent is that they
 stay demonstrations until the backend can support them properly.
 
-- **Real customer booking access via magic links.** `/booking/manage/demo` is a single
+- **~~Real customer booking access via magic links.~~ DONE (2026-10-09)** as `/booking/manage#<token>` with self-serve cancel and one reschedule; reminders ship from the maintenance job. Post-booking optional forms and client messages are still not built. Original note: `/booking/manage/demo` is a single
   fixed booking with no id, token, or persistence. The real version needs guest access,
   signed expiring links, email delivery, and backend persistence. Customers still get no
   accounts — that boundary is deliberate. An all-history dashboard is not a smaller
@@ -488,12 +486,14 @@ stay demonstrations until the backend can support them properly.
   surface; see HISTORY.md Entry 016.
 - **~~Operator booking approval/payment reconciliation UI.~~ DONE for narrow booking-detail actions.**
   API mode exposes approve, decline, mark manual payment received, and cancel when valid.
-  Operator booking creation UI plus broader payment adjustment/refund behavior remain later.
+  Operator booking creation is DONE from Bookings → New booking (existing clients and
+  sessions only; adding from the Calendar roster is not built). Broader payment
+  adjustment/refund behavior remains later.
 - **Client-side authentication at booking time** ("if you have an account, log in") and
   **invitation flows** ("your provider has invited you to book"). Both imply customer
   accounts, which the product currently does not have — adopting either is a positioning
   decision, not just a feature.
-- **`bookingMode: "scheduled"` end-to-end.** The field exists and services carry it, but
+- **~~`bookingMode: "scheduled"` end-to-end.~~ DONE (2026-10-09).** Scheduled services (any capacity) list upcoming operator sessions with seats left; booking locks the session and counts capacity, and the confirmation/manage pages show the session address. Original note: The field exists and services carry it, but
   the public flow's date/time picker generates free-form slots and never resolves to a
   concrete `SessionItem`. Consequence: `SessionItem.address` is stored but never shown to
   the public client, because there is no session reference to read it from at confirmation.
@@ -513,7 +513,7 @@ stay demonstrations until the backend can support them properly.
   ordering is deliberate: finish responsive web → make key flows mobile-friendly (drawers
   already render as bottom sheets) → build the backend with a domain-shaped API → build
   native against that same API. No mobile-only endpoints.
-- **Team accounts.** The Team plan advertises 10 members and `SubscriptionStatus` supports
+- **Team accounts.** (The Team plan was removed from pricing on 2026-10-09.) The old Team plan advertised 10 members and `SubscriptionStatus` supports
   it, but there is no member model, no invitations, and no per-member permissions. The
   billing UI currently promises something the data model cannot express.
 - **Real operator impersonation.** "View as operator" in superadmin fires a

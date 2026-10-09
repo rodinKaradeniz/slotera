@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { ContactModal } from "@/components/public/ContactModal";
 import { DemoGuideButton } from "@/components/public/DemoGuideButton";
+import { SignupCta } from "@/components/public/SignupCta";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -34,11 +35,7 @@ export function PublicNav() {
           <Link href="/login">
             <Button variant="ghost" size="md">{t("landing.cta.login")}</Button>
           </Link>
-          <Link href="/register">
-            <Button variant="primary" size="md" iconRight="arrow-right">
-              {t("landing.cta.startTrial")}
-            </Button>
-          </Link>
+          <SignupCta variant="primary" size="md" iconRight="arrow-right" />
         </div>
       </div>
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />

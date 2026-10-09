@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { dataSource } from "@/lib/env";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { ContactModal } from "@/components/public/ContactModal";
@@ -30,7 +31,9 @@ export function PublicFooter() {
             { label: t("landing.nav.pricing"), href: "#pricing" },
             // Demo-intent link opens the shared Demo Guide modal rather than
             // navigating straight to /booking.
-            { label: t("footer.link.demo"), onClick: openDemoGuide },
+            ...(dataSource === "mock"
+              ? [{ label: t("footer.link.demo"), onClick: openDemoGuide }]
+              : []),
           ]}
         />
         <FooterCol

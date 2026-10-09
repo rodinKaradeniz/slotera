@@ -3,7 +3,6 @@
 import workspacesJson from "@/data/mock/platform-workspaces.json";
 import subscriptionsJson from "@/data/mock/platform-subscriptions.json";
 import inquiriesJson from "@/data/mock/platform-inquiries.json";
-import overviewJson from "@/data/mock/platform-overview.json";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { apiRequest } from "@/api/client";
@@ -27,6 +26,10 @@ type PlatformWorkspaceListDto =
   components["schemas"]["PlatformWorkspaceListResponse"];
 type PlatformWorkspaceProvisionDto =
   components["schemas"]["PlatformWorkspaceProvision"];
+type PlatformInquiryDto = components["schemas"]["PlatformInquiryResponse"];
+type PlatformOverviewDto = components["schemas"]["PlatformOverviewResponse"];
+type PlatformInquiryListDto = components["schemas"]["PlatformInquiryListResponse"];
+type PublicInquiryCreateDto = components["schemas"]["PublicInquiryCreate"];
 
 let workspaces: Workspace[] = JSON.parse(
   JSON.stringify(workspacesJson),
@@ -39,9 +42,30 @@ let inquiries: PlatformInquiry[] = JSON.parse(
 ) as PlatformInquiry[];
 
 export async function getPlatformOverview(): Promise<PlatformOverview> {
-  if (dataSource !== "mock") throw new NotImplementedError("getPlatformOverview");
+  if (dataSource === "api") {
+    const overview = await apiRequest<PlatformOverviewDto>("/platform/overview");
+    return {
+      workspacesTotal: overview.workspacesTotal,
+      workspacesActive: overview.workspacesActive,
+      workspacesSuspended: overview.workspacesSuspended,
+      workspacesFree: overview.workspacesFree,
+      workspacesPro: overview.workspacesPro,
+      signups30d: overview.signups30D,
+      bookings30d: overview.bookings30D,
+      inquiriesUnread: overview.inquiriesUnread,
+    };
+  }
   await sleep(80);
-  return overviewJson as unknown as PlatformOverview;
+  return {
+    workspacesTotal: workspaces.length,
+    workspacesActive: workspaces.length,
+    workspacesSuspended: 0,
+    workspacesFree: workspaces.length,
+    workspacesPro: 0,
+    signups30d: 0,
+    bookings30d: 0,
+    inquiriesUnread: inquiries.filter((item) => !item.read).length,
+  };
 }
 
 function mapPlatformWorkspace(
@@ -55,6 +79,7 @@ function mapPlatformWorkspace(
     ownerEmail: workspace.ownerEmail,
     createdAtISO: workspace.createdAt,
     operationalStatus: workspace.operationalStatus,
+    plan: workspace.plan,
     servicesCount: workspace.servicesCount,
     clientsCount: workspace.clientsCount,
     bookingsCount: workspace.bookingsCount,
@@ -223,6 +248,19 @@ export async function setWorkspacePlan(
   return next;
 }
 
+/** Pro is invoiced manually until Stripe Billing exists; staff record the plan here. */
+export async function setPlatformWorkspacePlan(
+  id: string,
+  plan: "free" | "pro",
+): Promise<PlatformWorkspace> {
+  if (dataSource !== "api") throw new NotImplementedError("setPlatformWorkspacePlan");
+  const response = await apiRequest<PlatformWorkspaceDetailDto, { plan: "free" | "pro" }>(
+    `/platform/workspaces/${id}/plan`,
+    { method: "POST", body: { plan }, csrf: true },
+  );
+  return mapPlatformWorkspace(response);
+}
+
 export async function suspendWorkspace(
   id: string,
   suspended: boolean,
@@ -284,8 +322,23 @@ export async function setSubscriptionPlan(
   return next;
 }
 
+function mapInquiry(item: PlatformInquiryDto): PlatformInquiry {
+  return {
+    id: item.id,
+    name: item.name,
+    email: item.email,
+    type: item.reason as PlatformInquiryType,
+    message: item.message,
+    read: item.readAt !== null,
+    createdAtISO: item.createdAt,
+  };
+}
+
 export async function listInquiries(): Promise<PlatformInquiry[]> {
-  if (dataSource !== "mock") throw new NotImplementedError("listInquiries");
+  if (dataSource === "api") {
+    const response = await apiRequest<PlatformInquiryListDto>("/platform/inquiries");
+    return response.items.map(mapInquiry);
+  }
   await sleep(80);
   return [...inquiries];
 }
@@ -302,7 +355,27 @@ export async function createInquiry(input: {
   type: PlatformInquiryType;
   message: string;
 }): Promise<PlatformInquiry> {
-  if (dataSource !== "mock") throw new NotImplementedError("createInquiry");
+  if (dataSource === "api") {
+    await apiRequest<unknown, PublicInquiryCreateDto>("/public/inquiries", {
+      method: "POST",
+      body: {
+        name: input.name.trim(),
+        email: input.email.trim(),
+        reason: input.type,
+        message: input.message.trim(),
+      },
+    });
+    // The public endpoint deliberately returns no record; echo what was sent.
+    return {
+      id: "",
+      name: input.name.trim(),
+      email: input.email.trim().toLowerCase(),
+      type: input.type,
+      message: input.message.trim(),
+      read: false,
+      createdAtISO: new Date().toISOString(),
+    };
+  }
   await sleep(160);
   const created: PlatformInquiry = {
     id: `inq-${Math.random().toString(36).slice(2, 8)}`,
@@ -325,7 +398,15 @@ export async function setInquiryRead(
   id: string,
   read: boolean,
 ): Promise<PlatformInquiry> {
-  if (dataSource !== "mock") throw new NotImplementedError("setInquiryRead");
+  if (dataSource === "api") {
+    await apiRequest<void, { read: boolean }>(
+      `/platform/inquiries/${encodeURIComponent(id)}/read`,
+      { method: "POST", body: { read }, csrf: true },
+    );
+    const updated = (await listInquiries()).find((item) => item.id === id);
+    if (!updated) throw new NotFoundError("inquiry", id);
+    return updated;
+  }
   await sleep(60);
   const idx = inquiries.findIndex((i) => i.id === id);
   if (idx === -1) throw new NotFoundError("inquiry", id);

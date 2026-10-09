@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // This repository has independent npm lockfiles outside `web/`. Keep
+  // Turbopack's project boundary on the Next.js application explicitly.
+  turbopack: {
+    root: process.cwd(),
+  },
   // Root-of-section redirects done at the routing layer (not in a page.tsx),
   // because Next 16 + Turbopack tripped a Performance.measure race when a
   // server-side `redirect()` was the only thing a route's page.tsx did.
@@ -13,10 +18,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/superadmin",
-        destination:
-          process.env.NEXT_PUBLIC_DATA_SOURCE === "api"
-            ? "/superadmin/workspaces"
-            : "/superadmin/overview",
+        destination: "/superadmin/overview",
         permanent: false,
       },
     ];

@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { ContactModal } from "./ContactModal";
+import { dataSource } from "@/lib/env";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
@@ -72,7 +73,9 @@ export function DemoGuidelinesModal({ open, onClose }: Props) {
         }
         footer={
           <div className="flex flex-1 flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-            {/* Account creation is intentionally secondary to the demo cards. */}
+            {/* Account creation is intentionally secondary to the demo cards,
+                and exists only in the real app — the mock demo has no sign-up. */}
+            {dataSource === "api" ? (
             <Link
               href="/register"
               onClick={onClose}
@@ -80,6 +83,9 @@ export function DemoGuidelinesModal({ open, onClose }: Props) {
             >
               {t("demoGuide.createAccount")}
             </Link>
+            ) : (
+              <span />
+            )}
             <div className="flex items-center justify-end gap-2">
               <Button variant="ghost" onClick={onClose}>
                 {t("demoGuide.close")}

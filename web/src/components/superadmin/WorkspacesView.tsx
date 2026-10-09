@@ -148,7 +148,7 @@ function ApiDirectory({ items }: { items: PlatformWorkspace[] }) {
   return (
     <>
       <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-line-soft text-micro uppercase tracking-wide text-ink-3 bg-surface-warm rounded-t-lg">
-        <span>Workspace / status</span>
+        <span>Workspace / status · plan</span>
         <span>Owner</span>
         <span>Created</span>
         <span>Services</span>
@@ -163,12 +163,15 @@ function ApiDirectory({ items }: { items: PlatformWorkspace[] }) {
         >
           <div className="min-w-0">
             <div className="text-[14px] text-ink truncate">{workspace.name}</div>
-            <div className="mt-1">
+            <div className="mt-1 flex flex-wrap gap-1.5">
               <Pill
                 tone={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].tone}
                 icon={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].icon}
               >
                 {WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label}
+              </Pill>
+              <Pill tone={workspace.plan === "pro" ? "accent" : "neutral"}>
+                {workspace.plan === "pro" ? "Pro" : "Free"}
               </Pill>
             </div>
             <div className="text-small md:hidden truncate">

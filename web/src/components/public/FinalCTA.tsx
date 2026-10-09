@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { dataSource } from "@/lib/env";
 import { Button } from "@/components/ui/Button";
 import { Section } from "./Section";
+import { SignupCta } from "./SignupCta";
 import { useDemoGuide } from "./DemoGuideProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -22,14 +23,12 @@ export function FinalCTA() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/register">
-            <Button size="lg" iconRight="arrow-right">
-              {t("landing.cta.startTrial")}
+          <SignupCta size="lg" iconRight="arrow-right" />
+          {dataSource === "mock" && (
+            <Button size="lg" variant="ghost" onClick={open}>
+              {t("landing.cta.openDemo")}
             </Button>
-          </Link>
-          <Button size="lg" variant="ghost" onClick={open}>
-            {t("landing.cta.openDemo")}
-          </Button>
+          )}
         </div>
       </div>
     </Section>

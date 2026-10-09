@@ -25,6 +25,7 @@ from slotera_api.public_booking.repository import (
     quote_for,
 )
 from slotera_api.schemas.forms import FormFieldInput
+from slotera_api.schemas.operator_resources import Address
 from slotera_api.schemas.public_booking import (
     PublicAvailabilityResponse,
     PublicAvailabilitySlot,
@@ -128,6 +129,7 @@ async def list_public_services(
                 location_type=item.location_type.value,
                 location=item.location,
                 confirmation_policy=item.confirmation_policy.value,
+                booking_mode=item.booking_mode.value,
                 cancellation_rule=item.cancellation_rule,
                 quote=_tax_response(quote_for(item, context.workspace, context.payments)),
             )
@@ -199,7 +201,10 @@ async def list_public_availability(
     return PublicAvailabilityResponse(
         timezone=timezone,
         items=[
-            PublicAvailabilitySlot(start_at=item.start_at, end_at=item.end_at) for item in slots
+            PublicAvailabilitySlot(
+                start_at=item.start_at, end_at=item.end_at, spots_left=item.spots_left
+            )
+            for item in slots
         ],
     )
 
@@ -280,6 +285,11 @@ async def create_public_booking(
         pending_reasons=pending_reasons,
         session_start_at=result.session.start_at,
         session_end_at=result.session.end_at,
+        session_location_type=result.session.location_type.value,
+        session_location=result.session.location,
+        session_address=(
+            Address.model_validate(result.session.address) if result.session.address else None
+        ),
         payment_due_at=result.booking.payment_due_at,
         quote=_tax_response(result.quote),
     )

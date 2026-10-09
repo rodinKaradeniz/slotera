@@ -98,7 +98,7 @@ export function InquiriesView() {
       <PageHeader
         eyebrow="Platform"
         title="Inquiries"
-        description="Incoming contact, support, and business messages. Custom-plan signups land here for manual onboarding. Click an inquiry to read the full message."
+        description="Incoming contact, support, and business messages. Pro upgrade requests from operators land here too. Click an inquiry to read the full message."
         meta={
           items ? `${items.length} total · ${unreadCount} unread` : undefined
         }

@@ -6,7 +6,7 @@ from pydantic import EmailStr, Field, field_validator
 
 from slotera_api.schemas.base import ApiModel
 from slotera_api.schemas.forms import FormFieldInput
-from slotera_api.schemas.operator_resources import CountryCode, NonBlank, StrictApiModel
+from slotera_api.schemas.operator_resources import Address, CountryCode, NonBlank, StrictApiModel
 
 
 class PublicTaxQuote(ApiModel):
@@ -43,6 +43,7 @@ class PublicServiceResponse(ApiModel):
     location_type: Literal["online", "physical", "hybrid"]
     location: str
     confirmation_policy: Literal["automatic", "operator_approval"]
+    booking_mode: Literal["open", "scheduled"]
     cancellation_rule: str
     quote: PublicTaxQuote
 
@@ -66,6 +67,7 @@ class PublicFormListResponse(ApiModel):
 class PublicAvailabilitySlot(ApiModel):
     start_at: datetime
     end_at: datetime
+    spots_left: int | None = None
 
 
 class PublicAvailabilityResponse(ApiModel):
@@ -139,5 +141,53 @@ class PublicBookingResponse(ApiModel):
     pending_reasons: list[Literal["approval", "payment"]]
     session_start_at: datetime
     session_end_at: datetime
+    # Where the session happens: online/physical/hybrid, the location line, and the
+    # street address when the session has one.
+    session_location_type: Literal["online", "physical", "hybrid"]
+    session_location: str
+    session_address: Address | None
     payment_due_at: datetime | None
     quote: PublicTaxQuote
+
+
+class ManagedBookingResponse(ApiModel):
+    """What a customer sees through their booking link: an allow-list, never notes."""
+
+    reference: str
+    status: Literal["pending", "confirmed", "completed", "cancelled", "noshow"]
+    payment_status: Literal["pending", "paid", "refunded", "free", "overdue"]
+    payment_method: Literal["free", "manual"]
+    approval_status: Literal["not_required", "pending", "approved", "declined"]
+    pending_reasons: list[Literal["approval", "payment"]]
+    amount_cents: int
+    currency: str
+    payment_due_at: datetime | None
+    manual_payment_instructions: str
+    service_id: UUID
+    service_name: str
+    cancellation_rule: str
+    provider_name: str
+    provider_email: str
+    provider_phone: str
+    workspace_slug: str
+    timezone: str
+    session_start_at: datetime
+    session_end_at: datetime
+    session_location_type: Literal["online", "physical", "hybrid"]
+    session_location: str
+    session_address: Address | None
+    change_deadline: datetime
+    can_cancel: bool
+    can_reschedule: bool
+    rescheduled: bool
+
+
+class ManagedBookingReschedule(StrictApiModel):
+    start_at: datetime
+
+    @field_validator("start_at")
+    @classmethod
+    def require_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("startAt must include a timezone")
+        return value

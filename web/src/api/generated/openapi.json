@@ -162,6 +162,10 @@
             "title": "Bufferbeforemin",
             "type": "integer"
           },
+          "customerChangeNoticeHours": {
+            "title": "Customerchangenoticehours",
+            "type": "integer"
+          },
           "maximumAdvanceDays": {
             "title": "Maximumadvancedays",
             "type": "integer"
@@ -199,6 +203,7 @@
           "bufferAfterMin",
           "minimumNoticeMin",
           "maximumAdvanceDays",
+          "customerChangeNoticeHours",
           "blackouts",
           "updatedAt"
         ],
@@ -227,6 +232,19 @@
             "minimum": 0.0,
             "title": "Bufferbeforemin",
             "type": "integer"
+          },
+          "customerChangeNoticeHours": {
+            "anyOf": [
+              {
+                "maximum": 720.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customerchangenoticehours"
           },
           "maximumAdvanceDays": {
             "maximum": 730.0,
@@ -345,6 +363,88 @@
           "attendance"
         ],
         "title": "BookingAttendanceCommand",
+        "type": "object"
+      },
+      "BookingCancelledNotification": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "booking_cancelled",
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/BookingCancelledPayload"
+          },
+          "readAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readat"
+          },
+          "resourceId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resourceid"
+          },
+          "resourceType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resourcetype"
+          }
+        },
+        "required": [
+          "id",
+          "resourceType",
+          "resourceId",
+          "occurredAt",
+          "readAt",
+          "kind",
+          "payload"
+        ],
+        "title": "BookingCancelledNotification",
+        "type": "object"
+      },
+      "BookingCancelledPayload": {
+        "properties": {
+          "startsAt": {
+            "format": "date-time",
+            "title": "Startsat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "startsAt"
+        ],
+        "title": "BookingCancelledPayload",
         "type": "object"
       },
       "BookingConfirmedNotification": {
@@ -989,6 +1089,18 @@
             ],
             "title": "Name"
           },
+          "onboardingCompleted": {
+            "anyOf": [
+              {
+                "const": true,
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onboardingcompleted"
+          },
           "phone": {
             "anyOf": [
               {
@@ -1049,6 +1161,18 @@
             "title": "Name",
             "type": "string"
           },
+          "onboardingCompletedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onboardingcompletedat"
+          },
           "phone": {
             "title": "Phone",
             "type": "string"
@@ -1084,6 +1208,7 @@
           "phone",
           "address",
           "bookingPageEnabled",
+          "onboardingCompletedAt",
           "updatedAt"
         ],
         "title": "BusinessSettingsResponse",
@@ -2205,12 +2330,226 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "ManagedBookingReschedule": {
+        "additionalProperties": false,
+        "properties": {
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "startAt"
+        ],
+        "title": "ManagedBookingReschedule",
+        "type": "object"
+      },
+      "ManagedBookingResponse": {
+        "description": "What a customer sees through their booking link: an allow-list, never notes.",
+        "properties": {
+          "amountCents": {
+            "title": "Amountcents",
+            "type": "integer"
+          },
+          "approvalStatus": {
+            "enum": [
+              "not_required",
+              "pending",
+              "approved",
+              "declined"
+            ],
+            "title": "Approvalstatus",
+            "type": "string"
+          },
+          "canCancel": {
+            "title": "Cancancel",
+            "type": "boolean"
+          },
+          "canReschedule": {
+            "title": "Canreschedule",
+            "type": "boolean"
+          },
+          "cancellationRule": {
+            "title": "Cancellationrule",
+            "type": "string"
+          },
+          "changeDeadline": {
+            "format": "date-time",
+            "title": "Changedeadline",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "manualPaymentInstructions": {
+            "title": "Manualpaymentinstructions",
+            "type": "string"
+          },
+          "paymentDueAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paymentdueat"
+          },
+          "paymentMethod": {
+            "enum": [
+              "free",
+              "manual"
+            ],
+            "title": "Paymentmethod",
+            "type": "string"
+          },
+          "paymentStatus": {
+            "enum": [
+              "pending",
+              "paid",
+              "refunded",
+              "free",
+              "overdue"
+            ],
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "pendingReasons": {
+            "items": {
+              "enum": [
+                "approval",
+                "payment"
+              ],
+              "type": "string"
+            },
+            "title": "Pendingreasons",
+            "type": "array"
+          },
+          "providerEmail": {
+            "title": "Provideremail",
+            "type": "string"
+          },
+          "providerName": {
+            "title": "Providername",
+            "type": "string"
+          },
+          "providerPhone": {
+            "title": "Providerphone",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "rescheduled": {
+            "title": "Rescheduled",
+            "type": "boolean"
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "serviceName": {
+            "title": "Servicename",
+            "type": "string"
+          },
+          "sessionAddress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Address"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sessionEndAt": {
+            "format": "date-time",
+            "title": "Sessionendat",
+            "type": "string"
+          },
+          "sessionLocation": {
+            "title": "Sessionlocation",
+            "type": "string"
+          },
+          "sessionLocationType": {
+            "enum": [
+              "online",
+              "physical",
+              "hybrid"
+            ],
+            "title": "Sessionlocationtype",
+            "type": "string"
+          },
+          "sessionStartAt": {
+            "format": "date-time",
+            "title": "Sessionstartat",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "completed",
+              "cancelled",
+              "noshow"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "workspaceSlug": {
+            "title": "Workspaceslug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference",
+          "status",
+          "paymentStatus",
+          "paymentMethod",
+          "approvalStatus",
+          "pendingReasons",
+          "amountCents",
+          "currency",
+          "paymentDueAt",
+          "manualPaymentInstructions",
+          "serviceId",
+          "serviceName",
+          "cancellationRule",
+          "providerName",
+          "providerEmail",
+          "providerPhone",
+          "workspaceSlug",
+          "timezone",
+          "sessionStartAt",
+          "sessionEndAt",
+          "sessionLocationType",
+          "sessionLocation",
+          "sessionAddress",
+          "changeDeadline",
+          "canCancel",
+          "canReschedule",
+          "rescheduled"
+        ],
+        "title": "ManagedBookingResponse",
+        "type": "object"
+      },
       "NotificationListResponse": {
         "properties": {
           "items": {
             "items": {
               "discriminator": {
                 "mapping": {
+                  "booking_cancelled": "#/components/schemas/BookingCancelledNotification",
                   "booking_confirmed": "#/components/schemas/BookingConfirmedNotification",
                   "booking_pending": "#/components/schemas/BookingPendingNotification",
                   "payment_pending": "#/components/schemas/PaymentPendingNotification",
@@ -2234,6 +2573,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/RescheduleRequestedNotification"
+                },
+                {
+                  "$ref": "#/components/schemas/BookingCancelledNotification"
                 }
               ]
             },
@@ -2290,6 +2632,28 @@
           "auditReason"
         ],
         "title": "OperatorBookingCreate",
+        "type": "object"
+      },
+      "PasswordChange": {
+        "properties": {
+          "currentPassword": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Currentpassword",
+            "type": "string"
+          },
+          "newPassword": {
+            "maxLength": 1024,
+            "minLength": 10,
+            "title": "Newpassword",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "title": "PasswordChange",
         "type": "object"
       },
       "PasswordResetAccepted": {
@@ -2620,6 +2984,204 @@
         "title": "PaymentSettingsResponse",
         "type": "object"
       },
+      "PlanResponse": {
+        "properties": {
+          "cardFeeBps": {
+            "title": "Cardfeebps",
+            "type": "integer"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "enum": [
+              "free",
+              "pro"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "monthlyPriceCents": {
+            "title": "Monthlypricecents",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "monthlyPriceCents",
+          "currency",
+          "cardFeeBps"
+        ],
+        "title": "PlanResponse",
+        "type": "object"
+      },
+      "PlatformInquiryListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformInquiryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PlatformInquiryListResponse",
+        "type": "object"
+      },
+      "PlatformInquiryReadChange": {
+        "additionalProperties": false,
+        "properties": {
+          "read": {
+            "title": "Read",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "read"
+        ],
+        "title": "PlatformInquiryReadChange",
+        "type": "object"
+      },
+      "PlatformInquiryResponse": {
+        "properties": {
+          "company": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "readAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readat"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "company",
+          "reason",
+          "message",
+          "createdAt",
+          "readAt"
+        ],
+        "title": "PlatformInquiryResponse",
+        "type": "object"
+      },
+      "PlatformOverviewResponse": {
+        "properties": {
+          "bookings30D": {
+            "title": "Bookings30D",
+            "type": "integer"
+          },
+          "inquiriesUnread": {
+            "title": "Inquiriesunread",
+            "type": "integer"
+          },
+          "signups30D": {
+            "title": "Signups30D",
+            "type": "integer"
+          },
+          "workspacesActive": {
+            "title": "Workspacesactive",
+            "type": "integer"
+          },
+          "workspacesFree": {
+            "title": "Workspacesfree",
+            "type": "integer"
+          },
+          "workspacesPro": {
+            "title": "Workspacespro",
+            "type": "integer"
+          },
+          "workspacesSuspended": {
+            "title": "Workspacessuspended",
+            "type": "integer"
+          },
+          "workspacesTotal": {
+            "title": "Workspacestotal",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspacesTotal",
+          "workspacesActive",
+          "workspacesSuspended",
+          "workspacesFree",
+          "workspacesPro",
+          "signups30D",
+          "bookings30D",
+          "inquiriesUnread"
+        ],
+        "title": "PlatformOverviewResponse",
+        "type": "object"
+      },
+      "PlatformPlanChange": {
+        "additionalProperties": false,
+        "properties": {
+          "plan": {
+            "enum": [
+              "free",
+              "pro"
+            ],
+            "title": "Plan",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan"
+        ],
+        "title": "PlatformPlanChange",
+        "type": "object"
+      },
       "PlatformWorkspaceDetail": {
         "properties": {
           "bookingsCount": {
@@ -2678,6 +3240,14 @@
             ],
             "title": "Ownername"
           },
+          "plan": {
+            "enum": [
+              "free",
+              "pro"
+            ],
+            "title": "Plan",
+            "type": "string"
+          },
           "servicesCount": {
             "title": "Servicescount",
             "type": "integer"
@@ -2703,6 +3273,7 @@
           "ownerEmail",
           "createdAt",
           "operationalStatus",
+          "plan",
           "servicesCount",
           "clientsCount",
           "bookingsCount",
@@ -2844,6 +3415,14 @@
             ],
             "title": "Ownername"
           },
+          "plan": {
+            "enum": [
+              "free",
+              "pro"
+            ],
+            "title": "Plan",
+            "type": "string"
+          },
           "servicesCount": {
             "title": "Servicescount",
             "type": "integer"
@@ -2865,6 +3444,7 @@
           "ownerEmail",
           "createdAt",
           "operationalStatus",
+          "plan",
           "servicesCount",
           "clientsCount",
           "bookingsCount",
@@ -2900,6 +3480,17 @@
             "format": "date-time",
             "title": "Endat",
             "type": "string"
+          },
+          "spotsLeft": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spotsleft"
           },
           "startAt": {
             "format": "date-time",
@@ -3164,9 +3755,32 @@
             "title": "Reference",
             "type": "string"
           },
+          "sessionAddress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Address"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sessionEndAt": {
             "format": "date-time",
             "title": "Sessionendat",
+            "type": "string"
+          },
+          "sessionLocation": {
+            "title": "Sessionlocation",
+            "type": "string"
+          },
+          "sessionLocationType": {
+            "enum": [
+              "online",
+              "physical",
+              "hybrid"
+            ],
+            "title": "Sessionlocationtype",
             "type": "string"
           },
           "sessionStartAt": {
@@ -3197,6 +3811,9 @@
           "pendingReasons",
           "sessionStartAt",
           "sessionEndAt",
+          "sessionLocationType",
+          "sessionLocation",
+          "sessionAddress",
           "paymentDueAt",
           "quote"
         ],
@@ -3314,6 +3931,69 @@
         "title": "PublicFormSubmission",
         "type": "object"
       },
+      "PublicInquiryAccepted": {
+        "properties": {
+          "accepted": {
+            "default": true,
+            "title": "Accepted",
+            "type": "boolean"
+          }
+        },
+        "title": "PublicInquiryAccepted",
+        "type": "object"
+      },
+      "PublicInquiryCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "company": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "default": "business",
+            "enum": [
+              "business",
+              "development",
+              "feature",
+              "general"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "message"
+        ],
+        "title": "PublicInquiryCreate",
+        "type": "object"
+      },
       "PublicServiceListResponse": {
         "properties": {
           "items": {
@@ -3332,6 +4012,14 @@
       },
       "PublicServiceResponse": {
         "properties": {
+          "bookingMode": {
+            "enum": [
+              "open",
+              "scheduled"
+            ],
+            "title": "Bookingmode",
+            "type": "string"
+          },
           "cancellationRule": {
             "title": "Cancellationrule",
             "type": "string"
@@ -3391,6 +4079,7 @@
           "locationType",
           "location",
           "confirmationPolicy",
+          "bookingMode",
           "cancellationRule",
           "quote"
         ],
@@ -4983,6 +5672,86 @@
         "title": "SessionWorkspace",
         "type": "object"
       },
+      "SignupAccepted": {
+        "properties": {
+          "accepted": {
+            "default": true,
+            "title": "Accepted",
+            "type": "boolean"
+          }
+        },
+        "title": "SignupAccepted",
+        "type": "object"
+      },
+      "SignupRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "firstNames": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Firstnames",
+            "type": "string"
+          },
+          "lastName": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Lastname",
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 3,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "title": "Slug",
+            "type": "string"
+          },
+          "timezone": {
+            "default": "Europe/Berlin",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "workspaceName": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Workspacename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceName",
+          "slug",
+          "firstNames",
+          "lastName",
+          "email"
+        ],
+        "title": "SignupRequest",
+        "type": "object"
+      },
+      "SlugAvailability": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "available"
+        ],
+        "title": "SlugAvailability",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -5021,6 +5790,45 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "WorkspaceBillingResponse": {
+        "description": "The operator's own plan plus the full price list, for Settings \u2192 Billing.",
+        "properties": {
+          "plan": {
+            "enum": [
+              "free",
+              "pro"
+            ],
+            "title": "Plan",
+            "type": "string"
+          },
+          "planChangedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planchangedat"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PlanResponse"
+            },
+            "title": "Plans",
+            "type": "array"
+          }
+        },
+        "required": [
+          "plan",
+          "planChangedAt",
+          "plans"
+        ],
+        "title": "WorkspaceBillingResponse",
         "type": "object"
       },
       "WorkspaceLocationCreate": {
@@ -5262,6 +6070,40 @@
         ]
       }
     },
+    "/auth/password/change": {
+      "post": {
+        "operationId": "changePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/auth/session": {
       "get": {
         "operationId": "getCurrentSession",
@@ -5278,6 +6120,92 @@
           }
         },
         "summary": "Get Current Session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "operationId": "signup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Signup",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/signup/slug-availability": {
+      "get": {
+        "operationId": "getSlugAvailability",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 3,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlugAvailability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Slug Availability",
         "tags": [
           "auth"
         ]
@@ -6660,6 +7588,94 @@
         ]
       }
     },
+    "/platform/inquiries": {
+      "get": {
+        "operationId": "listPlatformInquiries",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformInquiryListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Platform Inquiries",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/inquiries/{inquiry_id}/read": {
+      "post": {
+        "operationId": "setPlatformInquiryRead",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inquiry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Inquiry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformInquiryReadChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Platform Inquiry Read",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/overview": {
+      "get": {
+        "operationId": "getPlatformOverview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformOverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Platform Overview",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
     "/platform/workspaces": {
       "get": {
         "operationId": "listPlatformWorkspaces",
@@ -6798,6 +7814,60 @@
         ]
       }
     },
+    "/platform/workspaces/{workspace_id}/plan": {
+      "post": {
+        "description": "Pro is invoiced manually until Stripe Billing exists; staff record it here.",
+        "operationId": "setPlatformWorkspacePlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformPlanChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformWorkspaceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Platform Workspace Plan",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
     "/platform/workspaces/{workspace_id}/reactivate": {
       "post": {
         "operationId": "reactivatePlatformWorkspace",
@@ -6881,6 +7951,189 @@
         "summary": "Suspend Platform Workspace",
         "tags": [
           "platform"
+        ]
+      }
+    },
+    "/public/bookings/manage": {
+      "get": {
+        "operationId": "getManagedBooking",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Booking-Token",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 32,
+              "title": "X-Booking-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedBookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Managed Booking",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/bookings/manage/cancel": {
+      "post": {
+        "operationId": "cancelManagedBooking",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Booking-Token",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 32,
+              "title": "X-Booking-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedBookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Managed Booking",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/bookings/manage/reschedule": {
+      "post": {
+        "operationId": "rescheduleManagedBooking",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Booking-Token",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 32,
+              "title": "X-Booking-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagedBookingReschedule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedBookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reschedule Managed Booking",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/inquiries": {
+      "post": {
+        "operationId": "createPublicInquiry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicInquiryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicInquiryAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Public Inquiry",
+        "tags": [
+          "public"
         ]
       }
     },
@@ -7949,6 +9202,27 @@
         "summary": "Create Session Action Item",
         "tags": [
           "session action items"
+        ]
+      }
+    },
+    "/settings/billing": {
+      "get": {
+        "operationId": "getWorkspaceBilling",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceBillingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Workspace Billing",
+        "tags": [
+          "settings"
         ]
       }
     },

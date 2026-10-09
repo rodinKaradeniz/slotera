@@ -5,7 +5,7 @@ import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
 import type { Address, WorkspaceLocation } from "@/types/address";
-import type { SettingsData } from "@/types/settings";
+import type { SettingsData, WorkingDay } from "@/types/settings";
 import { NotFoundError, NotImplementedError } from "./_errors";
 import { getPublicBookingWorkspace } from "./public-booking.service";
 
@@ -47,6 +47,8 @@ export type AvailabilitySettings = {
   bufferAfterMin: number;
   minimumNoticeMin: number;
   maximumAdvanceDays: number;
+  /** Clients can cancel/reschedule from their booking link until this many hours before. */
+  customerChangeNoticeHours: number;
   blackouts: {
     id?: string;
     startsAt: string;
@@ -105,6 +107,7 @@ function mapBusiness(
     bookingPageUrl: business.slug,
     bookingPageEnabled: business.bookingPageEnabled,
     locations,
+    onboardingCompletedAt: business.onboardingCompletedAt,
   };
 }
 
@@ -121,6 +124,7 @@ function mapAvailability(availability: AvailabilityResponseDto): AvailabilitySet
     bufferAfterMin: availability.bufferAfterMin,
     minimumNoticeMin: availability.minimumNoticeMin,
     maximumAdvanceDays: availability.maximumAdvanceDays,
+    customerChangeNoticeHours: availability.customerChangeNoticeHours,
     blackouts: availability.blackouts.map((blackout) => ({
       id: blackout.id,
       startsAt: blackout.startsAt,
@@ -143,6 +147,7 @@ function availabilityPayload(input: AvailabilitySettings): AvailabilityUpdateDto
     bufferAfterMin: input.bufferAfterMin,
     minimumNoticeMin: input.minimumNoticeMin,
     maximumAdvanceDays: input.maximumAdvanceDays,
+    customerChangeNoticeHours: input.customerChangeNoticeHours,
     blackouts: input.blackouts.map((blackout) => ({
       startsAt: blackout.startsAt,
       endsAt: blackout.endsAt,
@@ -168,6 +173,7 @@ function mockAvailability(): AvailabilitySettings {
     bufferAfterMin: 0,
     minimumNoticeMin: 60,
     maximumAdvanceDays: 90,
+    customerChangeNoticeHours: 24,
     blackouts: [],
   };
 }
@@ -206,6 +212,42 @@ export async function updateAvailabilitySettings(
     },
   };
   return mockAvailability();
+}
+
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/** Expands API weekly windows into the per-day rows `WorkingHoursForm` edits. */
+export function availabilityToWorkingDays(availability: AvailabilitySettings): WorkingDay[] {
+  const days: WorkingDay[] = [];
+  WEEKDAY_LABELS.forEach((day, index) => {
+    const dayOfWeek = index + 1;
+    const windows = availability.weeklyHours.filter((window) => window.dayOfWeek === dayOfWeek);
+    if (windows.length === 0) {
+      days.push({ day, dayOfWeek, enabled: false, start: "09:00", end: "17:00" });
+      return;
+    }
+    days.push(
+      ...windows.map((window) => ({
+        day,
+        dayOfWeek,
+        enabled: true,
+        start: window.startLocal,
+        end: window.endLocal,
+      })),
+    );
+  });
+  return days;
+}
+
+/** Inverse of `availabilityToWorkingDays`: enabled rows become API weekly windows. */
+export function workingDaysToWeeklyHours(days: WorkingDay[]): AvailabilityWindow[] {
+  return days
+    .filter((day) => day.enabled)
+    .map((day) => ({
+      dayOfWeek: day.dayOfWeek ?? WEEKDAY_LABELS.indexOf(day.day) + 1,
+      startLocal: day.start,
+      endLocal: day.end,
+    }));
 }
 
 export async function getSettings(): Promise<SettingsData> {
@@ -305,6 +347,16 @@ export async function updatePaymentSettings(
       csrf: true,
     }),
   );
+}
+
+/** Marks onboarding finished (Done or Skip). One-way: there is no way to reopen it. */
+export async function completeOnboarding(): Promise<void> {
+  if (dataSource === "mock") return;
+  await apiRequest<BusinessResponseDto, BusinessPatchDto>("/settings/business", {
+    method: "PATCH",
+    body: { onboardingCompleted: true },
+    csrf: true,
+  });
 }
 
 export async function getBusinessSettings(): Promise<BusinessSettings> {

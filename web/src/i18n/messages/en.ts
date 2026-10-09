@@ -43,7 +43,8 @@ export const en = {
   "landing.nav.contact": "Contact",
   "landing.nav.demo": "Demo",
   "landing.cta.login": "Log in",
-  "landing.cta.startTrial": "Start free trial",
+  "landing.cta.startTrial": "Start for free",
+  "landing.cta.contact": "Get in touch",
   "landing.cta.openDemo": "Open demo",
   "landing.cta.tryDemo": "Try the demo",
 
@@ -114,33 +115,21 @@ export const en = {
 
   // Landing — pricing
   "landing.pricing.eyebrow": "Pricing",
-  "landing.pricing.title": "Straightforward pricing. Cancel anytime.",
-  "landing.pricing.monthly": "Monthly",
-  "landing.pricing.yearly": "Yearly · −20%",
+  "landing.pricing.title": "Two plans. Start free, upgrade when it pays off.",
   "landing.pricing.perMonth": "/mo",
-  "landing.pricing.custom": "Custom",
-  "landing.pricing.cta.startTrial": "Start free trial",
+  "landing.pricing.cta.start": "Get started",
   "landing.pricing.cta.talk": "Talk to us",
-  "landing.pricing.solo.name": "Solo",
-  "landing.pricing.solo.blurb":
-    "For independent operators getting paid bookings live.",
-  "landing.pricing.solo.f1": "Unlimited services",
-  "landing.pricing.solo.f2": "Stripe & manual bank-transfer payments",
-  "landing.pricing.solo.f3": "Google / Apple calendar sync",
-  "landing.pricing.solo.f4": "1 booking page",
-  "landing.pricing.team.name": "Team",
-  "landing.pricing.team.blurb": "For studios and small expert-led teams.",
-  "landing.pricing.team.f1": "Everything in Solo",
-  "landing.pricing.team.f2": "Up to 10 team members",
-  "landing.pricing.team.f3": "Group sessions & waitlists",
-  "landing.pricing.team.f4": "Custom branding",
-  "landing.pricing.customTier.name": "Custom",
-  "landing.pricing.customTier.blurb":
-    "For schools, networks and multi-location studios.",
-  "landing.pricing.customTier.f1": "Everything in Team",
-  "landing.pricing.customTier.f2": "Unlimited team members",
-  "landing.pricing.customTier.f3": "SSO & audit log",
-  "landing.pricing.customTier.f4": "Priority support & DPA",
+  "landing.pricing.free.name": "Free",
+  "landing.pricing.free.blurb": "Everything you need to take bookings. We only earn when you do.",
+  "landing.pricing.free.fee": "+ 3% per card payment",
+  "landing.pricing.pro.name": "Pro",
+  "landing.pricing.pro.blurb": "The same workspace with a lower cut, for busier practices.",
+  "landing.pricing.pro.fee": "+ 1% per card payment",
+  "landing.pricing.f1": "Unlimited services, clients and bookings",
+  "landing.pricing.f2": "Public booking page with prep forms",
+  "landing.pricing.f3": "Client notes and session follow-up",
+  "landing.pricing.f4": "Manual bank-transfer payments",
+  "landing.pricing.note": "The per-payment cut applies to card payments only. Manual bank transfers are never charged.",
 
   // Landing — FAQ
   "landing.faq.eyebrow": "FAQ",
@@ -166,8 +155,7 @@ export const en = {
   // Landing — final CTA
   "landing.finalCta.eyebrow": "Try Slotera",
   "landing.finalCta.title": "Stop chasing slots.",
-  "landing.finalCta.body":
-    "Spin up your booking page in under 10 minutes. Free for 14 days, no credit card required.",
+  "landing.finalCta.body": "Spin up your booking page in under 10 minutes. Free to start, no credit card required.",
 
   // Footer
   "footer.tagline":
@@ -346,6 +334,7 @@ export const en = {
   "booking.confirm.reference": "Reference {ref}",
   "booking.confirm.service": "Service",
   "booking.confirm.when": "When",
+  "booking.confirm.where": "Where",
   "booking.confirm.attendee": "Attendee",
   "booking.confirm.meetingLink": "Meeting link",
   "booking.confirm.copyLink": "Copy meeting link",
@@ -365,6 +354,52 @@ export const en = {
     "We couldn't process that card. You can try another card or pick a different payment method.",
   "booking.failure.backToPayment": "Back to payment",
   "booking.failure.cancel": "Cancel booking",
+
+  "booking.datetime.spotsLeft": "{count} left",
+  // Customer booking link (/booking/manage)
+  "manage.eyebrow": "Your booking",
+  "manage.loading": "Loading your booking…",
+  "manage.invalid.title": "This link doesn't work.",
+  "manage.invalid.body": "The link may have expired. Use the newest email about this booking, or contact the provider.",
+  "manage.status.confirmed": "Confirmed",
+  "manage.status.pending": "Pending",
+  "manage.status.cancelled": "Cancelled",
+  "manage.status.completed": "Completed",
+  "manage.status.noshow": "Missed",
+  "manage.pending.approval": "Waiting for the provider to approve.",
+  "manage.pending.payment": "Waiting for your payment.",
+  "manage.when": "When",
+  "manage.where": "Where",
+  "manage.provider": "Provider",
+  "manage.amount": "Amount",
+  "manage.paymentDue": "Payment due {date}",
+  "manage.paymentInstructions": "Payment instructions",
+  "manage.policy": "Cancellation policy",
+  "manage.changeUntil": "You can change this booking online until {date}.",
+  "manage.changeClosed": "Online changes are closed for this booking. To change it, contact {name}.",
+  "manage.rescheduleOnce": "You've already moved this booking once. To change it again, contact {name}.",
+  "manage.reschedule": "Pick a new time",
+  "manage.reschedule.confirm": "Move to this time",
+  "manage.reschedule.cancel": "Keep current time",
+  "manage.reschedule.done": "Your booking has been moved.",
+  "manage.cancel": "Cancel booking",
+  "manage.cancel.title": "Cancel this booking?",
+  "manage.cancel.body": "Your seat is released. Any refund is handled by the provider under their cancellation policy.",
+  "manage.cancel.keep": "Keep booking",
+  "manage.cancel.done": "Your booking has been cancelled.",
+  "manage.contact": "Contact",
+
+  // System pages — 404 and maintenance
+  "system.notFound.eyebrow": "404",
+  "system.notFound.title": "This page doesn't exist.",
+  "system.notFound.body":
+    "The link may be broken, or the page may have moved. Head back and try again from there.",
+  "system.notFound.home": "Back to home",
+  "system.maintenance.eyebrow": "Scheduled maintenance",
+  "system.maintenance.title": "We'll be right back.",
+  "system.maintenance.body":
+    "Slotera is being updated. Your bookings and data are safe — please check back in a few minutes.",
+  "system.maintenance.retry": "Try again",
 
   // Booking — paused card
   "booking.paused.title": "Bookings are paused",

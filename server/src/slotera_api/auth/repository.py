@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import text
 
 from slotera_api.database import Database
+from slotera_api.platform.repository import initialise_workspace_settings
 
 
 @dataclass(frozen=True)
@@ -175,6 +176,60 @@ class AuthRepository:
                     "SELECT public.slotera_auth_consume_password_reset(:token_hash, :password_hash)"
                 ),
                 {"token_hash": token_hash, "password_hash": password_hash},
+            )
+        return str(result)
+
+    async def self_signup(
+        self,
+        *,
+        name: str,
+        slug: str,
+        owner_first_names: str,
+        owner_last_name: str,
+        owner_email: str,
+        timezone: str,
+    ) -> str:
+        workspace_id = uuid4()
+        async with self._database.transaction() as session:
+            result_code = await session.scalar(
+                text(
+                    """
+                    SELECT public.slotera_auth_self_signup(
+                      :workspace_id, :owner_user_id, :membership_id, :audit_event_id,
+                      :name, :slug, :owner_first_names, :owner_last_name,
+                      :owner_email, :timezone
+                    )
+                    """
+                ),
+                {
+                    "workspace_id": workspace_id,
+                    "owner_user_id": uuid4(),
+                    "membership_id": uuid4(),
+                    "audit_event_id": uuid4(),
+                    "name": name,
+                    "slug": slug,
+                    "owner_first_names": owner_first_names,
+                    "owner_last_name": owner_last_name,
+                    "owner_email": owner_email,
+                    "timezone": timezone,
+                },
+            )
+            if result_code == "created":
+                await initialise_workspace_settings(session, workspace_id)
+        return str(result_code)
+
+    async def slug_available(self, slug: str) -> bool:
+        async with self._database.transaction() as session:
+            available = await session.scalar(
+                text("SELECT public.slotera_auth_slug_available(:slug)"), {"slug": slug}
+            )
+        return available is True
+
+    async def change_password(self, *, session_token_hash: bytes, password_hash: str) -> str:
+        async with self._database.transaction() as session:
+            result = await session.scalar(
+                text("SELECT public.slotera_auth_change_password(:token_hash, :password_hash)"),
+                {"token_hash": session_token_hash, "password_hash": password_hash},
             )
         return str(result)
 
