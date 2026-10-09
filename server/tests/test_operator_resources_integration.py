@@ -54,7 +54,7 @@ async def test_business_patch_does_not_clear_unmentioned_fields() -> None:
         await owner.dispose()
 
     assert before.status_code == 200
-    assert before.json()["currency"] == "EUR"
+    assert before.json()["currency"] == "GBP"
     assert changed.status_code == 200
     assert changed.json()["bookingPageEnabled"] is False
     assert changed.json()["displayName"] == before.json()["displayName"]
@@ -169,7 +169,7 @@ async def test_service_crud_derives_currency_and_preserves_patch_fields() -> Non
         await owner.dispose()
 
     assert created.status_code == 201
-    assert created.json()["currency"] == "EUR"
+    assert created.json()["currency"] == "GBP"
     assert created.json()["confirmationPolicy"] == "operator_approval"
     assert changed.status_code == 200
     assert changed.json()["address"] == created.json()["address"]
@@ -237,7 +237,7 @@ async def test_service_list_supports_only_the_product_filters() -> None:
     assert response.status_code == 200
     assert response.json()["total"] == 1
     assert [item["name"] for item in response.json()["items"]] == ["Group Workshop"]
-    assert response.json()["items"][0]["currency"] == "EUR"
+    assert response.json()["items"][0]["currency"] == "GBP"
 
 
 @pytest.mark.integration

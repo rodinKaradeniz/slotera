@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle for the Docker image (web/Dockerfile).
+  output: "standalone",
   // This repository has independent npm lockfiles outside `web/`. Keep
   // Turbopack's project boundary on the Next.js application explicitly.
   turbopack: {

@@ -8,45 +8,19 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { Pill } from "@/components/ui/Pill";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { NewWorkspaceDrawer } from "./NewWorkspaceDrawer";
 import { listWorkspaces } from "@/services/platform.service";
-import { dataSource } from "@/lib/env";
-import {
-  PLAN_LABEL,
-  SUBSCRIPTION_STATUS,
-  WORKSPACE_OPERATIONAL_STATUS,
-} from "@/lib/status-maps";
-import { fmtDate, fmtRelative } from "@/lib/time";
-import { isMockWorkspace, type PlatformWorkspace } from "@/types/platform";
-import type { PlanId, SubscriptionStatus } from "@/types/billing";
-
-const STATUS_OPTIONS: Array<{ value: "" | SubscriptionStatus; label: string }> = [
-  { value: "", label: "All statuses" },
-  { value: "trialing", label: "Trialing" },
-  { value: "active", label: "Active" },
-  { value: "past_due", label: "Past due" },
-  { value: "cancel_scheduled", label: "Cancel scheduled" },
-  { value: "cancelled", label: "Cancelled" },
-];
-
-const PLAN_OPTIONS: Array<{ value: "" | PlanId; label: string }> = [
-  { value: "", label: "All plans" },
-  { value: "solo", label: "Solo" },
-  { value: "team", label: "Team" },
-  { value: "custom", label: "Custom" },
-];
+import { WORKSPACE_OPERATIONAL_STATUS } from "@/lib/status-maps";
+import { fmtDate } from "@/lib/time";
+import type { PlatformWorkspace } from "@/types/platform";
 
 export function WorkspacesView() {
   const router = useRouter();
-  const apiMode = dataSource === "api";
   const [items, setItems] = React.useState<PlatformWorkspace[] | null>(null);
   const [query, setQuery] = React.useState("");
-  const [status, setStatus] = React.useState<"" | SubscriptionStatus>("");
-  const [plan, setPlan] = React.useState<"" | PlanId>("");
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -57,10 +31,6 @@ export function WorkspacesView() {
     if (!items) return [];
     const q = query.trim().toLowerCase();
     return items.filter((workspace) => {
-      if (!apiMode && isMockWorkspace(workspace)) {
-        if (status && workspace.subscriptionStatus !== status) return false;
-        if (plan && workspace.planId !== plan) return false;
-      }
       if (!q) return true;
       return [workspace.name, workspace.ownerName, workspace.ownerEmail]
         .filter(Boolean)
@@ -68,18 +38,14 @@ export function WorkspacesView() {
         .toLowerCase()
         .includes(q);
     });
-  }, [apiMode, items, plan, query, status]);
+  }, [items, query]);
 
   return (
     <PageContainer>
       <PageHeader
         eyebrow="Platform"
         title="Workspaces"
-        description={
-          apiMode
-            ? "Provision and browse persisted workspaces with display-safe operating facts."
-            : "Every registered Slotera workspace, with plan and subscription status."
-        }
+        description="Provision and browse workspaces, their plan and operating facts."
         meta={items ? `${items.length} workspaces` : undefined}
         actions={
           <Button
@@ -93,29 +59,13 @@ export function WorkspacesView() {
         }
       />
 
-      <div className={`grid gap-3 mb-4 ${apiMode ? "sm:grid-cols-1" : "sm:grid-cols-[1fr_180px_180px]"}`}>
+      <div className="mb-4">
         <Input
           icon="search"
           placeholder="Search by name, owner, email…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        {!apiMode && (
-          <>
-            <Select
-              value={plan}
-              onChange={(event) => setPlan(event.target.value as "" | PlanId)}
-              options={PLAN_OPTIONS}
-            />
-            <Select
-              value={status}
-              onChange={(event) =>
-                setStatus(event.target.value as "" | SubscriptionStatus)
-              }
-              options={STATUS_OPTIONS}
-            />
-          </>
-        )}
       </div>
 
       {!items ? (
@@ -124,11 +74,11 @@ export function WorkspacesView() {
         <EmptyState
           icon="building"
           title="No workspaces match"
-          body="Try clearing search or filters."
+          body="Try clearing the search."
         />
       ) : (
         <Card padded={false}>
-          {apiMode ? <ApiDirectory items={filtered} /> : <MockDirectory items={filtered} />}
+          <Directory items={filtered} />
         </Card>
       )}
 
@@ -144,7 +94,7 @@ export function WorkspacesView() {
   );
 }
 
-function ApiDirectory({ items }: { items: PlatformWorkspace[] }) {
+function Directory({ items }: { items: PlatformWorkspace[] }) {
   return (
     <>
       <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-line-soft text-micro uppercase tracking-wide text-ink-3 bg-surface-warm rounded-t-lg">
@@ -194,44 +144,6 @@ function ApiDirectory({ items }: { items: PlatformWorkspace[] }) {
           </div>
         </Link>
       ))}
-    </>
-  );
-}
-
-function MockDirectory({ items }: { items: PlatformWorkspace[] }) {
-  return (
-    <>
-      <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-line-soft text-micro uppercase tracking-wide text-ink-3 bg-surface-warm rounded-t-lg">
-        <span>Workspace</span>
-        <span>Owner</span>
-        <span>Plan</span>
-        <span>Status</span>
-        <span>Created</span>
-        <span>Bookings</span>
-      </div>
-      {items.filter(isMockWorkspace).map((workspace) => {
-        const subscription = SUBSCRIPTION_STATUS[workspace.subscriptionStatus];
-        return (
-          <Link
-            key={workspace.id}
-            href={`/superadmin/workspaces/${workspace.id}`}
-            className="grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] gap-2 md:gap-4 items-center px-5 py-3.5 border-b border-line-soft last:border-b-0 hover:bg-surface-warm"
-          >
-            <div className="min-w-0">
-              <div className="text-[14px] text-ink truncate">{workspace.name}</div>
-              <div className="text-small md:hidden">{workspace.ownerName}</div>
-            </div>
-            <div className="hidden md:block min-w-0">
-              <div className="text-[14px] text-ink truncate">{workspace.ownerName}</div>
-              <div className="text-small truncate">{workspace.ownerEmail}</div>
-            </div>
-            <div><Pill tone="neutral">{PLAN_LABEL[workspace.planId]}</Pill></div>
-            <div><Pill tone={subscription.tone} icon={subscription.icon}>{subscription.label}</Pill></div>
-            <div className="text-small whitespace-nowrap">{fmtDate(new Date(workspace.createdAtISO), "short")}</div>
-            <div className="text-small whitespace-nowrap">{workspace.bookingsCount.toLocaleString()} · {fmtRelative(workspace.lastActiveISO)}</div>
-          </Link>
-        );
-      })}
     </>
   );
 }

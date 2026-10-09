@@ -281,6 +281,7 @@ async def signup(
             owner_last_name=payload.last_name,
             owner_email=str(payload.email),
             timezone=payload.timezone,
+            currency=payload.currency,
             client_key=request.client.host if request.client else "unknown",
         )
     except RateLimitExceeded as exc:

@@ -7,20 +7,14 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { dataSource } from "@/lib/env";
 import {
-  createWorkspace,
   provisionWorkspace,
   setInquiryRead,
-  type CreateWorkspaceInput,
   type ProvisionWorkspaceInput,
 } from "@/services/platform.service";
-import type {
-  BillingCycle,
-  PlanId,
-  SubscriptionStatus,
-} from "@/types/billing";
+import { slugify } from "@/lib/text";
 import type { PlatformWorkspace } from "@/types/platform";
+import { CURRENCIES, type Currency } from "@/types/common";
 
 /**
  * Slotera-staff drawer for provisioning a workspace. Used by:
@@ -42,18 +36,6 @@ export type NewWorkspaceDrawerProps = {
   onCreated?: (workspace: PlatformWorkspace) => void;
 };
 
-type FormState = {
-  name: string;
-  ownerName: string;
-  ownerEmail: string;
-  planId: PlanId;
-  billingCycle: BillingCycle;
-  status: SubscriptionStatus;
-  seats: number;
-  amountPounds: number;
-  trialDays: number;
-};
-
 type ApiFormState = {
   name: string;
   slug: string;
@@ -61,71 +43,20 @@ type ApiFormState = {
   ownerLastName: string;
   ownerEmail: string;
   timezone: string;
+  currency: Currency;
 };
 
-const STATUS_OPTIONS: { value: SubscriptionStatus; label: string }[] = [
-  { value: "trialing", label: "Trialing" },
-  { value: "active", label: "Active" },
-  { value: "past_due", label: "Past due" },
-  { value: "cancel_scheduled", label: "Cancel scheduled" },
-  { value: "cancelled", label: "Cancelled" },
-];
-
-const PLAN_OPTIONS: { value: PlanId; label: string }[] = [
-  { value: "solo", label: "Solo" },
-  { value: "team", label: "Team" },
-  { value: "custom", label: "Custom" },
-];
-
-const CYCLE_OPTIONS: { value: BillingCycle; label: string }[] = [
-  { value: "monthly", label: "Monthly" },
-  { value: "yearly", label: "Yearly" },
-];
-
-const PLAN_DEFAULTS: Record<
-  PlanId,
-  { seats: number; amountPounds: number }
-> = {
-  solo: { seats: 1, amountPounds: 20 },
-  team: { seats: 10, amountPounds: 50 },
-  custom: { seats: 25, amountPounds: 0 },
-};
-
-function makeForm(initial?: NewWorkspaceDrawerProps["initial"]): FormState {
+function makeApiForm(initial?: NewWorkspaceDrawerProps["initial"]): ApiFormState {
+  const names = (initial?.ownerName ?? "").trim().split(/\s+/).filter(Boolean);
   return {
     name: initial?.name ?? "",
-    ownerName: initial?.ownerName ?? "",
+    slug: initial?.name ? slugify(initial.name) : "",
+    ownerFirstNames: names.slice(0, -1).join(" ") || names[0] || "",
+    ownerLastName: names.length > 1 ? names[names.length - 1] : "",
     ownerEmail: initial?.ownerEmail ?? "",
-    planId: "custom",
-    billingCycle: "monthly",
-    status: "trialing",
-    seats: PLAN_DEFAULTS.custom.seats,
-    amountPounds: PLAN_DEFAULTS.custom.amountPounds,
-    trialDays: 14,
+    timezone: "Europe/London",
+    currency: "GBP",
   };
-}
-
-function makeApiForm(): ApiFormState {
-  return {
-    name: "",
-    slug: "",
-    ownerFirstNames: "",
-    ownerLastName: "",
-    ownerEmail: "",
-    timezone: "Europe/Berlin",
-  };
-}
-
-function isoDaysFromNow(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString();
-}
-
-function nextMonthISO(): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() + 1);
-  return d.toISOString();
 }
 
 export function NewWorkspaceDrawer({
@@ -136,22 +67,13 @@ export function NewWorkspaceDrawer({
   onCreated,
 }: NewWorkspaceDrawerProps) {
   const { toast } = useToast();
-  const apiMode = dataSource === "api";
-  const [form, setForm] = React.useState<FormState>(() => makeForm(initial));
-  const [apiForm, setApiForm] = React.useState<ApiFormState>(makeApiForm);
+  const [apiForm, setApiForm] = React.useState<ApiFormState>(() => makeApiForm(initial));
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
-    if (open) {
-      setForm(makeForm(initial));
-      setApiForm(makeApiForm());
-    }
+    if (open) setApiForm(makeApiForm(initial));
   }, [open, initial]);
 
-  const valid =
-    form.name.trim().length > 1 &&
-    form.ownerName.trim().length > 1 &&
-    form.ownerEmail.trim().includes("@");
   const apiValid =
     apiForm.name.trim().length > 1 &&
     /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(apiForm.slug) &&
@@ -160,54 +82,16 @@ export function NewWorkspaceDrawer({
     apiForm.ownerLastName.trim().length > 0 &&
     apiForm.ownerEmail.trim().includes("@");
 
-  const onPlanChange = (planId: PlanId) => {
-    const d = PLAN_DEFAULTS[planId];
-    setForm((f) => ({
-      ...f,
-      planId,
-      seats: d.seats,
-      amountPounds: d.amountPounds,
-    }));
-  };
-
   const save = async () => {
-    if (apiMode && !apiValid) return;
-    if (!apiMode && !valid) return;
+    if (!apiValid) return;
     setBusy(true);
     try {
-      if (apiMode) {
-        const workspace = await provisionWorkspace(apiForm satisfies ProvisionWorkspaceInput);
-        toast.success("Workspace provisioned", {
-          description: "The initial operator record is ready; account activation remains pending.",
-        });
-        onCreated?.(workspace);
-        onClose();
-        return;
-      }
-      const payload: CreateWorkspaceInput = {
-        name: form.name,
-        ownerName: form.ownerName,
-        ownerEmail: form.ownerEmail,
-        planId: form.planId,
-        billingCycle: form.billingCycle,
-        status: form.status,
-        seats: form.seats,
-        amountPounds: form.amountPounds,
-        trialEndsAtISO:
-          form.status === "trialing" ? isoDaysFromNow(form.trialDays) : null,
-        nextBillingAtISO:
-          form.status === "active" || form.status === "cancel_scheduled"
-            ? nextMonthISO()
-            : null,
-      };
-      const ws = await createWorkspace(payload);
-      if (fromInquiryId) {
-        await setInquiryRead(fromInquiryId, true);
-      }
-      toast.success("Workspace created", {
-        description: `${form.name} · ${form.planId.toUpperCase()} plan`,
+      const workspace = await provisionWorkspace(apiForm satisfies ProvisionWorkspaceInput);
+      if (fromInquiryId) await setInquiryRead(fromInquiryId, true);
+      toast.success("Workspace provisioned", {
+        description: "The owner has been emailed a link to set their password.",
       });
-      onCreated?.(ws);
+      onCreated?.(workspace);
       onClose();
     } catch (err) {
       toast.error("Couldn't create workspace", {
@@ -218,102 +102,19 @@ export function NewWorkspaceDrawer({
     }
   };
 
-  if (apiMode) {
-    return (
-      <DrawerShell
-        open={open}
-        onClose={onClose}
-        eyebrow="Provision workspace"
-        title={apiForm.name.trim() || "New workspace"}
-        footer={
-          <>
-            <Button variant="ghost" onClick={onClose} disabled={busy}>
-              Cancel
-            </Button>
-            <Button onClick={save} loading={busy} disabled={!apiValid}>
-              Provision workspace
-            </Button>
-          </>
-        }
-      >
-        <fieldset disabled={busy} className="flex flex-col gap-5 disabled:opacity-90">
-          <Field label="Workspace name" required>
-            <Input
-              value={apiForm.name}
-              onChange={(event) =>
-                setApiForm({ ...apiForm, name: event.target.value })
-              }
-              placeholder="e.g. North Star Coaching"
-            />
-          </Field>
-          <Field label="Workspace slug" required hint="Lowercase letters, numbers, and hyphens.">
-            <Input
-              value={apiForm.slug}
-              onChange={(event) =>
-                setApiForm({ ...apiForm, slug: event.target.value.toLowerCase() })
-              }
-              placeholder="north-star-coaching"
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Owner first names" required>
-              <Input
-                value={apiForm.ownerFirstNames}
-                onChange={(event) =>
-                  setApiForm({ ...apiForm, ownerFirstNames: event.target.value })
-                }
-              />
-            </Field>
-            <Field label="Owner last name" required>
-              <Input
-                value={apiForm.ownerLastName}
-                onChange={(event) =>
-                  setApiForm({ ...apiForm, ownerLastName: event.target.value })
-                }
-              />
-            </Field>
-          </div>
-          <Field label="Owner email" required>
-            <Input
-              type="email"
-              value={apiForm.ownerEmail}
-              onChange={(event) =>
-                setApiForm({ ...apiForm, ownerEmail: event.target.value })
-              }
-              autoComplete="email"
-            />
-          </Field>
-          <Field label="Workspace timezone" required>
-            <Input
-              value={apiForm.timezone}
-              onChange={(event) =>
-                setApiForm({ ...apiForm, timezone: event.target.value })
-              }
-              placeholder="Europe/Berlin"
-            />
-          </Field>
-          <div className="rounded-md border border-line-soft bg-paper-2 px-3 py-2.5 text-small">
-            This creates the workspace and its initial operator record. Activation and invitation
-            delivery are not available yet.
-          </div>
-        </fieldset>
-      </DrawerShell>
-    );
-  }
-
   return (
     <DrawerShell
       open={open}
       onClose={onClose}
       eyebrow={fromInquiryId ? "Promote inquiry" : "Provision workspace"}
-      title={form.name.trim() || "New workspace"}
+      title={apiForm.name.trim() || "New workspace"}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={save} loading={busy} disabled={!valid}>
-            Create workspace
+          <Button onClick={save} loading={busy} disabled={!apiValid}>
+            Provision workspace
           </Button>
         </>
       }
@@ -321,116 +122,72 @@ export function NewWorkspaceDrawer({
       <fieldset disabled={busy} className="flex flex-col gap-5 disabled:opacity-90">
         <Field label="Workspace name" required>
           <Input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="e.g. Hartmann Strategy"
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Owner name" required>
-            <Input
-              value={form.ownerName}
-              onChange={(e) =>
-                setForm({ ...form, ownerName: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="Owner email" required>
-            <Input
-              type="email"
-              value={form.ownerEmail}
-              onChange={(e) =>
-                setForm({ ...form, ownerEmail: e.target.value })
-              }
-              autoComplete="email"
-            />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Plan">
-            <Select
-              value={form.planId}
-              onChange={(e) => onPlanChange(e.target.value as PlanId)}
-              options={PLAN_OPTIONS}
-            />
-          </Field>
-          <Field label="Billing cycle">
-            <Select
-              value={form.billingCycle}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  billingCycle: e.target.value as BillingCycle,
-                })
-              }
-              options={CYCLE_OPTIONS}
-            />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field
-            label="Team members"
-            hint="999 = unlimited (Custom plans)."
-          >
-            <Input
-              type="number"
-              min={1}
-              value={String(form.seats)}
-              onChange={(e) =>
-                setForm({ ...form, seats: Math.max(1, Number(e.target.value) || 1) })
-              }
-            />
-          </Field>
-          <Field label="Amount" hint="GBP per billing cycle.">
-            <Input
-              type="number"
-              min={0}
-              prefix="GBP"
-              value={String(form.amountPounds)}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  amountPounds: Math.max(0, Number(e.target.value) || 0),
-                })
-              }
-            />
-          </Field>
-        </div>
-
-        <Field label="Status">
-          <Select
-            value={form.status}
-            onChange={(e) =>
-              setForm({ ...form, status: e.target.value as SubscriptionStatus })
+            value={apiForm.name}
+            onChange={(event) =>
+              setApiForm({ ...apiForm, name: event.target.value })
             }
-            options={STATUS_OPTIONS}
+            placeholder="e.g. North Star Coaching"
           />
         </Field>
-
-        {form.status === "trialing" && (
-          <Field label="Trial length (days)">
+        <Field label="Workspace slug" required hint="Lowercase letters, numbers, and hyphens.">
+          <Input
+            value={apiForm.slug}
+            onChange={(event) =>
+              setApiForm({ ...apiForm, slug: event.target.value.toLowerCase() })
+            }
+            placeholder="north-star-coaching"
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Owner first names" required>
             <Input
-              type="number"
-              min={1}
-              value={String(form.trialDays)}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  trialDays: Math.max(1, Number(e.target.value) || 14),
-                })
+              value={apiForm.ownerFirstNames}
+              onChange={(event) =>
+                setApiForm({ ...apiForm, ownerFirstNames: event.target.value })
               }
             />
           </Field>
-        )}
-
-        {fromInquiryId && (
-          <div className="rounded-md border border-line-soft bg-paper-2 px-3 py-2.5 text-small">
-            On save, this inquiry will be marked <strong>read</strong>.
-          </div>
-        )}
+          <Field label="Owner last name" required>
+            <Input
+              value={apiForm.ownerLastName}
+              onChange={(event) =>
+                setApiForm({ ...apiForm, ownerLastName: event.target.value })
+              }
+            />
+          </Field>
+        </div>
+        <Field label="Owner email" required>
+          <Input
+            type="email"
+            value={apiForm.ownerEmail}
+            onChange={(event) =>
+              setApiForm({ ...apiForm, ownerEmail: event.target.value })
+            }
+            autoComplete="email"
+          />
+        </Field>
+        <Field label="Workspace timezone" required>
+          <Input
+            value={apiForm.timezone}
+            onChange={(event) =>
+              setApiForm({ ...apiForm, timezone: event.target.value })
+            }
+            placeholder="Europe/London"
+          />
+        </Field>
+        <Field label="Client currency" required>
+          <Select
+            value={apiForm.currency}
+            onChange={(event) =>
+              setApiForm({ ...apiForm, currency: event.target.value as Currency })
+            }
+            options={[...CURRENCIES]}
+          />
+        </Field>
+        <div className="rounded-md border border-line-soft bg-paper-2 px-3 py-2.5 text-small">
+          This creates the workspace on the Free plan and emails the owner a link to set their
+          password.
+        </div>
       </fieldset>
     </DrawerShell>
   );

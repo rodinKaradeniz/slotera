@@ -55,7 +55,7 @@ def test_opaque_tokens_are_stored_as_fixed_length_hashes() -> None:
 def test_demo_seed_matches_the_frontend_identity_fixture() -> None:
     assert DEMO_SEED.workspace.name == "Hartmann Strategy"
     assert DEMO_SEED.workspace.slug == "lena"
-    assert DEMO_SEED.workspace.currency == "EUR"
+    assert DEMO_SEED.workspace.currency == "GBP"
     assert DEMO_SEED.workspace.timezone == "Europe/Berlin"
     assert DEMO_SEED.operator.email == "hello@slotera.app"
     assert DEMO_SEED.operator_membership.role == "operator_admin"

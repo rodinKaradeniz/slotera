@@ -128,6 +128,7 @@ class PlatformRepository:
         owner_last_name: str,
         owner_email: str,
         timezone: str,
+        currency: str,
     ) -> tuple[str, UUID]:
         workspace_id = uuid4()
         async with self.database.transaction() as session:
@@ -145,7 +146,8 @@ class PlatformRepository:
                       :owner_first_names,
                       :owner_last_name,
                       :owner_email,
-                      :timezone
+                      :timezone,
+                      :currency
                     )
                     """
                 ),
@@ -161,6 +163,7 @@ class PlatformRepository:
                     "owner_last_name": owner_last_name,
                     "owner_email": owner_email,
                     "timezone": timezone,
+                    "currency": currency,
                 },
             )
             if result_code == "created":

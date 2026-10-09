@@ -219,7 +219,7 @@ class OperatorResourcesRepository:
                 select(Workspace.currency).where(Workspace.id == workspace_id)
             )
             if currency is None:
-                return [], 0, "EUR"
+                return [], 0, "GBP"
             total = await session.scalar(select(func.count(Service.id)).where(*filters))
             services = list(
                 (

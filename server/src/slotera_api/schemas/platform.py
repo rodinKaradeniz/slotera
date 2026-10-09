@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import EmailStr, Field, field_validator
 
-from slotera_api.schemas.base import ApiModel
+from slotera_api.schemas.base import ApiModel, WorkspaceCurrency
 from slotera_api.schemas.operator_resources import NonBlank, StrictApiModel
 
 
@@ -49,6 +49,7 @@ class PlatformWorkspaceProvision(StrictApiModel):
     owner_last_name: Annotated[NonBlank, Field(max_length=160)]
     owner_email: EmailStr
     timezone: Annotated[NonBlank, Field(max_length=64)] = "Europe/Berlin"
+    currency: WorkspaceCurrency = "GBP"
 
     @field_validator("owner_email")
     @classmethod

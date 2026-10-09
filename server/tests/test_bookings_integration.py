@@ -48,7 +48,7 @@ async def test_operator_can_read_seeded_booking_ledger() -> None:
     assert listed.status_code == 200
     payload = listed.json()
     assert payload["total"] >= 2
-    assert {item["currency"] for item in payload["items"]} == {"EUR"}
+    assert {item["currency"] for item in payload["items"]} == {"GBP"}
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == "booking_not_found"
 

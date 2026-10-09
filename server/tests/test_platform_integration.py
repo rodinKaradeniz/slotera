@@ -75,7 +75,7 @@ async def test_superadmin_workspace_reads_are_private_and_display_safe() -> None
         for key in ("servicesCount", "clientsCount", "bookingsCount", "sessionsCount")
     )
     assert detail.status_code == 200
-    assert detail.json()["currency"] == "EUR"
+    assert detail.json()["currency"] == "GBP"
     assert detail.json()["timezone"] == "Europe/Berlin"
     assert "notes" not in detail.json()
 
@@ -187,7 +187,7 @@ async def test_superadmin_can_provision_a_workspace_without_global_table_access(
     assert created_item["slug"] == payload["slug"]
     assert created_item["ownerName"] == "Noor Kaya"
     assert created_item["ownerEmail"] == payload["ownerEmail"]
-    assert created_item["currency"] == "EUR"
+    assert created_item["currency"] == "GBP"
     assert created_item["timezone"] == payload["timezone"]
     assert created_item["operationalStatus"] == "active"
     assert created_item["servicesCount"] == 0

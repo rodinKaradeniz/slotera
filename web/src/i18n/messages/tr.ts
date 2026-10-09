@@ -119,22 +119,24 @@ export const tr: Partial<Messages> = {
   "landing.faq.title": "Sık sorulan sorular.",
   "landing.faq.q1.q": "Müşterilerimin hesap açması gerekir mi?",
   "landing.faq.q1.a":
-    "Hayır. Müşteriler misafir olarak rezervasyon yapıp öder. Onları panelinizde otomatik olarak müşteri olarak görürsünüz.",
-  "landing.faq.q2.q": "Hangi ödeme sağlayıcılarını destekliyorsunuz?",
+    "Hayır. Danışanlar misafir olarak rezervasyon yapar ve rezervasyonlarını görüntüleyip erteleyebilecekleri veya iptal edebilecekleri bir e-posta bağlantısı alır. Danışan listenize otomatik olarak eklenirler.",
+  "landing.faq.q2.q":
+    "Danışanlar nasıl ödeme yapar?",
   "landing.faq.q2.a":
-    "Varsayılan olarak Stripe (kart). Manuel banka havalesi talimatları tüm çalışma alanı için etkinleştirilebilir.",
+    "Şu an kendi ödeme talimatlarınızı (örneğin banka havalesi) eklersiniz ve Slotera neyin ödendiğini takip eder. Online kart ödemeleri sırada.",
   "landing.faq.q3.q": "Grup dersleri veya atölyeler düzenleyebilir miyim?",
   "landing.faq.q3.a":
-    "Evet. Seans kapasitesini 1'in üzerinde herhangi bir sayıya ayarlayın. Slotera kalan kontenjan ve bekleme listelerini yönetir.",
+    "Evet. Planlı bir hizmet oluşturun, istediğiniz kapasiteyle seanslar ekleyin; danışanlar seans dolana kadar rezervasyon yapabilir. Slotera kalan yerleri gösterir.",
   "landing.faq.q4.q": "Verileriniz nerede barındırılıyor?",
   "landing.faq.q4.a":
-    "Slotera, UK veri koruma süreçleri göz önünde bulundurularak tasarlanmıştır.",
-  "landing.faq.q5.q": "Rezervasyon sayfasını kendi siteme gömebilir miyim?",
+    "AB'deki sunucularda. Slotera, Birleşik Krallık veri koruma süreçleri göz önünde bulundurularak geliştirildi.",
+  "landing.faq.q5.q":
+    "Danışanlar rezervasyon sayfamı nasıl bulur?",
   "landing.faq.q5.a":
-    "Evet. İster hazır rezervasyon sayfasına bağlantı verin, ister iframe olarak gömün. Renkleriniz ve yazı tipleriniz her iki durumda da yansır.",
+    "Her çalışma alanının kendi rezervasyon bağlantısı vardır. Web sitenizde, e-posta imzanızda veya sosyal medyada paylaşın.",
   "landing.faq.q6.q": "Bir müşteri iptal ederse ne olur?",
   "landing.faq.q6.a":
-    "İptaller, her hizmet için belirlediğiniz politikayı izler. Seans otomatik olarak boşalır ve iadeler tahsilatta kullandığınız sağlayıcı üzerinden işlenir.",
+    "Danışanlar belirlediğiniz son tarihe kadar (varsayılan 24 saat) kendileri iptal edebilir veya erteleyebilir. Sonrasında sizinle iletişime geçerler. İadeleri doğrudan siz yaparsınız.",
 
   "landing.finalCta.eyebrow": "Slotera'yı deneyin",
   "landing.finalCta.title": "Boş saat kovalamayı bırakın.",
@@ -146,21 +148,13 @@ export const tr: Partial<Messages> = {
   "footer.col.company": "Şirket",
   "footer.col.legal": "Yasal",
   "footer.link.demo": "Demo",
-  "footer.link.legal": "Yasal",
-  "footer.copyright": "© Velora Labs. Slotera, Velora Labs'in bir ürünüdür.",
+  "footer.copyright": "© Merulio Ltd. Slotera, Merulio'nun bir ürünüdür.",
   "footer.gdpr": "UK GDPR'a duyarlı",
 
-  "legal.title": "Yasal",
-  "legal.description":
-    "Slotera demosu için künye, gizlilik bildirimi ve kullanım koşulları.",
-  "legal.tab.imprint": "Künye",
   "legal.tab.privacy": "Gizlilik",
   "legal.tab.terms": "Koşullar",
-  "legal.imprint.intro":
-    "Slotera, Velora Labs'in bir ürünüdür. Bu bir demo ortamıdır — aşağıdaki künye, ürün geliştirme aşamasındayken kullanılan bir yer tutucudur.",
-  "legal.imprint.company": "Şirket",
-  "legal.imprint.contact": "İletişim",
-  "legal.imprint.responsible": "Sorumlu",
+  "legal.tab.dpa": "Veri işleme",
+  "booking.legal.platformIntro": "Bu rezervasyon sayfası sağlayıcı adına Slotera tarafından işletilir. Slotera'nın verilerinizi nasıl işlediği burada açıklanır:",
 
   "contact.eyebrow": "İletişim",
   "contact.title": "Bize ulaşın",

@@ -1182,7 +1182,7 @@ key per change); a dedicated reminder worker or Redis/Celery.
 
 ### Entry 047 — Plans are a column, not a subscription system
 
-*2026-10-09.* Platform billing is two identical-feature plans (Free €0 + 3%, Pro €19 + 1%
+*2026-10-09.* Platform billing is two identical-feature plans (Free £0 + 3%, Pro £19 + 1%
 of card payments). Until Stripe exists, a plan is a `workspaces.plan` value changed only
 by an audited superadmin command, Pro is invoiced manually, and Settings → Billing turns
 "Upgrade" into an inquiry. There is no trial, status machine, or invoice model: Free is the
@@ -1194,6 +1194,63 @@ because the platform area is no longer part of the demo.
 **Alternatives rejected:** porting the mock subscription model (trialing/past_due,
 invoices) before any payment provider exists; a self-serve plan switch that nothing
 charges for.
+
+---
+
+### Entry 048 — Series top up in the maintenance job; currency is per workspace, GBP first
+
+*2026-10-10.* Recurring series used to stop after the six months created up front. The
+existing `slotera-maintenance` job now tops every open-ended series back up to
+`ROLLING_HORIZON_DAYS`. Each new occurrence copies the latest live one, so "this and
+following" edits carry forward without series splitting, and a slot that clashes with
+another session is skipped rather than failing the run. A "create more sessions" reminder
+was rejected: it needs the same extend step plus notification plumbing, and a missed
+reminder silently empties a booking page.
+
+Merulio will be an English company, so platform pricing is GBP only. Client prices stay
+per workspace: the currency is chosen at sign-up (GBP, EUR or USD), fixed afterwards, and
+snapshotted on bookings. There is no conversion. A tenant in Turkey or Tanzania prices in
+their own currency, added to the allowed list when one exists. Stripe may not onboard
+those countries, so they would start on manual payments.
+
+**Alternatives rejected:** one GBP currency for all tenants with conversion (exchange-rate
+handling and rounding disputes for no gain); a fully open ISO currency list before any
+tenant needs it.
+
+### Entry 049 — Client pages drop marketing; logic gets unit tests; the superadmin area loses its mock
+
+*2026-10-10.* Pages a client sees (booking, confirmation, manage) show the workspace name
+and a "Powered by Slotera" footer instead of Slotera's marketing navigation. The demo keeps
+the navigation because its visitors are evaluating Slotera. The FAQ now describes only
+what ships. The maintenance page returns 503 with `Retry-After` so uptime checks notice it.
+
+Vitest runs logic-only tests in Node: money formatting, navigation and guard rules, date
+keys, DTO mappers and the maintenance proxy. These are the places that broke silently
+before. Component snapshot tests were rejected as costly to maintain and low in signal.
+
+The superadmin area has been real-app-only since Entry 045. Its mock branches,
+subscription fixtures and the old Solo/Team billing service were dead code and are gone,
+so `platform.service.ts` keeps a mock branch only for the demo's contact form.
+
+### Entry 050 — Erasure keeps financial facts; legal drafts; one Hetzner box
+
+*2026-10-10.* Operators can export a client's data as JSON and erase a client after
+retyping their email. Erasure anonymises the client, deletes notes and form answers,
+blanks the contact and billing snapshots on their bookings, revokes manage links, and
+scrubs their booking emails (unsent emails are deleted; sent ones keep a blank row that
+still blocks duplicate reminders). Amounts, tax, currency and payment state stay as
+financial records. Terms, Privacy Policy and DPA are published as clearly marked drafts
+for solicitor review. Merulio Ltd is the provider and the processor of operators' client
+data.
+
+Deployment is one Hetzner server running Docker Compose: Caddy, the demo and app web
+images, the API, worker, a 15-minute maintenance loop, PostgreSQL and a nightly
+`pg_dump` mirrored to a Storage Box. A local run from an empty volume migrated cleanly,
+and a dump was restored in a restore drill.
+
+**Alternatives rejected:** hard-deleting clients (destroys records that must be kept);
+managed PostgreSQL and a separate scheduler at MVP scale; WAL archiving before daily
+backups have proven insufficient.
 
 ---
 
@@ -1293,9 +1350,7 @@ Two more are handled in code rather than by a rule:
   layer. Four services is the calibrated sweet spot.
 - **Positioning claims are constrained.** "UK GDPR-aware," never "GDPR compliant." No
   medical, clinical, patient, or compliance claims — the vet and therapist personas exist
-  as flexible examples only and are kept out of the public pitch. `Velora Labs` is the
-  mock legal entity and appears only in the footer copyright and the imprint tab; the
-  product brand is Slotera everywhere else.
+  as flexible examples only and are kept out of the public pitch. The legal entity was a mock `Velora Labs` until Entry 050; it is now Merulio Ltd, named only in the footer copyright and the legal pages.
 
 ### Documentation lanes
 

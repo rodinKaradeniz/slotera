@@ -57,33 +57,21 @@ Items are grouped by kind, then roughly by how soon they matter.
   restricted application role. GitHub Actions now runs these gates on pull requests and
   `main`.
 
-**GitHub Actions CI is now in place:** it runs frontend type-check, lint, and production
-build plus backend isolated and PostgreSQL integration gates on pull requests and `main`.
-The **frontend still has no test runner or test files**. Frontend verification currently
-means type-check clean, lint clean, and routes exercised by hand in a dev server. The
-highest-value frontend targets remain:
+**GitHub Actions CI is now in place:** it runs frontend type-check, lint, `npm test`
+(Vitest) and production build, plus backend isolated and PostgreSQL integration gates, on
+pull requests and `main`.
 
-When tests arrive, the highest-value targets — the places where a bug is silent — are:
+**~~Frontend test runner.~~ DONE.** Vitest runs logic-only tests in Node
+(`web/src/**/*.test.ts`): money formatting, navigation and AuthGuard routing, date keys,
+platform DTO mappers and the maintenance proxy. Still worth adding when touched:
+- `card.ts`, `time.ts`, `calendar.ts` overlap detection, `text.ts` `plural()`,
+  `status-maps.ts` completeness, and `cn.ts` (the typography merge group);
+- service-layer patch-merge semantics and `NotFoundError` on unknown ids (mock mode);
+- relationship filters (`listFormsForService`, `listPackagesForService`), where a bug
+  shows up as an empty list rather than an error;
+- `getDashboard()` mock composition, including the `ses-demo` exclusion.
 
-- **`web/src/lib/` pure helpers**, which are trivially testable and already correctness-critical:
-  `card.ts` (formatting and expiry validation), `money.ts`, `time.ts`, `calendar.ts`
-  (overlap/conflict detection), `text.ts` (`plural()`), `status-maps.ts` completeness
-  (every union member has an entry), and `cn.ts` (the typography merge group — the
-  regression it guards against is invisible in a diff).
-- **Service-layer invariants**: patch-merge semantics of `update*` (a partial patch must
-  not drop fields), `NotFoundError` on unknown ids, and the mock/api guard (every method
-  throws `NotImplementedError` when `dataSource !== "mock"` — the negative case, not just
-  the happy path).
-- **Relationship single-sourcing**: `listFormsForService`, `listPackagesForService`, and
-  the booking↔session link. These are filters over an owning array, and a filter bug shows
-  up as a merely-empty list, not an error.
-- **Mock-derived dashboard state**: `getDashboard()` composing live from bookings, sessions,
-  and action items, including the `ses-demo` exclusion. The API dashboard summary has its
-  own PostgreSQL integration coverage.
-- **Role routing**: `homePathForRole()` and `AuthGuard`'s two redirect paths.
-
-Choosing a frontend runner is itself deferred — see `docs/RULES.md` on introducing
-dependencies. The backend runner is not implicitly the frontend runner.
+No component snapshot tests: the browser covers UI.
 
 ---
 
@@ -131,8 +119,7 @@ below are standing security requirements as further API and frontend integration
 
 The architecture is approved: a Python/FastAPI modular monolith, PostgreSQL, SQLAlchemy,
 Alembic, and Docker Compose for local development. Continue it under `server/` and keep it
-local-only initially; Railway is a possible later host, not a current dependency or
-deployment target. The public portfolio/demo remains entirely mock-backed while the API is
+local-only initially; production runs on one Hetzner server (`docs/DEPLOYMENT.md`). The public portfolio/demo remains entirely mock-backed while the API is
 built and exercised separately.
 
 ### Migration and contract
@@ -172,17 +159,18 @@ built and exercised separately.
   request dependency owns one transaction/connection and applies tenant context with
   `SET LOCAL`; statement pooling is not supported. Add an automated schema test that fails
   when a tenant table lacks an RLS policy.
-- **One workspace client-payment currency.** The initial backend currency is EUR. Services
-  and packages inherit it; bookings and payments snapshot it. The Phase 1 mock UI remains
-  GBP until a deliberate frontend/data migration, and platform billing remains a separate
+- **One workspace client-payment currency.** Chosen at sign-up (GBP default; GBP, EUR,
+  USD), fixed afterwards. Services and packages inherit it; bookings and payments snapshot
+  it. Add currencies on demand, never convert. Platform billing is GBP only and a separate
   payment domain.
 - **Persistence across reload becomes a requirement.** Mock state currently lives in
   module-level arrays and resets on HMR; API-backed flows must not inherit assumptions that
   a refresh resets data.
-- **Production readiness is required before any live API cutover:** managed PostgreSQL
-  with point-in-time recovery, structured logs, error monitoring, health checks, a tested
-  backup restore, secret management, data retention, client export, and erasure-by-
-  anonymisation that preserves only legally required financial facts.
+- **Production readiness is required before any live API cutover.** Done: Hetzner
+  Compose stack, health checks, nightly backups with a tested restore, secrets in
+  `deploy/.env`, client export, and erasure by anonymisation (financial facts kept).
+  Remaining, in the `docs/DEPLOYMENT.md` gate: the off-box restore drill, error monitoring
+  and alerting, solicitor-reviewed legal pages, and real-domain smoke tests.
 
 ### Scheduling and availability
 
@@ -306,7 +294,7 @@ live environment.
      exports a repeatable contract, `openapi-typescript` generates committed DTOs, and the
      shared credentialed client maps auth/session, business settings/locations, services,
      and notifications to existing UI types. `./scripts/dev --api` enables only the wired
-     operator routes; the default/Vercel demo remains mock-backed.
+     operator routes; the default demo remains mock-backed.
 5. Scheduling:
    - **~~Backend availability, sessions, recurrence, and conflict baseline.~~ DONE.**
      Workspace-wide policy/windows/blackouts and authenticated session resources now
@@ -316,9 +304,10 @@ live environment.
    - **~~Scheduling frontend bundle.~~ DONE.** Generated availability/session DTOs map
      through the service layer; API mode now exposes Calendar and Calendar Settings without
      mixing mock booking/client, attendance, or action-item data.
-   - **Recurrence horizon maintenance.** Add the database-backed worker that extends
-     active series and split series metadata when `this_and_following` edits must survive
-     beyond the currently materialised horizon.
+   - **~~Recurrence horizon maintenance.~~ DONE.** `slotera-maintenance` tops every
+     active series back up to `ROLLING_HORIZON_DAYS` ahead, copying the latest live
+     occurrence (so `this_and_following` edits carry forward) and skipping clashing slots.
+     No series split was needed.
    - **~~Capacity consumption.~~ DONE for MVP bookings.** Scheduled commands lock the
      session and count pending/confirmed bookings; public open-mode capacity-one creation
      takes slot/idempotency advisory locks, rederives availability, materialises the
@@ -398,14 +387,12 @@ live environment.
    - **~~Booking/payment/approval notification producers.~~ DONE.** Public receipt and
      confirmation transitions create PII-safe, user-targeted events. Further superadmin
      workspace commands, subscriptions, and inquiries remain later.
-10. Production-readiness gate, then hosting/deployment selection. See
-   `docs/DEPLOYMENT.md` for the supported topology and the remaining operational release
-   requirements.
+10. **~~Hosting selection.~~ DONE:** one Hetzner server with Docker Compose
+   (`deploy/`). The production-readiness gate in `docs/DEPLOYMENT.md` remains.
 
 ### Explicitly deferred dependencies
 
-- **Recurrence-horizon worker:** retain the current materialised horizon; do not add the
-  worker until active-series maintenance is separately scheduled.
+- **~~Recurrence-horizon worker.~~ DONE** inside the existing maintenance job.
 - **~~Scheduled-session booking capacity consumption and commands.~~ DONE.** Pending and
   confirmed operator-created bookings now consume capacity under a locked-session,
   idempotent transaction; explicit lifecycle commands are audit logged. **Open-mode

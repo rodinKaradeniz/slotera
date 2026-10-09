@@ -48,7 +48,7 @@ const DEMO = {
   amountCents: 12000,
   taxCents: 0,
   manualInstructions:
-    "Bank transfer to: Velora Labs · IBAN GB00 SLOT 0000 0000 0000 00 · Reference SLT-DEMO1",
+    "Bank transfer to: Hartmann Strategy · IBAN GB00 SLOT 0000 0000 0000 00 · Reference SLT-DEMO1",
   // Display-only package context — no credit ledger, balance, or checkout.
   package: {
     name: "Strategy Sprint Package",

@@ -5,7 +5,6 @@ import { dataSource } from "@/lib/env";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { ContactModal } from "@/components/public/ContactModal";
-import { PublicLegalModal } from "@/components/public/PublicLegalModal";
 import { useDemoGuide } from "@/components/public/DemoGuideProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -13,7 +12,6 @@ type FooterLink = { label: string; href?: string; onClick?: () => void };
 
 export function PublicFooter() {
   const [contactOpen, setContactOpen] = React.useState(false);
-  const [legalOpen, setLegalOpen] = React.useState(false);
   const { open: openDemoGuide } = useDemoGuide();
   const { t } = useI18n();
 
@@ -42,7 +40,11 @@ export function PublicFooter() {
         />
         <FooterCol
           title={t("footer.col.legal")}
-          links={[{ label: t("footer.link.legal"), onClick: () => setLegalOpen(true) }]}
+          links={[
+            { label: t("legal.tab.terms"), href: "/terms" },
+            { label: t("legal.tab.privacy"), href: "/privacy" },
+            { label: t("legal.tab.dpa"), href: "/dpa" },
+          ]}
         />
       </div>
       <div className="border-t border-line-soft">
@@ -52,7 +54,6 @@ export function PublicFooter() {
         </div>
       </div>
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
-      <PublicLegalModal open={legalOpen} onClose={() => setLegalOpen(false)} />
     </footer>
   );
 }

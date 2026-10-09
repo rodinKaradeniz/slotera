@@ -5,11 +5,13 @@ import Link from "next/link";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { isSlugAvailable, register } from "@/services/auth.service";
 import { ApiRequestError } from "@/services/_errors";
 import { slugify } from "@/lib/text";
+import { CURRENCIES, type Currency } from "@/types/common";
 
 type Form = {
   firstNames: string;
@@ -17,9 +19,17 @@ type Form = {
   email: string;
   workspaceName: string;
   slug: string;
+  currency: Currency;
 };
 
-const EMPTY: Form = { firstNames: "", lastName: "", email: "", workspaceName: "", slug: "" };
+const EMPTY: Form = {
+  firstNames: "",
+  lastName: "",
+  email: "",
+  workspaceName: "",
+  slug: "",
+  currency: "GBP",
+};
 
 function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
   const [form, setForm] = React.useState<Form>(EMPTY);
@@ -128,6 +138,14 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         />
       </Field>
 
+      <Field label="Currency" hint="What you charge your clients in. It can't be changed later.">
+        <Select
+          value={form.currency}
+          onChange={(e) => setForm({ ...form, currency: e.target.value as Currency })}
+          options={[...CURRENCIES]}
+        />
+      </Field>
+
       {error && <div className="text-small text-danger">{error}</div>}
       <Button
         type="submit"
@@ -139,7 +157,22 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         Create workspace
       </Button>
       <p className="text-micro text-center">
-        Free plan: €0/month + 3% per card payment. Switch to Pro any time.
+        Free plan: £0/month + 3% per card payment. Switch to Pro any time.
+      </p>
+      <p className="text-micro text-center">
+        By creating a workspace you agree to the{" "}
+        <Link href="/terms" target="_blank" className="underline underline-offset-2">
+          Terms
+        </Link>
+        ,{" "}
+        <Link href="/dpa" target="_blank" className="underline underline-offset-2">
+          Data Processing Agreement
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" target="_blank" className="underline underline-offset-2">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </form>
   );

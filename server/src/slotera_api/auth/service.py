@@ -92,6 +92,7 @@ class AuthServiceProtocol(Protocol):
         owner_last_name: str,
         owner_email: str,
         timezone: str,
+        currency: str,
         client_key: str,
     ) -> None: ...
 
@@ -233,6 +234,7 @@ class AuthService:
         owner_last_name: str,
         owner_email: str,
         timezone: str,
+        currency: str,
         client_key: str,
     ) -> None:
         """Create a workspace and an activation-pending owner, then email the activation link.
@@ -258,6 +260,7 @@ class AuthService:
             owner_last_name=owner_last_name,
             owner_email=normalized_email,
             timezone=timezone,
+            currency=currency,
         )
         if result in {"workspace_slug_reserved", "workspace_slug_taken"}:
             raise WorkspaceSlugUnavailable

@@ -14,22 +14,12 @@ import type {
   PendingAction,
 } from "@/types/dashboard";
 import type { Booking } from "@/types/booking";
-import type { Currency } from "@/types/common";
 import type { SessionItem } from "@/types/session";
 import type { SessionActionItem } from "@/types/session-action-item";
-import { ApiRequestError } from "./_errors";
+import { apiCurrency } from "./_currency";
 
 type DashboardSummaryDto = components["schemas"]["DashboardSummaryResponse"];
 type DashboardSessionDto = components["schemas"]["DashboardSessionSummary"];
-
-function dashboardCurrency(value: string): Currency {
-  if ((["EUR", "USD", "GBP"] as string[]).includes(value)) return value as Currency;
-  throw new ApiRequestError(
-    200,
-    "unsupported_currency",
-    `The API returned unsupported currency ${value}.`,
-  );
-}
 
 function timeInTimezone(value: string, timezone: string): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -86,7 +76,7 @@ function percentageChange(current: number, previous: number): {
 }
 
 function mapSummary(summary: DashboardSummaryDto): DashboardData {
-  const currency = dashboardCurrency(summary.currency);
+  const currency = apiCurrency(summary.currency);
   const revenueDelta = percentageChange(
     summary.revenueThisMonthCents,
     summary.revenuePreviousMonthCents,

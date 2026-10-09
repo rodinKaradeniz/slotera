@@ -9,6 +9,8 @@ from slotera_api.booking_access import emit_booking_event
 from slotera_api.config import get_settings
 from slotera_api.database import Database
 from slotera_api.logging import configure_logging
+from slotera_api.scheduling.recurrence import ROLLING_HORIZON_DAYS
+from slotera_api.scheduling.repository import SchedulingRepository
 
 logger = logging.getLogger("slotera.maintenance")
 
@@ -42,6 +44,22 @@ async def queue_booking_reminders(database: Database) -> int:
     return queued
 
 
+async def extend_series_horizons(database: Database) -> int:
+    """Keep every open-ended recurring series materialised `ROLLING_HORIZON_DAYS` ahead."""
+    async with database.transaction() as session:
+        due = (
+            await session.execute(
+                text("SELECT * FROM public.slotera_series_due_extension(:days)"),
+                {"days": ROLLING_HORIZON_DAYS},
+            )
+        ).all()
+    repository = SchedulingRepository(database)
+    created = 0
+    for row in due:
+        created += await repository.extend_series(row.workspace_id, row.series_id)
+    return created
+
+
 async def run() -> int:
     """Run every periodic job once. Schedule it every ~15 minutes."""
     settings = get_settings()
@@ -50,8 +68,12 @@ async def run() -> int:
     try:
         cleaned = await AuthRepository(database).run_maintenance()
         reminders = await queue_booking_reminders(database)
-        logger.info("maintenance_completed", extra={"auth_rows": cleaned, "reminders": reminders})
-        return cleaned + reminders
+        sessions = await extend_series_horizons(database)
+        logger.info(
+            "maintenance_completed",
+            extra={"auth_rows": cleaned, "reminders": reminders, "series_sessions": sessions},
+        )
+        return cleaned + reminders + sessions
     finally:
         await database.dispose()
 

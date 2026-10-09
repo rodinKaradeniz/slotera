@@ -1,8 +1,9 @@
 "use client";
 
-import workspacesJson from "@/data/mock/platform-workspaces.json";
-import subscriptionsJson from "@/data/mock/platform-subscriptions.json";
-import inquiriesJson from "@/data/mock/platform-inquiries.json";
+// The superadmin area exists only in the real app (its layout 404s in the mock demo),
+// so its functions have no mock branch. `createInquiry` keeps one: the demo's contact
+// form uses it.
+
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { apiRequest } from "@/api/client";
@@ -11,11 +12,8 @@ import type {
   PlatformInquiry,
   PlatformInquiryType,
   PlatformOverview,
-  PlatformSubscription,
   PlatformWorkspace,
-  Workspace,
 } from "@/types/platform";
-import type { BillingCycle, PlanId, SubscriptionStatus } from "@/types/billing";
 import { NotFoundError, NotImplementedError } from "./_errors";
 
 type PlatformWorkspaceSummaryDto =
@@ -31,44 +29,29 @@ type PlatformOverviewDto = components["schemas"]["PlatformOverviewResponse"];
 type PlatformInquiryListDto = components["schemas"]["PlatformInquiryListResponse"];
 type PublicInquiryCreateDto = components["schemas"]["PublicInquiryCreate"];
 
-let workspaces: Workspace[] = JSON.parse(
-  JSON.stringify(workspacesJson),
-) as Workspace[];
-let subscriptions: PlatformSubscription[] = JSON.parse(
-  JSON.stringify(subscriptionsJson),
-) as PlatformSubscription[];
-let inquiries: PlatformInquiry[] = JSON.parse(
-  JSON.stringify(inquiriesJson),
-) as PlatformInquiry[];
+function requireApi(name: string): void {
+  if (dataSource !== "api") throw new NotImplementedError(name);
+}
 
-export async function getPlatformOverview(): Promise<PlatformOverview> {
-  if (dataSource === "api") {
-    const overview = await apiRequest<PlatformOverviewDto>("/platform/overview");
-    return {
-      workspacesTotal: overview.workspacesTotal,
-      workspacesActive: overview.workspacesActive,
-      workspacesSuspended: overview.workspacesSuspended,
-      workspacesFree: overview.workspacesFree,
-      workspacesPro: overview.workspacesPro,
-      signups30d: overview.signups30D,
-      bookings30d: overview.bookings30D,
-      inquiriesUnread: overview.inquiriesUnread,
-    };
-  }
-  await sleep(80);
+export function mapPlatformOverview(overview: PlatformOverviewDto): PlatformOverview {
   return {
-    workspacesTotal: workspaces.length,
-    workspacesActive: workspaces.length,
-    workspacesSuspended: 0,
-    workspacesFree: workspaces.length,
-    workspacesPro: 0,
-    signups30d: 0,
-    bookings30d: 0,
-    inquiriesUnread: inquiries.filter((item) => !item.read).length,
+    workspacesTotal: overview.workspacesTotal,
+    workspacesActive: overview.workspacesActive,
+    workspacesSuspended: overview.workspacesSuspended,
+    workspacesFree: overview.workspacesFree,
+    workspacesPro: overview.workspacesPro,
+    signups30d: overview.signups30D,
+    bookings30d: overview.bookings30D,
+    inquiriesUnread: overview.inquiriesUnread,
   };
 }
 
-function mapPlatformWorkspace(
+export async function getPlatformOverview(): Promise<PlatformOverview> {
+  requireApi("getPlatformOverview");
+  return mapPlatformOverview(await apiRequest<PlatformOverviewDto>("/platform/overview"));
+}
+
+export function mapPlatformWorkspace(
   workspace: PlatformWorkspaceSummaryDto | PlatformWorkspaceDetailDto,
 ): PlatformWorkspace {
   return {
@@ -91,161 +74,34 @@ function mapPlatformWorkspace(
 }
 
 export async function listWorkspaces(): Promise<PlatformWorkspace[]> {
-  if (dataSource === "api") {
-    const response = await apiRequest<PlatformWorkspaceListDto>(
-      "/platform/workspaces?limit=100",
-    );
-    return response.items.map(mapPlatformWorkspace);
-  }
-  await sleep(80);
-  return [...workspaces];
+  requireApi("listWorkspaces");
+  const response = await apiRequest<PlatformWorkspaceListDto>("/platform/workspaces?limit=100");
+  return response.items.map(mapPlatformWorkspace);
 }
 
 export async function getWorkspace(id: string): Promise<PlatformWorkspace | null> {
-  if (dataSource === "api") {
-    try {
-      const response = await apiRequest<PlatformWorkspaceDetailDto>(
-        `/platform/workspaces/${id}`,
-      );
-      return mapPlatformWorkspace(response);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        "status" in error &&
-        error.status === 404
-      ) {
-        return null;
-      }
-      throw error;
-    }
+  requireApi("getWorkspace");
+  try {
+    return mapPlatformWorkspace(
+      await apiRequest<PlatformWorkspaceDetailDto>(`/platform/workspaces/${id}`),
+    );
+  } catch (error) {
+    if (error instanceof Error && "status" in error && error.status === 404) return null;
+    throw error;
   }
-  await sleep(60);
-  return workspaces.find((w) => w.id === id) ?? null;
 }
-
-/**
- * Slotera staff manually provisions a workspace (typically after a Custom-plan
- * inquiry). Creates the workspace AND the matching `PlatformSubscription` so
- * the new row shows up consistently across Workspaces, Subscriptions, and the
- * Overview KPIs.
- */
-export type CreateWorkspaceInput = {
-  name: string;
-  ownerName: string;
-  ownerEmail: string;
-  planId: PlanId;
-  billingCycle: BillingCycle;
-  status: SubscriptionStatus;
-  seats: number;
-  /** Pounds, not cents. Converted internally. */
-  amountPounds: number;
-  trialEndsAtISO?: string | null;
-  nextBillingAtISO?: string | null;
-};
 
 export type ProvisionWorkspaceInput = PlatformWorkspaceProvisionDto;
 
 export async function provisionWorkspace(
   input: ProvisionWorkspaceInput,
 ): Promise<PlatformWorkspace> {
-  if (dataSource === "api") {
-    const response = await apiRequest<
-      PlatformWorkspaceDetailDto,
-      PlatformWorkspaceProvisionDto
-    >(
-      "/platform/workspaces",
-      { method: "POST", body: input, csrf: true },
-    );
-    return mapPlatformWorkspace(response);
-  }
-
-  const workspace = await createWorkspace({
-    name: input.name,
-    ownerName: `${input.ownerFirstNames} ${input.ownerLastName}`,
-    ownerEmail: input.ownerEmail,
-    planId: "custom",
-    billingCycle: "monthly",
-    status: "trialing",
-    seats: 25,
-    amountPounds: 0,
-  });
-  return workspace;
-}
-
-export async function createWorkspace(
-  input: CreateWorkspaceInput,
-): Promise<Workspace> {
-  if (dataSource !== "mock") throw new NotImplementedError("createWorkspace");
-  await sleep(180);
-
-  const id = `ws-${Math.random().toString(36).slice(2, 8)}`;
-  const nowISO = new Date().toISOString();
-  const slug = slugifyWorkspace(input.name);
-
-  const workspace: Workspace = {
-    id,
-    name: input.name.trim(),
-    slug,
-    ownerName: input.ownerName.trim(),
-    ownerEmail: input.ownerEmail.trim().toLowerCase(),
-    planId: input.planId,
-    subscriptionStatus: input.status,
-    createdAtISO: nowISO,
-    operationalStatus: "active",
-    lastActiveISO: nowISO,
-    bookingsCount: 0,
-    servicesCount: 0,
-    clientsCount: 0,
-    sessionsCount: 0,
-  };
-
-  const subscription: PlatformSubscription = {
-    id: `sub-${id}`,
-    workspaceId: id,
-    workspaceName: workspace.name,
-    planId: input.planId,
-    status: input.status,
-    billingCycle: input.billingCycle,
-    trialEndsAtISO: input.trialEndsAtISO ?? null,
-    nextBillingAtISO: input.nextBillingAtISO ?? null,
-    amount: Math.round(input.amountPounds * 100),
-    currency: "GBP",
-    paymentStatus: input.status === "trialing" ? "n/a" : "paid",
-  };
-
-  workspaces = [workspace, ...workspaces];
-  subscriptions = [subscription, ...subscriptions];
-  return workspace;
-}
-
-function slugifyWorkspace(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 32) || `workspace-${Math.random().toString(36).slice(2, 6)}`;
-}
-
-export async function setWorkspacePlan(
-  id: string,
-  planId: PlanId,
-): Promise<Workspace> {
-  if (dataSource !== "mock") throw new NotImplementedError("setWorkspacePlan");
-  await sleep(120);
-  const idx = workspaces.findIndex((w) => w.id === id);
-  if (idx === -1) throw new NotFoundError("workspace", id);
-  const next: Workspace = { ...workspaces[idx], planId };
-  workspaces = [...workspaces.slice(0, idx), next, ...workspaces.slice(idx + 1)];
-  const subIdx = subscriptions.findIndex((s) => s.workspaceId === id);
-  if (subIdx !== -1) {
-    subscriptions = [
-      ...subscriptions.slice(0, subIdx),
-      { ...subscriptions[subIdx], planId },
-      ...subscriptions.slice(subIdx + 1),
-    ];
-  }
-  return next;
+  requireApi("provisionWorkspace");
+  const response = await apiRequest<PlatformWorkspaceDetailDto, PlatformWorkspaceProvisionDto>(
+    "/platform/workspaces",
+    { method: "POST", body: input, csrf: true },
+  );
+  return mapPlatformWorkspace(response);
 }
 
 /** Pro is invoiced manually until Stripe Billing exists; staff record the plan here. */
@@ -253,7 +109,7 @@ export async function setPlatformWorkspacePlan(
   id: string,
   plan: "free" | "pro",
 ): Promise<PlatformWorkspace> {
-  if (dataSource !== "api") throw new NotImplementedError("setPlatformWorkspacePlan");
+  requireApi("setPlatformWorkspacePlan");
   const response = await apiRequest<PlatformWorkspaceDetailDto, { plan: "free" | "pro" }>(
     `/platform/workspaces/${id}/plan`,
     { method: "POST", body: { plan }, csrf: true },
@@ -265,64 +121,16 @@ export async function suspendWorkspace(
   id: string,
   suspended: boolean,
 ): Promise<PlatformWorkspace> {
-  if (dataSource === "api") {
-    const action = suspended ? "suspend" : "reactivate";
-    const response = await apiRequest<PlatformWorkspaceDetailDto>(
-      `/platform/workspaces/${id}/${action}`,
-      { method: "POST", csrf: true },
-    );
-    return mapPlatformWorkspace(response);
-  }
-  await sleep(100);
-  const idx = workspaces.findIndex((w) => w.id === id);
-  if (idx === -1) throw new NotFoundError("workspace", id);
-  const next: Workspace = { ...workspaces[idx], suspended };
-  workspaces = [...workspaces.slice(0, idx), next, ...workspaces.slice(idx + 1)];
-  return next;
+  requireApi("suspendWorkspace");
+  const action = suspended ? "suspend" : "reactivate";
+  const response = await apiRequest<PlatformWorkspaceDetailDto>(
+    `/platform/workspaces/${id}/${action}`,
+    { method: "POST", csrf: true },
+  );
+  return mapPlatformWorkspace(response);
 }
 
-export async function listPlatformSubscriptions(): Promise<PlatformSubscription[]> {
-  if (dataSource !== "mock")
-    throw new NotImplementedError("listPlatformSubscriptions");
-  await sleep(80);
-  return [...subscriptions];
-}
-
-export async function setSubscriptionStatus(
-  id: string,
-  status: SubscriptionStatus,
-): Promise<PlatformSubscription> {
-  if (dataSource !== "mock") throw new NotImplementedError("setSubscriptionStatus");
-  await sleep(100);
-  const idx = subscriptions.findIndex((s) => s.id === id);
-  if (idx === -1) throw new NotFoundError("subscription", id);
-  const next: PlatformSubscription = { ...subscriptions[idx], status };
-  subscriptions = [
-    ...subscriptions.slice(0, idx),
-    next,
-    ...subscriptions.slice(idx + 1),
-  ];
-  return next;
-}
-
-export async function setSubscriptionPlan(
-  id: string,
-  planId: PlanId,
-): Promise<PlatformSubscription> {
-  if (dataSource !== "mock") throw new NotImplementedError("setSubscriptionPlan");
-  await sleep(100);
-  const idx = subscriptions.findIndex((s) => s.id === id);
-  if (idx === -1) throw new NotFoundError("subscription", id);
-  const next: PlatformSubscription = { ...subscriptions[idx], planId };
-  subscriptions = [
-    ...subscriptions.slice(0, idx),
-    next,
-    ...subscriptions.slice(idx + 1),
-  ];
-  return next;
-}
-
-function mapInquiry(item: PlatformInquiryDto): PlatformInquiry {
+export function mapInquiry(item: PlatformInquiryDto): PlatformInquiry {
   return {
     id: item.id,
     name: item.name,
@@ -335,19 +143,14 @@ function mapInquiry(item: PlatformInquiryDto): PlatformInquiry {
 }
 
 export async function listInquiries(): Promise<PlatformInquiry[]> {
-  if (dataSource === "api") {
-    const response = await apiRequest<PlatformInquiryListDto>("/platform/inquiries");
-    return response.items.map(mapInquiry);
-  }
-  await sleep(80);
-  return [...inquiries];
+  requireApi("listInquiries");
+  const response = await apiRequest<PlatformInquiryListDto>("/platform/inquiries");
+  return response.items.map(mapInquiry);
 }
 
 /**
- * Persists a new platform inquiry. Used by the Custom-plan registration path
- * (and any future "talk to sales" CTAs) so Slotera staff see the lead in the
- * superadmin Inquiries view. Distinct from the general public `ContactModal`,
- * which by default does NOT persist.
+ * Saves a contact-form message for Slotera staff (superadmin Inquiries). The demo
+ * pretends to send it and stores nothing.
  */
 export async function createInquiry(input: {
   name: string;
@@ -355,30 +158,8 @@ export async function createInquiry(input: {
   type: PlatformInquiryType;
   message: string;
 }): Promise<PlatformInquiry> {
-  if (dataSource === "api") {
-    await apiRequest<unknown, PublicInquiryCreateDto>("/public/inquiries", {
-      method: "POST",
-      body: {
-        name: input.name.trim(),
-        email: input.email.trim(),
-        reason: input.type,
-        message: input.message.trim(),
-      },
-    });
-    // The public endpoint deliberately returns no record; echo what was sent.
-    return {
-      id: "",
-      name: input.name.trim(),
-      email: input.email.trim().toLowerCase(),
-      type: input.type,
-      message: input.message.trim(),
-      read: false,
-      createdAtISO: new Date().toISOString(),
-    };
-  }
-  await sleep(160);
   const created: PlatformInquiry = {
-    id: `inq-${Math.random().toString(36).slice(2, 8)}`,
+    id: "",
     name: input.name.trim(),
     email: input.email.trim().toLowerCase(),
     type: input.type,
@@ -386,7 +167,20 @@ export async function createInquiry(input: {
     read: false,
     createdAtISO: new Date().toISOString(),
   };
-  inquiries = [created, ...inquiries];
+  if (dataSource === "api") {
+    await apiRequest<unknown, PublicInquiryCreateDto>("/public/inquiries", {
+      method: "POST",
+      body: {
+        name: created.name,
+        email: input.email.trim(),
+        reason: input.type,
+        message: created.message,
+      },
+    });
+    // The public endpoint deliberately returns no record; echo what was sent.
+    return created;
+  }
+  await sleep(160);
   return created;
 }
 
@@ -394,23 +188,13 @@ export async function createInquiry(input: {
  * Toggle read/unread on a single inquiry. Used by the preview modal (auto-marks
  * read on open) and by the "Mark unread" footer action.
  */
-export async function setInquiryRead(
-  id: string,
-  read: boolean,
-): Promise<PlatformInquiry> {
-  if (dataSource === "api") {
-    await apiRequest<void, { read: boolean }>(
-      `/platform/inquiries/${encodeURIComponent(id)}/read`,
-      { method: "POST", body: { read }, csrf: true },
-    );
-    const updated = (await listInquiries()).find((item) => item.id === id);
-    if (!updated) throw new NotFoundError("inquiry", id);
-    return updated;
-  }
-  await sleep(60);
-  const idx = inquiries.findIndex((i) => i.id === id);
-  if (idx === -1) throw new NotFoundError("inquiry", id);
-  const next: PlatformInquiry = { ...inquiries[idx], read };
-  inquiries = [...inquiries.slice(0, idx), next, ...inquiries.slice(idx + 1)];
-  return next;
+export async function setInquiryRead(id: string, read: boolean): Promise<PlatformInquiry> {
+  requireApi("setInquiryRead");
+  await apiRequest<void, { read: boolean }>(
+    `/platform/inquiries/${encodeURIComponent(id)}/read`,
+    { method: "POST", body: { read }, csrf: true },
+  );
+  const updated = (await listInquiries()).find((item) => item.id === id);
+  if (!updated) throw new NotFoundError("inquiry", id);
+  return updated;
 }

@@ -1,91 +1,133 @@
 # Deployment and live-release guide
 
-This is a deployment guide, not a claim that the API is already safe to launch with real
-customer data. The product has two intentionally separate release paths.
+Slotera runs on **one Hetzner Cloud server** with Docker Compose. That is enough for the
+MVP and keeps operations to one machine, one compose file and one backup job (rule 0 in
+[`RULES.md`](RULES.md)). Move to managed services only when load or uptime needs it.
 
-## Recommended topology
+This guide does not mean the app is ready for real customer data. Complete the
+[live-release gate](#live-release-gate) first.
 
-| Surface | Recommended host | Domain | Data source |
-|---|---|---|---|
-| Portfolio/demo | Vercel | `www.slotera.app` | `mock` |
-| Live web app | Vercel | `app.slotera.app` | `api` |
-| API | Railway | `api.slotera.app` | FastAPI + PostgreSQL |
-| Transactional email worker | Railway worker service | no public domain | shared PostgreSQL outbox |
-| Scheduled maintenance | Railway cron service | no public domain | shared PostgreSQL |
+## What runs where
 
-This shape preserves the deliberate mock/API boundary: the public portfolio demo never
-receives a production API URL or real-auth configuration. Vercel supports a `web/` project
-inside this repository; select `web` as its Root Directory. Railway supports a `server/`
-service in the same repository. See the official [Vercel monorepo guide](https://vercel.com/docs/monorepos)
-and [Railway deployment configuration reference](https://docs.railway.com/config-as-code/reference).
+Everything is defined in [`deploy/compose.yaml`](../deploy/compose.yaml):
 
-Use sibling origins for the live application. The API session cookie remains host-only on
-`api.slotera.app`; the readable CSRF cookie must use `.slotera.app` so `app.slotera.app`
-can send the session-bound token. Do not put the API under a path proxy or mix the live API
-into the portfolio demo.
-
-## Vercel projects
-
-Create two Vercel projects from this repository, each with Root Directory `web`.
-
-| Project | Domain | Required environment variables |
+| Service | Purpose | Public |
 |---|---|---|
-| Demo | `www.slotera.app` | `NEXT_PUBLIC_DATA_SOURCE=mock` |
-| Live app | `app.slotera.app` | `NEXT_PUBLIC_DATA_SOURCE=api`, `NEXT_PUBLIC_API_BASE_URL=https://api.slotera.app`, `NEXT_PUBLIC_CSRF_COOKIE_NAME=slotera_csrf` |
+| `caddy` | HTTPS (automatic certificates) and reverse proxy | ports 80/443 |
+| `web-demo` | Portfolio demo, `NEXT_PUBLIC_DATA_SOURCE=mock` | `www.` |
+| `web-app` | Real app, `NEXT_PUBLIC_DATA_SOURCE=api` | `app.` |
+| `api` | FastAPI (`/health/ready` health check) | `api.` |
+| `migrate` | `alembic upgrade head`, once per deploy; the API, worker, jobs and backups wait for it | — |
+| `worker` | Transactional email outbox (one replica; claims work with `SKIP LOCKED`) | — |
+| `maintenance` | `slotera-maintenance` every 15 minutes: auth clean-up, booking reminders, recurring-series top-up | — |
+| `db` | PostgreSQL 17; the API uses the restricted `slotera_app` role | — |
+| `backup` | Nightly `pg_dump`, 14 days kept, mirrored to a Hetzner Storage Box | — |
 
-Use the same variables in the matching preview environment only when its API has a matching
-preview origin. The API validates an exact origin for every unsafe authenticated request.
+The demo and the app are two images because `NEXT_PUBLIC_*` values are compiled in. The
+demo never receives an API URL, so the mock/API boundary holds. The API, worker,
+maintenance and migrate services share one server image (`server/Dockerfile`).
 
-## Railway services
+Use sibling origins. The session cookie stays host-only on `api.`. The readable CSRF
+cookie uses the parent domain (`SLOTERA_CSRF_COOKIE_DOMAIN=.slotera.app`) so `app.` can
+send the token. Do not put the API behind a path proxy.
 
-Create one Railway project with a managed PostgreSQL service and three services sourced from
-the `server` directory:
+## First deployment
 
-| Service | Start command | Notes |
-|---|---|---|
-| API | `uv run uvicorn slotera_api.main:app --host 0.0.0.0 --port $PORT` | Health check: `/health/ready` |
-| Email worker | `uv run slotera-email-worker` | One replica; it safely claims outbox work with `SKIP LOCKED` |
-| Maintenance cron | `uv run slotera-maintenance` | Every 15 minutes (auth cleanup + booking reminders); no public domain |
+1. **Server:** create a Hetzner Cloud server (Ubuntu LTS; CX22 or larger is fine to
+   start). Install Docker Engine with the compose plugin. Allow only ports 22, 80 and 443
+   in the Hetzner firewall, and use SSH keys only.
+2. **DNS:** point `www.`, `app.` and `api.` at the server (A and AAAA records).
+3. **Code:** clone the repository on the server.
+4. **Settings:** `cp deploy/.env.example deploy/.env` and fill it in. Generate both
+   database passwords with `openssl rand -hex 32`. The production configuration refuses
+   to start with local credentials, a console email provider, a missing CSRF cookie
+   domain, or a non-HTTPS web URL.
+5. **Off-box backups:** order a Hetzner Storage Box (in a different location from the
+   server). Put an SSH key at `deploy/backup/ssh/id_ed25519` (git-ignored), add its
+   public half to the Storage Box, and set `STORAGE_BOX=uXXXXX@uXXXXX.your-storagebox.de`.
+6. **Start:** from the repository root, run:
 
-Before the first API deployment and before every schema-changing release, run
-`uv run alembic upgrade head` as Railway's API pre-deploy command. Do not run the local demo
-seed in production: the server rejects it by design.
+   ```sh
+   RELEASE=$(git rev-parse --short HEAD) \
+     docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
+   ```
 
-Set all secrets in Railway, never in this repository:
+   On first start the database volume runs `deploy/postgres/init`, which creates the
+   restricted `slotera_app` role. Then `migrate` builds the schema.
+7. **Smoke test:** `https://api.…/health/ready` returns 200, and both web hosts load.
 
-```text
-SLOTERA_ENVIRONMENT=production
-SLOTERA_DATABASE_URL=<restricted slotera_app PostgreSQL URL>
-SLOTERA_MIGRATION_DATABASE_URL=<slotera_owner PostgreSQL URL>
-SLOTERA_CORS_ORIGINS=["https://app.slotera.app"]
-SLOTERA_PUBLIC_WEB_BASE_URL=https://app.slotera.app
-SLOTERA_CSRF_COOKIE_DOMAIN=.slotera.app
-SLOTERA_EMAIL_PROVIDER=resend
-SLOTERA_EMAIL_FROM_ADDRESS=Slotera <no-reply@slotera.app>
-SLOTERA_RESEND_API_KEY=<secret>
+Never run the demo seed in production; the server rejects it by design.
+
+## Releasing
+
+```sh
+git pull
+RELEASE=$(git rev-parse --short HEAD) \
+  docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
 ```
 
-The production configuration deliberately refuses to start with local database credentials,
-a console email provider, a missing shared CSRF-cookie domain, or a non-HTTPS public web URL.
+Migrations run before the new API starts. Every migration has a tested downgrade, but
+prefer additive migrations so the previous release can still run against the new schema.
+
+**Rollback:** images are tagged with `RELEASE`, so redeploy the previous tag without
+rebuilding:
+
+```sh
+RELEASE=<previous-sha> docker compose -f deploy/compose.yaml --env-file deploy/.env up -d
+```
+
+If the rollback crosses a migration, first run
+`docker compose -f deploy/compose.yaml --env-file deploy/.env run --rm migrate alembic downgrade <revision>`.
+
+**Maintenance window:** set `MAINTENANCE_MODE=1` in `deploy/.env` and run
+`up -d web-demo web-app`. Every page then returns the maintenance page with HTTP 503 and
+`Retry-After`. Set it back to `0` afterwards.
+
+## Backups and restore
+
+- `backup` writes `slotera-<timestamp>.dump` daily (`pg_dump --format=custom`), deletes
+  local dumps older than 14 days, and mirrors the folder to the Storage Box.
+- **Restore drill:** do this before launch and then every quarter. It takes a few
+  minutes:
+
+  ```sh
+  docker compose -f deploy/compose.yaml --env-file deploy/.env exec backup sh -c '
+    f=$(ls -t /backups/*.dump | head -1)
+    createdb restore_drill && pg_restore --dbname=restore_drill "$f" &&
+    psql -d restore_drill -tAc "select version_num from alembic_version" &&
+    dropdb restore_drill'
+  ```
+
+- **Real restore:** stop `api`, `worker` and `maintenance`. Drop and recreate the
+  `slotera` database, then `pg_restore` the chosen dump into it and start the services
+  again. Losing up to a day of data is the current trade-off. Add WAL archiving only if
+  that stops being acceptable.
 
 ## Live-release gate
 
-Complete and record each item before enabling the live Vercel application:
+Complete and record each item before telling real operators about `app.`:
 
-1. Managed PostgreSQL has point-in-time recovery, encrypted backups, and a successful
-   restore drill.
-2. Database roles and migrations have been applied from empty production infrastructure;
-   the API only has the restricted runtime URL.
-3. Resend has a verified sending domain and a real activation/reset/booking delivery smoke
-   test has passed.
-4. Error monitoring, alert routing, structured-log retention, uptime checks for both
-   `/health/live` and `/health/ready`, and an on-call owner exist.
-5. A privacy/data-handling policy covers retention, client export, and erasure by
-   anonymisation while retaining only financial facts that must be retained.
-6. API origin, cookie, CSRF, login, reset, public booking, suspension, and email-worker
-   smoke tests have passed on the actual `app.` / `api.` domains.
-7. GitHub Actions is green for the release revision and a rollback owner/runbook is named.
+1. **Restore drill:** a backup has been restored from the Storage Box (not only from the
+   server) and checked.
+2. **Clean install:** the stack was started from an empty volume with the real
+   `deploy/.env`. The API connects only as `slotera_app`.
+3. **Email:** Resend has a verified sending domain (SPF, DKIM, DMARC). Activation, reset,
+   booking confirmation and reminder emails were received on real inboxes.
+4. **Monitoring:** an external uptime check watches `https://api.…/health/ready` and both
+   web hosts. A 503 from the maintenance page counts as down. Error alerts reach a named
+   person, and logs are kept for at least 14 days (`docker compose logs` or a log
+   shipper).
+5. **Legal:** the draft [Terms](../web/src/content/legal/terms.md),
+   [Privacy Policy](../web/src/content/legal/privacy.md) and
+   [DPA](../web/src/content/legal/dpa.md) have been reviewed by a solicitor, the
+   bracketed items are filled in, and Merulio Ltd is incorporated. Client export and
+   erasure are on each client's page.
+6. **Smoke test on the real domains:** origin, cookie and CSRF checks; login; reset;
+   sign-up and onboarding; a public booking; manage link, reschedule and cancel;
+   suspension; and email worker delivery.
+7. **CI and ownership:** GitHub Actions is green for the release commit, and a rollback
+   owner is named.
 
-Stripe, calendar
-integrations, reminders, and package credits are deliberately outside this launch slice.
-Do not enable a card-payment UI until verified payment webhooks are implemented.
+Card payments (Stripe Connect), calendar integrations and package credits are outside
+this launch. They wait for Merulio's incorporation. Do not enable a card-payment UI until
+verified payment webhooks exist.

@@ -60,7 +60,7 @@ async def test_dashboard_summary_is_private_and_aggregates_open_action_items() -
     assert action.status_code == 201
     assert summary.status_code == 200
     assert summary.headers["Cache-Control"] == "no-store"
-    assert summary.json()["currency"] == "EUR"
+    assert summary.json()["currency"] == "GBP"
     assert len(summary.json()["trend30d"]) == 30
     assert summary.json()["openActionItemsCount"] == before.json()["openActionItemsCount"] + 1
     assert "revenueThisMonthCents" in summary.json()

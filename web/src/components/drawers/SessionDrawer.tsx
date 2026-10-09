@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ConflictWarning } from "@/components/shared/ConflictWarning";
 import { AddressPicker } from "@/components/shared/forms/AddressPicker";
 import { AttendanceTab } from "./AttendanceTab";
+import { useDrawers } from "./DrawersProvider";
 import { SessionActionItems } from "./SessionActionItems";
 import {
   createSession,
@@ -107,6 +108,7 @@ export function SessionDrawer({
   const isEdit = !!initial;
   const { toast } = useToast();
   const [mode, setMode] = React.useState<SessionDrawerMode>(modeProp);
+  const { openBookingDrawer } = useDrawers();
   const isView = mode === "view" && isEdit;
   const [services, setServices] = React.useState<Service[]>([]);
   const [savedLocations, setSavedLocations] = React.useState<WorkspaceLocation[]>(
@@ -296,6 +298,15 @@ export function SessionDrawer({
             <Button variant="ghost" onClick={onClose}>
               Close
             </Button>
+            {initial?.status === "scheduled" && (
+              <Button
+                variant="secondary"
+                icon="plus"
+                onClick={() => openBookingDrawer({ defaultSessionId: initial.id })}
+              >
+                Add attendee
+              </Button>
+            )}
             <Button icon="edit" onClick={() => setMode("edit")}>
               Edit session
             </Button>

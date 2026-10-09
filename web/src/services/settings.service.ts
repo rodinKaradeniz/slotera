@@ -6,7 +6,9 @@ import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
 import type { Address, WorkspaceLocation } from "@/types/address";
 import type { SettingsData, WorkingDay } from "@/types/settings";
+import type { Currency } from "@/types/common";
 import { NotFoundError, NotImplementedError } from "./_errors";
+import { apiCurrency } from "./_currency";
 import { getPublicBookingWorkspace } from "./public-booking.service";
 
 type AddressDto = components["schemas"]["Address"];
@@ -357,6 +359,13 @@ export async function completeOnboarding(): Promise<void> {
     body: { onboardingCompleted: true },
     csrf: true,
   });
+}
+
+/** The workspace's client-payment currency; services and bookings inherit it. */
+export async function getWorkspaceCurrency(): Promise<Currency> {
+  if (dataSource === "mock") return "GBP";
+  const business = await apiRequest<BusinessResponseDto>("/settings/business");
+  return apiCurrency(business.currency);
 }
 
 export async function getBusinessSettings(): Promise<BusinessSettings> {

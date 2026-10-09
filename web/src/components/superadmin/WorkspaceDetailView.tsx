@@ -8,46 +8,25 @@ import { Card } from "@/components/ui/Card";
 import { CardHead } from "@/components/shared/CardHead";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Select } from "@/components/ui/Select";
 import { Pill } from "@/components/ui/Pill";
-import { Textarea } from "@/components/ui/Textarea";
 import { useToast } from "@/components/ui/Toast";
 import { Stat } from "@/components/shared/Stat";
 import { DetailLine } from "@/components/shared/DetailLine";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import {
   getWorkspace,
-  setWorkspacePlan,
   setPlatformWorkspacePlan,
   suspendWorkspace,
 } from "@/services/platform.service";
-import { dataSource } from "@/lib/env";
-import {
-  PLAN_LABEL,
-  SUBSCRIPTION_STATUS,
-  WORKSPACE_OPERATIONAL_STATUS,
-} from "@/lib/status-maps";
-import { fmtDate, fmtRelative } from "@/lib/time";
-import {
-  isMockWorkspace,
-  type PlatformWorkspace,
-  type Workspace,
-} from "@/types/platform";
-import type { PlanId } from "@/types/billing";
-
-const PLAN_OPTIONS: Array<{ value: PlanId; label: string }> = [
-  { value: "solo", label: "Solo" },
-  { value: "team", label: "Team" },
-  { value: "custom", label: "Custom" },
-];
+import { WORKSPACE_OPERATIONAL_STATUS } from "@/lib/status-maps";
+import { fmtDate } from "@/lib/time";
+import type { PlatformWorkspace } from "@/types/platform";
 
 export function WorkspaceDetailView({ id }: { id: string }) {
   const router = useRouter();
   const { toast } = useToast();
-  const apiMode = dataSource === "api";
   const [workspace, setWorkspace] = React.useState<PlatformWorkspace | null>(null);
   const [notFound, setNotFound] = React.useState(false);
-  const [notes, setNotes] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [confirmStatusChange, setConfirmStatusChange] = React.useState(false);
 
@@ -80,25 +59,9 @@ export function WorkspaceDetailView({ id }: { id: string }) {
     );
   }
 
-  const mockWorkspace = isMockWorkspace(workspace);
-  const subscription = mockWorkspace
-    ? SUBSCRIPTION_STATUS[workspace.subscriptionStatus]
-    : undefined;
-  const isSuspended = mockWorkspace
-    ? Boolean(workspace.suspended)
-    : workspace.operationalStatus === "suspended";
+  const isSuspended = workspace.operationalStatus === "suspended";
 
-  const handlePlanChange = async (planId: PlanId) => {
-    if (!isMockWorkspace(workspace) || planId === workspace.planId) return;
-    setBusy(true);
-    try {
-      setWorkspace(await setWorkspacePlan(workspace.id, planId));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleApiPlanChange = async () => {
+  const handlePlanChange = async () => {
     const next = workspace.plan === "pro" ? "free" : "pro";
     setBusy(true);
     try {
@@ -149,53 +112,31 @@ export function WorkspaceDetailView({ id }: { id: string }) {
         title={workspace.name}
         description={`${workspace.ownerName ?? "No operator assigned"} · ${workspace.ownerEmail ?? "No owner email"}`}
         meta={
-          mockWorkspace && subscription ? (
-            <span className="inline-flex items-center gap-2 flex-wrap">
-              <Pill tone="neutral">{PLAN_LABEL[workspace.planId]}</Pill>
-              <Pill tone={subscription.tone} icon={subscription.icon}>{subscription.label}</Pill>
-              {workspace.suspended && <Pill tone="danger">Suspended</Pill>}
-              <span aria-hidden>·</span>
-              <span>Joined {fmtDate(new Date(workspace.createdAtISO))}</span>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-2 flex-wrap">
-              <Pill
-                tone={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].tone}
-                icon={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].icon}
-              >
-                {WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label}
-              </Pill>
-              <Pill tone={workspace.plan === "pro" ? "accent" : "neutral"}>
-                {workspace.plan === "pro" ? "Pro plan" : "Free plan"}
-              </Pill>
-              <span aria-hidden>·</span>
-              <span>Joined {fmtDate(new Date(workspace.createdAtISO))}</span>
-            </span>
-          )
+          <span className="inline-flex items-center gap-2 flex-wrap">
+            <Pill
+              tone={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].tone}
+              icon={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].icon}
+            >
+              {WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label}
+            </Pill>
+            <Pill tone={workspace.plan === "pro" ? "accent" : "neutral"}>
+              {workspace.plan === "pro" ? "Pro plan" : "Free plan"}
+            </Pill>
+            <span aria-hidden>·</span>
+            <span>Joined {fmtDate(new Date(workspace.createdAtISO))}</span>
+          </span>
         }
         actions={
           <>
-            {!apiMode && mockWorkspace && (
-              <Button
-                variant="secondary"
-                size="md"
-                icon="eye"
-                onClick={() => toast.info("View-as is a placeholder in this mock build.")}
-              >
-                View as operator
-              </Button>
-            )}
-            {apiMode && !mockWorkspace && (
-              <Button
-                variant="secondary"
-                size="md"
-                icon="refresh"
-                disabled={busy}
-                onClick={handleApiPlanChange}
-              >
-                {workspace.plan === "pro" ? "Move to Free" : "Move to Pro"}
-              </Button>
-            )}
+            <Button
+              variant="secondary"
+              size="md"
+              icon="refresh"
+              disabled={busy}
+              onClick={handlePlanChange}
+            >
+              {workspace.plan === "pro" ? "Move to Free" : "Move to Pro"}
+            </Button>
             <Button
               variant={isSuspended ? "primary" : "danger"}
               size="md"
@@ -214,24 +155,11 @@ export function WorkspaceDetailView({ id }: { id: string }) {
           <PadStat label="Bookings" value={workspace.bookingsCount.toLocaleString()} />
           <PadStat label="Services" value={String(workspace.servicesCount)} />
           <PadStat label="Clients" value={String(workspace.clientsCount)} />
-          <PadStat
-            label={mockWorkspace ? "Last active" : "Sessions"}
-            value={mockWorkspace ? fmtRelative(workspace.lastActiveISO) : String(workspace.sessionsCount)}
-          />
+          <PadStat label="Sessions" value={String(workspace.sessionsCount)} />
         </div>
       </Card>
 
-      {mockWorkspace ? (
-        <MockDetail
-          workspace={workspace}
-          busy={busy}
-          notes={notes}
-          onNotesChange={setNotes}
-          onPlanChange={handlePlanChange}
-        />
-      ) : (
-        <ApiDetail workspace={workspace} />
-      )}
+      <ApiDetail workspace={workspace} />
 
       <ConfirmDialog
         open={confirmStatusChange}
@@ -264,54 +192,6 @@ function ApiDetail({ workspace }: { workspace: PlatformWorkspace }) {
         </div>
       </Card>
       <OwnerCard workspace={workspace} />
-    </div>
-  );
-}
-
-function MockDetail({
-  workspace,
-  busy,
-  notes,
-  onNotesChange,
-  onPlanChange,
-}: {
-  workspace: Workspace;
-  busy: boolean;
-  notes: string;
-  onNotesChange: (notes: string) => void;
-  onPlanChange: (planId: PlanId) => Promise<void>;
-}) {
-  const subscription = SUBSCRIPTION_STATUS[workspace.subscriptionStatus];
-  return (
-    <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
-      <div className="flex flex-col gap-6">
-        <Card padded>
-          <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 16 }}>Plan & subscription</h3>
-          <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-end">
-            <div>
-              <div className="eyebrow mb-2">Plan</div>
-              <Select value={workspace.planId} onChange={(event) => onPlanChange(event.target.value as PlanId)} options={PLAN_OPTIONS} disabled={busy} />
-            </div>
-            <Pill tone={subscription.tone} icon={subscription.icon}>{subscription.label}</Pill>
-          </div>
-          <p className="text-small mt-3">Plan changes are mocked — they update local state but do not bill anyone.</p>
-        </Card>
-        <Card padded={false}>
-          <CardHead title="Recent activity" />
-          <div className="px-5 py-6 text-small text-ink-3">Activity stream is a placeholder. Wire to platform service once event logging exists.</div>
-        </Card>
-        <Card padded={false}>
-          <CardHead title="Billing history" />
-          <div className="px-5 py-6 text-small text-ink-3">Workspace-level billing history will surface here. Mock view: see the operator&apos;s own invoice list under their Settings.</div>
-        </Card>
-      </div>
-      <div className="flex flex-col gap-6 lg:sticky lg:top-24">
-        <OwnerCard workspace={workspace} />
-        <Card padded>
-          <h3 className="text-h3 text-ink mb-2" style={{ fontSize: 16 }}>Admin notes</h3>
-          <Textarea value={notes} rows={5} placeholder="Internal notes about this workspace (mock, not persisted)…" onChange={(event) => onNotesChange(event.target.value)} />
-        </Card>
-      </div>
     </div>
   );
 }

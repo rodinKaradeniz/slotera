@@ -383,6 +383,40 @@ export interface paths {
         patch: operations["updateClient"];
         trace?: never;
     };
+    "/clients/{client_id}/erase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Erase Client */
+        post: operations["eraseClient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/{client_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Client */
+        get: operations["exportClient"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/{client_id}/notes": {
         parameters: {
             query?: never;
@@ -1483,6 +1517,105 @@ export interface components {
             /** Vatid */
             vatId?: string | null;
         };
+        /** ClientErase */
+        ClientErase: {
+            /** Confirmemail */
+            confirmEmail: string;
+        };
+        /** ClientExportBooking */
+        ClientExportBooking: {
+            /** Amountcents */
+            amountCents: number;
+            /** Billingaddress */
+            billingAddress: {
+                [key: string]: unknown;
+            };
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Currency */
+            currency: string;
+            /** Customercompany */
+            customerCompany: string | null;
+            /** Customeremail */
+            customerEmail: string;
+            /** Customerfirstname */
+            customerFirstName: string;
+            /** Customerlastname */
+            customerLastName: string;
+            /** Customerphone */
+            customerPhone: string | null;
+            /** Notes */
+            notes: string | null;
+            /** Paymentstatus */
+            paymentStatus: string;
+            /** Reference */
+            reference: string;
+            /** Servicename */
+            serviceName: string;
+            /**
+             * Sessionstartat
+             * Format: date-time
+             */
+            sessionStartAt: string;
+            /** Status */
+            status: string;
+            /** Taxamountcents */
+            taxAmountCents: number;
+        };
+        /** ClientExportFormResponse */
+        ClientExportFormResponse: {
+            /** Answers */
+            answers: {
+                [key: string]: unknown;
+            }[];
+            /** Bookingreference */
+            bookingReference: string;
+            /** Formname */
+            formName: string;
+            /**
+             * Submittedat
+             * Format: date-time
+             */
+            submittedAt: string;
+        };
+        /** ClientExportNote */
+        ClientExportNote: {
+            /** Body */
+            body: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Title */
+            title: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /**
+         * ClientExportResponse
+         * @description Everything the workspace holds about one client (subject access request).
+         */
+        ClientExportResponse: {
+            /** Bookings */
+            bookings: components["schemas"]["ClientExportBooking"][];
+            client: components["schemas"]["ClientResponse"];
+            /**
+             * Exportedat
+             * Format: date-time
+             */
+            exportedAt: string;
+            /** Formresponses */
+            formResponses: components["schemas"]["ClientExportFormResponse"][];
+            /** Notes */
+            notes: components["schemas"]["ClientExportNote"][];
+        };
         /** ClientListResponse */
         ClientListResponse: {
             /** Items */
@@ -2179,6 +2312,12 @@ export interface components {
         };
         /** PlatformWorkspaceProvision */
         PlatformWorkspaceProvision: {
+            /**
+             * Currency
+             * @default GBP
+             * @enum {string}
+             */
+            currency: "GBP" | "EUR" | "USD";
             /** Name */
             name: string;
             /**
@@ -3050,6 +3189,12 @@ export interface components {
         };
         /** SignupRequest */
         SignupRequest: {
+            /**
+             * Currency
+             * @default GBP
+             * @enum {string}
+             */
+            currency: "GBP" | "EUR" | "USD";
             /**
              * Email
              * Format: email
@@ -3984,6 +4129,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    eraseClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientErase"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exportClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientExportResponse"];
                 };
             };
             /** @description Validation Error */

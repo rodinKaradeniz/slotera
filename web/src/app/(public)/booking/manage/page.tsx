@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Logo } from "@/components/ui/Logo";
+import { BookingTopBar } from "@/components/layout/BookingTopBar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
@@ -116,11 +116,7 @@ export default function ManageBookingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-line-soft">
-        <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center">
-          <Logo />
-        </div>
-      </header>
+      <BookingTopBar consultantName={booking?.providerName} />
       <main className="flex-1 max-w-[720px] mx-auto w-full px-6 pt-12 pb-16 flex flex-col gap-4">
         {!booking || !token ? (
           <Card padded>

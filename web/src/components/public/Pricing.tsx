@@ -22,14 +22,14 @@ type Tier = {
 const TIERS: Tier[] = [
   {
     id: "free",
-    price: "€0",
+    price: "£0",
     nameKey: "landing.pricing.free.name",
     blurbKey: "landing.pricing.free.blurb",
     feeKey: "landing.pricing.free.fee",
   },
   {
     id: "pro",
-    price: "€19",
+    price: "£19",
     nameKey: "landing.pricing.pro.name",
     blurbKey: "landing.pricing.pro.blurb",
     feeKey: "landing.pricing.pro.fee",

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { buildMonthGrid, isAvailable, sameDay } from "@/lib/calendar";
+import { buildMonthGrid, isAvailable, localDateKey, sameDay, slotParts } from "@/lib/calendar";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { localeForLang } from "@/lib/i18n";
@@ -37,28 +37,6 @@ type Props = {
   }) => void;
 };
 
-function dateIso(value: Date): string {
-  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
-}
-
-function slotParts(startAt: string, timezone: string): { date: string; time: string } {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date(startAt));
-  const value = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? "";
-  return {
-    date: `${value("year")}-${value("month")}-${value("day")}`,
-    time: `${value("hour")}:${value("minute")}`,
-  };
-}
-
 export function StepDateTime({ service, date, time, startAt, onChange }: Props) {
   const { t, lang } = useI18n();
   const locale = localeForLang(lang);
@@ -84,7 +62,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
     const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
     const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
     let cancelled = false;
-    listPublicAvailability(service.id, dateIso(first), dateIso(last)).then((result) => {
+    listPublicAvailability(service.id, localDateKey(first), localDateKey(last)).then((result) => {
       if (!cancelled) setApiAvailability(result);
     });
     return () => {
@@ -119,7 +97,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
   };
 
   const pickDate = (d: Date) => {
-    const iso = dateIso(d);
+    const iso = localDateKey(d);
     const available = dataSource === "api" ? availableDates.has(iso) : isAvailable(d);
     if (d < today || !available) return;
     onChange({ date: iso, time: null, startAt: null });
@@ -167,7 +145,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
           {cells.map((c) => {
             const past = c.date < today;
             const avail =
-              dataSource === "api" ? availableDates.has(dateIso(c.date)) : isAvailable(c.date);
+              dataSource === "api" ? availableDates.has(localDateKey(c.date)) : isAvailable(c.date);
             const selected = !!selectedDate && sameDay(c.date, selectedDate);
             const disabled = past || !avail || !c.inMonth;
             return (

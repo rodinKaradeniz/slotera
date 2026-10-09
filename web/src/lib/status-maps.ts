@@ -5,7 +5,6 @@ import type {
   PaymentStatus,
   Tone,
 } from "@/types/common";
-import type { SubscriptionStatus } from "@/types/billing";
 import type {
   PlatformInquiryType,
   PlatformWorkspaceOperationalStatus,
@@ -46,14 +45,6 @@ export const LOC_TYPE_META: Record<
   hybrid:   { label: "Hybrid",   icon: "globe" },
 };
 
-export const SUBSCRIPTION_STATUS: Record<SubscriptionStatus, Meta> = {
-  trialing:         { tone: "info",    label: "Trialing",         icon: "sparkle" },
-  active:           { tone: "accent",  label: "Active",           icon: "check" },
-  past_due:         { tone: "danger",  label: "Past due",         icon: "alert" },
-  cancel_scheduled: { tone: "warning", label: "Cancel scheduled", icon: "clock" },
-  cancelled:        { tone: "neutral", label: "Cancelled",        icon: "x" },
-};
-
 export const WORKSPACE_OPERATIONAL_STATUS: Record<
   PlatformWorkspaceOperationalStatus,
   Meta
@@ -67,12 +58,6 @@ export const INQUIRY_TYPE: Record<PlatformInquiryType, { label: string; tone: To
   development: { label: "Development issue",  tone: "danger" },
   feature:     { label: "Feature request",    tone: "info" },
   general:     { label: "General request",    tone: "neutral" },
-};
-
-export const PLAN_LABEL: Record<"solo" | "team" | "custom", string> = {
-  solo:   "Solo",
-  team:   "Team",
-  custom: "Custom",
 };
 
 export const FORM_STATUS: Record<FormStatus, Meta> = {

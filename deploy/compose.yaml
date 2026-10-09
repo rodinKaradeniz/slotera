@@ -1,0 +1,126 @@
+# Production stack for one Hetzner server. Run from the repository root:
+#   docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
+# See docs/DEPLOYMENT.md.
+name: slotera-prod
+
+x-server: &server
+  build: ../server
+  image: slotera-server:${RELEASE:-latest}
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    SLOTERA_ENVIRONMENT: production
+    SLOTERA_DATABASE_URL: postgresql+asyncpg://slotera_app:${SLOTERA_APP_DB_PASSWORD}@db:5432/slotera
+    SLOTERA_MIGRATION_DATABASE_URL: postgresql+asyncpg://slotera_owner:${POSTGRES_PASSWORD}@db:5432/slotera
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [web-demo, web-app, api]
+
+  web-demo:
+    build:
+      context: ../web
+      args:
+        NEXT_PUBLIC_DATA_SOURCE: mock
+    image: slotera-web-demo:${RELEASE:-latest}
+    restart: unless-stopped
+    environment:
+      MAINTENANCE_MODE: ${MAINTENANCE_MODE:-0}
+
+  web-app:
+    build:
+      context: ../web
+      args:
+        NEXT_PUBLIC_DATA_SOURCE: api
+        NEXT_PUBLIC_API_BASE_URL: https://${API_HOST}
+        NEXT_PUBLIC_CSRF_COOKIE_NAME: slotera_csrf
+    image: slotera-web-app:${RELEASE:-latest}
+    restart: unless-stopped
+    environment:
+      MAINTENANCE_MODE: ${MAINTENANCE_MODE:-0}
+
+  # Applies migrations once per deploy; the API waits for it to finish.
+  migrate:
+    <<: *server
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+
+  api:
+    <<: *server
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    <<: *server
+    command: ["slotera-email-worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Auth clean-up, booking reminders and recurring-series top-up, every 15 minutes.
+  maintenance:
+    <<: *server
+    command: ["sh", "-c", "while true; do slotera-maintenance || echo 'maintenance failed'; sleep 900; done"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: slotera
+      POSTGRES_USER: slotera_owner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SLOTERA_APP_DB_PASSWORD: ${SLOTERA_APP_DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slotera_owner -d slotera"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Nightly pg_dump, kept 14 days locally and copied to the Hetzner Storage Box.
+  backup:
+    build: ./backup
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: slotera_owner
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: slotera
+      STORAGE_BOX: ${STORAGE_BOX:-}
+    volumes:
+      - backups:/backups
+      - ./backup/ssh:/root/.ssh:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:
+  backups:

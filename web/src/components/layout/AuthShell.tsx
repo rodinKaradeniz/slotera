@@ -57,9 +57,8 @@ export function AuthShell({ children, size = "default" }: Props) {
             <Icon name="lock" size={12} /> Operator workspace · UK GDPR-aware
           </span>
           <span className="flex items-center gap-4">
-            <Link href="#" className="hover:text-ink">Imprint</Link>
-            <Link href="#" className="hover:text-ink">Privacy</Link>
-            <Link href="#" className="hover:text-ink">Help</Link>
+            <Link href="/terms" className="hover:text-ink">Terms</Link>
+            <Link href="/privacy" className="hover:text-ink">Privacy</Link>
           </span>
         </div>
       </footer>

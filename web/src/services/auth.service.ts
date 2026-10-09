@@ -7,6 +7,7 @@ import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { clearSession, readSession, writeSession } from "@/lib/session";
 import type { Operator, Session, UserRole } from "@/types/auth";
+import type { Currency } from "@/types/common";
 import { ApiRequestError } from "./_errors";
 
 type LoginRequestDto = components["schemas"]["LoginRequest"];
@@ -112,6 +113,7 @@ export async function register(input: {
   email: string;
   workspaceName: string;
   slug: string;
+  currency: Currency;
 }): Promise<void> {
   if (dataSource === "mock") {
     await sleep(260);
@@ -125,6 +127,7 @@ export async function register(input: {
       email: input.email.trim().toLowerCase(),
       workspaceName: input.workspaceName.trim(),
       slug: input.slug,
+      currency: input.currency,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin",
     },
   });

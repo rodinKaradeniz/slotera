@@ -1,0 +1,19 @@
+# Automatic HTTPS for the three public hosts (set in deploy/.env).
+{
+	email {$ACME_EMAIL}
+}
+
+{$DEMO_HOST} {
+	encode zstd gzip
+	reverse_proxy web-demo:3000
+}
+
+{$APP_HOST} {
+	encode zstd gzip
+	reverse_proxy web-app:3000
+}
+
+{$API_HOST} {
+	encode zstd gzip
+	reverse_proxy api:8000
+}

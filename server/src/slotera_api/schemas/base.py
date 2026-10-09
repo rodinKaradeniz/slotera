@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -37,3 +37,6 @@ class ReadinessResponse(HealthResponse):
 
 
 JsonObject = dict[str, Any]
+# Client-payment currencies a workspace may use. Add one here and in migration 0027's
+# check constraint when a real tenant needs it.
+WorkspaceCurrency = Literal["GBP", "EUR", "USD"]

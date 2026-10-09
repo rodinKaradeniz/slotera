@@ -18,7 +18,7 @@ import {
   removeService,
 } from "@/services/services.service";
 import type { Service } from "@/types/service";
-import { dataSource } from "@/lib/env";
+import { getWorkspaceCurrency } from "@/services/settings.service";
 
 export type ServiceDrawerProps = {
   open: boolean;
@@ -33,7 +33,7 @@ const DEFAULTS: ServiceFormValue = {
   description: "",
   durationMin: 60,
   priceCents: 12000,
-  currency: dataSource === "api" ? "EUR" : "GBP",
+  currency: "GBP",
   capacity: 1,
   locationType: "online",
   location: "Zoom · link sent on confirmation",
@@ -59,7 +59,14 @@ export function ServiceDrawer({
   const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   React.useEffect(() => {
-    if (open) setForm(initial ? { ...initial } : DEFAULTS);
+    if (!open) return;
+    setForm(initial ? { ...initial } : DEFAULTS);
+    // New services inherit the workspace's currency; the API derives it anyway.
+    if (!initial) {
+      getWorkspaceCurrency()
+        .then((currency) => setForm((f) => ({ ...f, currency })))
+        .catch(() => undefined);
+    }
   }, [initial, open]);
 
   const save = async () => {

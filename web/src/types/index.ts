@@ -8,7 +8,6 @@ export * from "./dashboard";
 export * from "./notification";
 export * from "./settings";
 export * from "./auth";
-export * from "./billing";
 export * from "./platform";
 export * from "./form";
 export * from "./package";

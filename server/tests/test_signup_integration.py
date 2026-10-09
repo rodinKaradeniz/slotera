@@ -24,6 +24,7 @@ async def test_self_signup_creates_an_activation_pending_workspace_without_enume
         "lastName": "Yilmaz",
         "email": f"ada-{suffix}@harbour.example",
         "timezone": "Europe/Berlin",
+        "currency": "EUR",
     }
     try:
         await import_demo_seed(owner, demo_password="slotera-local-only")
@@ -60,6 +61,7 @@ async def test_self_signup_creates_an_activation_pending_workspace_without_enume
                             SELECT
                               user_item.password_hash,
                               membership.role::text AS role,
+                              workspace.currency,
                               audit.action,
                               audit.actor_user_id = user_item.id AS self_actor,
                               profile.onboarding_completed_at,
@@ -126,6 +128,7 @@ async def test_self_signup_creates_an_activation_pending_workspace_without_enume
     assert state == {
         "password_hash": None,
         "role": "operator_admin",
+        "currency": "EUR",
         "action": "auth.workspace_signup",
         "self_actor": True,
         "onboarding_completed_at": None,

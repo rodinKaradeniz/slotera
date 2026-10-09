@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from http import HTTPStatus
 from typing import Annotated
 from uuid import UUID
@@ -14,6 +15,11 @@ from slotera_api.db.models import Client
 from slotera_api.errors import ApiError
 from slotera_api.schemas.clients import (
     ClientCreate,
+    ClientErase,
+    ClientExportBooking,
+    ClientExportFormResponse,
+    ClientExportNote,
+    ClientExportResponse,
     ClientListResponse,
     ClientPatch,
     ClientResponse,
@@ -136,3 +142,56 @@ async def update_client(
         raise _not_found()
     _private(response)
     return _client_response(client)
+
+
+@router.get("/{client_id}/export", response_model=ClientExportResponse, operation_id="exportClient")
+async def export_client(
+    client_id: UUID,
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> ClientExportResponse:
+    exported = await ClientsRepository(database).export_client(operator.workspace_id, client_id)
+    if exported is None:
+        raise _not_found()
+    _private(response)
+    return ClientExportResponse(
+        exported_at=datetime.now(UTC),
+        client=_client_response(exported["client"]),
+        bookings=[ClientExportBooking(**item) for item in exported["bookings"]],
+        form_responses=[ClientExportFormResponse(**item) for item in exported["form_responses"]],
+        notes=[
+            ClientExportNote(
+                title=note.title,
+                body=note.body,
+                created_at=note.created_at,
+                updated_at=note.updated_at,
+            )
+            for note in exported["notes"]
+        ],
+    )
+
+
+@router.post(
+    "/{client_id}/erase",
+    status_code=HTTPStatus.NO_CONTENT,
+    operation_id="eraseClient",
+)
+async def erase_client(
+    client_id: UUID,
+    payload: ClientErase,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> Response:
+    result = await ClientsRepository(database).erase_client(
+        operator.workspace_id, operator.user_id, client_id, payload.confirm_email
+    )
+    if result == "not_found":
+        raise _not_found()
+    if result == "confirmation_mismatch":
+        raise ApiError(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            code="client_erase_confirmation_mismatch",
+            message="Type the client's email exactly to confirm erasure",
+        )
+    return Response(status_code=HTTPStatus.NO_CONTENT, headers={"Cache-Control": "no-store"})

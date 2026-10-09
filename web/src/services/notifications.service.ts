@@ -4,9 +4,9 @@ import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { formatMoney } from "@/lib/money";
-import type { Currency, Tone } from "@/types/common";
+import type { Tone } from "@/types/common";
 import type { Notification } from "@/types/notification";
-import { ApiRequestError } from "./_errors";
+import { apiCurrency } from "./_currency";
 
 type NotificationListDto = components["schemas"]["NotificationListResponse"];
 type NotificationDto = NotificationListDto["items"][number];
@@ -71,15 +71,6 @@ function formatDateTime(value: string): string {
   }).format(new Date(value));
 }
 
-function notificationCurrency(value: string): Currency {
-  if ((["EUR", "USD", "GBP"] as string[]).includes(value)) return value as Currency;
-  throw new ApiRequestError(
-    200,
-    "unsupported_currency",
-    `The API returned unsupported currency ${value}.`,
-  );
-}
-
 function detailFor(notification: NotificationDto): string {
   switch (notification.kind) {
     case "booking_pending": {
@@ -87,14 +78,14 @@ function detailFor(notification: NotificationDto): string {
         notification.payload.approvalStatus === "pending" ? "approval" : null,
         notification.payload.paymentStatus === "pending" ? "payment" : null,
       ].filter(Boolean);
-      return `${gates.join(" + ")} pending · ${formatMoney(notification.payload.amountCents, notificationCurrency(notification.payload.currency))} · ${formatDateTime(notification.payload.startsAt)}`;
+      return `${gates.join(" + ")} pending · ${formatMoney(notification.payload.amountCents, apiCurrency(notification.payload.currency))} · ${formatDateTime(notification.payload.startsAt)}`;
     }
     case "booking_confirmed":
       return `Confirmed for ${formatDateTime(notification.payload.startsAt)}`;
     case "payment_pending":
       return formatMoney(
         notification.payload.amountCents,
-        notificationCurrency(notification.payload.currency),
+        apiCurrency(notification.payload.currency),
       );
     case "session_starting":
       return formatDateTime(notification.payload.startsAt);

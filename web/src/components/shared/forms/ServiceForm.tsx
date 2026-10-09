@@ -11,7 +11,7 @@ import { AttachedFormsField } from "./AttachedFormsField";
 import { listWorkspaceLocations } from "@/services/settings.service";
 import { dataSource } from "@/lib/env";
 import type { Service } from "@/types/service";
-import type { Currency, LocationType } from "@/types/common";
+import { CURRENCIES, type Currency, type LocationType } from "@/types/common";
 import type { WorkspaceLocation } from "@/types/address";
 
 /**
@@ -103,7 +103,7 @@ export function ServiceForm({
             onChange={(e) =>
               onChange({ ...value, currency: e.target.value as Currency })
             }
-            options={dataSource === "api" ? ["EUR"] : ["EUR", "USD", "GBP"]}
+            options={dataSource === "api" ? [value.currency] : [...CURRENCIES]}
           />
         </Field>
       </div>

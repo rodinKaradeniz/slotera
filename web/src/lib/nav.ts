@@ -41,6 +41,13 @@ export function navForRole(role: UserRole): NavItem[] {
   return dataSource === "api" ? API_OPERATOR_NAV : OPERATOR_NAV;
 }
 
+/** Whether a path belongs to a page this role's navigation lists (AuthGuard, API mode). */
+export function isNavRoute(role: UserRole, pathname: string): boolean {
+  return navForRole(role).some(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  );
+}
+
 export function homePathForRole(role: UserRole): string {
   if (role === "superadmin") return "/superadmin/overview";
   return "/admin/dashboard";

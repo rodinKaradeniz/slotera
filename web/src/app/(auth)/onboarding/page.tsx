@@ -26,6 +26,7 @@ import {
   getAvailabilitySettings,
   getBusinessSettings,
   getPaymentSettings,
+  getWorkspaceCurrency,
   updateAvailabilitySettings,
   updatePaymentSettings,
   workingDaysToWeeklyHours,
@@ -64,7 +65,7 @@ const DEFAULT_SERVICE: ServiceFormValue = {
   description: "",
   durationMin: 60,
   priceCents: 12000,
-  currency: "EUR",
+  currency: "GBP",
   capacity: 1,
   locationType: "online",
   location: "Zoom · link sent on confirmation",
@@ -102,13 +103,15 @@ export default function OnboardingPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [business, services, nextAvailability, nextPayments] = await Promise.all([
+        const [business, services, nextAvailability, nextPayments, currency] = await Promise.all([
           getBusinessSettings(),
           listServices(),
           getAvailabilitySettings(),
           getPaymentSettings(),
+          getWorkspaceCurrency(),
         ]);
         if (cancelled) return;
+        setServiceForm((form) => ({ ...form, currency }));
         setBookingSlug(business.bookingPageUrl);
         setAvailability(nextAvailability);
         // A brand-new workspace has no hours yet; suggest a working week to edit.

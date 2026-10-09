@@ -90,11 +90,11 @@ npm run build           # production build
 npm run start           # serve the production build
 npm run lint            # eslint
 npx tsc --noEmit        # type-check (tsconfig sets noEmit, so this is the type-check)
+npm test                # Vitest: logic-only tests in Node (web/src/**/*.test.ts)
 ```
 
-The frontend still has **no test runner configured** — `npm test` does not exist.
-Frontend verification remains type-check, lint, and affected routes exercised in a
-running dev server. The backend has its own pytest/Ruff/mypy gates below.
+Frontend verification is type-check, lint, `npm test`, build, and affected routes
+exercised in a running dev server. The backend has its own pytest/Ruff/mypy gates below.
 
 **Backend foundation** — from `server/`:
 
@@ -192,7 +192,8 @@ mock mode.
 | Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | auth/session + operator settings/locations/services/notifications |
 | Backend data | PostgreSQL 17 via Docker Compose | owner migrations, restricted application role, forced tenant RLS; host port `55432` |
 | Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; GitHub Actions runs quality and PostgreSQL integration gates |
-| Frontend tests | none | no runner or test files; GitHub Actions runs type-check, lint, and production build |
+| Frontend tests | Vitest `^3` (Node environment) | logic only: helpers, routing rules, DTO mappers, proxy; CI runs it with type-check, lint, and build |
+| Deployment | Docker Compose on one Hetzner server | `deploy/` (Caddy, demo + app images, API, worker, maintenance loop, PostgreSQL, nightly backups); see `docs/DEPLOYMENT.md` |
 
 ---
 
@@ -371,7 +372,7 @@ tenant-RLS bypass, generic global-table access, direct identity-table access, or
 to update the workspace root table.
 The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used host
 `5432` port. `uv run slotera-seed` imports the Hartmann workspace, operator, business
-profile, two locations, five EUR-derived services, four notifications, platform
+profile, two locations, five GBP-derived services, four notifications, platform
 superadmin, default weekday availability, audit event, and reserved slugs idempotently
 through the owner connection.
 
@@ -513,8 +514,9 @@ Present tense — what exists in the working tree today.
 
 **Public**
 - Landing page with hero + collage, features, how-it-works, demo strip (mock only),
-  two-tier pricing (Free / Pro), FAQ, final CTA, footer with a single `Legal` link opening a three-tab modal
-  (Imprint / Privacy / Terms). No standalone `/imprint`, `/privacy`, `/terms` routes.
+  two-tier pricing (Free £0 / Pro £19), FAQ, final CTA, footer linking `/terms`, `/privacy`
+  and `/dpa`. Those pages render draft Markdown from `web/src/content/legal/` (pending
+  solicitor review) with a small renderer in `web/src/lib/markdown.tsx`.
 - Public booking flow: Service → Date & time → Details → (Forms, conditional) → Billing →
   Review → Pay, with a receipt-styled summary, consent linking to a two-tab legal modal
   (provider booking terms + platform terms), and confirmation/failure routes.
@@ -558,10 +560,14 @@ Present tense — what exists in the working tree today.
 - Bookings: status accordions (Pending → Confirmed → Completed → No-show → Cancelled),
   a `client` query-param filter with a removable chip, and a focused booking detail page.
 - Clients: list + a two-tab detail page (Overview, Notes) with rich-text client notes
-  backed by a minimal Tiptap editor.
+  backed by a minimal Tiptap editor. In API mode the detail page also has "Download data"
+  (JSON export) and "Erase client" (anonymisation that keeps booking amounts and payment
+  state).
 - Services, Packages (ordered bundles of existing services), Forms (reusable templates
   attached to services), and Settings (Business Profile incl. saved locations, Branding,
-  Client Payments, Billing & Subscription, Calendar, Emails, Account).
+  Client Payments, Billing (API mode only), Calendar, Emails, Account).
+- A scheduled session's drawer has "Add attendee", which opens the booking drawer with
+  that session preselected.
 - Session drawer carries a "Notes & Actions" tab: one internal note plus lightweight
   action items, both admin-only. API mode persists the action-item list, its task status,
   optional due date, and future-only `clientVisible` flag.
@@ -574,17 +580,14 @@ Present tense — what exists in the working tree today.
   (`web/src/lib/search.ts`) spanning bookings, clients, services, sessions, and nav; API
   mode uses the tenant-scoped search projection without fixture fallback.
 
-**Platform workspace (`/superadmin`)**
-- Overview KPIs, workspaces list + detail, subscriptions, and an inquiries **inbox**
-  (read/unread only — no ticket statuses) with a preview modal that can promote a business
+**Platform workspace (`/superadmin`, real app only — 404 in the demo)**
+- Overview counts, a workspace directory/detail (owner, plan, timezone/currency, counts),
+  and an inquiries **inbox** (read/unread only) whose preview can promote a business
   inquiry into a provisioned workspace.
-- API mode is deliberately narrower: authenticated superadmins see a persisted workspace
-  directory/detail with owner identity, created/timezone/currency facts, and
-  service/client/booking/session counts, plus initial provisioning of a workspace and an
-  activation-pending operator identity whose one-time setup link is queued to transactional
-  email. They can also suspend/reactivate workspace access;
-  suspension immediately revokes operator sessions while retaining workspace data. No mock
-  plan/subscription, activity, billing, notes, or impersonation control appears there.
+- Superadmins provision a workspace (with its client currency) and an activation-pending
+  operator, move it between Free and Pro (audited), and suspend/reactivate access.
+  Suspension revokes operator sessions and keeps workspace data. There are no activity
+  streams, admin notes or impersonation.
 
 **Backend persistence**
 - Local FastAPI app with liveness/readiness, OpenAPI docs, structured errors and request
@@ -603,8 +606,10 @@ Present tense — what exists in the working tree today.
 - Real activation/password-reset request and consumption use generic responses, shared
   PostgreSQL throttles, hashed one-time credentials, a retryable email outbox, and full
   session revocation on password change. `slotera-email-worker` supports local console and
-  production-required Resend delivery; `slotera-maintenance` cleans stale auth state.
-- Operator business-profile, saved-location, and service CRUD. Service currency is
+  production-required Resend delivery; `slotera-maintenance` cleans stale auth state,
+  queues reminders, and tops recurring series back up to six months ahead.
+- Operator business-profile, saved-location, and service CRUD. Each workspace has one
+  client currency (GBP default; GBP/EUR/USD, chosen at sign-up). Service currency is
   inherited from the workspace, inputs cannot override it, and service notes are exposed
   only on authenticated operator endpoints. Resource queries are application-scoped and
   backed by forced PostgreSQL RLS.
@@ -617,7 +622,7 @@ Present tense — what exists in the working tree today.
   availability/sessions, clients, booking-ledger reads, forms, client notes, session
   action items, dashboard facts, workspace search, group-session attendance, and narrow
   booking detail approval/payment/cancel commands. API-mode Calendar uses its real roster/
-  attendance resources without mock fallback. The public/Vercel experience continues to
+  attendance resources without mock fallback. The public demo (`www.`) continues to
   default to mock mode.
 - API mode also wires Client Payments and the per-workspace `/book/[slug]` booking flow. Public
   responses allow-list workspace/catalog/form facts and open slots only; creation supports

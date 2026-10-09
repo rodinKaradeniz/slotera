@@ -3,30 +3,35 @@
 import * as React from "react";
 import { Logo } from "@/components/ui/Logo";
 import { Icon } from "@/components/ui/Icon";
+import { PublicNav } from "@/components/layout/PublicNav";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { dataSource } from "@/lib/env";
 
 type Props = {
+  /** The workspace being booked with, when known. */
   consultantName?: string;
 };
 
-export function BookingTopBar({
-  consultantName = "Dr. Lena Hartmann",
-}: Props) {
+/**
+ * Header for pages a client sees (booking, confirmation, manage). Clients belong to
+ * the operator, so the real app shows no Slotera marketing navigation here; the demo
+ * keeps `PublicNav` because its visitors are evaluating Slotera itself.
+ */
+export function BookingTopBar({ consultantName }: Props) {
   const { t } = useI18n();
+  if (dataSource === "mock") return <PublicNav />;
   return (
-    <header
-      className="sticky top-0 z-30 border-b border-line-soft"
-      style={{ background: "rgba(244,241,236,0.85)", backdropFilter: "blur(12px)" }}
-    >
+    <header className="border-b border-line-soft">
       <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center gap-4">
-        <Logo />
-        <span className="hidden md:inline-block w-px h-5 bg-line-soft" />
-        <span className="hidden md:inline text-[13px] text-ink-2">
-          {t("booking.topbar.with")}{" "}
-          <span className="text-ink font-medium">{consultantName}</span>
-        </span>
+        {consultantName ? (
+          <span className="text-[15px] text-ink font-medium truncate">{consultantName}</span>
+        ) : (
+          <Logo />
+        )}
         <div className="flex-1" />
-        <span className="inline-flex items-center gap-1.5 text-micro text-ink-3">
+        <LanguageSwitcher className="hidden sm:inline-flex" />
+        <span className="hidden sm:inline-flex items-center gap-1.5 text-micro text-ink-3">
           <Icon name="lock" size={12} /> {t("booking.topbar.secure")}
         </span>
       </div>

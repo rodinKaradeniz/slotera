@@ -4,7 +4,11 @@ import { NextResponse, type NextRequest } from "next/server";
 // flipping MAINTENANCE_MODE=1 and restarting the container is enough — no rebuild.
 export function proxy(request: NextRequest) {
   if (process.env.MAINTENANCE_MODE !== "1") return NextResponse.next();
-  return NextResponse.rewrite(new URL("/maintenance", request.url));
+  // 503 + Retry-After so uptime checks and crawlers see an outage, not a normal page.
+  return NextResponse.rewrite(new URL("/maintenance", request.url), {
+    status: 503,
+    headers: { "Retry-After": "600" },
+  });
 }
 
 export const config = {

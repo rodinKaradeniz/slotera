@@ -136,21 +136,24 @@ export const en = {
   "landing.faq.title": "Common questions.",
   "landing.faq.q1.q": "Do my clients need an account?",
   "landing.faq.q1.a":
-    "No. Clients book and pay as guests. You see them as clients in your dashboard automatically.",
-  "landing.faq.q2.q": "What payment processors do you support?",
+    "No. Clients book as guests and get an email link to view, reschedule or cancel their booking. They appear in your client list automatically.",
+  "landing.faq.q2.q":
+    "How do clients pay?",
   "landing.faq.q2.a":
-    "Stripe (cards) is the default. Manual bank-transfer instructions can be enabled workspace-wide.",
+    "Today you add your own payment instructions (for example bank transfer), and Slotera tracks what's paid. Online card payments are coming next.",
   "landing.faq.q3.q": "Can I run group classes or workshops?",
   "landing.faq.q3.a":
-    "Yes. Set the session capacity to any number above 1. Slotera handles spots-left and waitlists.",
+    "Yes. Create a scheduled service, add sessions with any capacity, and clients book until it's full. Slotera shows the spots left.",
   "landing.faq.q4.q": "Where are you hosted?",
-  "landing.faq.q4.a": "Slotera is built with UK data protection workflows in mind.",
-  "landing.faq.q5.q": "Can I embed the booking page on my own site?",
+  "landing.faq.q4.a":
+    "On servers in the EU. Slotera is built with UK data protection workflows in mind.",
+  "landing.faq.q5.q":
+    "How do clients find my booking page?",
   "landing.faq.q5.a":
-    "Yes. You can either link to the hosted booking page or embed it as an iframe. Your colors and fonts come through either way.",
+    "Every workspace gets its own booking link. Share it on your site, in your email signature or on social media.",
   "landing.faq.q6.q": "What happens if a client cancels?",
   "landing.faq.q6.a":
-    "Cancellations follow the policy you set on each service. The session frees up automatically and refunds flow through the same processor you used to take payment.",
+    "Clients can cancel or reschedule themselves until the cutoff you set (24 hours by default). After that they contact you. You handle any refund directly.",
 
   // Landing — final CTA
   "landing.finalCta.eyebrow": "Try Slotera",
@@ -164,22 +167,14 @@ export const en = {
   "footer.col.company": "Company",
   "footer.col.legal": "Legal",
   "footer.link.demo": "Demo",
-  "footer.link.legal": "Legal",
-  "footer.copyright": "© Velora Labs. Slotera is a product by Velora Labs.",
+  "footer.copyright": "© Merulio Ltd. Slotera is a product by Merulio.",
   "footer.gdpr": "UK GDPR-aware",
 
   // Public legal modal (landing)
-  "legal.title": "Legal",
-  "legal.description":
-    "Imprint, privacy notice, and terms of service for the Slotera demo.",
-  "legal.tab.imprint": "Imprint",
   "legal.tab.privacy": "Privacy",
   "legal.tab.terms": "Terms",
-  "legal.imprint.intro":
-    "Slotera is a product by Velora Labs. This is a demo environment — the imprint below is a placeholder while the product is in development.",
-  "legal.imprint.company": "Company",
-  "legal.imprint.contact": "Contact",
-  "legal.imprint.responsible": "Responsible",
+  "legal.tab.dpa": "Data processing",
+  "booking.legal.platformIntro": "Slotera runs this booking page for the provider. How Slotera handles your data is set out here:",
 
   // Contact modal
   "contact.eyebrow": "Contact",

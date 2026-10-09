@@ -5,9 +5,9 @@ import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
 import type { Address } from "@/types/address";
-import type { Currency } from "@/types/common";
 import type { Service, ServiceInput } from "@/types/service";
 import { ApiRequestError, NotFoundError } from "./_errors";
+import { apiCurrency } from "./_currency";
 
 type AddressDto = components["schemas"]["Address"];
 type ServiceResponseDto = components["schemas"]["ServiceResponse"];
@@ -42,20 +42,13 @@ function toAddressDto(address: Address): AddressDto {
 }
 
 function mapService(service: ServiceResponseDto): Service {
-  if (!(["EUR", "USD", "GBP"] as string[]).includes(service.currency)) {
-    throw new ApiRequestError(
-      200,
-      "unsupported_currency",
-      `The API returned unsupported currency ${service.currency}.`,
-    );
-  }
   return {
     id: service.id,
     name: service.name,
     description: service.description,
     durationMin: service.durationMin,
     priceCents: service.priceCents,
-    currency: service.currency as Currency,
+    currency: apiCurrency(service.currency),
     capacity: service.capacity,
     locationType: service.locationType,
     location: service.location,

@@ -44,6 +44,7 @@ yarn-error.log*
 !.env.example
 !web/.env.example
 !server/.env.example
+!deploy/.env.example
 
 # vercel
 .vercel

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -13,15 +14,6 @@ type Props = {
     content: string;
   };
 };
-
-const PLACEHOLDER = (label: string) => Array.from({ length: 3 }, (_, i) => (
-  <p key={i} className="text-body mb-3">
-    {label} placeholder paragraph {i + 1}. Lorem ipsum dolor sit amet, consectetur
-    adipiscing elit. Quisque ac sapien sit amet enim sodales tincidunt. Etiam
-    sed luctus risus, in pellentesque velit. Curabitur a sapien nec turpis
-    placerat porta.
-  </p>
-));
 
 export function LegalModal({ open, onClose, providerBookingTerms }: Props) {
   const { t } = useI18n();
@@ -58,19 +50,16 @@ export function LegalModal({ open, onClose, providerBookingTerms }: Props) {
             <p className="text-body">{t("booking.legal.defaultProviderTerms")}</p>
           )
         ) : (
-          <div className="space-y-6">
-            <section>
-              <h3 className="text-h3 text-ink mb-3" style={{ fontSize: 18 }}>
+          <div className="flex flex-col gap-3 text-body">
+            <p>{t("booking.legal.platformIntro")}</p>
+            <p className="flex flex-wrap gap-4">
+              <Link href="/terms" target="_blank" className="text-accent underline underline-offset-2">
                 {t("booking.legal.termsHeading")}
-              </h3>
-              {PLACEHOLDER("Terms")}
-            </section>
-            <section>
-              <h3 className="text-h3 text-ink mb-3" style={{ fontSize: 18 }}>
+              </Link>
+              <Link href="/privacy" target="_blank" className="text-accent underline underline-offset-2">
                 {t("booking.legal.privacyHeading")}
-              </h3>
-              {PLACEHOLDER("Privacy")}
-            </section>
+              </Link>
+            </p>
           </div>
         )}
       </div>

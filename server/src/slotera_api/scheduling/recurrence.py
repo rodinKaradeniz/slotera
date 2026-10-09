@@ -1,6 +1,10 @@
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+# Recurring series keep this many days of sessions materialised ahead of today; the
+# maintenance job tops them back up as days pass.
+ROLLING_HORIZON_DAYS = 183
+
 
 def expand_weekly_occurrences(
     *,

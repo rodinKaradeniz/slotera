@@ -5,7 +5,7 @@ import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
 import type { Client, ClientInput } from "@/types/client";
-import { ApiRequestError, NotFoundError } from "./_errors";
+import { ApiRequestError, NotFoundError, NotImplementedError } from "./_errors";
 
 type ClientDto = components["schemas"]["ClientResponse"];
 type ClientListDto = components["schemas"]["ClientListResponse"];
@@ -108,4 +108,24 @@ export async function updateClient(
   const next: Client = { ...mock[idx], ...patch };
   mock = [...mock.slice(0, idx), next, ...mock.slice(idx + 1)];
   return next;
+}
+
+export type ClientExport = components["schemas"]["ClientExportResponse"];
+
+/** Everything the workspace holds about one client, for a data access request. */
+export async function exportClient(id: string): Promise<ClientExport> {
+  if (dataSource !== "api") throw new NotImplementedError("exportClient");
+  return apiRequest<ClientExport>(`/clients/${encodeURIComponent(id)}/export`);
+}
+
+/**
+ * Anonymise a client on request. Bookings keep their amounts and payment state;
+ * names, contact details, notes and form answers are removed for good.
+ */
+export async function eraseClient(id: string, confirmEmail: string): Promise<void> {
+  if (dataSource !== "api") throw new NotImplementedError("eraseClient");
+  await apiRequest<void, components["schemas"]["ClientErase"]>(
+    `/clients/${encodeURIComponent(id)}/erase`,
+    { method: "POST", body: { confirmEmail }, csrf: true },
+  );
 }

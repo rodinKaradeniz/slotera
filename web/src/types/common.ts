@@ -1,4 +1,6 @@
-export type Currency = "EUR" | "USD" | "GBP";
+/** Client-payment currencies a workspace may use (mirrors the backend's allowed list). */
+export const CURRENCIES = ["GBP", "EUR", "USD"] as const;
+export type Currency = (typeof CURRENCIES)[number];
 export type LocationType = "online" | "physical" | "hybrid";
 
 export type Tone =

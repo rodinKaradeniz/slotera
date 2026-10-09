@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
@@ -16,10 +16,11 @@ from slotera_api.db.models import (
     Service,
     Session,
     SessionSeries,
+    SessionStatus,
     Workspace,
     WorkspaceMembership,
 )
-from slotera_api.scheduling.recurrence import expand_weekly_occurrences
+from slotera_api.scheduling.recurrence import ROLLING_HORIZON_DAYS, expand_weekly_occurrences
 
 
 class SessionConflictError(Exception):
@@ -218,7 +219,7 @@ class SchedulingRepository:
                         raise RuntimeError("authenticated workspace no longer exists")
                     local_start = values["start_at"].astimezone(ZoneInfo(timezone))
                     requested_end = recurrence.get("ends_on")
-                    rolling_end = local_start.date() + timedelta(days=183)
+                    rolling_end = local_start.date() + timedelta(days=ROLLING_HORIZON_DAYS)
                     horizon_end = min(requested_end, rolling_end) if requested_end else rolling_end
                     duration_minutes = int(
                         (values["end_at"] - values["start_at"]).total_seconds() // 60
@@ -375,3 +376,95 @@ class SchedulingRepository:
             if _is_exclusion_violation(exc):
                 raise SessionConflictError from exc
             raise
+
+    async def extend_series(self, workspace_id: UUID, series_id: UUID) -> int:
+        """Top a recurring series back up to `ROLLING_HORIZON_DAYS` ahead of today.
+
+        New occurrences copy the latest live occurrence, so edits made with
+        "this and following" carry forward. Dates that already exist are skipped, and an
+        occurrence that would clash with another session is skipped rather than failing
+        the whole series. Returns the number of sessions created.
+        """
+        async with self.database.tenant_transaction(workspace_id) as session:
+            series = await session.scalar(
+                select(SessionSeries)
+                .where(SessionSeries.workspace_id == workspace_id, SessionSeries.id == series_id)
+                .with_for_update()
+            )
+            if series is None:
+                return 0
+            template = await session.scalar(
+                select(Session)
+                .where(
+                    Session.workspace_id == workspace_id,
+                    Session.series_id == series_id,
+                    Session.status != SessionStatus.CANCELLED,
+                )
+                .order_by(Session.start_at.desc())
+                .limit(1)
+            )
+            if template is None:
+                return 0
+
+            today = datetime.now(ZoneInfo(series.timezone)).date()
+            target = today + timedelta(days=ROLLING_HORIZON_DAYS)
+            horizon_end: date = min(series.ends_on, target) if series.ends_on else target
+            if horizon_end <= series.horizon_through:
+                return 0
+            ranges = expand_weekly_occurrences(
+                first_start=template.start_at,
+                duration_minutes=int((template.end_at - template.start_at).total_seconds() // 60),
+                timezone=series.timezone,
+                interval_weeks=series.interval_weeks,
+                weekdays=tuple(series.weekdays),
+                horizon_end=horizon_end,
+            )
+            zone = ZoneInfo(series.timezone)
+            existing = set(
+                await session.scalars(
+                    select(Session.start_at).where(
+                        Session.workspace_id == workspace_id, Session.series_id == series_id
+                    )
+                )
+            )
+            created = 0
+            for starts_at, ends_at in ranges:
+                if starts_at.astimezone(zone).date() <= series.horizon_through:
+                    continue
+                if starts_at in existing:
+                    continue
+                try:
+                    async with session.begin_nested():
+                        session.add(
+                            Session(
+                                id=uuid4(),
+                                workspace_id=workspace_id,
+                                series_id=series_id,
+                                service_id=template.service_id,
+                                calendar_owner_id=template.calendar_owner_id,
+                                start_at=starts_at,
+                                end_at=ends_at,
+                                capacity=template.capacity,
+                                location_type=template.location_type,
+                                location=template.location,
+                                address=template.address,
+                                notes=template.notes,
+                            )
+                        )
+                    created += 1
+                except IntegrityError as exc:
+                    if not _is_exclusion_violation(exc):
+                        raise
+            series.horizon_through = horizon_end
+            if created:
+                session.add(
+                    AuditEvent(
+                        workspace_id=workspace_id,
+                        actor_user_id=None,
+                        action="session.series_extended",
+                        resource_type="session_series",
+                        resource_id=series_id,
+                        details={"occurrence_count": created, "through": horizon_end.isoformat()},
+                    )
+                )
+            return created

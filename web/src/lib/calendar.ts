@@ -74,3 +74,27 @@ export function sameDay(a: Date, b: Date): boolean {
     a.getDate() === b.getDate()
   );
 }
+
+/** `YYYY-MM-DD` for a calendar cell in the viewer's local time (the availability key). */
+export function localDateKey(value: Date): string {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+
+/** A slot's date key and `HH:mm` in the workspace timezone, matching `localDateKey` cells. */
+export function slotParts(startAt: string, timezone: string): { date: string; time: string } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(startAt));
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return {
+    date: `${value("year")}-${value("month")}-${value("day")}`,
+    time: `${value("hour")}:${value("minute")}`,
+  };
+}

@@ -114,9 +114,7 @@ class BookingManageRepository:
         if scheduled_session is None or row is None:
             raise BookingLinkInvalidError
         service, workspace, profile, policy = row._tuple()
-        deadline = scheduled_session.start_at - timedelta(
-            hours=policy.customer_change_notice_hours
-        )
+        deadline = scheduled_session.start_at - timedelta(hours=policy.customer_change_notice_hours)
         return ManagedBooking(booking, scheduled_session, service, workspace, profile, deadline)
 
     async def get(self, token: str) -> ManagedBooking:

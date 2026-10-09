@@ -35,7 +35,7 @@ Slotera's **first ICP is independent consultants, coaches, instructors, and smal
 ### Phase scope (important)
 
 **Phase 1 — default frontend/demo.** Next.js + TypeScript + Tailwind + mock JSON only. No
-real auth, Stripe, email provider, or Google Calendar/Meet reaches the public/Vercel
+real auth, Stripe, email provider, or Google Calendar/Meet reaches the public demo
 environment. Local component state is fine; persistence across reload is not a
 requirement. Phase 2's explicit local `api` mode is separate from this demo contract.
 
@@ -52,7 +52,7 @@ public portfolio/demo deployment stays mock-backed; the API is developed and exe
 a separate local/API environment. Activation/reset delivery now uses the PostgreSQL
 outbox worker. Public booking receipt/confirmation events and local templates now use the
 same worker; booking-workspace magic-link access remains the next customer-access bundle.
-Hosting is deliberately undecided (Railway is a later candidate, not a current dependency).
+Hosting is one Hetzner server with Docker Compose (`docs/DEPLOYMENT.md`).
 The mock/api switch in `web/src/lib/env.ts` remains the transition seam (see Data layer below).
 
 **Phase 3 — later and deliberately de-prioritised; starts after Merulio (the operating company) is incorporated.** Stripe connected-account onboarding,
@@ -78,10 +78,12 @@ Use these terms consistently in code, types, and copy:
   booking and remains separate from payment and lifecycle state.
 - **Address** — structured postal address (`Address` type, ISO-3166-1 alpha-2 country code). Operators save named places as `WorkspaceLocation`s under Settings → Business Profile and attach them to services (as defaults) and to sessions (as one-off overrides).
 - **Workspace** — one operator + their settings + their data. The `(superadmin)` views manage all workspaces from a platform perspective.
-- **Workspace currency** — one client-payment currency per workspace. The initial backend
-  default is **EUR**; services and packages inherit it, while bookings/payments snapshot
-  it. The Phase 1 mock remains GBP until its deliberate frontend/data migration. Platform
-  billing is a separate payment domain and does not share this invariant accidentally.
+- **Workspace currency** — one client-payment currency per workspace, chosen at sign-up
+  (GBP default; GBP, EUR or USD) and fixed afterwards. Services and packages inherit it;
+  bookings/payments snapshot it. There is no conversion. Add a currency (e.g. TRY, TZS) to
+  the backend `WorkspaceCurrency` list, the `ck_workspaces_currency_supported` constraint
+  and `CURRENCIES` in `web/src/types/common.ts` only when a real tenant needs it. Platform
+  billing (what Merulio charges operators) is GBP only and a separate payment domain.
 - **Roles** — `UserRole = "operator_admin" | "superadmin"`. Customers don't have accounts; only operators/admins authenticate. Overlapping sessions on the same operator's calendar must be treated as a conflict (see `web/src/components/shared/ConflictWarning.tsx`).
 
 ## Commands
@@ -246,8 +248,8 @@ They appear in: the public booking payment step, the receipt/pay summary when ma
 
 | Plan | Monthly | Cut per card payment |
 |---|---|---|
-| Free | €0 | 3% |
-| Pro | €19 | 1% |
+| Free | £0 | 3% |
+| Pro | £19 | 1% |
 
 - The cut applies to **card payments only** and is collected through Stripe Connect's
   application fee once Stripe is live (after Merulio is incorporated). Manual bank
@@ -261,58 +263,30 @@ Pro is invoiced manually until Stripe Billing exists under Merulio). Settings �
 shows the operator's plan and price list; "Upgrade to Pro" sends an inquiry. Rates live in
 `server/src/slotera_api/plans.py`.
 
-The rest of this section describes the older mock (Solo/Team/Custom); the demo no longer
-shows it and it is kept only as history.
-
-Mocked SaaS subscription. Settings → Billing & Subscription shows: current plan, status pill, billing cycle, trial end / next billing date, team-member usage, payment method card, invoice history, change plan, cancel/reactivate. Defaults: currency **GBP**, Solo £20/mo, Team £50/mo (10 members), Custom is negotiated.
-
-```ts
-type SubscriptionStatus =
-  | "trialing"
-  | "active"
-  | "past_due"
-  | "cancel_scheduled"
-  | "cancelled";
-```
-
-Mock files: `web/src/data/mock/plans.json`, `subscription.json`, `invoices.json`. Service: `web/src/services/billing.service.ts` exporting `listPlans()`, `getSubscription()`, `changePlan(planId, cycle)`, `cancelSubscription()`, `reactivateSubscription()`, `listInvoices()`, `updateMockPaymentMethod(input)`, `setSubscriptionStatus(status)`. **Keep this mocked in Phase 1; no real Stripe Billing yet.**
-
-**Change-plan → Custom diverts to contact.** Picking the Custom card in the Change-plan modal does NOT call `changePlan()` — it opens the persisting `ContactModal` (`persist`-mode) pre-filled with the operator's name/email and reason `business`. The submission lands in `/superadmin/inquiries` where staff can promote it to a manually-onboarded Custom workspace. The current subscription is unchanged until the contact is followed up.
-
 ### Superadmin area
 
-Slotera has a separate mocked superadmin area at `/superadmin/*` for internal/platform management. **Do not mix operator-admin and superadmin navigation into one visible sidebar.** Both share the shell components (`AppShell`, `Sidebar`, `Topbar`) but with separate `OPERATOR_NAV` / `SUPERADMIN_NAV` in `web/src/lib/nav.ts` and separate mental models.
+Slotera staff manage the platform at `/superadmin/*`. It exists **only in the real app**:
+the layout 404s in the mock demo, and `web/src/services/platform.service.ts` has no mock
+branches apart from `createInquiry()` (the demo contact form). **Do not mix operator-admin
+and superadmin navigation into one visible sidebar.** Both share the shell components
+(`AppShell`, `Sidebar`, `Topbar`) with separate navigation in `web/src/lib/nav.ts`.
 
-Routes:
+Pages: **Overview** (platform counts), **Workspaces** (+ detail) and **Inquiries**.
+`/superadmin/*` is protected by `AuthGuard requireRole="superadmin"`.
 
-| Operator (`/admin/*`) | Superadmin (`/superadmin/*`) |
-|---|---|
-| dashboard, calendar, bookings, clients, services, packages, forms, settings | overview, workspaces, workspaces/[id], subscriptions, inquiries, settings |
+`GET /platform/workspaces` and its item read return a display-safe allow-list:
+workspace identity/configuration, plan, the first operator owner's name/email, creation
+time, and service/client/booking/session counts. `POST /platform/workspaces` creates a
+workspace (GBP unless a currency is given) on the Free plan, its activation-pending
+operator, baseline settings and an audit event, then queues a one-time activation link.
+The `NewWorkspaceDrawer` serves both the "New workspace" button and "Promote to
+workspace" on a business inquiry (prefilled; marks the inquiry read on success).
+Suspend/reactivate change only operational access: suspension revokes operator sessions,
+reactivation permits a fresh login, data is retained, and neither implies billing state.
+Plan changes (`POST /platform/workspaces/{id}/plan`) are audited. There are no admin
+notes, activity streams or impersonation.
 
-Mock auth routes by role via `homePathForRole()`. `/superadmin/*` is protected by `AuthGuard requireRole="superadmin"`.
-
-**Local API superadmin baseline.** API mode exposes only `/superadmin/workspaces` and
-`/superadmin/workspaces/[id]`; the API-filtered navigation and `AuthGuard` redirect all
-other platform pages to that directory. `GET /platform/workspaces` and its item read are
-available only to an authenticated superadmin and return a display-safe allow-list:
-workspace identity/configuration, the first operator owner’s name/email, creation time,
-and service/client/booking/session counts. `POST /platform/workspaces` is the initial
-persisted command: it creates a EUR workspace, initial operator identity/membership,
-baseline business profile/payment settings, and audit event. It does **not** set or return
-a password; it queues a one-time activation link to the initial operator through the
-transactional email outbox. Explicit item suspend/reactivate commands change only the workspace's
-operational access state. Suspension revokes current operator sessions and prevents new
-workspace sessions; reactivation permits a fresh login but never restores revoked
-sessions. Workspace data is retained, and these commands do not imply cancellation,
-non-payment, or any subscription/billing state. The API must not invent or show mock
-plan/subscription status, billing/activity history, admin notes, or impersonate controls.
-Those features await their own persisted models and commands.
-
-Mock files under `web/src/data/mock/`: `platform-workspaces.json`, `platform-subscriptions.json`, `platform-inquiries.json`, `platform-overview.json`. **Everything platform-side lives in `web/src/services/platform.service.ts`** — workspaces, subscriptions, and inquiries together. There is no separate `platform-billing.service.ts`; both share `setSubscriptionStatus` (with different semantics from `billing.service.ts`'s same-name method — different import sites).
-
-`createInquiry()` powers the Custom-plan persist flow. `createWorkspace()` provisions a workspace + matching `PlatformSubscription` in one call; used by the `NewWorkspaceDrawer` (the "New workspace" button on `/superadmin/workspaces` and the "Promote to workspace" action surfaced inside the inquiry preview modal). Real impersonation is not implemented; "View as operator" is a placeholder that fires `toast.info(...)`.
-
-**Inquiries are an inbox, not a ticketing system.** `PlatformInquiry` carries a single `read: boolean` field — no `new | in_review | resolved` enum, no per-row status dropdowns or badges. `INQUIRY_STATUS` no longer exists in `web/src/lib/status-maps.ts`; only `INQUIRY_TYPE` remains. Rows on `/superadmin/inquiries` are slim and single-line: a small accent dot + warm tint marks unread; columns are `name+email · type pill · truncated 1-line message · date (right-aligned)`. Click a row to open the preview modal which auto-marks read on open, lets the operator flip back to unread, and surfaces **"Promote to workspace"** only for `type === "business"` inquiries (which forwards into `NewWorkspaceDrawer`). The `setInquiryRead(id, read)` service method (renamed from the previous `setInquiryStatus`) is the only mutation. `PlatformOverview.totals.openInquiries` is kept as the JSON field name but now semantically means "unread" — the overview KPI label is **"Unread inquiries"**.
+**Inquiries are an inbox, not a ticketing system.** `PlatformInquiry` carries a single `read: boolean` field — no `new | in_review | resolved` enum, no per-row status dropdowns or badges. `INQUIRY_STATUS` no longer exists in `web/src/lib/status-maps.ts`; only `INQUIRY_TYPE` remains. Rows on `/superadmin/inquiries` are slim and single-line: a small accent dot + warm tint marks unread; columns are `name+email · type pill · truncated 1-line message · date (right-aligned)`. Click a row to open the preview modal which auto-marks read on open, lets staff flip back to unread, and surfaces **"Promote to workspace"** only for `type === "business"` inquiries (which forwards into `NewWorkspaceDrawer`). `setInquiryRead(id, read)` is the only mutation.
 
 ### Auth / Register flow
 
@@ -380,13 +354,12 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 
 ### Landing / public copy
 
-- **Phase 1 mock: GBP. Phase 2 real-data target: EUR.** This is a recorded transition, not
-  permission to mix currencies inside one workspace. Change the frontend fixtures,
-  formatters/defaults, and copy together when the API-backed surface is implemented.
+- **GBP everywhere** in public copy and platform pricing. The demo and new workspaces
+  default to GBP; never mix currencies inside one workspace.
 - **"UK GDPR-aware"** wording (or "Built with UK data protection workflows in mind"). Never claim "GDPR compliant".
 - Smooth anchor scrolling for `#features` / `#pricing` / `#faq` works via `<html data-scroll-behavior="smooth">` plus `globals.css`.
 - Hero collage is desktop/tablet only mini-UI cards — hide or simplify on mobile.
-- **Company-behind-Slotera is `Velora Labs`** — a mock legal entity. Slotera is the product brand and stays unchanged across the UI; Velora Labs only appears in the footer copyright (`© Velora Labs. Slotera is a product by Velora Labs.`) and the public `PublicLegalModal`'s Imprint tab. Don't rename the product, don't sprinkle "Velora Labs" elsewhere.
+- **Company behind Slotera is Merulio Ltd** (England and Wales, being incorporated). Slotera is the product brand everywhere in the UI; Merulio appears only in the footer copyright and the legal pages (`/terms`, `/privacy`, `/dpa`). Don't sprinkle the company name elsewhere.
 - **Footer** has a single `Legal` link that opens `PublicLegalModal` with three tabs: Imprint / Privacy / Terms. There are no separate `/imprint`, `/privacy`, `/terms` pages. Footer "Company" column is just `Contact` — no Blog or About.
 
 ### Public booking flow
@@ -579,6 +552,19 @@ In mock mode, the client detail page (`/admin/clients/[id]`) is a focused two-ta
 - **Overview** is a two-column layout: **Recent bookings** on the left (wider), **Contact info** on the right (narrower); on mobile they stack with Recent bookings first. The "Booking history" card was renamed to "Recent bookings" and the old single-textarea notes card was removed from Overview.
 - **Recent bookings** shows a compact list (service, date/time, amount, status) and a **"View all bookings"** action that navigates to `/admin/bookings?client=<clientId>`. The main **Bookings page stays the canonical place to manage all bookings** — don't duplicate the booking table or add a full Bookings tab inside client details. `BookingsView` reads the `client` query param, filters to that client, and shows a removable filter chip.
 - **Notes** tab → see Client notes below.
+
+**Data requests (real app).** The client page has **Download data** (`GET
+/clients/{id}/export`: profile, bookings with payment facts, form answers and notes, as
+JSON) and **Erase client** (`POST /clients/{id}/erase`; the operator retypes the client's
+email to confirm). Erasure is anonymisation, not deletion:
+- the client becomes "Erased client" with a placeholder email;
+- notes, form answers, booking contact and billing snapshots, and booking notes are
+  removed;
+- manage links are revoked, and booking emails are scrubbed from the outbox;
+- amounts, tax, currency and payment state stay as financial records.
+
+Never add a hard delete that removes bookings. Operators are the controllers of client
+data and Merulio is their processor ([`/dpa`](../web/src/content/legal/dpa.md)).
 
 ### Client notes
 

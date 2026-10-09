@@ -188,6 +188,7 @@ class AuthRepository:
         owner_last_name: str,
         owner_email: str,
         timezone: str,
+        currency: str,
     ) -> str:
         workspace_id = uuid4()
         async with self._database.transaction() as session:
@@ -197,7 +198,7 @@ class AuthRepository:
                     SELECT public.slotera_auth_self_signup(
                       :workspace_id, :owner_user_id, :membership_id, :audit_event_id,
                       :name, :slug, :owner_first_names, :owner_last_name,
-                      :owner_email, :timezone
+                      :owner_email, :timezone, :currency
                     )
                     """
                 ),
@@ -212,6 +213,7 @@ class AuthRepository:
                     "owner_last_name": owner_last_name,
                     "owner_email": owner_email,
                     "timezone": timezone,
+                    "currency": currency,
                 },
             )
             if result_code == "created":

@@ -1308,6 +1308,238 @@
         "title": "ClientCreate",
         "type": "object"
       },
+      "ClientErase": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmEmail": {
+            "title": "Confirmemail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmEmail"
+        ],
+        "title": "ClientErase",
+        "type": "object"
+      },
+      "ClientExportBooking": {
+        "properties": {
+          "amountCents": {
+            "title": "Amountcents",
+            "type": "integer"
+          },
+          "billingAddress": {
+            "additionalProperties": true,
+            "title": "Billingaddress",
+            "type": "object"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customerCompany": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customercompany"
+          },
+          "customerEmail": {
+            "title": "Customeremail",
+            "type": "string"
+          },
+          "customerFirstName": {
+            "title": "Customerfirstname",
+            "type": "string"
+          },
+          "customerLastName": {
+            "title": "Customerlastname",
+            "type": "string"
+          },
+          "customerPhone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customerphone"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "paymentStatus": {
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "serviceName": {
+            "title": "Servicename",
+            "type": "string"
+          },
+          "sessionStartAt": {
+            "format": "date-time",
+            "title": "Sessionstartat",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "taxAmountCents": {
+            "title": "Taxamountcents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reference",
+          "serviceName",
+          "sessionStartAt",
+          "status",
+          "paymentStatus",
+          "amountCents",
+          "taxAmountCents",
+          "currency",
+          "customerFirstName",
+          "customerLastName",
+          "customerEmail",
+          "customerPhone",
+          "customerCompany",
+          "billingAddress",
+          "notes",
+          "createdAt"
+        ],
+        "title": "ClientExportBooking",
+        "type": "object"
+      },
+      "ClientExportFormResponse": {
+        "properties": {
+          "answers": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Answers",
+            "type": "array"
+          },
+          "bookingReference": {
+            "title": "Bookingreference",
+            "type": "string"
+          },
+          "formName": {
+            "title": "Formname",
+            "type": "string"
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "title": "Submittedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bookingReference",
+          "formName",
+          "answers",
+          "submittedAt"
+        ],
+        "title": "ClientExportFormResponse",
+        "type": "object"
+      },
+      "ClientExportNote": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "ClientExportNote",
+        "type": "object"
+      },
+      "ClientExportResponse": {
+        "description": "Everything the workspace holds about one client (subject access request).",
+        "properties": {
+          "bookings": {
+            "items": {
+              "$ref": "#/components/schemas/ClientExportBooking"
+            },
+            "title": "Bookings",
+            "type": "array"
+          },
+          "client": {
+            "$ref": "#/components/schemas/ClientResponse"
+          },
+          "exportedAt": {
+            "format": "date-time",
+            "title": "Exportedat",
+            "type": "string"
+          },
+          "formResponses": {
+            "items": {
+              "$ref": "#/components/schemas/ClientExportFormResponse"
+            },
+            "title": "Formresponses",
+            "type": "array"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/ClientExportNote"
+            },
+            "title": "Notes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "exportedAt",
+          "client",
+          "bookings",
+          "formResponses",
+          "notes"
+        ],
+        "title": "ClientExportResponse",
+        "type": "object"
+      },
       "ClientListResponse": {
         "properties": {
           "items": {
@@ -3313,6 +3545,16 @@
       "PlatformWorkspaceProvision": {
         "additionalProperties": false,
         "properties": {
+          "currency": {
+            "default": "GBP",
+            "enum": [
+              "GBP",
+              "EUR",
+              "USD"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
           "name": {
             "maxLength": 160,
             "minLength": 1,
@@ -5686,6 +5928,16 @@
       "SignupRequest": {
         "additionalProperties": false,
         "properties": {
+          "currency": {
+            "default": "GBP",
+            "enum": [
+              "GBP",
+              "EUR",
+              "USD"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
           "email": {
             "format": "email",
             "title": "Email",
@@ -7169,6 +7421,95 @@
           }
         },
         "summary": "Update Client",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
+    "/clients/{client_id}/erase": {
+      "post": {
+        "operationId": "eraseClient",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientErase"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Erase Client",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
+    "/clients/{client_id}/export": {
+      "get": {
+        "operationId": "exportClient",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientExportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Client",
         "tags": [
           "clients"
         ]

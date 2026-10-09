@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { restoreSession } from "@/services/auth.service";
-import { homePathForRole, navForRole } from "@/lib/nav";
+import { homePathForRole, isNavRoute } from "@/lib/nav";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { UserRole } from "@/types/auth";
 import { dataSource } from "@/lib/env";
@@ -13,12 +13,6 @@ type Props = {
   /** When set, the guard also requires the session role to match. */
   requireRole?: UserRole;
 };
-
-function isApiRoute(role: UserRole, pathname: string): boolean {
-  return navForRole(role).some(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-  );
-}
 
 export function AuthGuard({ children, requireRole }: Props) {
   const router = useRouter();
@@ -42,7 +36,7 @@ export function AuthGuard({ children, requireRole }: Props) {
         // API mode exposes only the routes its navigation lists; anything else
         // (still mock-only) goes home. Deriving this from the nav keeps the
         // guard and the sidebar from disagreeing.
-        if (dataSource === "api" && requireRole && !isApiRoute(requireRole, pathname)) {
+        if (dataSource === "api" && requireRole && !isNavRoute(requireRole, pathname)) {
           router.replace(homePathForRole(requireRole));
           return;
         }

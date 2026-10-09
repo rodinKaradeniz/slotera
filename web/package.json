@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate:api": "../server/.venv/bin/python ../server/scripts/export_openapi.py src/api/generated/openapi.json && openapi-typescript src/api/generated/openapi.json -o src/api/generated/schema.ts"
+    "generate:api": "../server/.venv/bin/python ../server/scripts/export_openapi.py src/api/generated/openapi.json && openapi-typescript src/api/generated/openapi.json -o src/api/generated/schema.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tiptap/extensions": "^3.27.1",
@@ -31,6 +32,7 @@
     "eslint-config-next": "16.2.6",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

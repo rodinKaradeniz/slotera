@@ -21,6 +21,6 @@ class Plan:
 
 
 PLANS: dict[PlanId, Plan] = {
-    "free": Plan("free", "Free", 0, "EUR", 300),
-    "pro": Plan("pro", "Pro", 1900, "EUR", 100),
+    "free": Plan("free", "Free", 0, "GBP", 300),
+    "pro": Plan("pro", "Pro", 1900, "GBP", 100),
 }

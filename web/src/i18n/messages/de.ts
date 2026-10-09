@@ -119,22 +119,24 @@ export const de: Partial<Messages> = {
   "landing.faq.title": "Häufige Fragen.",
   "landing.faq.q1.q": "Brauchen meine Kunden ein Konto?",
   "landing.faq.q1.a":
-    "Nein. Kunden buchen und zahlen als Gäste. In Ihrem Dashboard erscheinen sie automatisch als Kunden.",
-  "landing.faq.q2.q": "Welche Zahlungsanbieter unterstützen Sie?",
+    "Nein. Kund:innen buchen als Gäste und erhalten per E-Mail einen Link, um ihre Buchung anzusehen, zu verschieben oder zu stornieren. Sie erscheinen automatisch in Ihrer Kundenliste.",
+  "landing.faq.q2.q":
+    "Wie bezahlen Kund:innen?",
   "landing.faq.q2.a":
-    "Stripe (Karten) ist die Standardoption. Manuelle Überweisungshinweise lassen sich für den gesamten Arbeitsbereich aktivieren.",
+    "Derzeit hinterlegen Sie eigene Zahlungsanweisungen (z. B. Überweisung), und Slotera verfolgt, was bezahlt ist. Online-Kartenzahlungen folgen als Nächstes.",
   "landing.faq.q3.q": "Kann ich Gruppenkurse oder Workshops anbieten?",
   "landing.faq.q3.a":
-    "Ja. Setzen Sie die Kapazität auf eine beliebige Zahl über 1. Slotera kümmert sich um freie Plätze und Wartelisten.",
+    "Ja. Legen Sie einen terminierten Service an, fügen Sie Sitzungen mit beliebiger Kapazität hinzu, und Kund:innen buchen, bis sie voll sind. Slotera zeigt die freien Plätze an.",
   "landing.faq.q4.q": "Wo werden die Daten gehostet?",
   "landing.faq.q4.a":
-    "Slotera ist mit Blick auf britische Datenschutz-Abläufe entwickelt.",
-  "landing.faq.q5.q": "Kann ich die Buchungsseite auf meiner Website einbetten?",
+    "Auf Servern in der EU. Slotera wurde mit Blick auf britische Datenschutzabläufe entwickelt.",
+  "landing.faq.q5.q":
+    "Wie finden Kund:innen meine Buchungsseite?",
   "landing.faq.q5.a":
-    "Ja. Sie können entweder auf die gehostete Buchungsseite verlinken oder sie als iframe einbetten. Ihre Farben und Schriften kommen in beiden Fällen durch.",
+    "Jeder Workspace hat einen eigenen Buchungslink. Teilen Sie ihn auf Ihrer Website, in Ihrer E-Mail-Signatur oder in sozialen Medien.",
   "landing.faq.q6.q": "Was passiert, wenn ein Kunde storniert?",
   "landing.faq.q6.a":
-    "Stornierungen folgen der Richtlinie, die Sie je Leistung festlegen. Der Termin wird automatisch frei und Erstattungen laufen über denselben Anbieter, mit dem Sie kassiert haben.",
+    "Kund:innen können bis zu der von Ihnen festgelegten Frist (standardmäßig 24 Stunden) selbst stornieren oder verschieben. Danach wenden sie sich an Sie. Erstattungen wickeln Sie direkt ab.",
 
   "landing.finalCta.eyebrow": "Slotera testen",
   "landing.finalCta.title": "Schluss mit der Termin-Jagd.",
@@ -146,21 +148,13 @@ export const de: Partial<Messages> = {
   "footer.col.company": "Unternehmen",
   "footer.col.legal": "Rechtliches",
   "footer.link.demo": "Demo",
-  "footer.link.legal": "Rechtliches",
-  "footer.copyright": "© Velora Labs. Slotera ist ein Produkt von Velora Labs.",
+  "footer.copyright": "© Merulio Ltd. Slotera ist ein Produkt von Merulio.",
   "footer.gdpr": "UK-DSGVO-bewusst",
 
-  "legal.title": "Rechtliches",
-  "legal.description":
-    "Impressum, Datenschutzhinweis und Nutzungsbedingungen für die Slotera-Demo.",
-  "legal.tab.imprint": "Impressum",
   "legal.tab.privacy": "Datenschutz",
   "legal.tab.terms": "Bedingungen",
-  "legal.imprint.intro":
-    "Slotera ist ein Produkt von Velora Labs. Dies ist eine Demo-Umgebung — das folgende Impressum ist ein Platzhalter, während sich das Produkt in Entwicklung befindet.",
-  "legal.imprint.company": "Unternehmen",
-  "legal.imprint.contact": "Kontakt",
-  "legal.imprint.responsible": "Verantwortlich",
+  "legal.tab.dpa": "Auftragsverarbeitung",
+  "booking.legal.platformIntro": "Slotera betreibt diese Buchungsseite für den Anbieter. Wie Slotera Ihre Daten verarbeitet, steht hier:",
 
   "contact.eyebrow": "Kontakt",
   "contact.title": "Kontakt aufnehmen",

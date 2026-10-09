@@ -14,9 +14,8 @@ export function BookingFooter() {
           <Icon name="lock" size={12} /> {t("booking.footer.secure")}
         </span>
         <span className="flex items-center gap-4">
-          <Link href="#" className="hover:text-ink">{t("legal.tab.terms")}</Link>
-          <Link href="#" className="hover:text-ink">{t("legal.tab.privacy")}</Link>
-          <Link href="#" className="hover:text-ink">{t("legal.tab.imprint")}</Link>
+          <Link href="/terms" className="hover:text-ink">{t("legal.tab.terms")}</Link>
+          <Link href="/privacy" className="hover:text-ink">{t("legal.tab.privacy")}</Link>
         </span>
       </div>
     </footer>

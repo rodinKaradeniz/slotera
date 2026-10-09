@@ -15,13 +15,14 @@ import { LoadingRows } from "@/components/shared/LoadingRows";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ClientNotes } from "@/components/admin/clients/ClientNotes";
+import { ClientPrivacyActions } from "@/components/admin/clients/ClientPrivacyActions";
 import { plural } from "@/lib/text";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getClient } from "@/services/clients.service";
 import { listBookingsByClient } from "@/services/bookings.service";
 import { listSessions } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
-import { gbp } from "@/lib/money";
+import { formatMoney, gbp } from "@/lib/money";
 import { fmtDate } from "@/lib/time";
 import { dataSource } from "@/lib/env";
 import type { Client } from "@/types/client";
@@ -129,21 +130,25 @@ export default function ClientDetailPage() {
                 >
                   Edit client
                 </Button>
-                {dataSource === "mock" && (
-                  <Button
-                    variant="primary"
-                    size="md"
-                    icon="plus"
-                    onClick={() =>
-                      openBookingDrawer({
-                        defaultClientId: client.id,
-                        onSaved: () => setReload((k) => k + 1),
-                      })
-                    }
-                  >
-                    Book a session
-                  </Button>
+                {dataSource === "api" && (
+                  <ClientPrivacyActions
+                    client={client}
+                    onErased={() => setReload((k) => k + 1)}
+                  />
                 )}
+                <Button
+                  variant="primary"
+                  size="md"
+                  icon="plus"
+                  onClick={() =>
+                    openBookingDrawer({
+                      defaultClientId: client.id,
+                      onSaved: () => setReload((k) => k + 1),
+                    })
+                  }
+                >
+                  Book a session
+                </Button>
               </>
             }
           />
@@ -224,7 +229,7 @@ export default function ClientDetailPage() {
                                 : "—"}
                             </div>
                             <div className="text-[14px] font-medium text-ink whitespace-nowrap">
-                              {b.amountCents === 0 ? "Free" : gbp(b.amountCents)}
+                              {b.amountCents === 0 ? "Free" : formatMoney(b.amountCents, b.currency)}
                             </div>
                             <StatusBadge kind="booking" status={b.status} />
                           </button>
