@@ -27,10 +27,13 @@ We do not use advertising trackers or sell personal data.
 - To answer enquiries (legitimate interests).
 - To keep financial records required by law (legal obligation).
 
+If you use the calendar subscription link, your calendar provider (for example Google or Apple) fetches your sessions, including your clients' names, from that link. Keep it private; you can turn it off or replace it at any time.
+
 ## Who we share it with
 
 - **Hetzner Online GmbH** — hosting, in the EU.
 - **Resend** — sending transactional email. [Confirm Resend's data location and transfer mechanism, e.g. the UK International Data Transfer Addendum.]
+- **Sentry (Functional Software, Inc.)** — error reports from our software, stored in its EU (Germany) region. We configure it so that reports leave out request bodies, cookies, search terms and access links, but an error message can occasionally contain an email address.
 - Card payment processing will be added later; this policy will be updated before it is.
 
 ## How long we keep it

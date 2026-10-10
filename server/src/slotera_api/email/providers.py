@@ -1,5 +1,6 @@
+import base64
 import logging
-from typing import Protocol
+from typing import Any, Protocol
 
 import httpx
 
@@ -19,10 +20,11 @@ class ConsoleEmailProvider:
         # Printing the body makes its one-time activation URL usable without a
         # third-party mail account. Treat local application logs as sensitive.
         logger.info(
-            "email_console_delivered id=%s recipient=%s subject=%s\n%s",
+            "email_console_delivered id=%s recipient=%s subject=%s attachments=%s\n%s",
             message.id,
             message.recipient_email,
             message.subject,
+            [attachment.filename for attachment in message.attachments],
             message.text_body,
         )
         return f"console:{message.id}"
@@ -36,6 +38,21 @@ class ResendEmailProvider:
         self._from_address = settings.email_from_address
 
     async def send(self, message: OutboxMessage) -> str:
+        body: dict[str, Any] = {
+            "from": self._from_address,
+            "to": [message.recipient_email],
+            "subject": message.subject,
+            "text": message.text_body,
+        }
+        if message.attachments:
+            body["attachments"] = [
+                {
+                    "filename": attachment.filename,
+                    "content": base64.b64encode(attachment.content).decode(),
+                    "content_type": attachment.content_type,
+                }
+                for attachment in message.attachments
+            ]
         async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
                 "https://api.resend.com/emails",
@@ -43,12 +60,7 @@ class ResendEmailProvider:
                     "Authorization": f"Bearer {self._api_key}",
                     "Idempotency-Key": str(message.id),
                 },
-                json={
-                    "from": self._from_address,
-                    "to": [message.recipient_email],
-                    "subject": message.subject,
-                    "text": message.text_body,
-                },
+                json=body,
             )
             response.raise_for_status()
             payload = response.json()

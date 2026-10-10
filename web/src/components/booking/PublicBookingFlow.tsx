@@ -184,6 +184,8 @@ export function PublicBookingFlow() {
             draft,
             booking,
             slug: currentPublicWorkspaceSlug(),
+            providerName: settings?.business.displayName,
+            branded: settings?.business.showPlatformBranding ?? true,
           }),
         );
         window.sessionStorage.removeItem(DRAFT_KEY);
@@ -237,6 +239,7 @@ export function PublicBookingFlow() {
   // While settings are loading, render a quiet placeholder rather than the
   // stepper — otherwise the operator could see the full form for a frame
   // before the paused card replaces it.
+  const branded = settings?.business.showPlatformBranding ?? true;
   if (settings === null) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -248,7 +251,7 @@ export function PublicBookingFlow() {
             <Skeleton h={20} w="60%" />
           </div>
         </main>
-        <BookingFooter />
+        <BookingFooter branded={false} />
       </div>
     );
   }
@@ -260,7 +263,7 @@ export function PublicBookingFlow() {
         <main className="flex-1 max-w-[1100px] mx-auto w-full px-6 pt-16 pb-10">
           <BookingsPausedCard displayName={settings.business.displayName} />
         </main>
-        <BookingFooter />
+        <BookingFooter branded={branded} />
       </div>
     );
   }
@@ -372,7 +375,7 @@ export function PublicBookingFlow() {
           </Button>
         </div>
       </main>
-      <BookingFooter />
+      <BookingFooter branded={branded} />
     </div>
   );
 }

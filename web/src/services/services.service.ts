@@ -53,6 +53,7 @@ function mapService(service: ServiceResponseDto): Service {
     locationType: service.locationType,
     location: service.location,
     address: service.address ? mapAddress(service.address) : undefined,
+    meetingUrl: service.meetingUrl ?? undefined,
     bookingMode: service.bookingMode,
     confirmationPolicy: service.confirmationPolicy,
     cancellationRule: service.cancellationRule,
@@ -72,6 +73,7 @@ function createPayload(input: ServiceInput): ServiceCreateDto {
     locationType: input.locationType,
     location: input.location,
     address: input.address ? toAddressDto(input.address) : null,
+    meetingUrl: input.meetingUrl?.trim() || null,
     bookingMode: input.bookingMode,
     confirmationPolicy: input.confirmationPolicy,
     cancellationRule: input.cancellationRule,
@@ -92,6 +94,7 @@ function patchPayload(patch: Partial<ServiceInput>): ServicePatchDto {
   if ("address" in patch) {
     payload.address = patch.address ? toAddressDto(patch.address) : null;
   }
+  if ("meetingUrl" in patch) payload.meetingUrl = patch.meetingUrl?.trim() || null;
   if (patch.bookingMode !== undefined) payload.bookingMode = patch.bookingMode;
   if (patch.confirmationPolicy !== undefined) {
     payload.confirmationPolicy = patch.confirmationPolicy;

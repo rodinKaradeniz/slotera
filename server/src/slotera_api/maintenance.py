@@ -9,6 +9,7 @@ from slotera_api.booking_access import emit_booking_event
 from slotera_api.config import get_settings
 from slotera_api.database import Database
 from slotera_api.logging import configure_logging
+from slotera_api.observability import init_sentry
 from slotera_api.scheduling.recurrence import ROLLING_HORIZON_DAYS
 from slotera_api.scheduling.repository import SchedulingRepository
 
@@ -64,6 +65,7 @@ async def run() -> int:
     """Run every periodic job once. Schedule it every ~15 minutes."""
     settings = get_settings()
     configure_logging(settings.log_level)
+    init_sentry(settings)
     database = Database(settings.database_url)
     try:
         cleaned = await AuthRepository(database).run_maintenance()

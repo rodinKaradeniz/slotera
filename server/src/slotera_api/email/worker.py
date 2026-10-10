@@ -7,13 +7,15 @@ from typing import cast
 from slotera_api.config import get_settings
 from slotera_api.database import Database
 from slotera_api.email.providers import EmailProvider, create_email_provider
-from slotera_api.email.repository import EmailOutboxRepository
+from slotera_api.email.repository import EmailAttachment, EmailOutboxRepository
 from slotera_api.email.templates import (
     BOOKING_EMAIL_KINDS,
     BookingEmailKind,
+    booking_calendar_file,
     render_booking_email,
 )
 from slotera_api.logging import configure_logging
+from slotera_api.observability import init_sentry
 
 logger = logging.getLogger("slotera.email.worker")
 
@@ -34,7 +36,17 @@ async def deliver_available(
             if message.kind in BOOKING_EMAIL_KINDS:
                 kind = cast(BookingEmailKind, message.kind)
                 subject, text_body = render_booking_email(kind, message.template_data)
-                resolved = replace(message, subject=subject, text_body=text_body)
+                calendar = booking_calendar_file(kind, message.template_data)
+                resolved = replace(
+                    message,
+                    subject=subject,
+                    text_body=text_body,
+                    attachments=(
+                        (EmailAttachment("booking.ics", calendar.encode(), "text/calendar"),)
+                        if calendar
+                        else ()
+                    ),
+                )
             provider_id = await provider.send(resolved)
         except Exception as exc:
             # The database applies bounded exponential retry timing. Store only
@@ -50,6 +62,7 @@ async def deliver_available(
 async def run(*, once: bool, poll_seconds: float) -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
+    init_sentry(settings)
     database = Database(settings.database_url)
     repository = EmailOutboxRepository(database)
     provider = create_email_provider(settings)

@@ -7,6 +7,13 @@ from slotera_api.database import Database
 
 
 @dataclass(frozen=True)
+class EmailAttachment:
+    filename: str
+    content: bytes
+    content_type: str
+
+
+@dataclass(frozen=True)
 class OutboxMessage:
     id: UUID
     kind: str
@@ -15,6 +22,8 @@ class OutboxMessage:
     text_body: str
     template_data: dict[str, object]
     attempt_count: int
+    # Rendered at send time by the worker (e.g. a booking's calendar file).
+    attachments: tuple[EmailAttachment, ...] = ()
 
 
 class EmailOutboxRepository:

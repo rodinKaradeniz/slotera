@@ -140,7 +140,7 @@ trap handle_signal INT TERM HUP
 log "Starting API at http://localhost:8000 (docs: http://localhost:8000/docs)..."
 (
   cd "${SERVER_DIR}"
-  exec .venv/bin/uvicorn slotera_api.main:app --reload --port 8000
+  exec .venv/bin/uvicorn slotera_api.main:app --reload --port 8000 --no-access-log
 ) &
 API_PID=$!
 

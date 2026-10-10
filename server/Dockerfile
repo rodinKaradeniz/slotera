@@ -20,4 +20,4 @@ RUN uv sync --locked
 RUN useradd --system --uid 10001 slotera
 USER slotera
 EXPOSE 8000
-CMD ["uvicorn", "slotera_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+CMD ["uvicorn", "slotera_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]

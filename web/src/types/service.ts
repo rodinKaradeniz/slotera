@@ -29,6 +29,11 @@ export type Service = {
    * services; ignored when locationType is `"online"`.
    */
   address?: Address;
+  /**
+   * Online/hybrid only: one https video-call link (Zoom, Meet, Teams). Clients see it
+   * once their booking is confirmed: in emails, on the confirmation and manage pages.
+   */
+  meetingUrl?: string;
   bookingMode: ServiceBookingMode;
   confirmationPolicy: ServiceConfirmationPolicy;
   cancellationRule: string;

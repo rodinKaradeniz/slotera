@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { DemoGuideButton } from "@/components/public/DemoGuideButton";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { cn } from "@/lib/cn";
+import { SUPPORT_EMAIL } from "@/lib/site";
 import { dataSource } from "@/lib/env";
 
 type Size = "default" | "wide" | "medium";
@@ -59,6 +60,7 @@ export function AuthShell({ children, size = "default" }: Props) {
           <span className="flex items-center gap-4">
             <Link href="/terms" className="hover:text-ink">Terms</Link>
             <Link href="/privacy" className="hover:text-ink">Privacy</Link>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-ink">Help</a>
           </span>
         </div>
       </footer>

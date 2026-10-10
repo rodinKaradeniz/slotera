@@ -7,6 +7,8 @@ import { formatMoney } from "@/lib/money";
 import { listBookings } from "./bookings.service";
 import { listSessions } from "./sessions.service";
 import { listActionItems } from "./session-action-items.service";
+import { getWorkspaceBilling } from "./billing.service";
+import { billingState } from "@/lib/plans";
 import type {
   DashboardData,
   DashboardScheduleItem,
@@ -170,9 +172,36 @@ function mapSummary(summary: DashboardSummaryDto): DashboardData {
   };
 }
 
+/** A reminder when the trial ends within a week or the workspace is unpaid. */
+export function billingAction(
+  trialEndsAtISO: string,
+  paidThrough: string | null,
+  now: Date = new Date(),
+): PendingAction | null {
+  const state = billingState(trialEndsAtISO, paidThrough, now);
+  if (state.kind === "paid" || (state.kind === "trial" && state.daysLeft > 7)) return null;
+  return {
+    id: "billing",
+    tone: "warning",
+    icon: "card",
+    label:
+      state.kind === "trial"
+        ? `Your free trial ends in ${state.daysLeft} day${state.daysLeft === 1 ? "" : "s"}`
+        : "Your free trial has ended",
+    detail: "Choose a plan in Settings → Billing & Subscription and we'll send an invoice.",
+    age: "now",
+  };
+}
+
 export async function getDashboard(): Promise<DashboardData> {
   if (dataSource === "api") {
-    return mapSummary(await apiRequest<DashboardSummaryDto>("/dashboard/summary"));
+    const [summary, billing] = await Promise.all([
+      apiRequest<DashboardSummaryDto>("/dashboard/summary"),
+      getWorkspaceBilling(),
+    ]);
+    const data = mapSummary(summary);
+    const reminder = billingAction(billing.trialEndsAt, billing.paidThrough ?? null);
+    return reminder ? { ...data, pendingActions: [reminder, ...data.pendingActions] } : data;
   }
   await sleep(80);
   const base = dashboardJson as unknown as DashboardData;

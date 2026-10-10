@@ -43,3 +43,32 @@ def test_booking_confirmed_template_contains_booking_facts_without_a_magic_link(
     assert "Your booking is confirmed" in body
     assert "SLT-EXAMPLE" in body
     assert "http" not in body
+
+
+def test_confirmed_email_lists_where_and_the_meeting_link() -> None:
+    _subject, body = render_booking_email(
+        "booking_confirmed",
+        {
+            **TEMPLATE_DATA,
+            "locationType": "hybrid",
+            "location": "Mitte studio",
+            "address": {"street": "1 Main St", "postal_code": "10115", "city": "Berlin"},
+            "meetingUrl": "https://meet.example.com/abc",
+        },
+    )
+    assert "Where: Mitte studio, 1 Main St, 10115, Berlin" in body
+    assert "Join online: https://meet.example.com/abc" in body
+
+
+def test_calendar_file_only_for_add_move_and_remove_emails() -> None:
+    from slotera_api.email.templates import booking_calendar_file
+
+    assert booking_calendar_file("booking_received", TEMPLATE_DATA) is None
+    assert booking_calendar_file("booking_reminder", TEMPLATE_DATA) is None
+    confirmed = booking_calendar_file("booking_confirmed", TEMPLATE_DATA)
+    cancelled = booking_calendar_file("booking_cancelled", TEMPLATE_DATA)
+    assert confirmed is not None and cancelled is not None
+    assert "METHOD:PUBLISH" in confirmed and "UID:slt-example@slotera.app" in confirmed
+    assert "SUMMARY:Strategy Session with Hartmann Strategy" in confirmed
+    assert "METHOD:CANCEL" in cancelled and "STATUS:CANCELLED" in cancelled
+    assert "manage" not in confirmed.lower().replace("change or cancel", "")

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { dataSource } from "@/lib/env";
+import { SUPPORT_EMAIL } from "@/lib/site";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { ContactModal } from "@/components/public/ContactModal";
@@ -36,7 +37,10 @@ export function PublicFooter() {
         />
         <FooterCol
           title={t("footer.col.company")}
-          links={[{ label: t("landing.nav.contact"), onClick: () => setContactOpen(true) }]}
+          links={[
+            { label: t("landing.nav.contact"), onClick: () => setContactOpen(true) },
+            { label: t("footer.link.support"), href: `mailto:${SUPPORT_EMAIL}` },
+          ]}
         />
         <FooterCol
           title={t("footer.col.legal")}

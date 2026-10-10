@@ -13,7 +13,7 @@ from slotera_api.auth.dependencies import (
 from slotera_api.errors import ApiError
 from slotera_api.platform.repository import PlatformRepository, PlatformWorkspace
 from slotera_api.schemas.platform import (
-    PlatformPlanChange,
+    PlatformBillingChange,
     PlatformWorkspaceDetail,
     PlatformWorkspaceListResponse,
     PlatformWorkspaceProvision,
@@ -33,6 +33,9 @@ def _summary(workspace: PlatformWorkspace) -> PlatformWorkspaceSummary:
         created_at=workspace.created_at,
         operational_status=workspace.operational_status,
         plan=workspace.plan,
+        billing_interval=workspace.billing_interval,
+        trial_ends_at=workspace.trial_ends_at,
+        paid_through=workspace.paid_through,
         services_count=workspace.services_count,
         clients_count=workspace.clients_count,
         bookings_count=workspace.bookings_count,
@@ -215,21 +218,26 @@ async def reactivate_platform_workspace(
 
 
 @router.post(
-    "/{workspace_id}/plan",
+    "/{workspace_id}/billing",
     response_model=PlatformWorkspaceDetail,
-    operation_id="setPlatformWorkspacePlan",
+    operation_id="setPlatformWorkspaceBilling",
 )
-async def set_platform_workspace_plan(
+async def set_platform_workspace_billing(
     workspace_id: UUID,
-    payload: PlatformPlanChange,
+    payload: PlatformBillingChange,
     response: Response,
     superadmin: CsrfPlatformSuperadminDependency,
     database: DatabaseDependency,
 ) -> PlatformWorkspaceDetail:
-    """Pro is invoiced manually until Stripe Billing exists; staff record it here."""
+    """Plans are invoiced manually until Stripe Billing exists; staff record them here."""
     repository = PlatformRepository(database)
-    result_code = await repository.set_plan(
-        workspace_id=workspace_id, actor_user_id=superadmin.user_id, plan=payload.plan
+    result_code = await repository.set_billing(
+        workspace_id=workspace_id,
+        actor_user_id=superadmin.user_id,
+        plan=payload.plan,
+        billing_interval=payload.billing_interval,
+        trial_ends_at=payload.trial_ends_at,
+        paid_through=payload.paid_through,
     )
     if result_code == "workspace_not_found":
         raise ApiError(
@@ -244,7 +252,7 @@ async def set_platform_workspace_plan(
             message="A platform superadmin is required",
         )
     if result_code not in {"updated", "unchanged"}:
-        raise RuntimeError(f"unexpected workspace plan result: {result_code}")
+        raise RuntimeError(f"unexpected workspace billing result: {result_code}")
     workspace = await repository.get_workspace(workspace_id)
     if workspace is None:
         raise RuntimeError("updated workspace was not readable")

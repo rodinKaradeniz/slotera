@@ -44,3 +44,47 @@ async def test_worker_claims_and_marks_transactional_email_sent() -> None:
     assert delivered == 1
     assert repository.sent == [(message.id, f"provider:{message.id}")]
     assert repository.failed == []
+
+
+class CapturingProvider:
+    def __init__(self) -> None:
+        self.messages: list[OutboxMessage] = []
+
+    async def send(self, message: OutboxMessage) -> str:
+        self.messages.append(message)
+        return "provider"
+
+
+async def test_worker_attaches_a_calendar_file_to_confirmations() -> None:
+    message = OutboxMessage(
+        id=uuid4(),
+        kind="booking_confirmed",
+        recipient_email="client@example.com",
+        subject="[template:booking_confirmed]",
+        text_body="[template:booking_confirmed]",
+        template_data={
+            "reference": "SLT-ICS1",
+            "serviceName": "Discovery Call",
+            "providerName": "Lena",
+            "startsAt": "2030-01-10T09:00:00Z",
+            "endsAt": "2030-01-10T09:30:00Z",
+            "timezone": "Europe/London",
+            "paymentMethod": "free",
+            "paymentStatus": "free",
+            "approvalStatus": "not_required",
+            "amountCents": 0,
+            "currency": "GBP",
+            "paymentDueAt": None,
+            "manualPaymentInstructions": "",
+            "cancellationRule": "",
+        },
+        attempt_count=1,
+    )
+    provider = CapturingProvider()
+
+    await deliver_available(StubRepository([message]), provider)  # type: ignore[arg-type]
+
+    [sent] = provider.messages
+    [attachment] = sent.attachments
+    assert attachment.filename == "booking.ics" and attachment.content_type == "text/calendar"
+    assert b"UID:slt-ics1@slotera.app" in attachment.content

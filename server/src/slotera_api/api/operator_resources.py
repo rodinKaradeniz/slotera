@@ -20,7 +20,7 @@ from slotera_api.db.models import (
 )
 from slotera_api.errors import ApiError
 from slotera_api.operator_resources.repository import OperatorResourcesRepository
-from slotera_api.plans import PLANS
+from slotera_api.plans import PLANS, BillingInterval, PlanId
 from slotera_api.schemas.operator_resources import (
     Address,
     BusinessSettingsPatch,
@@ -119,6 +119,7 @@ def _service_response(service: Service, currency: str) -> ServiceResponse:
         location_type=service.location_type.value,
         location=service.location,
         address=Address.model_validate(service.address) if service.address else None,
+        meeting_url=service.meeting_url,
         booking_mode=service.booking_mode.value,
         confirmation_policy=service.confirmation_policy.value,
         cancellation_rule=service.cancellation_rule,
@@ -144,6 +145,8 @@ def _service_values(payload: ServiceCreate | ServicePatch) -> dict[str, Any]:
         values["address"] = payload.address.model_dump()
     if values.get("location_type") == "online":
         values["address"] = None
+    if values.get("location_type") == "physical":
+        values["meeting_url"] = None
     return values
 
 
@@ -436,7 +439,10 @@ async def get_workspace_billing(
     workspace, _profile = result
     _private(response)
     return WorkspaceBillingResponse(
-        plan=cast(Literal["free", "pro"], workspace.plan),
+        plan=cast(PlanId, workspace.plan),
         plan_changed_at=workspace.plan_changed_at,
+        billing_interval=cast(BillingInterval, workspace.billing_interval),
+        trial_ends_at=workspace.trial_ends_at,
+        paid_through=workspace.paid_through,
         plans=[PlanResponse(**vars(plan)) for plan in PLANS.values()],
     )

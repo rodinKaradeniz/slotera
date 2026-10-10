@@ -10,6 +10,7 @@ from slotera_api.auth.dependencies import (
     require_trusted_origin,
 )
 from slotera_api.errors import ApiError
+from slotera_api.plans import shows_platform_branding
 from slotera_api.public_booking.manage import (
     BookingLinkInvalidError,
     BookingManageRepository,
@@ -64,7 +65,11 @@ def _response(managed: ManagedBooking) -> ManagedBookingResponse:
         change_deadline=managed.change_deadline,
         can_cancel=managed.can_cancel,
         can_reschedule=managed.can_reschedule,
+        meeting_url=(
+            managed.service.meeting_url if booking.status.value == "confirmed" else None
+        ),
         rescheduled=booking.customer_rescheduled_at is not None,
+        show_platform_branding=shows_platform_branding(managed.workspace.plan),
     )
 
 

@@ -46,17 +46,30 @@ async def test_plans_inquiries_and_overview_are_superadmin_controlled() -> None:
             await _login(operator, "hello@slotera.app")
             await _login(staff, "admin@slotera.app")
             billing_before = await operator.get("/settings/billing")
+            branding_before = await visitor.get("/public/workspaces/lena")
+            change = {
+                "plan": "professional",
+                "billingInterval": "yearly",
+                "trialEndsAt": billing_before.json()["trialEndsAt"],
+                "paidThrough": "2027-10-31",
+            }
             operator_set_plan = await operator.post(
-                f"/platform/workspaces/{workspace_id}/plan",
+                f"/platform/workspaces/{workspace_id}/billing",
                 headers=_csrf(operator),
-                json={"plan": "pro"},
+                json=change,
             )
             set_pro = await staff.post(
-                f"/platform/workspaces/{workspace_id}/plan",
+                f"/platform/workspaces/{workspace_id}/billing",
                 headers=_csrf(staff),
-                json={"plan": "pro"},
+                json=change,
+            )
+            unchanged = await staff.post(
+                f"/platform/workspaces/{workspace_id}/billing",
+                headers=_csrf(staff),
+                json=change,
             )
             billing_after = await operator.get("/settings/billing")
+            branding_after = await visitor.get("/public/workspaces/lena")
 
             inquiry = await visitor.post(
                 "/public/inquiries",
@@ -81,17 +94,21 @@ async def test_plans_inquiries_and_overview_are_superadmin_controlled() -> None:
             operator_overview = await operator.get("/platform/overview")
 
         async with owner.transaction() as session:
-            audit_count = await session.scalar(
+            audit = await session.scalar(
                 text(
-                    "SELECT count(*) FROM audit_events WHERE workspace_id = :id "
-                    "AND action = 'platform.workspace_plan_changed'"
+                    "SELECT details FROM audit_events WHERE workspace_id = :id "
+                    "AND action = 'platform.workspace_billing_changed' "
+                    "ORDER BY occurred_at DESC LIMIT 1"
                 ),
                 {"id": workspace_id},
             )
     finally:
         async with owner.transaction() as session:
             await session.execute(
-                text("UPDATE workspaces SET plan = 'free', plan_changed_at = NULL WHERE id = :id"),
+                text(
+                    "UPDATE workspaces SET plan = 'essentials', plan_changed_at = NULL, "
+                    "billing_interval = 'monthly', paid_through = NULL WHERE id = :id"
+                ),
                 {"id": workspace_id},
             )
             await session.execute(
@@ -101,20 +118,28 @@ async def test_plans_inquiries_and_overview_are_superadmin_controlled() -> None:
         await application.dispose()
         await owner.dispose()
 
-    assert billing_before.json()["plan"] == "free"
-    assert {plan["id"]: plan["cardFeeBps"] for plan in billing_before.json()["plans"]} == {
-        "free": 300,
-        "pro": 100,
-    }
+    before = billing_before.json()
+    assert before["plan"] == "essentials" and before["billingInterval"] == "monthly"
+    assert before["paidThrough"] is None
+    assert {
+        plan["id"]: (plan["monthlyPriceCents"], plan["yearlyPriceCents"], plan["cardFeeBps"])
+        for plan in before["plans"]
+    } == {"essentials": (1900, 19000, 200), "professional": (3900, 39000, 100)}
+    assert branding_before.json()["showPlatformBranding"] is True
     assert operator_set_plan.status_code == 403
-    assert set_pro.status_code == 200 and set_pro.json()["plan"] == "pro"
-    assert billing_after.json()["plan"] == "pro"
-    assert audit_count is not None and audit_count >= 1
+    assert set_pro.status_code == 200 and set_pro.json()["plan"] == "professional"
+    assert unchanged.status_code == 200
+    after = billing_after.json()
+    assert after["plan"] == "professional" and after["billingInterval"] == "yearly"
+    assert after["paidThrough"] == "2027-10-31"
+    assert branding_after.json()["showPlatformBranding"] is False
+    assert audit is not None
+    assert audit["from"]["plan"] == "essentials" and audit["to"]["plan"] == "professional"
     assert inquiry.status_code == 202
     assert operator_inquiries.status_code == 403
     assert created["email"] == "prospect@example.com" and created["readAt"] is None
     assert marked.status_code == 204
     assert overview.status_code == 200
     assert overview.json()["inquiriesUnread"] == overview_unread - 1
-    assert overview.json()["workspacesPro"] >= 1
+    assert overview.json()["workspacesProfessional"] >= 1
     assert operator_overview.status_code == 403

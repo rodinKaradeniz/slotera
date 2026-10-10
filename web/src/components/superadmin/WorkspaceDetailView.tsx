@@ -13,11 +13,9 @@ import { useToast } from "@/components/ui/Toast";
 import { Stat } from "@/components/shared/Stat";
 import { DetailLine } from "@/components/shared/DetailLine";
 import { LoadingRows } from "@/components/shared/LoadingRows";
-import {
-  getWorkspace,
-  setPlatformWorkspacePlan,
-  suspendWorkspace,
-} from "@/services/platform.service";
+import { getWorkspace, suspendWorkspace } from "@/services/platform.service";
+import { BillingCard } from "./BillingCard";
+import { PlanPills } from "./PlanPills";
 import { WORKSPACE_OPERATIONAL_STATUS } from "@/lib/status-maps";
 import { fmtDate } from "@/lib/time";
 import type { PlatformWorkspace } from "@/types/platform";
@@ -60,21 +58,6 @@ export function WorkspaceDetailView({ id }: { id: string }) {
   }
 
   const isSuspended = workspace.operationalStatus === "suspended";
-
-  const handlePlanChange = async () => {
-    const next = workspace.plan === "pro" ? "free" : "pro";
-    setBusy(true);
-    try {
-      setWorkspace(await setPlatformWorkspacePlan(workspace.id, next));
-      toast.success(next === "pro" ? "Moved to Pro" : "Moved to Free", {
-        description: "Recorded in the audit log. Invoice Pro manually until card billing exists.",
-      });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not change the plan");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const handleSuspend = async () => {
     setBusy(true);
@@ -119,24 +102,13 @@ export function WorkspaceDetailView({ id }: { id: string }) {
             >
               {WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label}
             </Pill>
-            <Pill tone={workspace.plan === "pro" ? "accent" : "neutral"}>
-              {workspace.plan === "pro" ? "Pro plan" : "Free plan"}
-            </Pill>
+            <PlanPills workspace={workspace} />
             <span aria-hidden>·</span>
             <span>Joined {fmtDate(new Date(workspace.createdAtISO))}</span>
           </span>
         }
         actions={
           <>
-            <Button
-              variant="secondary"
-              size="md"
-              icon="refresh"
-              disabled={busy}
-              onClick={handlePlanChange}
-            >
-              {workspace.plan === "pro" ? "Move to Free" : "Move to Pro"}
-            </Button>
             <Button
               variant={isSuspended ? "primary" : "danger"}
               size="md"
@@ -159,7 +131,7 @@ export function WorkspaceDetailView({ id }: { id: string }) {
         </div>
       </Card>
 
-      <ApiDetail workspace={workspace} />
+      <ApiDetail workspace={workspace} onBillingSaved={setWorkspace} />
 
       <ConfirmDialog
         open={confirmStatusChange}
@@ -179,9 +151,16 @@ export function WorkspaceDetailView({ id }: { id: string }) {
   );
 }
 
-function ApiDetail({ workspace }: { workspace: PlatformWorkspace }) {
+function ApiDetail({
+  workspace,
+  onBillingSaved,
+}: {
+  workspace: PlatformWorkspace;
+  onBillingSaved: (workspace: PlatformWorkspace) => void;
+}) {
   return (
     <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
+      <div className="flex flex-col gap-6">
       <Card padded>
         <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 16 }}>Workspace facts</h3>
         <div className="grid sm:grid-cols-2 gap-4 text-small">
@@ -191,6 +170,8 @@ function ApiDetail({ workspace }: { workspace: PlatformWorkspace }) {
           <div><div className="eyebrow mb-1">Created</div><div className="text-ink">{fmtDate(new Date(workspace.createdAtISO))}</div></div>
         </div>
       </Card>
+      <BillingCard workspace={workspace} onSaved={onBillingSaved} />
+      </div>
       <OwnerCard workspace={workspace} />
     </div>
   );

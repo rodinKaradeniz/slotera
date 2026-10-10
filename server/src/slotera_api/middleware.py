@@ -3,7 +3,10 @@ from collections.abc import Awaitable, Callable
 from time import perf_counter
 from uuid import uuid4
 
+import sentry_sdk
 from fastapi import Request, Response
+
+from slotera_api.calendar_feed import redact_feed_path
 
 logger = logging.getLogger("slotera.http")
 
@@ -14,6 +17,8 @@ async def request_context_middleware(
 ) -> Response:
     request_id = str(uuid4())
     request.state.request_id = request_id
+    # Lets a Sentry event be matched to the X-Request-ID a user reports.
+    sentry_sdk.set_tag("request_id", request_id)
     started_at = perf_counter()
     status_code = 500
 
@@ -28,7 +33,7 @@ async def request_context_middleware(
             extra={
                 "request_id": request_id,
                 "method": request.method,
-                "path": request.url.path,
+                "path": redact_feed_path(request.url.path),
                 "status_code": status_code,
                 "duration_ms": round((perf_counter() - started_at) * 1000, 2),
             },

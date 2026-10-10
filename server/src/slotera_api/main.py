@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from slotera_api.api.auth import router as auth_router
 from slotera_api.api.bookings import router as bookings_router
+from slotera_api.api.calendar_feed import public_router as calendar_feed_public_router
+from slotera_api.api.calendar_feed import settings_router as calendar_feed_settings_router
 from slotera_api.api.client_notes import router as client_notes_router
 from slotera_api.api.clients import router as clients_router
 from slotera_api.api.dashboard import router as dashboard_router
@@ -16,7 +18,7 @@ from slotera_api.api.notifications import router as notifications_router
 from slotera_api.api.operator_resources import services_router, settings_router
 from slotera_api.api.platform import router as platform_router
 from slotera_api.api.platform_extras import platform_router as platform_extras_router
-from slotera_api.api.platform_extras import public_inquiry_router
+from slotera_api.api.platform_extras import public_inquiry_router, public_pilot_router
 from slotera_api.api.public_booking import router as public_booking_router
 from slotera_api.api.public_booking_manage import router as public_booking_manage_router
 from slotera_api.api.scheduling import availability_router, sessions_router
@@ -28,6 +30,7 @@ from slotera_api.database import Database, DatabaseLifecycle
 from slotera_api.errors import install_error_handlers
 from slotera_api.logging import configure_logging
 from slotera_api.middleware import request_context_middleware
+from slotera_api.observability import init_sentry
 
 
 def create_app(
@@ -42,6 +45,7 @@ def create_app(
         cast(Database, resolved_database), resolved_settings
     )
     configure_logging(resolved_settings.log_level)
+    init_sentry(resolved_settings)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -80,6 +84,7 @@ def create_app(
     app.include_router(platform_router)
     app.include_router(platform_extras_router)
     app.include_router(public_inquiry_router)
+    app.include_router(public_pilot_router)
     app.include_router(public_booking_router)
     app.include_router(public_booking_manage_router)
     app.include_router(client_notes_router)
@@ -87,6 +92,8 @@ def create_app(
     app.include_router(forms_router)
     app.include_router(notifications_router)
     app.include_router(settings_router)
+    app.include_router(calendar_feed_settings_router)
+    app.include_router(calendar_feed_public_router)
     app.include_router(services_router)
     app.include_router(availability_router)
     app.include_router(sessions_router)

@@ -31,6 +31,7 @@ const TYPE_OPTIONS: Array<{ value: "" | PlatformInquiryType; label: string }> =
   [
     { value: "", label: "All types" },
     { value: "business", label: "Business inquiry" },
+    { value: "pilot", label: "Pilot application" },
     { value: "development", label: "Development issue" },
     { value: "feature", label: "Feature request" },
     { value: "general", label: "General request" },
@@ -157,7 +158,11 @@ export function InquiriesView() {
         fromInquiryId={promoting?.id}
         initial={
           promoting
-            ? { ownerName: promoting.name, ownerEmail: promoting.email }
+            ? {
+                name: promoting.company ?? undefined,
+                ownerName: promoting.name,
+                ownerEmail: promoting.email,
+              }
             : undefined
         }
         onCreated={async (ws) => {
@@ -298,7 +303,7 @@ function InquiryPreviewModal({
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
-          {inquiry.type === "business" && (
+          {(inquiry.type === "business" || inquiry.type === "pilot") && (
             <Button
               variant="primary"
               icon="building"

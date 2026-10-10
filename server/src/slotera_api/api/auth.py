@@ -273,6 +273,12 @@ async def signup(
     settings: SettingsDependency,
 ) -> SignupAccepted:
     require_trusted_origin(request, settings)
+    if not settings.signup_open:
+        raise ApiError(
+            status_code=HTTPStatus.FORBIDDEN,
+            code="signup_closed",
+            message="Sign-up is by invitation during the pilot",
+        )
     try:
         await service.signup(
             name=payload.workspace_name,

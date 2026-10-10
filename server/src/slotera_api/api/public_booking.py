@@ -12,6 +12,7 @@ from slotera_api.auth.dependencies import (
     require_trusted_origin,
 )
 from slotera_api.errors import ApiError
+from slotera_api.plans import shows_platform_branding
 from slotera_api.public_booking.repository import (
     PublicBookingIdempotencyConflictError,
     PublicBookingRepository,
@@ -81,6 +82,7 @@ def _workspace_response(context: PublicWorkspaceContext) -> PublicWorkspaceRespo
         manual_payment_instructions=context.payments.manual_payment_instructions,
         booking_terms_enabled=context.payments.booking_terms_enabled,
         booking_terms_content=context.payments.booking_terms_content,
+        show_platform_branding=shows_platform_branding(context.workspace.plan),
     )
 
 
@@ -289,6 +291,9 @@ async def create_public_booking(
         session_location=result.session.location,
         session_address=(
             Address.model_validate(result.session.address) if result.session.address else None
+        ),
+        meeting_url=(
+            result.meeting_url if result.booking.status.value == "confirmed" else None
         ),
         payment_due_at=result.booking.payment_due_at,
         quote=_tax_response(result.quote),

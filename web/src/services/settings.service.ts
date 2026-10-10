@@ -265,6 +265,7 @@ export async function getSettings(): Promise<SettingsData> {
         address: workspace.address,
         bookingPageUrl: workspace.slug,
         bookingPageEnabled: true,
+        showPlatformBranding: workspace.showPlatformBranding,
       },
       payments: {
         ...mock.payments,
@@ -482,4 +483,28 @@ export async function deleteWorkspaceLocation(id: string): Promise<void> {
     method: "DELETE",
     csrf: true,
   });
+}
+
+// ── Calendar feed (Settings → Calendar, real app only) ───────────────────────────
+
+export type CalendarFeedStatus = components["schemas"]["CalendarFeedStatus"];
+
+export async function getCalendarFeed(): Promise<CalendarFeedStatus> {
+  if (dataSource !== "api") throw new NotImplementedError("getCalendarFeed");
+  return apiRequest<CalendarFeedStatus>("/settings/calendar-feed");
+}
+
+/** Creates a new subscribe link (revoking any earlier one). The URL is shown once. */
+export async function createCalendarFeed(): Promise<string> {
+  if (dataSource !== "api") throw new NotImplementedError("createCalendarFeed");
+  const response = await apiRequest<components["schemas"]["CalendarFeedLink"]>(
+    "/settings/calendar-feed",
+    { method: "POST", csrf: true },
+  );
+  return response.url;
+}
+
+export async function revokeCalendarFeed(): Promise<void> {
+  if (dataSource !== "api") throw new NotImplementedError("revokeCalendarFeed");
+  await apiRequest<unknown>("/settings/calendar-feed", { method: "DELETE", csrf: true });
 }

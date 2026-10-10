@@ -20,10 +20,12 @@ Slotera lets independent professionals ("operators") publish a booking page, man
 
 ## 4. Plans and fees
 
-- **Free:** £0 per month. When card payments are available, we keep 3% of each card payment taken through Slotera.
-- **Pro:** £19 per month. When card payments are available, we keep 1% of each card payment.
+- **Free trial:** every new workspace gets [30] days free, with no card needed. Pilot members may be offered a longer trial and a fixed founding price; any such offer is confirmed to you in writing.
+- **Essentials:** £19 per month, or £190 per year. When card payments are available, we keep 2% of each card payment taken through Slotera.
+- **Professional:** £39 per month, or £390 per year. When card payments are available, we keep 1% of each card payment.
+- Our cut is in addition to the payment processor's own fees (for example Stripe's), which you pay.
 - Payments you record manually (for example bank transfers you receive directly) carry no Slotera fee.
-- Until online billing is available, Pro is invoiced manually in GBP. Fees exclude VAT where applicable. We will give at least 30 days' notice of price changes.
+- Until online billing is available, plans are invoiced manually in GBP, in advance for the chosen period. Fees exclude VAT where applicable. We will give at least 30 days' notice of price changes.
 
 ## 5. Your clients' data
 

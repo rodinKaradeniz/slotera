@@ -166,6 +166,27 @@ export function ServiceForm({
         </Field>
       </div>
 
+      {value.locationType !== "physical" && (
+        <Field
+          label="Meeting link"
+          optional
+          hint="Zoom, Google Meet or Teams. Clients get it once their booking is confirmed."
+          error={
+            value.meetingUrl && !/^https:\/\/\S+$/.test(value.meetingUrl.trim())
+              ? "Use a full https:// link."
+              : undefined
+          }
+        >
+          <Input
+            type="url"
+            inputMode="url"
+            placeholder="https://"
+            value={value.meetingUrl ?? ""}
+            onChange={(e) => onChange({ ...value, meetingUrl: e.target.value })}
+          />
+        </Field>
+      )}
+
       {value.locationType !== "online" && (
         <AddressPicker
           value={value.address}

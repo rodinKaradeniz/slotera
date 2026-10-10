@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { ContactModal } from "./ContactModal";
-import { dataSource } from "@/lib/env";
+import { appUrl, dataSource, signupOpen } from "@/lib/env";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
@@ -73,16 +73,23 @@ export function DemoGuidelinesModal({ open, onClose }: Props) {
         }
         footer={
           <div className="flex flex-1 flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-            {/* Account creation is intentionally secondary to the demo cards,
-                and exists only in the real app — the mock demo has no sign-up. */}
+            {/* Account creation is intentionally secondary to the demo cards. It
+                exists only in the real app; the mock demo links to its pilot form. */}
             {dataSource === "api" ? (
             <Link
-              href="/register"
+              href={signupOpen ? "/register" : "/pilot"}
               onClick={onClose}
               className="text-[13px] text-ink-3 hover:text-ink underline-offset-2 hover:underline self-center sm:self-auto"
             >
-              {t("demoGuide.createAccount")}
+              {t(signupOpen ? "demoGuide.createAccount" : "landing.cta.joinPilot")}
             </Link>
+            ) : appUrl ? (
+              <a
+                href={`${appUrl}/pilot`}
+                className="text-[13px] text-ink-3 hover:text-ink underline-offset-2 hover:underline self-center sm:self-auto"
+              >
+                {t("landing.cta.joinPilot")}
+              </a>
             ) : (
               <span />
             )}

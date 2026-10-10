@@ -39,6 +39,7 @@ import {
   type PaymentSettings,
 } from "@/services/settings.service";
 import { ApiBillingPanel } from "./ApiBillingPanel";
+import { CalendarFeedCard } from "./CalendarFeedCard";
 import { EMPTY_ADDRESS, type WorkspaceLocation } from "@/types/address";
 import type { SettingsData, WorkingDay } from "@/types/settings";
 import { cn } from "@/lib/cn";
@@ -771,14 +772,7 @@ function ApiCalendarPanel({
 
   return (
     <>
-      <PanelCard
-        title="Calendar Connections"
-        hint="External calendar connections remain display-only in this local API bundle."
-      >
-        <p className="text-small text-ink-2">
-          Google Calendar, Apple Calendar, and Outlook sync are not connected yet.
-        </p>
-      </PanelCard>
+      <CalendarFeedCard />
 
       <Card padded>
         <div className="mb-4">

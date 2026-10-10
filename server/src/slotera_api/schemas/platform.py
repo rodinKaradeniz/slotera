@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -7,6 +7,9 @@ from pydantic import EmailStr, Field, field_validator
 
 from slotera_api.schemas.base import ApiModel, WorkspaceCurrency
 from slotera_api.schemas.operator_resources import NonBlank, StrictApiModel
+
+PlanLiteral = Literal["essentials", "professional"]
+BillingIntervalLiteral = Literal["monthly", "yearly"]
 
 
 class PlatformWorkspaceSummary(ApiModel):
@@ -17,7 +20,10 @@ class PlatformWorkspaceSummary(ApiModel):
     owner_email: str | None
     created_at: datetime
     operational_status: Literal["active", "suspended"]
-    plan: Literal["free", "pro"]
+    plan: PlanLiteral
+    billing_interval: BillingIntervalLiteral
+    trial_ends_at: datetime
+    paid_through: date | None
     services_count: int
     clients_count: int
     bookings_count: int
@@ -66,11 +72,14 @@ class PlatformWorkspaceProvision(StrictApiModel):
         return value
 
 
-class PlatformPlanChange(StrictApiModel):
-    plan: Literal["free", "pro"]
+class PlatformBillingChange(StrictApiModel):
+    plan: PlanLiteral
+    billing_interval: BillingIntervalLiteral
+    trial_ends_at: datetime
+    paid_through: date | None = None
 
 
-InquiryReason = Literal["business", "development", "feature", "general"]
+InquiryReason = Literal["business", "pilot", "development", "feature", "general"]
 
 
 class PlatformInquiryResponse(ApiModel):
@@ -96,6 +105,24 @@ class PublicInquiryCreate(StrictApiModel):
     message: Annotated[NonBlank, Field(max_length=4000)]
 
 
+PilotBusinessType = Literal["coaching", "consulting", "fitness", "workshops", "other"]
+PilotBookingVolume = Literal["under_20", "20_50", "50_150", "over_150"]
+
+
+class PublicPilotApplication(StrictApiModel):
+    """The pilot waitlist form. Stored as a `pilot` inquiry for staff to review."""
+
+    name: Annotated[NonBlank, Field(max_length=160)]
+    email: EmailStr
+    business_name: Annotated[NonBlank, Field(max_length=160)]
+    business_type: PilotBusinessType
+    country: Annotated[NonBlank, Field(max_length=80)]
+    bookings_per_month: PilotBookingVolume
+    whatsapp_interest: bool = False
+    message: Annotated[str, Field(max_length=2000)] = ""
+    consent: Literal[True]
+
+
 class PlatformInquiryReadChange(StrictApiModel):
     read: bool
 
@@ -108,17 +135,19 @@ class PlatformOverviewResponse(ApiModel):
     workspaces_total: int
     workspaces_active: int
     workspaces_suspended: int
-    workspaces_free: int
-    workspaces_pro: int
+    workspaces_essentials: int
+    workspaces_professional: int
+    workspaces_on_trial: int
     signups_30d: int
     bookings_30d: int
     inquiries_unread: int
 
 
 class PlanResponse(ApiModel):
-    id: Literal["free", "pro"]
+    id: PlanLiteral
     name: str
     monthly_price_cents: int
+    yearly_price_cents: int
     currency: str
     card_fee_bps: int
 
@@ -126,6 +155,9 @@ class PlanResponse(ApiModel):
 class WorkspaceBillingResponse(ApiModel):
     """The operator's own plan plus the full price list, for Settings → Billing."""
 
-    plan: Literal["free", "pro"]
+    plan: PlanLiteral
     plan_changed_at: datetime | None
+    billing_interval: BillingIntervalLiteral
+    trial_ends_at: datetime
+    paid_through: date | None
     plans: list[PlanResponse]

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from slotera_api.database import Database
-from slotera_api.plans import PlanId
+from slotera_api.plans import BillingInterval, PlanId
 
 WorkspaceOperationalStatus = Literal["active", "suspended"]
 
@@ -41,6 +41,9 @@ class PlatformWorkspace:
     timezone: str
     operational_status: WorkspaceOperationalStatus
     plan: PlanId
+    billing_interval: BillingInterval
+    trial_ends_at: datetime
+    paid_through: date | None
     services_count: int
     clients_count: int
     bookings_count: int
@@ -59,6 +62,9 @@ def _workspace(row: Any) -> PlatformWorkspace:
         timezone=row["timezone"],
         operational_status=cast(WorkspaceOperationalStatus, row["operational_status"]),
         plan=cast(PlanId, row["plan"]),
+        billing_interval=cast(BillingInterval, row["billing_interval"]),
+        trial_ends_at=row["trial_ends_at"],
+        paid_through=row["paid_through"],
         services_count=int(row["services_count"]),
         clients_count=int(row["clients_count"]),
         bookings_count=int(row["bookings_count"]),
@@ -83,8 +89,9 @@ class PlatformOverview:
     workspaces_total: int
     workspaces_active: int
     workspaces_suspended: int
-    workspaces_free: int
-    workspaces_pro: int
+    workspaces_essentials: int
+    workspaces_professional: int
+    workspaces_on_trial: int
     signups_30d: int
     bookings_30d: int
     inquiries_unread: int
@@ -198,17 +205,30 @@ class PlatformRepository:
             )
         return str(result_code)
 
-    async def set_plan(self, *, workspace_id: UUID, actor_user_id: UUID, plan: PlanId) -> str:
+    async def set_billing(
+        self,
+        *,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        plan: PlanId,
+        billing_interval: BillingInterval,
+        trial_ends_at: datetime,
+        paid_through: date | None,
+    ) -> str:
         async with self.database.transaction() as session:
             result_code = await session.scalar(
                 text(
-                    "SELECT public.slotera_platform_set_workspace_plan("
-                    ":workspace_id, :actor_user_id, :plan, :audit_event_id)"
+                    "SELECT public.slotera_platform_set_workspace_billing("
+                    ":workspace_id, :actor_user_id, :plan, :billing_interval, "
+                    ":trial_ends_at, :paid_through, :audit_event_id)"
                 ),
                 {
                     "workspace_id": workspace_id,
                     "actor_user_id": actor_user_id,
                     "plan": plan,
+                    "billing_interval": billing_interval,
+                    "trial_ends_at": trial_ends_at,
+                    "paid_through": paid_through,
                     "audit_event_id": uuid4(),
                 },
             )

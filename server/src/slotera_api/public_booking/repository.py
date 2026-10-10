@@ -111,6 +111,8 @@ class PublicBookingResult:
     session: Session
     quote: TaxQuote
     replayed: bool
+    # The service's meeting link; the API shows it only once the booking is confirmed.
+    meeting_url: str | None = None
 
 
 def quote_for(
@@ -581,11 +583,18 @@ class PublicBookingRepository:
                 )
                 if scheduled_session is None:
                     raise RuntimeError("public booking replay lost its session")
+                meeting_url = await session.scalar(
+                    select(Service.meeting_url).where(
+                        Service.workspace_id == workspace_id,
+                        Service.id == scheduled_session.service_id,
+                    )
+                )
                 return PublicBookingResult(
                     booking=booking,
                     session=scheduled_session,
                     quote=self._quote_from_booking(booking),
                     replayed=True,
+                    meeting_url=meeting_url,
                 )
 
             service_id = values["service_id"]
@@ -849,7 +858,9 @@ class PublicBookingRepository:
                 raise RuntimeError("public booking event could not be enqueued")
             await session.refresh(booking)
             await session.refresh(scheduled_session)
-            return PublicBookingResult(booking, scheduled_session, quote, replayed=False)
+            return PublicBookingResult(
+                booking, scheduled_session, quote, replayed=False, meeting_url=service.meeting_url
+            )
 
     @staticmethod
     def _validate_form_responses(

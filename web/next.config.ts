@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker image (web/Dockerfile).
@@ -27,4 +28,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Source maps are uploaded (then deleted from the image) only when the build has a
+// SENTRY_AUTH_TOKEN, i.e. the real app's Docker build. Local and demo builds skip it.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  release: { name: process.env.SENTRY_RELEASE || undefined },
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  // Browser reports go through this app's own origin so ad-blockers don't drop them.
+  tunnelRoute: "/monitoring",
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  telemetry: false,
+});

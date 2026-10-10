@@ -1214,6 +1214,46 @@
         "title": "BusinessSettingsResponse",
         "type": "object"
       },
+      "CalendarFeedLink": {
+        "description": "The subscribe URL. It is shown once; only its hash is stored.",
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "CalendarFeedLink",
+        "type": "object"
+      },
+      "CalendarFeedStatus": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          }
+        },
+        "required": [
+          "active",
+          "createdAt"
+        ],
+        "title": "CalendarFeedStatus",
+        "type": "object"
+      },
       "ClientCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2619,6 +2659,17 @@
             "title": "Manualpaymentinstructions",
             "type": "string"
           },
+          "meetingUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meetingurl"
+          },
           "paymentDueAt": {
             "anyOf": [
               {
@@ -2723,6 +2774,10 @@
             "title": "Sessionstartat",
             "type": "string"
           },
+          "showPlatformBranding": {
+            "title": "Showplatformbranding",
+            "type": "boolean"
+          },
           "status": {
             "enum": [
               "pending",
@@ -2770,7 +2825,9 @@
           "changeDeadline",
           "canCancel",
           "canReschedule",
-          "rescheduled"
+          "meetingUrl",
+          "rescheduled",
+          "showPlatformBranding"
         ],
         "title": "ManagedBookingResponse",
         "type": "object"
@@ -3228,8 +3285,8 @@
           },
           "id": {
             "enum": [
-              "free",
-              "pro"
+              "essentials",
+              "professional"
             ],
             "title": "Id",
             "type": "string"
@@ -3241,16 +3298,66 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "yearlyPriceCents": {
+            "title": "Yearlypricecents",
+            "type": "integer"
           }
         },
         "required": [
           "id",
           "name",
           "monthlyPriceCents",
+          "yearlyPriceCents",
           "currency",
           "cardFeeBps"
         ],
         "title": "PlanResponse",
+        "type": "object"
+      },
+      "PlatformBillingChange": {
+        "additionalProperties": false,
+        "properties": {
+          "billingInterval": {
+            "enum": [
+              "monthly",
+              "yearly"
+            ],
+            "title": "Billinginterval",
+            "type": "string"
+          },
+          "paidThrough": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paidthrough"
+          },
+          "plan": {
+            "enum": [
+              "essentials",
+              "professional"
+            ],
+            "title": "Plan",
+            "type": "string"
+          },
+          "trialEndsAt": {
+            "format": "date-time",
+            "title": "Trialendsat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "billingInterval",
+          "trialEndsAt"
+        ],
+        "title": "PlatformBillingChange",
         "type": "object"
       },
       "PlatformInquiryListResponse": {
@@ -3366,12 +3473,16 @@
             "title": "Workspacesactive",
             "type": "integer"
           },
-          "workspacesFree": {
-            "title": "Workspacesfree",
+          "workspacesEssentials": {
+            "title": "Workspacesessentials",
             "type": "integer"
           },
-          "workspacesPro": {
-            "title": "Workspacespro",
+          "workspacesOnTrial": {
+            "title": "Workspacesontrial",
+            "type": "integer"
+          },
+          "workspacesProfessional": {
+            "title": "Workspacesprofessional",
             "type": "integer"
           },
           "workspacesSuspended": {
@@ -3387,8 +3498,9 @@
           "workspacesTotal",
           "workspacesActive",
           "workspacesSuspended",
-          "workspacesFree",
-          "workspacesPro",
+          "workspacesEssentials",
+          "workspacesProfessional",
+          "workspacesOnTrial",
           "signups30D",
           "bookings30D",
           "inquiriesUnread"
@@ -3396,26 +3508,16 @@
         "title": "PlatformOverviewResponse",
         "type": "object"
       },
-      "PlatformPlanChange": {
-        "additionalProperties": false,
-        "properties": {
-          "plan": {
-            "enum": [
-              "free",
-              "pro"
-            ],
-            "title": "Plan",
-            "type": "string"
-          }
-        },
-        "required": [
-          "plan"
-        ],
-        "title": "PlatformPlanChange",
-        "type": "object"
-      },
       "PlatformWorkspaceDetail": {
         "properties": {
+          "billingInterval": {
+            "enum": [
+              "monthly",
+              "yearly"
+            ],
+            "title": "Billinginterval",
+            "type": "string"
+          },
           "bookingsCount": {
             "title": "Bookingscount",
             "type": "integer"
@@ -3472,10 +3574,22 @@
             ],
             "title": "Ownername"
           },
+          "paidThrough": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paidthrough"
+          },
           "plan": {
             "enum": [
-              "free",
-              "pro"
+              "essentials",
+              "professional"
             ],
             "title": "Plan",
             "type": "string"
@@ -3495,6 +3609,11 @@
           "timezone": {
             "title": "Timezone",
             "type": "string"
+          },
+          "trialEndsAt": {
+            "format": "date-time",
+            "title": "Trialendsat",
+            "type": "string"
           }
         },
         "required": [
@@ -3506,6 +3625,9 @@
           "createdAt",
           "operationalStatus",
           "plan",
+          "billingInterval",
+          "trialEndsAt",
+          "paidThrough",
           "servicesCount",
           "clientsCount",
           "bookingsCount",
@@ -3605,6 +3727,14 @@
       },
       "PlatformWorkspaceSummary": {
         "properties": {
+          "billingInterval": {
+            "enum": [
+              "monthly",
+              "yearly"
+            ],
+            "title": "Billinginterval",
+            "type": "string"
+          },
           "bookingsCount": {
             "title": "Bookingscount",
             "type": "integer"
@@ -3657,10 +3787,22 @@
             ],
             "title": "Ownername"
           },
+          "paidThrough": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paidthrough"
+          },
           "plan": {
             "enum": [
-              "free",
-              "pro"
+              "essentials",
+              "professional"
             ],
             "title": "Plan",
             "type": "string"
@@ -3676,6 +3818,11 @@
           "slug": {
             "title": "Slug",
             "type": "string"
+          },
+          "trialEndsAt": {
+            "format": "date-time",
+            "title": "Trialendsat",
+            "type": "string"
           }
         },
         "required": [
@@ -3687,6 +3834,9 @@
           "createdAt",
           "operationalStatus",
           "plan",
+          "billingInterval",
+          "trialEndsAt",
+          "paidThrough",
           "servicesCount",
           "clientsCount",
           "bookingsCount",
@@ -3949,6 +4099,17 @@
             "title": "Id",
             "type": "string"
           },
+          "meetingUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meetingurl"
+          },
           "paymentDueAt": {
             "anyOf": [
               {
@@ -4056,6 +4217,7 @@
           "sessionLocationType",
           "sessionLocation",
           "sessionAddress",
+          "meetingUrl",
           "paymentDueAt",
           "quote"
         ],
@@ -4220,6 +4382,7 @@
             "default": "business",
             "enum": [
               "business",
+              "pilot",
               "development",
               "feature",
               "general"
@@ -4234,6 +4397,83 @@
           "message"
         ],
         "title": "PublicInquiryCreate",
+        "type": "object"
+      },
+      "PublicPilotApplication": {
+        "additionalProperties": false,
+        "description": "The pilot waitlist form. Stored as a `pilot` inquiry for staff to review.",
+        "properties": {
+          "bookingsPerMonth": {
+            "enum": [
+              "under_20",
+              "20_50",
+              "50_150",
+              "over_150"
+            ],
+            "title": "Bookingspermonth",
+            "type": "string"
+          },
+          "businessName": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Businessname",
+            "type": "string"
+          },
+          "businessType": {
+            "enum": [
+              "coaching",
+              "consulting",
+              "fitness",
+              "workshops",
+              "other"
+            ],
+            "title": "Businesstype",
+            "type": "string"
+          },
+          "consent": {
+            "const": true,
+            "title": "Consent",
+            "type": "boolean"
+          },
+          "country": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Country",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "whatsappInterest": {
+            "default": false,
+            "title": "Whatsappinterest",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "businessName",
+          "businessType",
+          "country",
+          "bookingsPerMonth",
+          "consent"
+        ],
+        "title": "PublicPilotApplication",
         "type": "object"
       },
       "PublicServiceListResponse": {
@@ -4433,6 +4673,10 @@
             "title": "Manualpaymentinstructions",
             "type": "string"
           },
+          "showPlatformBranding": {
+            "title": "Showplatformbranding",
+            "type": "boolean"
+          },
           "slug": {
             "title": "Slug",
             "type": "string"
@@ -4453,7 +4697,8 @@
           "manualPaymentEnabled",
           "manualPaymentInstructions",
           "bookingTermsEnabled",
-          "bookingTermsContent"
+          "bookingTermsContent",
+          "showPlatformBranding"
         ],
         "title": "PublicWorkspaceResponse",
         "type": "object"
@@ -4886,6 +5131,19 @@
             "title": "Locationtype",
             "type": "string"
           },
+          "meetingUrl": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "pattern": "^https://\\S+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meetingurl"
+          },
           "name": {
             "maxLength": 160,
             "minLength": 1,
@@ -5086,6 +5344,19 @@
             ],
             "title": "Locationtype"
           },
+          "meetingUrl": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "pattern": "^https://\\S+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meetingurl"
+          },
           "name": {
             "anyOf": [
               {
@@ -5202,6 +5473,17 @@
             "title": "Locationtype",
             "type": "string"
           },
+          "meetingUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meetingurl"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -5238,6 +5520,7 @@
           "locationType",
           "location",
           "address",
+          "meetingUrl",
           "bookingMode",
           "confirmationPolicy",
           "cancellationRule",
@@ -6047,10 +6330,30 @@
       "WorkspaceBillingResponse": {
         "description": "The operator's own plan plus the full price list, for Settings \u2192 Billing.",
         "properties": {
+          "billingInterval": {
+            "enum": [
+              "monthly",
+              "yearly"
+            ],
+            "title": "Billinginterval",
+            "type": "string"
+          },
+          "paidThrough": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paidthrough"
+          },
           "plan": {
             "enum": [
-              "free",
-              "pro"
+              "essentials",
+              "professional"
             ],
             "title": "Plan",
             "type": "string"
@@ -6073,11 +6376,19 @@
             },
             "title": "Plans",
             "type": "array"
+          },
+          "trialEndsAt": {
+            "format": "date-time",
+            "title": "Trialendsat",
+            "type": "string"
           }
         },
         "required": [
           "plan",
           "planChangedAt",
+          "billingInterval",
+          "trialEndsAt",
+          "paidThrough",
           "plans"
         ],
         "title": "WorkspaceBillingResponse",
@@ -8155,10 +8466,10 @@
         ]
       }
     },
-    "/platform/workspaces/{workspace_id}/plan": {
+    "/platform/workspaces/{workspace_id}/billing": {
       "post": {
-        "description": "Pro is invoiced manually until Stripe Billing exists; staff record it here.",
-        "operationId": "setPlatformWorkspacePlan",
+        "description": "Plans are invoiced manually until Stripe Billing exists; staff record them here.",
+        "operationId": "setPlatformWorkspaceBilling",
         "parameters": [
           {
             "in": "path",
@@ -8175,7 +8486,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PlatformPlanChange"
+                "$ref": "#/components/schemas/PlatformBillingChange"
               }
             }
           },
@@ -8203,7 +8514,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Set Platform Workspace Plan",
+        "summary": "Set Platform Workspace Billing",
         "tags": [
           "platform"
         ]
@@ -8473,6 +8784,48 @@
           }
         },
         "summary": "Create Public Inquiry",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/public/pilot-applications": {
+      "post": {
+        "description": "The pilot waitlist. No confirmation email: a public form that mails any address it\nis given can be abused, so the page shows the success state instead.",
+        "operationId": "createPilotApplication",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPilotApplication"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicInquiryAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Pilot Application",
         "tags": [
           "public"
         ]
@@ -9622,6 +9975,59 @@
           }
         },
         "summary": "Update Business Settings",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/settings/calendar-feed": {
+      "delete": {
+        "operationId": "revokeCalendarFeed",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Revoke Calendar Feed",
+        "tags": [
+          "settings"
+        ]
+      },
+      "get": {
+        "operationId": "getCalendarFeed",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarFeedStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Calendar Feed",
+        "tags": [
+          "settings"
+        ]
+      },
+      "post": {
+        "description": "Create a subscribe link, revoking any earlier one.",
+        "operationId": "createCalendarFeed",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarFeedLink"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Create Calendar Feed",
         "tags": [
           "settings"
         ]

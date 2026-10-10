@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     email_provider: Literal["console", "resend"] = "console"
     email_from_address: str = "Slotera <no-reply@slotera.app>"
     resend_api_key: SecretStr | None = None
+    # Self-serve sign-up. Off during the invite-only pilot: staff provision workspaces.
+    signup_open: bool = True
+    # Error reporting is off unless a DSN is set (docs/DEPLOYMENT.md, Monitoring).
+    sentry_dsn: str | None = None
+    sentry_traces_sample_rate: float = 0.1
+    release: str | None = None
 
     @field_validator("cors_origins")
     @classmethod
@@ -52,6 +58,8 @@ class Settings(BaseSettings):
             raise ValueError("production requires a shared CSRF cookie domain")
         if self.session_ttl_hours < 1 or self.remembered_session_ttl_days < 1:
             raise ValueError("session lifetimes must be positive")
+        if not 0 <= self.sentry_traces_sample_rate <= 1:
+            raise ValueError("Sentry traces sample rate must be between 0 and 1")
         if self.password_reset_ttl_minutes < 5:
             raise ValueError("password reset lifetime must be at least five minutes")
         if not self.public_web_base_url.startswith(("http://", "https://")):

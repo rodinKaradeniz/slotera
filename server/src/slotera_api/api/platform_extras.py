@@ -22,10 +22,12 @@ from slotera_api.schemas.platform import (
     PlatformOverviewResponse,
     PublicInquiryAccepted,
     PublicInquiryCreate,
+    PublicPilotApplication,
 )
 
 platform_router = APIRouter(prefix="/platform", tags=["platform"])
 public_inquiry_router = APIRouter(prefix="/public/inquiries", tags=["public"])
+public_pilot_router = APIRouter(prefix="/public/pilot-applications", tags=["public"])
 
 
 @platform_router.get(
@@ -116,5 +118,55 @@ async def create_public_inquiry(
         company=payload.company,
         reason=payload.reason,
         message=payload.message,
+    )
+    return PublicInquiryAccepted()
+
+
+_VOLUME_LABEL = {
+    "under_20": "under 20",
+    "20_50": "20–50",
+    "50_150": "50–150",
+    "over_150": "over 150",
+}
+
+
+@public_pilot_router.post(
+    "",
+    response_model=PublicInquiryAccepted,
+    status_code=HTTPStatus.ACCEPTED,
+    operation_id="createPilotApplication",
+)
+async def create_pilot_application(
+    payload: PublicPilotApplication,
+    request: Request,
+    database: DatabaseDependency,
+    settings: SettingsDependency,
+) -> PublicInquiryAccepted:
+    """The pilot waitlist. No confirmation email: a public form that mails any address it
+    is given can be abused, so the page shows the success state instead."""
+    require_trusted_origin(request, settings)
+    client_key = request.client.host if request.client is not None else "unknown"
+    if not await PublicBookingRepository(database).consume_rate_limit(
+        scope="pilot_application", key=client_key, limit=5, window_seconds=3600
+    ):
+        raise ApiError(
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
+            code="rate_limit_exceeded",
+            message="Too many applications. Please try again later",
+        )
+    lines = [
+        f"Business type: {payload.business_type}",
+        f"Country: {payload.country}",
+        f"Bookings per month: {_VOLUME_LABEL[payload.bookings_per_month]}",
+        f"WhatsApp interest: {'yes' if payload.whatsapp_interest else 'no'}",
+    ]
+    if payload.message.strip():
+        lines += ["", payload.message.strip()]
+    await PlatformRepository(database).create_inquiry(
+        name=payload.name,
+        email=str(payload.email),
+        company=payload.business_name,
+        reason="pilot",
+        message="\n".join(lines),
     )
     return PublicInquiryAccepted()

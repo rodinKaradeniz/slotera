@@ -1,9 +1,11 @@
+import time
 from datetime import datetime
 from typing import Literal, get_args
 from zoneinfo import ZoneInfo
 
 from pydantic import Field
 
+from slotera_api.calendar_ics import CalendarEvent, booking_uid, build_calendar
 from slotera_api.schemas.base import ApiModel
 
 
@@ -23,6 +25,11 @@ class BookingEmailTemplateData(ApiModel):
     manual_payment_instructions: str
     cancellation_rule: str
     manage_url: str | None = None
+    # Added in 20261011_0030; older queued emails lack them.
+    location_type: Literal["online", "physical", "hybrid"] | None = None
+    location: str = ""
+    address: dict[str, object] | None = None
+    meeting_url: str | None = None
 
 
 BookingEmailKind = Literal[
@@ -41,6 +48,17 @@ def _manage_lines(data: BookingEmailTemplateData) -> list[str]:
     return ["", "View, reschedule, or cancel your booking:", data.manage_url]
 
 
+def _address_line(address: dict[str, object] | None) -> str:
+    if not address:
+        return ""
+    keys = ("street", "street2", "postal_code", "postalCode", "city", "country")
+    return ", ".join(str(address[key]) for key in keys if address.get(key))
+
+
+def _where(data: BookingEmailTemplateData) -> str:
+    return ", ".join(part for part in (data.location, _address_line(data.address)) if part)
+
+
 def _booking_facts(data: BookingEmailTemplateData) -> list[str]:
     timezone = ZoneInfo(data.timezone)
     starts_at = data.starts_at.astimezone(timezone)
@@ -55,6 +73,10 @@ def _booking_facts(data: BookingEmailTemplateData) -> list[str]:
         f"Provider: {data.provider_name}",
         f"When: {when}",
     ]
+    if _where(data):
+        facts.append(f"Where: {_where(data)}")
+    if data.meeting_url:
+        facts.append(f"Join online: {data.meeting_url}")
     if data.cancellation_rule.strip():
         facts.append(f"Cancellation policy: {data.cancellation_rule.strip()}")
     return facts
@@ -130,3 +152,36 @@ def render_booking_email(
         ]
     )
     return subject, body
+
+
+# Emails that carry a calendar file: the event is added, moved, or removed.
+CALENDAR_EMAIL_KINDS: frozenset[str] = frozenset(
+    {"booking_confirmed", "booking_rescheduled", "booking_cancelled"}
+)
+
+
+def booking_calendar_file(kind: BookingEmailKind, raw_data: dict[str, object]) -> str | None:
+    """The `.ics` attachment for an email, or None for kinds that carry none.
+
+    It never includes the manage link: calendar entries get shared and synced.
+    """
+    if kind not in CALENDAR_EMAIL_KINDS:
+        return None
+    data = BookingEmailTemplateData.model_validate(raw_data)
+    cancelled = kind == "booking_cancelled"
+    event = CalendarEvent(
+        uid=booking_uid(data.reference),
+        start=data.starts_at,
+        end=data.ends_at,
+        summary=f"{data.service_name} with {data.provider_name}",
+        location=data.meeting_url or _where(data),
+        description=(
+            f"Reference: {data.reference}\n"
+            "To change or cancel, use the link in your confirmation email."
+        ),
+        url=data.meeting_url,
+        # Each later file must outrank the earlier one, so use the send time.
+        sequence=int(time.time()),
+        cancelled=cancelled,
+    )
+    return build_calendar([event], method="CANCEL" if cancelled else "PUBLISH")

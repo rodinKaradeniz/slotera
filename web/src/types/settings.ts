@@ -32,6 +32,8 @@ export type SettingsData = {
     bookingPageUrl: string;
     /** When false, the public booking page renders a "bookings paused" card. */
     bookingPageEnabled: boolean;
+    /** Real app only: false on Professional, which drops "Powered by Slotera". */
+    showPlatformBranding?: boolean;
     /** Structured studios/offices the operator can attach to sessions. */
     locations: WorkspaceLocation[];
     /** API mode only: set once onboarding is finished or skipped. */

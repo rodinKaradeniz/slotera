@@ -13,7 +13,7 @@ import { getBusinessSettings } from "@/services/settings.service";
 import type { UserRole } from "@/types/auth";
 import { homePathForRole } from "@/lib/nav";
 import { useI18n } from "@/components/i18n/I18nProvider";
-import { dataSource } from "@/lib/env";
+import { dataSource, signupOpen } from "@/lib/env";
 
 function LoginForm() {
   const { t } = useI18n();
@@ -142,8 +142,8 @@ export default function LoginPage() {
         dataSource === "api" ? (
           <span>
             No account yet?{" "}
-            <Link href="/register" className="text-ink underline">
-              Start for free
+            <Link href={signupOpen ? "/register" : "/pilot"} className="text-ink underline">
+              {signupOpen ? "Start your free trial" : "Join the pilot"}
             </Link>
           </span>
         ) : undefined

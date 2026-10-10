@@ -38,8 +38,9 @@ export function mapPlatformOverview(overview: PlatformOverviewDto): PlatformOver
     workspacesTotal: overview.workspacesTotal,
     workspacesActive: overview.workspacesActive,
     workspacesSuspended: overview.workspacesSuspended,
-    workspacesFree: overview.workspacesFree,
-    workspacesPro: overview.workspacesPro,
+    workspacesEssentials: overview.workspacesEssentials,
+    workspacesProfessional: overview.workspacesProfessional,
+    workspacesOnTrial: overview.workspacesOnTrial,
     signups30d: overview.signups30D,
     bookings30d: overview.bookings30D,
     inquiriesUnread: overview.inquiriesUnread,
@@ -63,6 +64,9 @@ export function mapPlatformWorkspace(
     createdAtISO: workspace.createdAt,
     operationalStatus: workspace.operationalStatus,
     plan: workspace.plan,
+    billingInterval: workspace.billingInterval,
+    trialEndsAtISO: workspace.trialEndsAt,
+    paidThrough: workspace.paidThrough ?? null,
     servicesCount: workspace.servicesCount,
     clientsCount: workspace.clientsCount,
     bookingsCount: workspace.bookingsCount,
@@ -104,15 +108,17 @@ export async function provisionWorkspace(
   return mapPlatformWorkspace(response);
 }
 
-/** Pro is invoiced manually until Stripe Billing exists; staff record the plan here. */
-export async function setPlatformWorkspacePlan(
+export type WorkspaceBillingChange = components["schemas"]["PlatformBillingChange"];
+
+/** Plans are invoiced manually until Stripe Billing exists; staff record them here. */
+export async function setPlatformWorkspaceBilling(
   id: string,
-  plan: "free" | "pro",
+  change: WorkspaceBillingChange,
 ): Promise<PlatformWorkspace> {
-  requireApi("setPlatformWorkspacePlan");
-  const response = await apiRequest<PlatformWorkspaceDetailDto, { plan: "free" | "pro" }>(
-    `/platform/workspaces/${id}/plan`,
-    { method: "POST", body: { plan }, csrf: true },
+  requireApi("setPlatformWorkspaceBilling");
+  const response = await apiRequest<PlatformWorkspaceDetailDto, WorkspaceBillingChange>(
+    `/platform/workspaces/${id}/billing`,
+    { method: "POST", body: change, csrf: true },
   );
   return mapPlatformWorkspace(response);
 }
@@ -135,6 +141,7 @@ export function mapInquiry(item: PlatformInquiryDto): PlatformInquiry {
     id: item.id,
     name: item.name,
     email: item.email,
+    company: item.company,
     type: item.reason as PlatformInquiryType,
     message: item.message,
     read: item.readAt !== null,
@@ -162,6 +169,7 @@ export async function createInquiry(input: {
     id: "",
     name: input.name.trim(),
     email: input.email.trim().toLowerCase(),
+    company: null,
     type: input.type,
     message: input.message.trim(),
     read: false,
@@ -197,4 +205,15 @@ export async function setInquiryRead(id: string, read: boolean): Promise<Platfor
   const updated = (await listInquiries()).find((item) => item.id === id);
   if (!updated) throw new NotFoundError("inquiry", id);
   return updated;
+}
+
+export type PilotApplication = components["schemas"]["PublicPilotApplication"];
+
+/** The pilot waitlist form (real app only; the demo links to it). */
+export async function submitPilotApplication(input: PilotApplication): Promise<void> {
+  requireApi("submitPilotApplication");
+  await apiRequest<unknown, PilotApplication>("/public/pilot-applications", {
+    method: "POST",
+    body: input,
+  });
 }

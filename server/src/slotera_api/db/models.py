@@ -46,6 +46,7 @@ TENANT_TABLES = frozenset(
         "booking_command_idempotency",
         "booking_form_responses",
         "booking_access_tokens",
+        "calendar_feed_tokens",
         "public_booking_idempotency",
         "form_templates",
         "form_template_services",
@@ -210,9 +211,15 @@ class Workspace(Base):
         ),
         server_default=text("'active'"),
     )
-    # Platform plan; changed only by the audited superadmin database command.
-    plan: Mapped[str] = mapped_column(String(16), server_default=text("'free'"))
+    # Platform plan and manual-billing facts; changed only by the audited superadmin
+    # database command (slotera_platform_set_workspace_billing).
+    plan: Mapped[str] = mapped_column(String(16), server_default=text("'essentials'"))
     plan_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    billing_interval: Mapped[str] = mapped_column(String(16), server_default=text("'monthly'"))
+    trial_ends_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now() + interval '30 days'")
+    )
+    paid_through: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -455,6 +462,8 @@ class Service(Base):
     )
     location: Mapped[str] = mapped_column(String(240))
     address: Mapped[dict[str, object] | None] = mapped_column(JSONB)
+    # Online/hybrid only: one https meeting link, shown to confirmed clients.
+    meeting_url: Mapped[str | None] = mapped_column(String(500))
     booking_mode: Mapped[ServiceBookingMode] = mapped_column(
         Enum(ServiceBookingMode, name="service_booking_mode", values_callable=_enum_values)
     )
@@ -782,6 +791,19 @@ class BookingAccessToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class CalendarFeedToken(Base):
+    """An operator's private calendar subscribe link. Only the token's SHA-256 is stored."""
+
+    __tablename__ = "calendar_feed_tokens"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    token_hash: Mapped[bytes] = mapped_column(LargeBinary, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class PublicBookingIdempotency(Base):
     __tablename__ = "public_booking_idempotency"
     __table_args__ = (
@@ -1007,6 +1029,7 @@ __all__ = [
     "LocationType",
     "Notification",
     "BookingAccessToken",
+    "CalendarFeedToken",
     "NotificationKind",
     "PasswordResetToken",
     "PlatformRole",

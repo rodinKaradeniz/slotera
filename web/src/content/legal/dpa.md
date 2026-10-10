@@ -32,6 +32,7 @@ The controller authorises these sub-processors:
 
 - **Hetzner Online GmbH** — hosting and backups, EU.
 - **Resend** — transactional email, [location].
+- **Sentry (Functional Software, Inc.)** — error monitoring, EU (Germany) region.
 
 The processor will give at least 30 days' notice of new sub-processors, during which the controller may object and end the service.
 

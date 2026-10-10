@@ -46,9 +46,10 @@ export function OverviewView() {
             </div>
           </Card>
           <Card padded={false}>
-            <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-line-soft">
-              <PadStat label="Free plan" value={data.workspacesFree} />
-              <PadStat label="Pro plan" value={data.workspacesPro} />
+            <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-line-soft">
+              <PadStat label="Essentials" value={data.workspacesEssentials} />
+              <PadStat label="Professional" value={data.workspacesProfessional} />
+              <PadStat label="On trial" value={data.workspacesOnTrial} />
               <PadStat label="Bookings · 30 days" value={data.bookings30d} />
               <PadStat label="Unread inquiries" value={data.inquiriesUnread} />
             </div>

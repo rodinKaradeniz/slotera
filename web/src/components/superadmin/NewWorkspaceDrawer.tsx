@@ -185,8 +185,8 @@ export function NewWorkspaceDrawer({
           />
         </Field>
         <div className="rounded-md border border-line-soft bg-paper-2 px-3 py-2.5 text-small">
-          This creates the workspace on the Free plan and emails the owner a link to set their
-          password.
+          This creates the workspace on Essentials with a 30-day trial and emails the owner a
+          link to set their password. Change the plan or extend the trial afterwards.
         </div>
       </fieldset>
     </DrawerShell>

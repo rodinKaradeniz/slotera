@@ -1,3 +1,5 @@
+import type { BillingInterval, PlanId } from "@/lib/plans";
+
 export type PlatformWorkspaceOperationalStatus = "active" | "suspended";
 
 /** Display-safe, persisted facts exposed to a platform superadmin. */
@@ -9,8 +11,12 @@ export type PlatformWorkspace = {
   ownerEmail: string | null;
   createdAtISO: string;
   operationalStatus: PlatformWorkspaceOperationalStatus;
-  /** The Slotera plan (Free / Pro). */
-  plan: "free" | "pro";
+  /** The Slotera plan and the facts staff record while invoicing by hand. */
+  plan: PlanId;
+  billingInterval: BillingInterval;
+  trialEndsAtISO: string;
+  /** YYYY-MM-DD, or null when nothing has been invoiced yet. */
+  paidThrough: string | null;
   bookingsCount: number;
   servicesCount: number;
   clientsCount: number;
@@ -21,6 +27,7 @@ export type PlatformWorkspace = {
 
 export type PlatformInquiryType =
   | "business"
+  | "pilot"
   | "development"
   | "feature"
   | "general";
@@ -29,6 +36,8 @@ export type PlatformInquiry = {
   id: string;
   name: string;
   email: string;
+  /** The business name, when the sender gave one. */
+  company: string | null;
   type: PlatformInquiryType;
   message: string;
   /**
@@ -45,8 +54,9 @@ export type PlatformOverview = {
   workspacesTotal: number;
   workspacesActive: number;
   workspacesSuspended: number;
-  workspacesFree: number;
-  workspacesPro: number;
+  workspacesEssentials: number;
+  workspacesProfessional: number;
+  workspacesOnTrial: number;
   signups30d: number;
   bookings30d: number;
   inquiriesUnread: number;

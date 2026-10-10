@@ -124,6 +124,11 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_CSRF_COOKIE_NAME=slotera_csrf
 ```
 
+Optional: `NEXT_PUBLIC_SIGNUP_OPEN=false` (real app: `/register` points to the pilot
+form; match the API's `SLOTERA_SIGNUP_OPEN`), `NEXT_PUBLIC_APP_URL` (demo: where "Join
+the pilot" links), `NEXT_PUBLIC_SUPPORT_EMAIL` and `NEXT_PUBLIC_SENTRY_DSN`. Never read or
+edit real `.env` files; change the `*.env.example` templates and tell the user what to set.
+
 **Signing in (mock mode)** — any email and password work and every sign-in lands on
 `/admin/dashboard` as an operator (`hello@slotera.app` is the seeded Dr. Lena Maria
 Hartmann). `wrong@example.com` throws — the seeded failure case for error states. The mock
@@ -148,8 +153,9 @@ Provisioning queues the initial operator's one-time activation link; local conso
 prints that sensitive link in the worker log, while production configuration requires Resend.
 Suspension revokes existing workspace sessions and blocks new ones until reactivation.
 API-mode superadmins land on Overview (platform counts); Workspaces shows each
-workspace's Free/Pro plan and lets staff change it (audited); Inquiries lists contact-form
-submissions, which the public `ContactModal` now persists in API mode. Impersonation is not
+workspace's plan and trial or paid-through state, and staff edit the plan, interval, trial
+end and paid-through date (audited); Inquiries lists contact-form messages and pilot
+applications, which "Promote to workspace" provisions. Impersonation is not
 built; the Subscriptions and platform Settings pages were removed. API mode wires
 self-serve sign-up (`/register` → emailed activation link → `/reset-password`),
 onboarding, password reset, Client Payments settings, and the capacity-one open-mode
@@ -193,6 +199,7 @@ mock mode.
 | Backend data | PostgreSQL 17 via Docker Compose | owner migrations, restricted application role, forced tenant RLS; host port `55432` |
 | Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; GitHub Actions runs quality and PostgreSQL integration gates |
 | Frontend tests | Vitest `^3` (Node environment) | logic only: helpers, routing rules, DTO mappers, proxy; CI runs it with type-check, lint, and build |
+| Error monitoring | Sentry (free plan, EU organisation): `sentry-sdk` in `server/`, `@sentry/nextjs` 10.x in `web/` | off without a DSN; the demo never reports; URLs scrubbed of tokens. See `docs/DEPLOYMENT.md` |
 | Deployment | Docker Compose on one Hetzner server | `deploy/` (Caddy, demo + app images, API, worker, maintenance loop, PostgreSQL, nightly backups); see `docs/DEPLOYMENT.md` |
 
 ---
@@ -514,9 +521,15 @@ Present tense — what exists in the working tree today.
 
 **Public**
 - Landing page with hero + collage, features, how-it-works, demo strip (mock only),
-  two-tier pricing (Free £0 / Pro £19), FAQ, final CTA, footer linking `/terms`, `/privacy`
+  pricing (Essentials £19 / Professional £39, monthly or yearly), FAQ, final CTA, footer linking `/terms`, `/privacy`
   and `/dpa`. Those pages render draft Markdown from `web/src/content/legal/` (pending
   solicitor review) with a small renderer in `web/src/lib/markdown.tsx`.
+- Real app: `/pilot` waitlist form (stored as a Pilot application inquiry); while sign-up
+  is closed, `/register` and the landing calls to action point there. The demo's calls
+  to action link to the real app's `/pilot` when `NEXT_PUBLIC_APP_URL` is set.
+- Client pages (API mode): meeting link once confirmed, "Add to your calendar" (.ics +
+  Google link) on confirmation and manage pages, and no "Powered by Slotera" on
+  Professional.
 - Public booking flow: Service → Date & time → Details → (Forms, conditional) → Billing →
   Review → Pay, with a receipt-styled summary, consent linking to a two-tab legal modal
   (provider booking terms + platform terms), and confirmation/failure routes.
@@ -568,6 +581,10 @@ Present tense — what exists in the working tree today.
   Client Payments, Billing (API mode only), Calendar, Emails, Account).
 - A scheduled session's drawer has "Add attendee", which opens the booking drawer with
   that session preselected.
+- API mode: Settings → Calendar creates a private subscribe link (sessions with client
+  names, shown once, revocable); online/hybrid services take one https meeting link;
+  Billing shows the plan and trial or paid-through state; the dashboard reminds when the
+  trial ends; "Report a problem" in the account menu files an inquiry.
 - Session drawer carries a "Notes & Actions" tab: one internal note plus lightweight
   action items, both admin-only. API mode persists the action-item list, its task status,
   optional due date, and future-only `clientVisible` flag.
@@ -585,7 +602,8 @@ Present tense — what exists in the working tree today.
   and an inquiries **inbox** (read/unread only) whose preview can promote a business
   inquiry into a provisioned workspace.
 - Superadmins provision a workspace (with its client currency) and an activation-pending
-  operator, move it between Free and Pro (audited), and suspend/reactivate access.
+  operator, record billing (Essentials/Professional, monthly/yearly, trial end,
+  paid-through; audited), and suspend/reactivate access.
   Suspension revokes operator sessions and keeps workspace data. There are no activity
   streams, admin notes or impersonation.
 
@@ -607,7 +625,9 @@ Present tense — what exists in the working tree today.
   PostgreSQL throttles, hashed one-time credentials, a retryable email outbox, and full
   session revocation on password change. `slotera-email-worker` supports local console and
   production-required Resend delivery; `slotera-maintenance` cleans stale auth state,
-  queues reminders, and tops recurring series back up to six months ahead.
+  queues reminders, and tops recurring series back up to six months ahead. Confirmed,
+  rescheduled and cancelled booking emails attach `booking.ics`. `slotera-smoke` checks
+  a deployment read-only.
 - Operator business-profile, saved-location, and service CRUD. Each workspace has one
   client currency (GBP default; GBP/EUR/USD, chosen at sign-up). Service currency is
   inherited from the workspace, inputs cannot override it, and service notes are exposed

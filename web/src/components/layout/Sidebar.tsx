@@ -7,10 +7,9 @@ import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { ContactModal } from "@/components/public/ContactModal";
 import { useI18n } from "@/components/i18n/I18nProvider";
-import { logout } from "@/services/auth.service";
+import { currentSession, logout } from "@/services/auth.service";
 import { cn } from "@/lib/cn";
 import { bookingPageHref, type NavItem } from "@/lib/nav";
-import { dataSource } from "@/lib/env";
 
 type Props = {
   collapsed: boolean;
@@ -32,6 +31,7 @@ export function Sidebar({
   userSubtitle,
 }: Props) {
   const pathname = usePathname();
+  const operatorEmail = currentSession()?.operator?.email;
   const router = useRouter();
   const { t } = useI18n();
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -146,20 +146,16 @@ export function Sidebar({
                 <Icon name="eye" size={14} /> View page
               </Link>
             )}
-            {dataSource === "mock" && (
-              <>
-                <button
-                  type="button"
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2 text-left"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setReportOpen(true);
-                  }}
-                >
-                  <Icon name="alert" size={14} /> Report a problem
-                </button>
-              </>
-            )}
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2 text-left"
+              onClick={() => {
+                setMenuOpen(false);
+                setReportOpen(true);
+              }}
+            >
+              <Icon name="alert" size={14} /> Report a problem
+            </button>
             <button
               type="button"
               className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2 text-left text-danger"
@@ -179,6 +175,10 @@ export function Sidebar({
       eyebrow="Operator workspace"
       title="Report a problem"
       description="Spotted a bug or a broken flow? Send us a note — we'll take a look."
+      presetName={userName}
+      presetEmail={operatorEmail}
+      // The page path only: no query string or fragment, which can carry tokens.
+      presetMessage={`Page: ${pathname}\n\nWhat happened:\n`}
     />
     </>
   );

@@ -643,7 +643,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/workspaces/{workspace_id}/plan": {
+    "/platform/workspaces/{workspace_id}/billing": {
         parameters: {
             query?: never;
             header?: never;
@@ -653,10 +653,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Set Platform Workspace Plan
-         * @description Pro is invoiced manually until Stripe Billing exists; staff record it here.
+         * Set Platform Workspace Billing
+         * @description Plans are invoiced manually until Stripe Billing exists; staff record them here.
          */
-        post: operations["setPlatformWorkspacePlan"];
+        post: operations["setPlatformWorkspaceBilling"];
         delete?: never;
         options?: never;
         head?: never;
@@ -759,6 +759,27 @@ export interface paths {
         put?: never;
         /** Create Public Inquiry */
         post: operations["createPublicInquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/pilot-applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Pilot Application
+         * @description The pilot waitlist. No confirmation email: a public form that mails any address it
+         *     is given can be abused, so the page shows the success state instead.
+         */
+        post: operations["createPilotApplication"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1009,6 +1030,28 @@ export interface paths {
         head?: never;
         /** Update Business Settings */
         patch: operations["updateBusinessSettings"];
+        trace?: never;
+    };
+    "/settings/calendar-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Calendar Feed */
+        get: operations["getCalendarFeed"];
+        put?: never;
+        /**
+         * Create Calendar Feed
+         * @description Create a subscribe link, revoking any earlier one.
+         */
+        post: operations["createCalendarFeed"];
+        /** Revoke Calendar Feed */
+        delete: operations["revokeCalendarFeed"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/settings/locations": {
@@ -1494,6 +1537,21 @@ export interface components {
              * Format: uuid
              */
             workspaceId: string;
+        };
+        /**
+         * CalendarFeedLink
+         * @description The subscribe URL. It is shown once; only its hash is stored.
+         */
+        CalendarFeedLink: {
+            /** Url */
+            url: string;
+        };
+        /** CalendarFeedStatus */
+        CalendarFeedStatus: {
+            /** Active */
+            active: boolean;
+            /** Createdat */
+            createdAt: string | null;
         };
         /** ClientCreate */
         ClientCreate: {
@@ -1985,6 +2043,8 @@ export interface components {
             currency: string;
             /** Manualpaymentinstructions */
             manualPaymentInstructions: string;
+            /** Meetingurl */
+            meetingUrl: string | null;
             /** Paymentdueat */
             paymentDueAt: string | null;
             /**
@@ -2034,6 +2094,8 @@ export interface components {
              * Format: date-time
              */
             sessionStartAt: string;
+            /** Showplatformbranding */
+            showPlatformBranding: boolean;
             /**
              * Status
              * @enum {string}
@@ -2190,11 +2252,33 @@ export interface components {
              * Id
              * @enum {string}
              */
-            id: "free" | "pro";
+            id: "essentials" | "professional";
             /** Monthlypricecents */
             monthlyPriceCents: number;
             /** Name */
             name: string;
+            /** Yearlypricecents */
+            yearlyPriceCents: number;
+        };
+        /** PlatformBillingChange */
+        PlatformBillingChange: {
+            /**
+             * Billinginterval
+             * @enum {string}
+             */
+            billingInterval: "monthly" | "yearly";
+            /** Paidthrough */
+            paidThrough?: string | null;
+            /**
+             * Plan
+             * @enum {string}
+             */
+            plan: "essentials" | "professional";
+            /**
+             * Trialendsat
+             * Format: date-time
+             */
+            trialEndsAt: string;
         };
         /** PlatformInquiryListResponse */
         PlatformInquiryListResponse: {
@@ -2241,25 +2325,24 @@ export interface components {
             signups30D: number;
             /** Workspacesactive */
             workspacesActive: number;
-            /** Workspacesfree */
-            workspacesFree: number;
-            /** Workspacespro */
-            workspacesPro: number;
+            /** Workspacesessentials */
+            workspacesEssentials: number;
+            /** Workspacesontrial */
+            workspacesOnTrial: number;
+            /** Workspacesprofessional */
+            workspacesProfessional: number;
             /** Workspacessuspended */
             workspacesSuspended: number;
             /** Workspacestotal */
             workspacesTotal: number;
         };
-        /** PlatformPlanChange */
-        PlatformPlanChange: {
-            /**
-             * Plan
-             * @enum {string}
-             */
-            plan: "free" | "pro";
-        };
         /** PlatformWorkspaceDetail */
         PlatformWorkspaceDetail: {
+            /**
+             * Billinginterval
+             * @enum {string}
+             */
+            billingInterval: "monthly" | "yearly";
             /** Bookingscount */
             bookingsCount: number;
             /** Clientscount */
@@ -2287,11 +2370,13 @@ export interface components {
             ownerEmail: string | null;
             /** Ownername */
             ownerName: string | null;
+            /** Paidthrough */
+            paidThrough: string | null;
             /**
              * Plan
              * @enum {string}
              */
-            plan: "free" | "pro";
+            plan: "essentials" | "professional";
             /** Servicescount */
             servicesCount: number;
             /** Sessionscount */
@@ -2300,6 +2385,11 @@ export interface components {
             slug: string;
             /** Timezone */
             timezone: string;
+            /**
+             * Trialendsat
+             * Format: date-time
+             */
+            trialEndsAt: string;
         };
         /** PlatformWorkspaceListResponse */
         PlatformWorkspaceListResponse: {
@@ -2339,6 +2429,11 @@ export interface components {
         };
         /** PlatformWorkspaceSummary */
         PlatformWorkspaceSummary: {
+            /**
+             * Billinginterval
+             * @enum {string}
+             */
+            billingInterval: "monthly" | "yearly";
             /** Bookingscount */
             bookingsCount: number;
             /** Clientscount */
@@ -2364,17 +2459,24 @@ export interface components {
             ownerEmail: string | null;
             /** Ownername */
             ownerName: string | null;
+            /** Paidthrough */
+            paidThrough: string | null;
             /**
              * Plan
              * @enum {string}
              */
-            plan: "free" | "pro";
+            plan: "essentials" | "professional";
             /** Servicescount */
             servicesCount: number;
             /** Sessionscount */
             sessionsCount: number;
             /** Slug */
             slug: string;
+            /**
+             * Trialendsat
+             * Format: date-time
+             */
+            trialEndsAt: string;
         };
         /** PublicAvailabilityResponse */
         PublicAvailabilityResponse: {
@@ -2475,6 +2577,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Meetingurl */
+            meetingUrl: string | null;
             /** Paymentdueat */
             paymentDueAt: string | null;
             /**
@@ -2580,7 +2684,49 @@ export interface components {
              * @default business
              * @enum {string}
              */
-            reason: "business" | "development" | "feature" | "general";
+            reason: "business" | "pilot" | "development" | "feature" | "general";
+        };
+        /**
+         * PublicPilotApplication
+         * @description The pilot waitlist form. Stored as a `pilot` inquiry for staff to review.
+         */
+        PublicPilotApplication: {
+            /**
+             * Bookingspermonth
+             * @enum {string}
+             */
+            bookingsPerMonth: "under_20" | "20_50" | "50_150" | "over_150";
+            /** Businessname */
+            businessName: string;
+            /**
+             * Businesstype
+             * @enum {string}
+             */
+            businessType: "coaching" | "consulting" | "fitness" | "workshops" | "other";
+            /**
+             * Consent
+             * @constant
+             */
+            consent: true;
+            /** Country */
+            country: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Message
+             * @default
+             */
+            message: string;
+            /** Name */
+            name: string;
+            /**
+             * Whatsappinterest
+             * @default false
+             */
+            whatsappInterest: boolean;
         };
         /** PublicServiceListResponse */
         PublicServiceListResponse: {
@@ -2668,6 +2814,8 @@ export interface components {
             manualPaymentEnabled: boolean;
             /** Manualpaymentinstructions */
             manualPaymentInstructions: string;
+            /** Showplatformbranding */
+            showPlatformBranding: boolean;
             /** Slug */
             slug: string;
             /** Timezone */
@@ -2862,6 +3010,8 @@ export interface components {
              * @enum {string}
              */
             locationType: "online" | "physical" | "hybrid";
+            /** Meetingurl */
+            meetingUrl?: string | null;
             /** Name */
             name: string;
             /** Notes */
@@ -2901,6 +3051,8 @@ export interface components {
             location?: string | null;
             /** Locationtype */
             locationType?: ("online" | "physical" | "hybrid") | null;
+            /** Meetingurl */
+            meetingUrl?: string | null;
             /** Name */
             name?: string | null;
             /** Notes */
@@ -2950,6 +3102,8 @@ export interface components {
              * @enum {string}
              */
             locationType: "online" | "physical" | "hybrid";
+            /** Meetingurl */
+            meetingUrl: string | null;
             /** Name */
             name: string;
             /** Notes */
@@ -3240,14 +3394,26 @@ export interface components {
          */
         WorkspaceBillingResponse: {
             /**
+             * Billinginterval
+             * @enum {string}
+             */
+            billingInterval: "monthly" | "yearly";
+            /** Paidthrough */
+            paidThrough: string | null;
+            /**
              * Plan
              * @enum {string}
              */
-            plan: "free" | "pro";
+            plan: "essentials" | "professional";
             /** Planchangedat */
             planChangedAt: string | null;
             /** Plans */
             plans: components["schemas"]["PlanResponse"][];
+            /**
+             * Trialendsat
+             * Format: date-time
+             */
+            trialEndsAt: string;
         };
         /** WorkspaceLocationCreate */
         WorkspaceLocationCreate: {
@@ -4707,7 +4873,7 @@ export interface operations {
             };
         };
     };
-    setPlatformWorkspacePlan: {
+    setPlatformWorkspaceBilling: {
         parameters: {
             query?: never;
             header?: never;
@@ -4718,7 +4884,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PlatformPlanChange"];
+                "application/json": components["schemas"]["PlatformBillingChange"];
             };
         };
         responses: {
@@ -4911,6 +5077,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PublicInquiryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicInquiryAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createPilotApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicPilotApplication"];
             };
         };
         responses: {
@@ -5633,6 +5832,64 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    getCalendarFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarFeedStatus"];
+                };
+            };
+        };
+    };
+    createCalendarFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarFeedLink"];
+                };
+            };
+        };
+    };
+    revokeCalendarFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

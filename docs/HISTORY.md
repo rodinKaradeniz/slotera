@@ -1252,6 +1252,67 @@ and a dump was restored in a restore drill.
 managed PostgreSQL and a separate scheduler at MVP scale; WAL archiving before daily
 backups have proven insufficient.
 
+### Entry 051 — Sentry for errors, with personal data kept out
+
+*2026-10-10.* The API, email worker and maintenance job report errors and a sample of
+request timings to Sentry (`sentry-sdk`); the real app's browser, server and proxy do
+the same (`@sentry/nextjs` 10.x). Both are off unless a DSN is set, and only the
+`web-app` image gets one, so the demo never reports. Events carry the release and the
+API's `request_id` tag. Personal data is kept out: no default PII, request bodies or
+frame variables, and every URL loses its query string and fragment (manage links carry
+their token after `#`, reset links after `?token=`, search terms are client names). A
+local check caught browser prefetch spans leaking the manage token in `url.full`, so URL
+attributes are scrubbed by key pattern. Source maps upload during the Docker build with a
+BuildKit secret, and are deleted from the image afterwards.
+
+The setup stays inside Sentry's free Developer plan: two projects, a 10% trace sample with
+health checks excluded, no Session Replay, no code-defined cron monitors.
+
+**Alternatives rejected:** Session Replay (records client names and emails on screen);
+v11 of the Next.js SDK (two weeks old at the time); cron check-ins (not clearly in the free
+plan; the uptime monitor and worker errors cover the same failures).
+
+### Entry 052 — Two paid tiers, a trial, and an invite-only pilot
+
+*2026-10-11.* Free/Pro became **Essentials** (£19/mo or £190/yr, 2% card cut) and
+**Professional** (£39/mo or £390/yr, 1%, no "Powered by Slotera", priority support,
+WhatsApp later). Every workspace gets a 30-day trial; staff record the plan, billing
+interval, trial end and paid-through date in one audited superadmin command (migration
+0029). Nothing locks automatically: the dashboard reminds the operator, and suspension
+stays manual. Sign-up is invite-only during the pilot (`SLOTERA_SIGNUP_OPEN`), and the
+public pricing page has a monthly/yearly toggle and says Stripe's fee is extra.
+
+**Alternatives rejected:** keeping a free tier (card cuts earn nothing until Stripe is
+live, so the flat fee is the only income); a higher card cut (pushes operators to bank
+transfer); automatic lock-out after the trial (staff follow up by hand at this size).
+
+### Entry 053 — Pilot waitlist and launch support
+
+*2026-10-11.* The real app has `/pilot`, a waitlist form stored as a **Pilot application**
+inquiry (no new table); "Promote to workspace" provisions it prefilled. The demo links
+there through `NEXT_PUBLIC_APP_URL` and still never calls the API. Footers link to support,
+the operator menu's "Report a problem" now works in the real app, and `slotera-smoke`
+checks a deployment read-only. The API's uvicorn access log is off (the JSON request log
+covers every request), because it would have recorded calendar-feed tokens.
+
+**Alternatives rejected:** a confirmation email for applications (lets anyone use the
+form to mail strangers); the form directly on the demo (the first crack in the mock/API
+split).
+
+### Entry 054 — Calendar files, a subscribe feed and meeting links
+
+*2026-10-11.* Services can carry one https meeting link (migration 0030), shown to clients
+only once confirmed. Confirmed, rescheduled and cancelled emails attach `booking.ics`
+(one UID per booking, so later files replace earlier ones); clients also get "Add to your
+calendar" (file + Google link) on the confirmation and manage pages. Operators get a
+private, revocable subscribe feed (migration 0031) with sessions and client names but no
+contact details; its token is redacted from logs and Sentry. The server and browser write
+the same iCalendar format, each with tests.
+
+**Alternatives rejected:** two-way Google sync now (OAuth app verification takes weeks);
+putting the manage link in calendar entries (they get shared); per-user feeds filtered by
+calendar owner (one-operator workspaces; revisit with team accounts).
+
 ---
 
 ## Thematic sections

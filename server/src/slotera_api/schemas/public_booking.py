@@ -32,6 +32,8 @@ class PublicWorkspaceResponse(ApiModel):
     manual_payment_instructions: str
     booking_terms_enabled: bool
     booking_terms_content: str
+    # False on Professional: client pages drop "Powered by Slotera".
+    show_platform_branding: bool
 
 
 class PublicServiceResponse(ApiModel):
@@ -146,6 +148,8 @@ class PublicBookingResponse(ApiModel):
     session_location_type: Literal["online", "physical", "hybrid"]
     session_location: str
     session_address: Address | None
+    # Only once the booking is confirmed (pending bookings may still be declined).
+    meeting_url: str | None
     payment_due_at: datetime | None
     quote: PublicTaxQuote
 
@@ -179,7 +183,9 @@ class ManagedBookingResponse(ApiModel):
     change_deadline: datetime
     can_cancel: bool
     can_reschedule: bool
+    meeting_url: str | None
     rescheduled: bool
+    show_platform_branding: bool
 
 
 class ManagedBookingReschedule(StrictApiModel):

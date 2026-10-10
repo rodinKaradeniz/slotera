@@ -155,6 +155,10 @@ class WorkspaceLocationListResponse(ApiModel):
     items: list[WorkspaceLocationResponse]
 
 
+# A video-call link for online and hybrid services; shown to clients once confirmed.
+MeetingUrl = Annotated[str, Field(max_length=500, pattern=r"^https://\S+$")]
+
+
 class ServiceCreate(StrictApiModel):
     name: Annotated[NonBlank, Field(max_length=160)]
     description: Annotated[str, Field(max_length=4000)] = ""
@@ -164,6 +168,7 @@ class ServiceCreate(StrictApiModel):
     location_type: Literal["online", "physical", "hybrid"]
     location: Annotated[NonBlank, Field(max_length=240)]
     address: Address | None = None
+    meeting_url: MeetingUrl | None = None
     booking_mode: Literal["open", "scheduled"]
     confirmation_policy: Literal["automatic", "operator_approval"] = "automatic"
     cancellation_rule: Annotated[str, Field(max_length=1000)] = ""
@@ -180,6 +185,7 @@ class ServicePatch(StrictApiModel):
     location_type: Literal["online", "physical", "hybrid"] | None = None
     location: Annotated[NonBlank | None, Field(max_length=240)] = None
     address: Address | None = None
+    meeting_url: MeetingUrl | None = None
     booking_mode: Literal["open", "scheduled"] | None = None
     confirmation_policy: Literal["automatic", "operator_approval"] | None = None
     cancellation_rule: Annotated[str | None, Field(max_length=1000)] = None
@@ -188,7 +194,7 @@ class ServicePatch(StrictApiModel):
 
     @model_validator(mode="after")
     def reject_invalid_nulls(self) -> "ServicePatch":
-        for field in self.model_fields_set - {"address", "notes"}:
+        for field in self.model_fields_set - {"address", "notes", "meeting_url"}:
             if getattr(self, field) is None:
                 raise ValueError(f"{to_camel(field)} cannot be null")
         return self
@@ -205,6 +211,7 @@ class ServiceResponse(ApiModel):
     location_type: Literal["online", "physical", "hybrid"]
     location: str
     address: Address | None
+    meeting_url: str | None
     booking_mode: Literal["open", "scheduled"]
     confirmation_policy: Literal["automatic", "operator_approval"]
     cancellation_rule: str

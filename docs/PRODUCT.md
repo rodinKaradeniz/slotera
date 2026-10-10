@@ -244,24 +244,40 @@ They appear in: the public booking payment step, the receipt/pay summary when ma
 
 ### Platform billing / subscription (operator-side)
 
-**Pricing (decided 2026-10-09).** Two tiers, identical features:
+**Pricing (decided 2026-10-11; replaces Free/Pro from 2026-10-09).** Two paid tiers;
+yearly costs ten months ("2 months free"):
 
-| Plan | Monthly | Cut per card payment |
-|---|---|---|
-| Free | £0 | 3% |
-| Pro | £19 | 1% |
+| Plan | Monthly | Yearly | Cut per card payment | Extras |
+|---|---|---|---|---|
+| Essentials | £19 | £190 | 2% | — |
+| Professional | £39 | £390 | 1% | no "Powered by Slotera" on client pages, priority support, WhatsApp (later, with a message allowance) |
 
-- The cut applies to **card payments only** and is collected through Stripe Connect's
-  application fee once Stripe is live (after Merulio is incorporated). Manual bank
-  transfers are never charged.
-- No trial: Free is the trial. No Team or Custom tier until a member model exists.
-- Landing copy (`Pricing.tsx`) must match this table.
+- Every workspace starts with a **30-day trial**, no card. Pilot members get **3 months
+  free** (staff extend the trial) and keep their founding price.
+- The cut applies to **card payments only**, on top of Stripe's own processing fee (paid
+  by the operator), and is collected through Stripe Connect's application fee once Stripe
+  is live. Manual bank transfers are never charged. Keep the cut at 2% or below: a higher
+  one pushes operators to steer clients to bank transfer.
+- Until card payments exist the flat fee is the only income, which is why there is no
+  free tier.
+- Landing copy (`Pricing.tsx`, prices from `web/src/lib/plans.ts`) must match
+  `server/src/slotera_api/plans.py` and the Terms.
 
-**How it works today (real app).** `workspaces.plan` is `free | pro`; new workspaces
-start on Free. A superadmin moves a workspace between plans from its detail page (audited;
-Pro is invoiced manually until Stripe Billing exists under Merulio). Settings → Billing
-shows the operator's plan and price list; "Upgrade to Pro" sends an inquiry. Rates live in
-`server/src/slotera_api/plans.py`.
+**How it works today (real app).** `workspaces.plan` (`essentials | professional`),
+`billing_interval`, `trial_ends_at` and `paid_through` are set by a superadmin on the
+workspace detail page (one audited command); staff invoice by hand until Stripe Billing
+exists. Nothing locks automatically when a trial or paid period ends: the operator's
+dashboard shows "Your free trial ends in N days / has ended", and suspension stays a
+manual superadmin action. Settings → Billing shows the plan, trial or paid-through state
+and both prices; "Switch to …" sends an inquiry.
+
+**Invite-only pilot.** While `SLOTERA_SIGNUP_OPEN=false` (API) and
+`NEXT_PUBLIC_SIGNUP_OPEN=false` (app build), self sign-up is refused and `/register`
+points to the pilot form at `/pilot` (real app only). Applications land in superadmin
+Inquiries as type **Pilot application**; "Promote to workspace" provisions it (prefilled
+with the business name) and emails the owner an activation link. The pilot form sends no
+confirmation email, so it cannot be used to mail strangers. The mock demo's calls to
+action link to `${NEXT_PUBLIC_APP_URL}/pilot`; the demo itself never calls the API.
 
 ### Superadmin area
 
@@ -387,6 +403,17 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 - Card inputs are auto-formatted via `web/src/lib/card.ts` (`formatCardNumber` → `"4242 4242 4242 4242"`, `formatCardExpiry` → `"12 / 30"`, `formatCardCvc` digits-only). Apply these in every card form (booking, register payment, billing update card).
 - **Address surfacing** — `SessionItem.address` is stored but not yet shown to the public client. The booking flow's date/time picker doesn't resolve to a specific `SessionItem` (free-form slots), so there's no plumbed-through session reference at confirmation. Surfacing the address publicly is the natural pairing with the `bookingMode: "scheduled"` flow when it gets built — the "scheduled" mode resolves the chosen session and can pass its address to the receipt and confirmation.
 
+
+**Meeting links and calendar files (real app).** Online and hybrid services can carry one
+https meeting link (`services.meeting_url`). Clients see it only once the booking is
+confirmed: on the confirmation and manage pages and in confirmed, reminder and
+rescheduled emails. Confirmed, rescheduled and cancelled emails attach `booking.ics`
+(UID `{reference}@slotera.app`; a later file replaces an earlier one, cancel removes it).
+The confirmation and manage pages offer the same file plus a Google Calendar link
+("Add to your calendar"). Calendar entries never contain the manage link, because they
+get shared and synced. On Professional workspaces the client pages say "Secure checkout"
+without "Powered by Slotera".
+
 ### Forms
 
 The local API form bundle persists and manages reusable templates and their service
@@ -464,6 +491,13 @@ A production version would use **secure magic links/tokens sent by email + backe
 - Cells stay compact: primary = service name, secondary = client name for 1:1 (`capacity === 1`) or `"X / Y booked"` for groups (`capacity > 1`). There is no separate "session title" field — don't reference one.
 - Spots wording: `1 spot open`, `X spots open` (via `plural()` in `web/src/lib/text.ts`).
 - Session details open in the shared `SessionDrawer`. Do not reserve permanent right-side space for them.
+- **Calendar feed (real app).** Settings → Calendar creates a private subscribe link
+  (`/calendar/feed/<token>.ics` on the API host) for Google, Apple or Outlook. It lists
+  non-cancelled sessions from 30 days ago to the rolling horizon, titled like the
+  calendar cells, with the meeting link or place, and never client emails, phones or
+  notes. The link is shown once, regenerating revokes the old one, and suspended
+  workspaces stop serving it. It is one-way (Slotera → calendar); two-way Google/Outlook
+  sync is later work.
 
 ### Dashboard
 
@@ -473,6 +507,8 @@ Intentionally more editorial than generic SaaS. **Keep:**
 - Revenue trend with Recharts (`TrendChart`) — its `ResponsiveContainer` is gated on a measured positive size to suppress the `width(-1)/height(-1)` warnings that fire during route transitions.
 - Prominent `NextSessionCard` (also embeds today's schedule timeline — don't add a separate "Today's schedule" card).
 - `PendingActions` ("Needs your attention"). Mock mode prepends derived attendance/action-item entries. API mode reports only persisted summary facts: open session action-item and unread-notification counts.
+- API mode also prepends a billing reminder when the trial ends within 7 days or the
+  workspace is unpaid (from `GET /settings/billing`).
 - API mode maps `GET /dashboard/summary` into the same component-facing contract: monthly paid-booking revenue plus active booking count/average, a 30-day trend, today/next session context, weekly session count, and the two attention counts. Currency formatting remains in the service/UI; the API returns currency and minor-unit facts.
 - `Greeting`'s right-hand column has the **booking-page toggle** in mock mode: a `Toggle` + status pill ("Booking page live" / "Bookings paused") + confirmation modal + `toast.info("Bookings paused", { description })` / `toast.success("Bookings live")`. It remains hidden on the API dashboard; the real publication flag is owned by Business Settings and the public endpoint, not by this mock-derived dashboard control.
 

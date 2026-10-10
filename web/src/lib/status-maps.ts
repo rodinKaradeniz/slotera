@@ -55,6 +55,7 @@ export const WORKSPACE_OPERATIONAL_STATUS: Record<
 
 export const INQUIRY_TYPE: Record<PlatformInquiryType, { label: string; tone: Tone }> = {
   business:    { label: "Business inquiry",   tone: "accent" },
+  pilot:       { label: "Pilot application",  tone: "success" },
   development: { label: "Development issue",  tone: "danger" },
   feature:     { label: "Feature request",    tone: "info" },
   general:     { label: "General request",    tone: "neutral" },

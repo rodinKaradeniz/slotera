@@ -20,6 +20,7 @@ def test_every_declared_tenant_table_carries_workspace_identity() -> None:
         "public_booking_idempotency",
         "booking_form_responses",
         "booking_access_tokens",
+        "calendar_feed_tokens",
         "form_templates",
         "form_template_services",
         "client_notes",

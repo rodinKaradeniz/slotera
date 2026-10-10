@@ -12,6 +12,7 @@ import { Pill } from "@/components/ui/Pill";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { NewWorkspaceDrawer } from "./NewWorkspaceDrawer";
+import { PlanPills } from "./PlanPills";
 import { listWorkspaces } from "@/services/platform.service";
 import { WORKSPACE_OPERATIONAL_STATUS } from "@/lib/status-maps";
 import { fmtDate } from "@/lib/time";
@@ -120,9 +121,7 @@ function Directory({ items }: { items: PlatformWorkspace[] }) {
               >
                 {WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label}
               </Pill>
-              <Pill tone={workspace.plan === "pro" ? "accent" : "neutral"}>
-                {workspace.plan === "pro" ? "Pro" : "Free"}
-              </Pill>
+              <PlanPills workspace={workspace} />
             </div>
             <div className="text-small md:hidden truncate">
               {workspace.ownerName ?? "No operator assigned"}

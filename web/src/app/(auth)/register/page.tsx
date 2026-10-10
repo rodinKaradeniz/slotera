@@ -12,6 +12,7 @@ import { isSlugAvailable, register } from "@/services/auth.service";
 import { ApiRequestError } from "@/services/_errors";
 import { slugify } from "@/lib/text";
 import { CURRENCIES, type Currency } from "@/types/common";
+import { signupOpen } from "@/lib/env";
 
 type Form = {
   firstNames: string;
@@ -157,7 +158,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         Create workspace
       </Button>
       <p className="text-micro text-center">
-        Free plan: £0/month + 3% per card payment. Switch to Pro any time.
+        30-day free trial, then Essentials (£19/month) or Professional (£39/month).
       </p>
       <p className="text-micro text-center">
         By creating a workspace you agree to the{" "}
@@ -201,12 +202,15 @@ function CheckInbox({ email }: { email: string }) {
 
 export default function RegisterPage() {
   const [sentTo, setSentTo] = React.useState<string | null>(null);
+  if (!signupOpen) return <InviteOnly />;
   return (
     <AuthCard
       eyebrow={sentTo ? "Almost there" : "Get started"}
       title={sentTo ? "Check your inbox." : "Create your workspace."}
       subtitle={
-        sentTo ? undefined : "Free to start. Your booking page can be live in under 10 minutes."
+        sentTo
+          ? undefined
+          : "30-day free trial, no card needed. Your booking page can be live in under 10 minutes."
       }
       footer={
         <span>
@@ -218,6 +222,31 @@ export default function RegisterPage() {
       }
     >
       {sentTo ? <CheckInbox email={sentTo} /> : <RegisterForm onDone={setSentTo} />}
+    </AuthCard>
+  );
+}
+
+/** Sign-up is closed during the invite-only pilot (NEXT_PUBLIC_SIGNUP_OPEN=false). */
+function InviteOnly() {
+  return (
+    <AuthCard
+      eyebrow="Pilot"
+      title="Sign-up is by invitation for now."
+      subtitle="Apply for the pilot and we'll set up your workspace, then email you a link to sign in."
+      footer={
+        <span>
+          Already invited?{" "}
+          <Link href="/login" className="text-ink underline">
+            Sign in
+          </Link>
+        </span>
+      }
+    >
+      <Link href="/pilot">
+        <Button variant="primary" full iconRight="arrow-right">
+          Apply for the pilot
+        </Button>
+      </Link>
     </AuthCard>
   );
 }

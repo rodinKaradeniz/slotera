@@ -10,7 +10,7 @@ import { NotImplementedError } from "./_errors";
 
 export type WorkspaceBilling = components["schemas"]["WorkspaceBillingResponse"];
 
-/** The operator's Slotera plan plus the Free/Pro price list (docs/PRODUCT.md → Pricing). */
+/** The operator's Slotera plan, trial and price list (docs/PRODUCT.md → Pricing). */
 export async function getWorkspaceBilling(): Promise<WorkspaceBilling> {
   if (dataSource !== "api") throw new NotImplementedError("getWorkspaceBilling");
   return apiRequest<WorkspaceBilling>("/settings/billing");

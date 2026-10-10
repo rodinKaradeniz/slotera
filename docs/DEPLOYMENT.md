@@ -45,6 +45,9 @@ send the token. Do not put the API behind a path proxy.
 5. **Off-box backups:** order a Hetzner Storage Box (in a different location from the
    server). Put an SSH key at `deploy/backup/ssh/id_ed25519` (git-ignored), add its
    public half to the Storage Box, and set `STORAGE_BOX=uXXXXX@uXXXXX.your-storagebox.de`.
+   Then fill in the Sentry values ([Monitoring](#monitoring-sentry)). Leave
+   `SLOTERA_SIGNUP_OPEN=false` for the invite-only pilot; it is also compiled into the app
+   image, so rebuild `web-app` after changing it. Set `SUPPORT_EMAIL`.
 6. **Start:** from the repository root, run:
 
    ```sh
@@ -54,7 +57,13 @@ send the token. Do not put the API behind a path proxy.
 
    On first start the database volume runs `deploy/postgres/init`, which creates the
    restricted `slotera_app` role. Then `migrate` builds the schema.
-7. **Smoke test:** `https://api.…/health/ready` returns 200, and both web hosts load.
+7. **Smoke test:** from any machine with the repository, run the read-only check, then
+   the manual flows in the live-release gate:
+
+   ```sh
+   cd server && uv run slotera-smoke --api https://api.slotera.app \
+     --app https://app.slotera.app --demo https://www.slotera.app --workspace <slug>
+   ```
 
 Never run the demo seed in production; the server rejects it by design.
 
@@ -103,6 +112,35 @@ If the rollback crosses a migration, first run
   again. Losing up to a day of data is the current trade-off. Add WAL archiving only if
   that stops being acceptable.
 
+## Monitoring (Sentry)
+
+Errors go to Merulio's Sentry organisation (EU region, free Developer plan). There are two
+projects: `slotera-api` (Python: API, email worker, maintenance job) and `slotera-web`
+(Next.js: the real app's browser, server and proxy). Each is off while its DSN is empty,
+and the demo image never gets a DSN.
+
+| `deploy/.env` | Value |
+|---|---|
+| `SLOTERA_SENTRY_DSN` | `slotera-api` project → Settings → Client Keys (DSN) |
+| `SENTRY_WEB_DSN` | `slotera-web` project → Settings → Client Keys (DSN); compiled into the app image |
+| `SENTRY_ORG` | the organisation slug (Settings → General) |
+| `SENTRY_WEB_PROJECT` | `slotera-web` |
+| `SENTRY_AUTH_TOKEN` | an organisation token (Settings → Auth Tokens); used only at build time, as a BuildKit secret, to upload source maps |
+
+`RELEASE` doubles as the Sentry release, so an error names the deploy that caused it. The
+API tags each event with `request_id`, the same value as the `X-Request-ID` header and
+the JSON logs.
+
+**Personal data:** no default PII, request bodies or stack-frame variables are sent, and
+every URL loses its query string and fragment (manage tokens, reset tokens, search
+terms). Session Replay is deliberately not installed. An exception message can still
+contain an email address; the privacy policy says so.
+
+**Free plan limits:** traces are sampled at 10% (`SLOTERA_SENTRY_TRACES_SAMPLE_RATE` for the
+API) and health checks are never traced. Set one Sentry uptime monitor on
+`https://api.…/health/ready` in the Sentry web UI if the plan includes it; otherwise use a
+free external uptime checker. Alerts go to the one plan user by email.
+
 ## Live-release gate
 
 Complete and record each item before telling real operators about `app.`:
@@ -113,18 +151,19 @@ Complete and record each item before telling real operators about `app.`:
    `deploy/.env`. The API connects only as `slotera_app`.
 3. **Email:** Resend has a verified sending domain (SPF, DKIM, DMARC). Activation, reset,
    booking confirmation and reminder emails were received on real inboxes.
-4. **Monitoring:** an external uptime check watches `https://api.…/health/ready` and both
-   web hosts. A 503 from the maintenance page counts as down. Error alerts reach a named
-   person, and logs are kept for at least 14 days (`docker compose logs` or a log
-   shipper).
-5. **Legal:** the draft [Terms](../web/src/content/legal/terms.md),
+4. **Monitoring:** both Sentry DSNs are set and a test error from each project has
+   arrived. An uptime check watches `https://api.…/health/ready` and both web hosts (a 503
+   from the maintenance page counts as down). Error alerts reach a named person, and logs
+   are kept for at least 14 days (`docker compose logs` or a log shipper).
+5. **Legal:** the ICO data protection fee is paid for Merulio Ltd. The draft [Terms](../web/src/content/legal/terms.md),
    [Privacy Policy](../web/src/content/legal/privacy.md) and
    [DPA](../web/src/content/legal/dpa.md) have been reviewed by a solicitor, the
    bracketed items are filled in, and Merulio Ltd is incorporated. Client export and
    erasure are on each client's page.
-6. **Smoke test on the real domains:** origin, cookie and CSRF checks; login; reset;
-   sign-up and onboarding; a public booking; manage link, reschedule and cancel;
-   suspension; and email worker delivery.
+6. **Smoke test on the real domains:** `slotera-smoke` passes; then by hand: login; reset;
+   a pilot application promoted to a workspace and its activation email; onboarding; a
+   public booking with its `.ics` attachment; manage link, reschedule and cancel; the
+   calendar feed in a real calendar app; suspension; and email worker delivery.
 7. **CI and ownership:** GitHub Actions is green for the release commit, and a rollback
    owner is named.
 

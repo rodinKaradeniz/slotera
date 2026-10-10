@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { BookingTopBar } from "@/components/layout/BookingTopBar";
 import { BookingFooter } from "@/components/layout/BookingFooter";
+import { AddToCalendar } from "@/components/booking/AddToCalendar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -21,6 +22,9 @@ type Stored = {
   booking?: PublicBookingResult;
   /** API mode: the workspace that was booked, for "book another". */
   slug?: string | null;
+  /** API mode: the operator's name, and false on Professional (no "Powered by"). */
+  providerName?: string;
+  branded?: boolean;
 };
 
 export default function ConfirmationPage() {
@@ -41,6 +45,16 @@ export default function ConfirmationPage() {
   const meetingLink = data ? `https://meet.slotera.app/${data.ref.toLowerCase()}` : "";
   const apiBooking = dataSource === "api" ? data?.booking : undefined;
   const isConfirmed = apiBooking?.status === "confirmed";
+  const apiWhere = apiBooking
+    ? apiBooking.sessionAddress
+      ? `${apiBooking.sessionLocation} · ${formatAddressSummary({
+          ...apiBooking.sessionAddress,
+          street2: apiBooking.sessionAddress.street2 ?? undefined,
+          region: apiBooking.sessionAddress.region ?? undefined,
+          notes: apiBooking.sessionAddress.notes ?? undefined,
+        })}`
+      : apiBooking.sessionLocation
+    : "";
 
   const copy = async () => {
     if (!meetingLink) return;
@@ -55,7 +69,7 @@ export default function ConfirmationPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <BookingTopBar />
+      <BookingTopBar consultantName={data?.providerName} />
       <main className="flex-1 max-w-[820px] mx-auto w-full px-6 pt-12 pb-12">
         <Card padded className="text-center">
           <div className="mx-auto w-16 h-16 rounded-full bg-accent-soft text-accent flex items-center justify-center mb-5">
@@ -117,20 +131,28 @@ export default function ConfirmationPage() {
                 <DetailLine label={t("booking.confirm.meetingLink")} value={meetingLink} />
               )}
               {apiBooking && (
+                <DetailLine label={t("booking.confirm.where")} value={apiWhere || "—"} />
+              )}
+              {apiBooking?.meetingUrl && (
                 <DetailLine
-                  label={t("booking.confirm.where")}
-                  value={
-                    apiBooking.sessionAddress
-                      ? `${apiBooking.sessionLocation} · ${formatAddressSummary({
-                          ...apiBooking.sessionAddress,
-                          street2: apiBooking.sessionAddress.street2 ?? undefined,
-                          region: apiBooking.sessionAddress.region ?? undefined,
-                          notes: apiBooking.sessionAddress.notes ?? undefined,
-                        })}`
-                      : apiBooking.sessionLocation || "—"
-                  }
+                  label={t("booking.meeting.label")}
+                  value={apiBooking.meetingUrl}
+                  href={apiBooking.meetingUrl}
                 />
               )}
+            </div>
+          )}
+          {apiBooking && data && (
+            <div className="mt-6 text-left">
+              <AddToCalendar
+                reference={apiBooking.reference}
+                serviceName={data.draft.service?.name ?? ""}
+                providerName={data.providerName ?? ""}
+                startISO={apiBooking.sessionStartAt}
+                endISO={apiBooking.sessionEndAt}
+                location={apiWhere}
+                meetingUrl={apiBooking.meetingUrl}
+              />
             </div>
           )}
           {apiBooking?.pendingReasons.length ? (
@@ -184,16 +206,27 @@ export default function ConfirmationPage() {
           />
         </div>}
       </main>
-      <BookingFooter />
+      <BookingFooter branded={data?.branded ?? true} />
     </div>
   );
 }
 
-function DetailLine({ label, value }: { label: string; value: string }) {
+function DetailLine({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <div className="px-4 py-3 rounded-md bg-surface-warm border border-line-soft">
       <div className="text-micro">{label}</div>
-      <div className="text-[14px] text-ink mt-0.5 break-all">{value}</div>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-[14px] text-accent underline mt-0.5 break-all"
+        >
+          {value}
+        </a>
+      ) : (
+        <div className="text-[14px] text-ink mt-0.5 break-all">{value}</div>
+      )}
     </div>
   );
 }

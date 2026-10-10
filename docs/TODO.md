@@ -169,8 +169,17 @@ built and exercised separately.
 - **Production readiness is required before any live API cutover.** Done: Hetzner
   Compose stack, health checks, nightly backups with a tested restore, secrets in
   `deploy/.env`, client export, and erasure by anonymisation (financial facts kept).
-  Remaining, in the `docs/DEPLOYMENT.md` gate: the off-box restore drill, error monitoring
-  and alerting, solicitor-reviewed legal pages, and real-domain smoke tests.
+  Error monitoring is wired (Sentry, off until the DSNs are set). Launch support is
+  wired: the invite-only pilot (`SLOTERA_SIGNUP_OPEN=false`, `/pilot`), support and
+  problem-report links, and the read-only `slotera-smoke` check. Remaining, in the
+  `docs/DEPLOYMENT.md` gate: the off-box restore drill, the Sentry DSNs and an uptime
+  monitor, solicitor-reviewed legal pages, the ICO fee, and real-domain smoke tests.
+- **Pay the ICO data protection fee once Merulio Ltd is incorporated.** UK companies that
+  process personal data pay it yearly; the form asks for the company number. Tier 1 (micro:
+  turnover under £632k or at most 10 staff) is £52, or £47 by direct debit (checked
+  2026-10). It is one fee per legal entity, so it covers every app Merulio runs; an app
+  run by another entity (for example as a sole trader) needs that entity's own fee. Not
+  paying risks a fine. Confirm the amount at ico.org.uk before paying.
 
 ### Scheduling and availability
 
@@ -410,8 +419,10 @@ live environment.
   events/templates are DONE in code. External provider/domain configuration remains an
   operational live-release task. Magic-link access stays paired with the later customer
   booking workspace; reminders and follow-ups remain Phase 3.
-- **External calendars:** Google Calendar/Meet and all connection/sync work remain
-  display-only/deferred.
+- **External calendars:** two-way Google/Outlook sync and auto-created Meet/Zoom links
+  remain deferred. **One-way calendar features are DONE:** `.ics` attachments on booking
+  emails, "Add to calendar" (file + Google link) for clients, a private per-operator
+  subscribe feed, and one operator-entered meeting link per service.
 
 **~~Before any live auth deployment, add shared login throttling, expired/revoked-session
 cleanup, password reset delivery/consumption, and password-change session revocation.~~
@@ -440,8 +451,48 @@ the workspace chooser waits for the Team/member product surface.
   confirmation events first; booking-workspace magic-link delivery follows with that
   access bundle. Reminder/follow-up scheduling, heavier retry orchestration, and
   Redis/Celery stay here until their operational need is demonstrated.
-- **Google Calendar / Meet.** Settings → Calendar → Calendar Connections is display-only.
-  Online sessions have no meeting link — the booking workspace shows a placeholder.
+- **Google Calendar / Meet (two-way).** Reading the operator's busy times to block
+  double-booking needs Google's OAuth app verification (weeks). One-way is DONE: the
+  subscribe feed and calendar files. Meeting links are typed in per service today;
+  generating a unique meeting per booking needs each provider's API.
+- **WhatsApp (Professional plan).** Agreed architecture, 2026-10-11; build after the MVP,
+  once Merulio's Meta business account is verified.
+  - **Numbers:** one Slotera number under Merulio's WhatsApp Business Account first;
+    messages name the operator. Operators' own numbers later via Meta Embedded Signup,
+    which needs Merulio to become a Meta Tech Provider.
+  - **Flow:** signed webhook (`X-Hub-Signature-256`) → store the inbound message once by
+    its Meta id and answer 200 fast → conversation worker → message outbox (the email
+    outbox gains a `channel`) → sender worker. Delivery statuses update the outbox.
+  - **Routing:** with one number, the workspace comes from context: a reply to our
+    notification (button payload carries the booking id) or a "Chat on WhatsApp" link on
+    the booking page that pre-fills a code such as `BOOK lena`.
+  - **Authentication:** Meta guarantees the sender's number (wa_id). Booking phone numbers
+    are typed by clients, so a number becomes trusted only after the client opts in from
+    it (`phone_verified_at`). Levels: public (prices, place, free slots) needs nothing;
+    own booking (confirm, cancel, reschedule) needs a verified number matching the
+    booking plus an explicit "Yes"; sensitive (payment, contact changes, data requests)
+    is never done in chat, only via the existing manage link.
+  - **Understanding:** buttons, lists and WhatsApp Flows first (no language model);
+    keyword shortcuts (STOP, YES, CANCEL in EN/TR/DE); free text goes to a small model
+    (for example Claude Haiku) that only fills a fixed form `{intent, service, when,
+    language, confidence}` from a closed list of intents. The model never acts: ordinary
+    code resolves dates in the workspace time zone and checks real availability; low
+    confidence asks with buttons; answers to questions come only from the operator's own
+    data, otherwise "I'll pass this to <operator>".
+  - **State:** a deterministic state machine per conversation (24-hour expiry); every
+    change ends with an explicit confirmation naming the booking; idempotency keys;
+    "talk to a human" or two misunderstandings pause the bot and show the conversation in
+    an operator WhatsApp inbox.
+  - **Rules:** Meta's 24-hour window (business-started messages use pre-approved, paid
+    templates); client opt-in at booking and immediate STOP; every action runs through the
+    existing services under `tenant_transaction`, audited as `actor=whatsapp`; per-number
+    rate limits; erasure wipes WhatsApp history; Meta and the model provider are added to
+    the privacy policy and DPA.
+  - **Rollout:** 1) notifications on one number; 2) reply buttons (confirm, cancel,
+    reschedule via the manage link); 3) booking through WhatsApp Flows; 4) free-text
+    understanding and the operator inbox; 5) operators' own numbers.
+  - **Pricing:** Professional includes a monthly message allowance; extra messages are
+    charged at Meta's cost plus a margin.
 - **International tax detection.** Phase 2 snapshots an operator-configured `none | fixed`
   treatment for the initial German context. Country-dependent and cross-border treatment
   stays deferred to a provider tax service plus professional tax review; never restore the

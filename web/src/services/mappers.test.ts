@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mapInquiry, mapPlatformOverview, mapPlatformWorkspace } from "./platform.service";
 import { apiCurrency } from "./_currency";
 import { ApiRequestError } from "./_errors";
+import { billingAction } from "./dashboard.service";
 
 describe("platform DTO mappers", () => {
   it("maps the overview's generated 30D field names", () => {
@@ -10,8 +11,9 @@ describe("platform DTO mappers", () => {
       workspacesTotal: 4,
       workspacesActive: 3,
       workspacesSuspended: 1,
-      workspacesFree: 3,
-      workspacesPro: 1,
+      workspacesEssentials: 3,
+      workspacesProfessional: 1,
+      workspacesOnTrial: 2,
       signups30D: 2,
       bookings30D: 17,
       inquiriesUnread: 5,
@@ -44,7 +46,10 @@ describe("platform DTO mappers", () => {
       ownerEmail: "ada@example.com",
       createdAt: "2026-10-01T10:00:00Z",
       operationalStatus: "active",
-      plan: "pro",
+      plan: "professional",
+      billingInterval: "yearly",
+      trialEndsAt: "2026-10-31T10:00:00Z",
+      paidThrough: null,
       servicesCount: 1,
       clientsCount: 2,
       bookingsCount: 3,
@@ -52,7 +57,9 @@ describe("platform DTO mappers", () => {
       currency: "GBP",
       timezone: "Europe/London",
     });
-    expect(workspace.plan).toBe("pro");
+    expect(workspace.plan).toBe("professional");
+    expect(workspace.trialEndsAtISO).toBe("2026-10-31T10:00:00Z");
+    expect(workspace.paidThrough).toBeNull();
     expect(workspace.currency).toBe("GBP");
   });
 });
@@ -61,5 +68,21 @@ describe("apiCurrency", () => {
   it("accepts supported currencies and rejects others loudly", () => {
     expect(apiCurrency("GBP")).toBe("GBP");
     expect(() => apiCurrency("TRY")).toThrow(ApiRequestError);
+  });
+});
+
+describe("billingAction", () => {
+  const now = new Date("2026-10-11T12:00:00Z");
+  it("stays quiet early in the trial and once paid", () => {
+    expect(billingAction("2026-11-01T00:00:00Z", null, now)).toBeNull();
+    expect(billingAction("2026-10-01T00:00:00Z", "2026-11-11", now)).toBeNull();
+  });
+  it("warns in the last week and after the trial", () => {
+    expect(billingAction("2026-10-14T12:00:00Z", null, now)?.label).toBe(
+      "Your free trial ends in 3 days",
+    );
+    expect(billingAction("2026-10-01T00:00:00Z", null, now)?.label).toBe(
+      "Your free trial has ended",
+    );
   });
 });

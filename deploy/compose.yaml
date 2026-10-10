@@ -12,6 +12,7 @@ x-server: &server
     SLOTERA_ENVIRONMENT: production
     SLOTERA_DATABASE_URL: postgresql+asyncpg://slotera_app:${SLOTERA_APP_DB_PASSWORD}@db:5432/slotera
     SLOTERA_MIGRATION_DATABASE_URL: postgresql+asyncpg://slotera_owner:${POSTGRES_PASSWORD}@db:5432/slotera
+    SLOTERA_RELEASE: ${RELEASE:-latest}
   depends_on:
     db:
       condition: service_healthy
@@ -36,6 +37,9 @@ services:
       context: ../web
       args:
         NEXT_PUBLIC_DATA_SOURCE: mock
+        # The demo only links to the real app (its pilot form); it never calls the API.
+        NEXT_PUBLIC_APP_URL: https://${APP_HOST}
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@slotera.app}
     image: slotera-web-demo:${RELEASE:-latest}
     restart: unless-stopped
     environment:
@@ -48,6 +52,13 @@ services:
         NEXT_PUBLIC_DATA_SOURCE: api
         NEXT_PUBLIC_API_BASE_URL: https://${API_HOST}
         NEXT_PUBLIC_CSRF_COOKIE_NAME: slotera_csrf
+        NEXT_PUBLIC_SIGNUP_OPEN: ${SLOTERA_SIGNUP_OPEN:-false}
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@slotera.app}
+        NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_WEB_DSN:-}
+        SENTRY_ORG: ${SENTRY_ORG:-}
+        SENTRY_PROJECT: ${SENTRY_WEB_PROJECT:-}
+        SENTRY_RELEASE: ${RELEASE:-latest}
+      secrets: [sentry_auth_token]
     image: slotera-web-app:${RELEASE:-latest}
     restart: unless-stopped
     environment:
@@ -124,3 +135,8 @@ volumes:
   caddy-data:
   caddy-config:
   backups:
+
+secrets:
+  # Used only while building web-app, to upload source maps to Sentry.
+  sentry_auth_token:
+    environment: SENTRY_AUTH_TOKEN

@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { BookingTopBar } from "@/components/layout/BookingTopBar";
+import { BookingFooter } from "@/components/layout/BookingFooter";
+import { AddToCalendar } from "@/components/booking/AddToCalendar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
@@ -163,6 +165,15 @@ export default function ManageBookingPage() {
                       : booking.sessionLocation || "—"
                   }
                 />
+                {booking.meetingUrl && (
+                  <a href={booking.meetingUrl} target="_blank" rel="noopener noreferrer">
+                    <DetailLine
+                      icon="video"
+                      label={t("booking.meeting.join")}
+                      value={booking.meetingUrl}
+                    />
+                  </a>
+                )}
                 <DetailLine icon="user" label={t("manage.provider")} value={booking.providerName} />
                 <DetailLine
                   icon="wallet"
@@ -189,6 +200,19 @@ export default function ManageBookingPage() {
                   {booking.cancellationRule}
                 </p>
               )}
+              {(booking.status === "pending" || booking.status === "confirmed") && (
+                  <div className="mt-5">
+                    <AddToCalendar
+                      reference={booking.reference}
+                      serviceName={booking.serviceName}
+                      providerName={booking.providerName}
+                      startISO={booking.sessionStartAt}
+                      endISO={booking.sessionEndAt}
+                      location={booking.sessionLocation}
+                      meetingUrl={booking.meetingUrl}
+                    />
+                  </div>
+                )}
             </Card>
 
             {(booking.status === "pending" || booking.status === "confirmed") && (
@@ -279,6 +303,7 @@ export default function ManageBookingPage() {
           </>
         )}
       </main>
+      <BookingFooter branded={booking?.showPlatformBranding ?? false} />
     </div>
   );
 }
