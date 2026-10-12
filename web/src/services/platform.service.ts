@@ -44,6 +44,9 @@ export function mapPlatformOverview(overview: PlatformOverviewDto): PlatformOver
     signups30d: overview.signups30D,
     bookings30d: overview.bookings30D,
     inquiriesUnread: overview.inquiriesUnread,
+    emailsPending: overview.emailsPending,
+    emailsFailing: overview.emailsFailing,
+    emailLastError: overview.emailLastError,
   };
 }
 
@@ -67,6 +70,7 @@ export function mapPlatformWorkspace(
     billingInterval: workspace.billingInterval,
     trialEndsAtISO: workspace.trialEndsAt,
     paidThrough: workspace.paidThrough ?? null,
+    closureRequestedAtISO: workspace.closureRequestedAt,
     servicesCount: workspace.servicesCount,
     clientsCount: workspace.clientsCount,
     bookingsCount: workspace.bookingsCount,

@@ -12,6 +12,7 @@ from slotera_api.logging import configure_logging
 from slotera_api.observability import init_sentry
 from slotera_api.scheduling.recurrence import ROLLING_HORIZON_DAYS
 from slotera_api.scheduling.repository import SchedulingRepository
+from slotera_api.workspace_data import WorkspaceDataRepository
 
 logger = logging.getLogger("slotera.maintenance")
 
@@ -71,11 +72,18 @@ async def run() -> int:
         cleaned = await AuthRepository(database).run_maintenance()
         reminders = await queue_booking_reminders(database)
         sessions = await extend_series_horizons(database)
+        purged = await WorkspaceDataRepository(database).purge_closed()
+        # The JSON log formatter keeps only request fields from `extra`, so the counts
+        # go in the message.
         logger.info(
-            "maintenance_completed",
-            extra={"auth_rows": cleaned, "reminders": reminders, "series_sessions": sessions},
+            "maintenance_completed auth_rows=%s reminders=%s series_sessions=%s "
+            "workspaces_purged=%s",
+            cleaned,
+            reminders,
+            sessions,
+            purged,
         )
-        return cleaned + reminders + sessions
+        return cleaned + reminders + sessions + purged
     finally:
         await database.dispose()
 

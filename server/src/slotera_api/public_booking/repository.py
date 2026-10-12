@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import ColumnElement, and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from slotera_api.booking_access import emit_booking_event
+from slotera_api.booking_access import emit_booking_event, notify_operator
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
@@ -795,9 +795,7 @@ class PublicBookingRepository:
                 customer_last_name=str(customer["last_name"]),
                 customer_email=email,
                 customer_phone=(str(customer["phone"]) if customer.get("phone") else None),
-                customer_company=(
-                    str(customer["company"]) if customer.get("company") else None
-                ),
+                customer_company=(str(customer["company"]) if customer.get("company") else None),
                 provider_terms_snapshot=(
                     payments.booking_terms_content if payments.booking_terms_enabled else ""
                 ),
@@ -856,6 +854,7 @@ class PublicBookingRepository:
             )
             if not emitted:
                 raise RuntimeError("public booking event could not be enqueued")
+            await notify_operator(session, booking_id=booking.id, action="new")
             await session.refresh(booking)
             await session.refresh(scheduled_session)
             return PublicBookingResult(

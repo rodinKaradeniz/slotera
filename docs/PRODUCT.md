@@ -287,7 +287,10 @@ branches apart from `createInquiry()` (the demo contact form). **Do not mix oper
 and superadmin navigation into one visible sidebar.** Both share the shell components
 (`AppShell`, `Sidebar`, `Topbar`) with separate navigation in `web/src/lib/nav.ts`.
 
-Pages: **Overview** (platform counts), **Workspaces** (+ detail) and **Inquiries**.
+Pages: **Overview** (platform counts, plus email delivery: unsent and failing emails with
+the latest error category), **Workspaces** (+ detail) and **Inquiries**. A workspace the
+operator closed shows "Closed by operator · deleted <date>"; reactivating it cancels the
+closure.
 `/superadmin/*` is protected by `AuthGuard requireRole="superadmin"`.
 
 `GET /platform/workspaces` and its item read return a display-safe allow-list:
@@ -408,7 +411,7 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
 https meeting link (`services.meeting_url`). Clients see it only once the booking is
 confirmed: on the confirmation and manage pages and in confirmed, reminder and
 rescheduled emails. Confirmed, rescheduled and cancelled emails attach `booking.ics`
-(UID `{reference}@slotera.app`; a later file replaces an earlier one, cancel removes it).
+(UID `{reference}@slotera.io`; a later file replaces an earlier one, cancel removes it).
 The confirmation and manage pages offer the same file plus a Google Calendar link
 ("Add to your calendar"). Calendar entries never contain the manage link, because they
 get shared and synced. On Professional workspaces the client pages say "Secure checkout"
@@ -439,6 +442,14 @@ Lightweight Phase 1 demo entities for selling/presenting **multi-session offers*
 - **`/booking/manage/demo`** shows a **display-only** Package tab ("Session N of M" + included services in order) when the booking is part of a package. No credit ledger, balance, or consumption.
 - **This is a product/demo model only.** It does **not** implement real checkout, credit/balance ledgers, session consumption, entitlement rules, recurring billing, memberships, coupons, gift cards, or Stripe product/price objects. Future iterations may add package purchase, remaining credits, enrollment, reminders, and customer package management.
 - **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Free / Pro). Packages = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
+
+### Emails
+
+Every email comes from a no-reply address and ends with a line saying replies aren't
+read (and, for booking emails, to use the manage link or contact the provider). The
+workspace owner also gets an email when a client books, cancels or reschedules through
+the public flow or the manage link, with a link to the booking; the operator's own
+changes never email them.
 
 ### Customer booking link (real app)
 
@@ -527,7 +538,9 @@ as a side effect.
 
 The API-mode Bookings list remains a ledger. Its focused detail route exposes only the
 narrow valid commands: approve/decline when approval is pending, mark payment received
-when manual payment is pending, and cancel an active booking. Booking creation/editing and
+when manual payment is pending, cancel an active booking, and, once a confirmed 1:1
+session has started, record its outcome as **Completed** or **No-show**. A 1:1 booking
+never takes `attendance`; that is for group sessions. Booking creation/editing and
 refund behavior are not UI features. Group-session attendance remains in the Calendar
 SessionDrawer, where the session roster provides its necessary context.
 
@@ -551,6 +564,12 @@ Business Profile · Branding · Client Payments · Billing & Subscription · Cal
 Inner panel card titles match the same Title Case (`Business Profile`, `Manual Payment`, `Payment Processors`, `Calendar Connections`, `Working Hours`, `Email Notifications`). The right-column section header reads just `{label}` — no "settings" suffix.
 
 **Business Profile** also includes a **Studios & offices** card (`LocationsCard`) — list + Add/Edit/Delete of saved `WorkspaceLocation`s. Each location is `{ id, label, address: Address }`. These are pickable in the SessionDrawer and ServiceDrawer via `AddressPicker`.
+
+**Account** (API mode) also has a **Your data** card: export everything the workspace
+holds as one JSON file, and **Close workspace**. Closing requires typing the booking page
+address; it suspends the workspace at once (booking page offline, everyone signed out),
+and the maintenance job deletes all its data 30 days later. Until then Slotera staff can
+reopen it.
 
 Keep Settings simple and not enterprise-heavy.
 

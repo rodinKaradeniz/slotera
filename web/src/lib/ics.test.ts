@@ -18,7 +18,7 @@ describe("ics", () => {
   it("matches the server's event format", () => {
     const ics = buildIcs(EVENT, new Date("2026-10-11T00:00:00Z"));
     expect(ics.startsWith("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n")).toBe(true);
-    expect(ics).toContain("UID:slt-ab12@slotera.app\r\n");
+    expect(ics).toContain("UID:slt-ab12@slotera.io\r\n");
     expect(ics).toContain("DTSTART:20261103T130000Z\r\nDTEND:20261103T135000Z\r\n");
     expect(ics).toContain("LOCATION:Studio 4\\, 1 Main St\; London\r\n");
     expect(ics).toContain("DESCRIPTION:Reference: SLT-AB12\\nTo change");

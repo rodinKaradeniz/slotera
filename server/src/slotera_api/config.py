@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     password_reset_ttl_minutes: int = 60
     public_web_base_url: str = "http://localhost:3344"
     email_provider: Literal["console", "resend"] = "console"
-    email_from_address: str = "Slotera <no-reply@slotera.app>"
+    email_from_address: str = "Slotera <no-reply@slotera.merulio.com>"
     resend_api_key: SecretStr | None = None
     # Self-serve sign-up. Off during the invite-only pilot: staff provision workspaces.
     signup_open: bool = True

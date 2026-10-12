@@ -95,7 +95,7 @@ async def test_client_export_and_erasure_keep_only_financial_facts() -> None:
             login = await operator.post(
                 "/auth/login",
                 headers=ORIGIN,
-                json={"email": "hello@slotera.app", "password": "slotera-local-only"},
+                json={"email": "hello@slotera.io", "password": "slotera-local-only"},
             )
             assert login.status_code == 200
             note = await operator.post(
@@ -191,7 +191,5 @@ async def test_client_export_and_erasure_keep_only_financial_facts() -> None:
     assert booking["amount_cents"] == body["bookings"][0]["amountCents"]
     assert booking["currency"] == "GBP" and booking["status"] == "confirmed"
     # The delivered email keeps a blank row (it blocks duplicates); unsent ones are gone.
-    assert [(row.recipient_email, row.template_data) for row in outbox] == [
-        ("erased@invalid", {})
-    ]
+    assert [(row.recipient_email, row.template_data) for row in outbox] == [("erased@invalid", {})]
     assert audit == {"booking_count": 1}

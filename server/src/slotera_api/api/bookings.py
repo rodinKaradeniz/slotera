@@ -311,9 +311,7 @@ async def approve_booking(
     database: DatabaseDependency,
     idempotency_key: IdempotencyKey,
 ) -> BookingResponse:
-    return await _approval(
-        booking_id, "approve", response, operator, database, idempotency_key
-    )
+    return await _approval(booking_id, "approve", response, operator, database, idempotency_key)
 
 
 @router.post(
@@ -328,9 +326,7 @@ async def decline_booking(
     database: DatabaseDependency,
     idempotency_key: IdempotencyKey,
 ) -> BookingResponse:
-    return await _approval(
-        booking_id, "decline", response, operator, database, idempotency_key
-    )
+    return await _approval(booking_id, "decline", response, operator, database, idempotency_key)
 
 
 @router.post("/{booking_id}/cancel", response_model=BookingResponse, operation_id="cancelBooking")

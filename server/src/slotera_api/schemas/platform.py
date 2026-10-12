@@ -24,6 +24,8 @@ class PlatformWorkspaceSummary(ApiModel):
     billing_interval: BillingIntervalLiteral
     trial_ends_at: datetime
     paid_through: date | None
+    # Closing: suspended now, all data deleted 30 days after this.
+    closure_requested_at: datetime | None
     services_count: int
     clients_count: int
     bookings_count: int
@@ -141,6 +143,9 @@ class PlatformOverviewResponse(ApiModel):
     signups_30d: int
     bookings_30d: int
     inquiries_unread: int
+    emails_pending: int
+    emails_failing: int
+    email_last_error: str | None
 
 
 class PlanResponse(ApiModel):

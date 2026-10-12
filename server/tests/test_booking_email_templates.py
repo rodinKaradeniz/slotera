@@ -1,4 +1,4 @@
-from slotera_api.email.templates import render_booking_email
+from slotera_api.email.templates import render_booking_email, render_operator_email
 
 TEMPLATE_DATA: dict[str, object] = {
     "reference": "SLT-EXAMPLE",
@@ -68,7 +68,29 @@ def test_calendar_file_only_for_add_move_and_remove_emails() -> None:
     confirmed = booking_calendar_file("booking_confirmed", TEMPLATE_DATA)
     cancelled = booking_calendar_file("booking_cancelled", TEMPLATE_DATA)
     assert confirmed is not None and cancelled is not None
-    assert "METHOD:PUBLISH" in confirmed and "UID:slt-example@slotera.app" in confirmed
+    assert "METHOD:PUBLISH" in confirmed and "UID:slt-example@slotera.io" in confirmed
     assert "SUMMARY:Strategy Session with Hartmann Strategy" in confirmed
     assert "METHOD:CANCEL" in cancelled and "STATUS:CANCELLED" in cancelled
     assert "manage" not in confirmed.lower().replace("change or cancel", "")
+
+
+def test_operator_email_says_what_the_client_did_and_links_to_the_booking() -> None:
+    subject, body = render_operator_email(
+        "operator_booking_new",
+        {
+            "reference": "SLT-OPS1",
+            "serviceName": "Discovery Call",
+            "clientName": "Fiona Feed",
+            "startsAt": "2030-01-10T09:00:00Z",
+            "timezone": "Europe/London",
+            "bookingStatus": "pending",
+            "approvalStatus": "pending",
+            "paymentStatus": "free",
+            "adminUrl": "https://app.example/admin/bookings/b1",
+        },
+    )
+
+    assert subject == "New booking: Fiona Feed, Discovery Call"
+    assert "Thursday, 10 January 2030 at 09:00 GMT" in body
+    assert "It is waiting for your approval." in body
+    assert body.endswith("https://app.example/admin/bookings/b1")

@@ -27,7 +27,7 @@ function LoginForm() {
 
   // Prefill demo credentials only in the mock demo and in local API development;
   // a production app login starts empty.
-  const [email, setEmail] = React.useState(PREFILL ? "hello@slotera.app" : "");
+  const [email, setEmail] = React.useState(PREFILL ? "hello@slotera.io" : "");
   const [password, setPassword] = React.useState(
     !PREFILL ? "" : dataSource === "api" ? "slotera-local-only" : "•••••••••",
   );
@@ -113,7 +113,7 @@ function LoginForm() {
         </p>
       ) : PREFILL ? (
         <p className="text-micro text-center">
-          Local seed: <code>hello@slotera.app</code> / <code>slotera-local-only</code>
+          Local seed: <code>hello@slotera.io</code> / <code>slotera-local-only</code>
         </p>
       ) : null}
     </form>

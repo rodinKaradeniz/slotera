@@ -118,10 +118,15 @@ configuration requires `SLOTERA_EMAIL_PROVIDER=resend`, an API key, HTTPS public
 and the existing production cookie settings. Run `slotera-maintenance` periodically to
 remove stale sessions, reset tokens, rate-limit buckets, and delivered outbox rows.
 
+Every email ends with a short "replies to this address aren't read" footer, because the
+sender is a no-reply address. To check provider settings, `uv run slotera-send-test-email
+--to you@example.com` sends one message straight through the configured provider (not the
+outbox) and prints the provider id, or the HTTP status and error category.
+
 ## Identity and tenancy boundary
 
 Cookies are non-Secure only in local/test HTTP environments. Production makes both
-cookies Secure and requires `SLOTERA_CSRF_COOKIE_DOMAIN` (planned value `.slotera.app`) so
+cookies Secure and requires `SLOTERA_CSRF_COOKIE_DOMAIN` (planned value `.slotera.io`) so
 the `app.` sibling can read the CSRF cookie while the API-host session cookie stays
 HttpOnly and host-only.
 

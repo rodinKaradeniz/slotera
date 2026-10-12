@@ -40,7 +40,7 @@ async def test_maintenance_tops_up_recurring_series() -> None:
             login = await client.post(
                 "/auth/login",
                 headers={"Origin": ORIGIN},
-                json={"email": "hello@slotera.app", "password": DEMO_PASSWORD},
+                json={"email": "hello@slotera.io", "password": DEMO_PASSWORD},
             )
             assert login.status_code == 200
             service_id = (await client.get("/services", params={"limit": 1})).json()["items"][0][
@@ -118,7 +118,7 @@ async def test_maintenance_tops_up_recurring_series() -> None:
             await client.post(
                 "/auth/login",
                 headers={"Origin": ORIGIN},
-                json={"email": "hello@slotera.app", "password": DEMO_PASSWORD},
+                json={"email": "hello@slotera.io", "password": DEMO_PASSWORD},
             )
             await create(None, clash_at)
 

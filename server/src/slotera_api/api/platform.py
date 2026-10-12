@@ -36,6 +36,7 @@ def _summary(workspace: PlatformWorkspace) -> PlatformWorkspaceSummary:
         billing_interval=workspace.billing_interval,
         trial_ends_at=workspace.trial_ends_at,
         paid_through=workspace.paid_through,
+        closure_requested_at=workspace.closure_requested_at,
         services_count=workspace.services_count,
         clients_count=workspace.clients_count,
         bookings_count=workspace.bookings_count,
@@ -151,11 +152,19 @@ async def _set_workspace_operational_status(
     database: DatabaseDependency,
 ) -> PlatformWorkspaceDetail:
     repository = PlatformRepository(database)
-    result_code = await repository.set_operational_status(
-        workspace_id=workspace_id,
-        actor_user_id=superadmin.user_id,
-        operational_status=operational_status,
-    )
+    current = await repository.get_workspace(workspace_id)
+    if operational_status == "active" and current and current.closure_requested_at:
+        # Reactivating a closing workspace cancels the closure, so it is never purged.
+        result_code = await repository.cancel_closure(
+            workspace_id=workspace_id, actor_user_id=superadmin.user_id
+        )
+        result_code = "updated" if result_code == "cancelled" else result_code
+    else:
+        result_code = await repository.set_operational_status(
+            workspace_id=workspace_id,
+            actor_user_id=superadmin.user_id,
+            operational_status=operational_status,
+        )
     if result_code == "workspace_not_found":
         raise ApiError(
             status_code=HTTPStatus.NOT_FOUND,

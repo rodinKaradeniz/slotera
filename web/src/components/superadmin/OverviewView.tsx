@@ -54,6 +54,18 @@ export function OverviewView() {
               <PadStat label="Unread inquiries" value={data.inquiriesUnread} />
             </div>
           </Card>
+          <Card padded={false}>
+            <div className="grid grid-cols-2 divide-x divide-line-soft">
+              <PadStat label="Emails waiting to send" value={data.emailsPending} />
+              <PadStat label="Emails failing" value={data.emailsFailing} />
+            </div>
+            {data.emailsFailing > 0 && data.emailLastError && (
+              <p className="px-5 pb-5 text-small text-danger">
+                Latest error: <code>{data.emailLastError}</code>. A 401 means a bad Resend
+                key, 403 an unverified sending domain, 422 a rejected address or field.
+              </p>
+            )}
+          </Card>
           <div className="flex flex-wrap gap-2">
             <Link href="/superadmin/workspaces">
               <Button variant="secondary" icon="building">

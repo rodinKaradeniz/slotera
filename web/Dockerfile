@@ -12,6 +12,8 @@ ARG NEXT_PUBLIC_CSRF_COOKIE_NAME=slotera_csrf
 # Real app: "false" during the invite-only pilot. Demo: the app origin it links to.
 ARG NEXT_PUBLIC_SIGNUP_OPEN=true
 ARG NEXT_PUBLIC_APP_URL=
+# Demo: its own www. origin, for the sitemap.
+ARG NEXT_PUBLIC_SITE_URL=
 ARG NEXT_PUBLIC_SUPPORT_EMAIL=
 # Sentry: empty DSN = off (the demo). The auth token arrives as a build secret, so it
 # never lands in an image layer; without it, source maps are simply not uploaded.
@@ -24,6 +26,7 @@ ENV NEXT_PUBLIC_DATA_SOURCE=$NEXT_PUBLIC_DATA_SOURCE \
     NEXT_PUBLIC_CSRF_COOKIE_NAME=$NEXT_PUBLIC_CSRF_COOKIE_NAME \
     NEXT_PUBLIC_SIGNUP_OPEN=$NEXT_PUBLIC_SIGNUP_OPEN \
     NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
     NEXT_PUBLIC_SUPPORT_EMAIL=$NEXT_PUBLIC_SUPPORT_EMAIL \
     NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
     SENTRY_ORG=$SENTRY_ORG \

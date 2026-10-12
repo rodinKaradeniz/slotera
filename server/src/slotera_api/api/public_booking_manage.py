@@ -65,9 +65,7 @@ def _response(managed: ManagedBooking) -> ManagedBookingResponse:
         change_deadline=managed.change_deadline,
         can_cancel=managed.can_cancel,
         can_reschedule=managed.can_reschedule,
-        meeting_url=(
-            managed.service.meeting_url if booking.status.value == "confirmed" else None
-        ),
+        meeting_url=(managed.service.meeting_url if booking.status.value == "confirmed" else None),
         rescheduled=booking.customer_rescheduled_at is not None,
         show_platform_branding=shows_platform_branding(managed.workspace.plan),
     )

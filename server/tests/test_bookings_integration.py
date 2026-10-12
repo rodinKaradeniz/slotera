@@ -1,4 +1,5 @@
 import asyncio
+from datetime import date, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -17,7 +18,7 @@ async def _login(client: AsyncClient) -> None:
     response = await client.post(
         "/auth/login",
         headers={"Origin": "http://localhost:3344"},
-        json={"email": "hello@slotera.app", "password": DEMO_PASSWORD},
+        json={"email": "hello@slotera.io", "password": DEMO_PASSWORD},
     )
     assert response.status_code == 200
 
@@ -185,6 +186,13 @@ async def test_booking_status_commands_preserve_payment_state_and_reject_invalid
                         )
                     ).all()
                 ]
+                operator_emails = await session.scalar(
+                    text(
+                        "SELECT count(*) FROM email_outbox "
+                        "WHERE related_booking_id = :booking_id AND kind LIKE 'operator%'"
+                    ),
+                    {"booking_id": booking_id},
+                )
     finally:
         if booking_id is not None:
             async with owner.transaction() as session:
@@ -213,6 +221,8 @@ async def test_booking_status_commands_preserve_payment_state_and_reject_invalid
     assert repeated_confirm.json()["id"] == str(booking_id)
     assert cancelled.status_code == 200
     assert cancelled.json()["status"] == "cancelled"
+    # The operator's own changes never email the operator.
+    assert operator_emails == 0
     assert cancelled.json()["paymentStatus"] == "paid"
     assert invalid.status_code == 409
     assert invalid.json()["error"]["code"] == "booking_transition_invalid"
@@ -222,10 +232,10 @@ async def test_booking_status_commands_preserve_payment_state_and_reject_invalid
     assert csrf_rejected.json()["error"]["code"] == "csrf_validation_failed"
     assert sorted(action for action, _ in audit_rows) == sorted(
         [
-        "booking.created",
-        "booking.payment_received",
-        "booking.confirmed",
-        "booking.cancelled",
+            "booking.created",
+            "booking.payment_received",
+            "booking.confirmed",
+            "booking.cancelled",
         ]
     )
     assert next(reason for action, reason in audit_rows if action == "booking.created") == (
@@ -394,29 +404,85 @@ async def test_group_attendance_completes_a_booking_and_supports_safe_correction
 
 
 @pytest.mark.integration
-async def test_attendance_rejects_a_confirmed_one_to_one_booking() -> None:
+async def test_one_to_one_bookings_end_as_noshow_not_attendance() -> None:
     owner = Database(get_migration_settings().migration_database_url)
     application = Database(get_settings().database_url)
+    booking_id: str | None = None
     try:
         await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
+        async with owner.transaction() as session:
+            await session.execute(text("DELETE FROM request_rate_limits"))
         app = create_app(database=application)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            # A free public booking is confirmed straight away, on its own 1:1 session.
+            services = await client.get("/public/workspaces/lena/services")
+            service = next(
+                item for item in services.json()["items"] if item["name"] == "Discovery Call"
+            )
+            starts_on = date.today() + timedelta(days=9)
+            availability = await client.get(
+                f"/public/workspaces/lena/services/{service['id']}/availability",
+                params={
+                    "from": starts_on.isoformat(),
+                    "to": (starts_on + timedelta(days=6)).isoformat(),
+                },
+            )
+            created = await client.post(
+                "/public/workspaces/lena/bookings",
+                headers={"Origin": "http://localhost:3344", "Idempotency-Key": str(uuid4())},
+                json={
+                    "serviceId": service["id"],
+                    "startAt": availability.json()["items"][0]["startAt"],
+                    "customer": {
+                        "firstName": "Nora",
+                        "lastName": "Noshow",
+                        "email": f"noshow-{uuid4().hex[:8]}@customer.example",
+                    },
+                    "billingAddress": {
+                        "street": "Test Street 1",
+                        "city": "Berlin",
+                        "postalCode": "10115",
+                        "country": "DE",
+                    },
+                    "paymentMethod": "free",
+                    "termsAccepted": True,
+                },
+            )
+            assert created.status_code == 201, created.text
+            booking_id = created.json()["id"]
             await _login(client)
-            sessions = await client.get("/sessions")
-            appointment = next(item for item in sessions.json()["items"] if item["capacity"] == 1)
-            bookings = await client.get(f"/bookings?sessionId={appointment['id']}")
-            booking_id = bookings.json()["items"][0]["id"]
+            # Attendance is for group sessions; a 1:1 booking ends as completed or noshow.
             rejected = await client.post(
                 f"/bookings/{booking_id}/attendance",
                 headers=_csrf_headers(client, idempotency_key=f"one-to-one-attendance-{uuid4()}"),
-                json={"attendance": "present"},
+                json={"attendance": "absent"},
+            )
+            noshow = await client.post(
+                f"/bookings/{booking_id}/noshow",
+                headers=_csrf_headers(client, idempotency_key=f"one-to-one-noshow-{uuid4()}"),
             )
     finally:
+        if booking_id is not None:
+            async with owner.transaction() as session:
+                for statement in (
+                    "DELETE FROM email_outbox WHERE related_booking_id = :id",
+                    "DELETE FROM notifications WHERE resource_id = :id",
+                    "DELETE FROM public_booking_idempotency WHERE booking_id = :id",
+                    "DELETE FROM booking_command_idempotency WHERE booking_id = :id",
+                    "CREATE TEMP TABLE doomed AS SELECT session_id FROM bookings WHERE id = :id",
+                    "DELETE FROM bookings WHERE id = :id",
+                    "DELETE FROM sessions WHERE id IN (SELECT * FROM doomed)",
+                    "DROP TABLE doomed",
+                ):
+                    await session.execute(text(statement), {"id": booking_id})
+                await session.execute(text("DELETE FROM request_rate_limits"))
         await application.dispose()
         await owner.dispose()
 
     assert rejected.status_code == 409
     assert rejected.json()["error"]["code"] == "booking_attendance_invalid"
+    assert noshow.status_code == 200, noshow.text
+    assert noshow.json()["status"] == "noshow"
 
 
 @pytest.mark.integration

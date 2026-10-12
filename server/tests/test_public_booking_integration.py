@@ -253,8 +253,9 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
                 .mappings()
                 .one()
             )
+        # The customer's receipt plus the operator's "new booking" email.
         assert dict(initial_events) == {
-            "email_count": 1,
+            "email_count": 2,
             "notification_count": 1,
             "payload_is_pii_free": True,
         }
@@ -309,7 +310,7 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
             login = await client.post(
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
-                json={"email": "hello@slotera.app", "password": DEMO_PASSWORD},
+                json={"email": "hello@slotera.io", "password": DEMO_PASSWORD},
             )
             assert login.status_code == 200
             csrf = {
@@ -369,7 +370,7 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
         assert second_stored["customer_first_name"] == "Aylin"
         assert second_stored["customer_phone"] == "+49 30 5550199"
         assert second_stored["client_name"] == "Ayla Demir"
-        assert second_stored["email_count"] == 2
+        assert second_stored["email_count"] == 3  # two customer emails, one operator email
         assert second_stored["notification_count"] == 2
     finally:
         async with owner.transaction() as session:

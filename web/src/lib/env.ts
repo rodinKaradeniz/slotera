@@ -14,3 +14,6 @@ export const signupOpen: boolean = process.env.NEXT_PUBLIC_SIGNUP_OPEN !== "fals
 
 /** The real app's origin, for links from the mock demo (e.g. the pilot form). */
 export const appUrl: string = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+
+/** This site's own public origin (the demo's www. host), for the sitemap. */
+export const siteUrl: string = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");

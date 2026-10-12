@@ -30,7 +30,8 @@ const ATTENDANCE_OPTIONS = [
 ];
 
 /**
- * Renders inside SessionDrawer's Attendance tab. Only shown when capacity > 1.
+ * Renders inside SessionDrawer's Attendance tab for group sessions (capacity > 1);
+ * a 1:1 booking instead ends as completed or no-show on the booking detail page.
  * Only confirmed/completed bookings appear: attendance both records a group
  * attendee's outcome and completes their booking, so pending bookings cannot
  * be marked yet.

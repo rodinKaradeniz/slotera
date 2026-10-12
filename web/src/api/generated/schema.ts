@@ -1054,6 +1054,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/close-workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Workspace */
+        post: operations["closeWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/locations": {
         parameters: {
             query?: never;
@@ -1106,6 +1123,23 @@ export interface paths {
         head?: never;
         /** Update Payment Settings */
         patch: operations["updatePaymentSettings"];
+        trace?: never;
+    };
+    "/settings/workspace-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Workspace */
+        get: operations["exportWorkspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -2319,6 +2353,12 @@ export interface components {
         PlatformOverviewResponse: {
             /** Bookings30D */
             bookings30D: number;
+            /** Emaillasterror */
+            emailLastError: string | null;
+            /** Emailsfailing */
+            emailsFailing: number;
+            /** Emailspending */
+            emailsPending: number;
             /** Inquiriesunread */
             inquiriesUnread: number;
             /** Signups30D */
@@ -2347,6 +2387,8 @@ export interface components {
             bookingsCount: number;
             /** Clientscount */
             clientsCount: number;
+            /** Closurerequestedat */
+            closureRequestedAt: string | null;
             /**
              * Createdat
              * Format: date-time
@@ -2438,6 +2480,8 @@ export interface components {
             bookingsCount: number;
             /** Clientscount */
             clientsCount: number;
+            /** Closurerequestedat */
+            closureRequestedAt: string | null;
             /**
              * Createdat
              * Format: date-time
@@ -3414,6 +3458,30 @@ export interface components {
              * Format: date-time
              */
             trialEndsAt: string;
+        };
+        /** WorkspaceClose */
+        WorkspaceClose: {
+            /** Confirmslug */
+            confirmSlug: string;
+        };
+        /** WorkspaceClosed */
+        WorkspaceClosed: {
+            /** Deletedafterdays */
+            deletedAfterDays: number;
+        };
+        /** WorkspaceExportResponse */
+        WorkspaceExportResponse: {
+            /**
+             * Exportedat
+             * Format: date-time
+             */
+            exportedAt: string;
+            /** Tables */
+            tables: {
+                [key: string]: {
+                    [key: string]: unknown;
+                }[];
+            };
         };
         /** WorkspaceLocationCreate */
         WorkspaceLocationCreate: {
@@ -5893,6 +5961,39 @@ export interface operations {
             };
         };
     };
+    closeWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceClose"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceClosed"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listWorkspaceLocations: {
         parameters: {
             query?: never;
@@ -6059,6 +6160,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exportWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceExportResponse"];
                 };
             };
         };

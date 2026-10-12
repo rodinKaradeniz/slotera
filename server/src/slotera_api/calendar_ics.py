@@ -1,7 +1,7 @@
 """Minimal iCalendar (RFC 5545) writer for booking attachments and operator feeds.
 
 Times are written in UTC, so every calendar app shows them in its own time zone. A
-booking keeps one UID (`{reference}@slotera.app`); a later file with a higher SEQUENCE
+booking keeps one UID (`{reference}@slotera.io`); a later file with a higher SEQUENCE
 replaces the earlier event, and `METHOD:CANCEL` removes it. web/src/lib/ics.ts writes the
 same format for the browser's "Add to calendar" button.
 """
@@ -27,7 +27,7 @@ class CalendarEvent:
 
 
 def booking_uid(reference: str) -> str:
-    return f"{reference.lower()}@slotera.app"
+    return f"{reference.lower()}@slotera.io"
 
 
 def _utc(value: datetime) -> str:

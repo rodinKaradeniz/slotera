@@ -258,7 +258,7 @@ async def test_demo_seed_is_repeatable() -> None:
                     """
                     UPDATE users
                     SET password_hash = NULL
-                    WHERE email IN ('hello@slotera.app', 'admin@slotera.app')
+                    WHERE email IN ('hello@slotera.io', 'admin@slotera.io')
                     """
                 )
             )
@@ -269,7 +269,7 @@ async def test_demo_seed_is_repeatable() -> None:
                 text("SELECT count(*) FROM workspaces WHERE slug = 'lena'")
             )
             operator_count = await session.scalar(
-                text("SELECT count(*) FROM users WHERE email = 'hello@slotera.app'")
+                text("SELECT count(*) FROM users WHERE email = 'hello@slotera.io'")
             )
     finally:
         await database.dispose()

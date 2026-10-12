@@ -6,7 +6,7 @@ Last updated: [date of publication]
 
 ## 1. Who we are
 
-Slotera is provided by **Merulio Ltd**, a company registered in England and Wales (company number [number]), registered office [address] ("we", "us"). Contact: hello@slotera.app.
+Slotera is provided by **Merulio Ltd**, a company registered in England and Wales (company number [number]), registered office [address] ("we", "us"). Contact: slotera@merulio.com.
 
 ## 2. What Slotera does
 

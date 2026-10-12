@@ -43,8 +43,8 @@ async def test_plans_inquiries_and_overview_are_superadmin_controlled() -> None:
             AsyncClient(transport=transport, base_url="http://test") as staff,
             AsyncClient(transport=transport, base_url="http://test") as visitor,
         ):
-            await _login(operator, "hello@slotera.app")
-            await _login(staff, "admin@slotera.app")
+            await _login(operator, "hello@slotera.io")
+            await _login(staff, "admin@slotera.io")
             billing_before = await operator.get("/settings/billing")
             branding_before = await visitor.get("/public/workspaces/lena")
             change = {
@@ -142,4 +142,6 @@ async def test_plans_inquiries_and_overview_are_superadmin_controlled() -> None:
     assert overview.status_code == 200
     assert overview.json()["inquiriesUnread"] == overview_unread - 1
     assert overview.json()["workspacesProfessional"] >= 1
+    assert overview.json()["emailsFailing"] <= overview.json()["emailsPending"]
+    assert "emailLastError" in overview.json()
     assert operator_overview.status_code == 403

@@ -14,7 +14,7 @@ export type CalendarEventInput = {
 };
 
 export function bookingUid(reference: string): string {
-  return `${reference.toLowerCase()}@slotera.app`;
+  return `${reference.toLowerCase()}@slotera.io`;
 }
 
 /** 2026-11-03T13:00:00.000Z → 20261103T130000Z */

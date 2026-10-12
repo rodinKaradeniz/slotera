@@ -19,5 +19,5 @@ def test_production_requires_a_shared_csrf_cookie_domain() -> None:
         Settings(
             environment="production",
             database_url="postgresql+asyncpg://app:secret@db/slotera",
-            cors_origins=["https://app.slotera.app"],
+            cors_origins=["https://app.slotera.io"],
         )

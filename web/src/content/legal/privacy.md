@@ -4,7 +4,7 @@
 
 Last updated: [date of publication]
 
-This policy explains how **Merulio Ltd** ("we"), the provider of Slotera, handles personal data under the UK GDPR and the Data Protection Act 2018. Contact: hello@slotera.app. Registered office: [address].
+This policy explains how **Merulio Ltd** ("we"), the provider of Slotera, handles personal data under the UK GDPR and the Data Protection Act 2018. Contact: slotera@merulio.com. Registered office: [address].
 
 ## Two roles
 
@@ -38,7 +38,7 @@ If you use the calendar subscription link, your calendar provider (for example G
 
 ## How long we keep it
 
-- Account and workspace data: while the account is active, then deleted within [90] days of closure.
+- Account and workspace data: while the account is active, then deleted 30 days after the operator closes the workspace (Settings → Account), or within 30 days of a request to us.
 - Sign-in sessions and password-reset links: until they expire, then removed by routine clean-up.
 - Booking amounts, tax and payment status: [6] years, as financial records.
 - Backups: overwritten within 14 days.

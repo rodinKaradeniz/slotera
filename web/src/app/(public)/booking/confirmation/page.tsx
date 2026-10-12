@@ -42,7 +42,7 @@ export default function ConfirmationPage() {
     }
   }, []);
 
-  const meetingLink = data ? `https://meet.slotera.app/${data.ref.toLowerCase()}` : "";
+  const meetingLink = data ? `https://meet.slotera.io/${data.ref.toLowerCase()}` : "";
   const apiBooking = dataSource === "api" ? data?.booking : undefined;
   const isConfirmed = apiBooking?.status === "confirmed";
   const apiWhere = apiBooking

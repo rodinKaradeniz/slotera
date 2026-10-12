@@ -7,7 +7,7 @@ import { billingAction } from "./dashboard.service";
 describe("platform DTO mappers", () => {
   it("maps the overview's generated 30D field names", () => {
     // Regression: signups30D / bookings30D rendered as "undefined".
-    const overview = mapPlatformOverview({
+    const base = {
       workspacesTotal: 4,
       workspacesActive: 3,
       workspacesSuspended: 1,
@@ -17,10 +17,15 @@ describe("platform DTO mappers", () => {
       signups30D: 2,
       bookings30D: 17,
       inquiriesUnread: 5,
-    });
+      emailsPending: 3,
+      emailsFailing: 1,
+      emailLastError: "EmailProviderError: 422 validation_error",
+    };
+    const overview = mapPlatformOverview(base);
     expect(overview.signups30d).toBe(2);
     expect(overview.bookings30d).toBe(17);
-    expect(Object.values(overview).every((value) => typeof value === "number")).toBe(true);
+    expect(overview.emailLastError).toBe("EmailProviderError: 422 validation_error");
+    expect(mapPlatformOverview({ ...base, emailLastError: null }).emailLastError).toBeNull();
   });
 
   it("maps an inquiry's read timestamp to a flag", () => {
@@ -50,6 +55,7 @@ describe("platform DTO mappers", () => {
       billingInterval: "yearly",
       trialEndsAt: "2026-10-31T10:00:00Z",
       paidThrough: null,
+      closureRequestedAt: null,
       servicesCount: 1,
       clientsCount: 2,
       bookingsCount: 3,

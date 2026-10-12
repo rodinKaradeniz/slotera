@@ -19,6 +19,8 @@ import {
   cancelBooking,
   declineBooking,
   getBooking,
+  completeBooking,
+  markBookingNoShow,
   markBookingPaymentReceived,
 } from "@/services/bookings.service";
 import { getSession } from "@/services/sessions.service";
@@ -48,6 +50,8 @@ export default function BookingDetailPage() {
   const [booking, setBooking] = React.useState<Booking | null>(null);
   const [client, setClient] = React.useState<Client | null>(null);
   const [session, setSession] = React.useState<SessionItem | null>(null);
+  // Attendance can be recorded once the session has started; checked when it loads.
+  const [sessionStarted, setSessionStarted] = React.useState(false);
   const [service, setService] = React.useState<Service | null>(null);
   const [settings, setSettings] = React.useState<SettingsData | null>(null);
   const [reload, setReload] = React.useState(0);
@@ -78,6 +82,7 @@ export default function BookingDetailPage() {
       if (!live) return;
       setClient(cl);
       setSession(ss);
+      setSessionStarted(!!ss && new Date(ss.startISO).getTime() <= Date.now());
       if (ss) {
         const sv = await getService(ss.serviceId);
         if (live) setService(sv);
@@ -285,6 +290,12 @@ export default function BookingDetailPage() {
               {/* Right: what is the payment situation? */}
               <div className="flex flex-col gap-6 lg:sticky lg:top-24">
                 {dataSource === "api" &&
+                  session?.capacity === 1 &&
+                  booking.status === "confirmed" &&
+                  sessionStarted && (
+                    <OutcomeCard booking={booking} onSaved={setBooking} />
+                  )}
+                {dataSource === "api" &&
                   (booking.status === "pending" || booking.status === "confirmed") && (
                   <Card padded={false}>
                     <CardHead
@@ -421,6 +432,62 @@ export default function BookingDetailPage() {
         busy={busy}
       />
     </>
+  );
+}
+
+/**
+ * After a 1:1 session: did it happen? Group sessions record per-attendee attendance in
+ * the session drawer instead.
+ */
+function OutcomeCard({
+  booking,
+  onSaved,
+}: {
+  booking: Booking;
+  onSaved: (booking: Booking) => void;
+}) {
+  const { toast } = useToast();
+  const [busy, setBusy] = React.useState<"complete" | "noshow" | null>(null);
+  const record = async (outcome: "complete" | "noshow") => {
+    setBusy(outcome);
+    try {
+      onSaved(
+        outcome === "complete"
+          ? await completeBooking(booking.id)
+          : await markBookingNoShow(booking.id),
+      );
+      toast.success(outcome === "complete" ? "Session marked as completed" : "Marked as no-show");
+    } catch (error) {
+      toast.error("Couldn't record the outcome", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <Card padded={false}>
+      <CardHead title="Session outcome" />
+      <div className="p-5 flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          loading={busy === "complete"}
+          disabled={busy !== null}
+          onClick={() => record("complete")}
+        >
+          Completed
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          loading={busy === "noshow"}
+          disabled={busy !== null}
+          onClick={() => record("noshow")}
+        >
+          No-show
+        </Button>
+      </div>
+    </Card>
   );
 }
 

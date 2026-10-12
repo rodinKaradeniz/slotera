@@ -3,14 +3,14 @@ import { scrubEvent, scrubSpan, stripUrl } from "./sentry";
 
 describe("Sentry scrubbing", () => {
   it("drops tokens in fragments and query strings", () => {
-    expect(stripUrl("https://app.slotera.app/booking/manage#secret")).toBe(
-      "https://app.slotera.app/booking/manage",
+    expect(stripUrl("https://app.slotera.io/booking/manage#secret")).toBe(
+      "https://app.slotera.io/booking/manage",
     );
-    expect(stripUrl("https://app.slotera.app/reset-password?token=secret")).toBe(
-      "https://app.slotera.app/reset-password",
+    expect(stripUrl("https://app.slotera.io/reset-password?token=secret")).toBe(
+      "https://app.slotera.io/reset-password",
     );
-    expect(stripUrl("GET https://api.slotera.app/search?q=Maya")).toBe(
-      "GET https://api.slotera.app/search",
+    expect(stripUrl("GET https://api.slotera.io/search?q=Maya")).toBe(
+      "GET https://api.slotera.io/search",
     );
   });
 

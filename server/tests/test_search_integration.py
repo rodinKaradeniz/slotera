@@ -17,7 +17,7 @@ async def _login(client: AsyncClient) -> None:
     response = await client.post(
         "/auth/login",
         headers={"Origin": "http://localhost:3344"},
-        json={"email": "hello@slotera.app", "password": DEMO_PASSWORD},
+        json={"email": "hello@slotera.io", "password": DEMO_PASSWORD},
     )
     assert response.status_code == 200
 

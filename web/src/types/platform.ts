@@ -17,6 +17,8 @@ export type PlatformWorkspace = {
   trialEndsAtISO: string;
   /** YYYY-MM-DD, or null when nothing has been invoiced yet. */
   paidThrough: string | null;
+  /** Set when the operator closed the workspace; its data is deleted 30 days later. */
+  closureRequestedAtISO: string | null;
   bookingsCount: number;
   servicesCount: number;
   clientsCount: number;
@@ -60,4 +62,8 @@ export type PlatformOverview = {
   signups30d: number;
   bookings30d: number;
   inquiriesUnread: number;
+  /** Unsent outbox messages, those that have failed at least once, and the newest error. */
+  emailsPending: number;
+  emailsFailing: number;
+  emailLastError: string | null;
 };

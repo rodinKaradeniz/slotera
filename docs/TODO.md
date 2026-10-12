@@ -29,16 +29,16 @@ Items are grouped by kind, then roughly by how soon they matter.
   dependency at the existing `3.27.1` package line, so `NoteEditor.tsx` no longer relies on
   a transitive install.
 
-- **`setSubscriptionStatus` exists twice with different semantics.** `billing.service.ts`
-  changes *the operator's own* subscription; `platform.service.ts` changes *any workspace's*.
-  They are told apart only by import path. Nothing is wrong today, but the names invite a
-  wrong-import bug that type-checks cleanly. Consider renaming the platform one
-  (`setWorkspaceSubscriptionStatus`) when that file is next touched.
+- **~~`setSubscriptionStatus` exists twice with different semantics.~~ DONE (obsolete).**
+  Neither function exists any more: billing moved to staff-recorded plan fields
+  (Entry 052), so there is nothing to rename.
 
 - **`react-hooks/set-state-in-effect` is disabled project-wide.** A Phase 1 accommodation
   for mount-once data fetches and SSR-portal mount flags (HISTORY.md, Framework-level bug
   catches). When data fetching moves to a real backend and can be restructured, re-enable
-  the rule and fix the genuine cases it surfaces.
+  the rule and fix the genuine cases it surfaces. Checked 2026-10-12: re-enabling it
+  reports 36 findings in 27 files (drawers that reset their form on open, portal mount
+  flags, the public booking flow, search), so it needs its own pass.
 
 - **~~Onboarding is pinned to visual-testing mode.~~ DONE.** Onboarding is now real-app
   only and resumes from server state; completion is persisted.
@@ -63,12 +63,12 @@ pull requests and `main`.
 
 **~~Frontend test runner.~~ DONE.** Vitest runs logic-only tests in Node
 (`web/src/**/*.test.ts`): money formatting, navigation and AuthGuard routing, date keys,
-platform DTO mappers and the maintenance proxy. Still worth adding when touched:
-- `card.ts`, `time.ts`, `calendar.ts` overlap detection, `text.ts` `plural()`,
-  `status-maps.ts` completeness, and `cn.ts` (the typography merge group);
+platform DTO mappers and the maintenance proxy. Also covered now: `calendar.ts` overlap
+detection, `text.ts` (`plural()`, `slugify`), robots/sitemap rules, and the
+`listFormsForService` / `listPackagesForService` relationship filters. `status-maps.ts`
+completeness is enforced by its `Record<…>` types. Still worth adding when touched:
+- `card.ts`, `time.ts`, and `cn.ts` (the typography merge group);
 - service-layer patch-merge semantics and `NotFoundError` on unknown ids (mock mode);
-- relationship filters (`listFormsForService`, `listPackagesForService`), where a bug
-  shows up as an empty list rather than an error;
 - `getDashboard()` mock composition, including the `ses-demo` exclusion.
 
 No component snapshot tests: the browser covers UI.
@@ -99,6 +99,11 @@ below are standing security requirements as further API and frontend integration
   showcase may still present a simulated success outcome, but it is not a state transition
   and must never be copied into API behavior. A future card-funded booking confirms only
   from a verified payment webhook.
+
+- **No Content-Security-Policy yet.** Caddy sets HSTS, `X-Frame-Options`, `nosniff`,
+  `Referrer-Policy` and `Permissions-Policy` on every host (Entry 055). A CSP needs
+  per-request nonces for Next.js inline scripts plus the Sentry ingest origin; start in
+  report-only mode and add it before accepting card payments.
 
 - **Manual payment instructions are operator-authored free text shown to the public.**
   Rendered as text today. If that ever becomes rich text, the sanitisation note above
@@ -141,7 +146,7 @@ built and exercised separately.
   `web/src/api/generated/`. Only the service/transport layer imports them; it maps them to the
   existing domain/UI types in `web/src/types/`. Generated HTTP DTOs do not become a second set
   of component-facing domain types.
-- **Browser/API topology:** plan for `app.slotera.app` and `api.slotera.app` as same-site
+- **Browser/API topology:** plan for `app.slotera.io` and `api.slotera.io` as same-site
   sibling origins. Web auth uses a Secure, HttpOnly, SameSite=Lax cookie with exact
   credentialed CORS and CSRF protection on unsafe methods; a future native client uses a
   bearer token. Locally, the equivalent is the Next dev origin plus `localhost:8000`.

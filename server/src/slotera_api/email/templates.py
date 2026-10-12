@@ -63,10 +63,7 @@ def _booking_facts(data: BookingEmailTemplateData) -> list[str]:
     timezone = ZoneInfo(data.timezone)
     starts_at = data.starts_at.astimezone(timezone)
     ends_at = data.ends_at.astimezone(timezone)
-    when = (
-        f"{starts_at.strftime('%A, %d %B %Y at %H:%M')}–"
-        f"{ends_at.strftime('%H:%M %Z')}"
-    )
+    when = f"{starts_at.strftime('%A, %d %B %Y at %H:%M')}–{ends_at.strftime('%H:%M %Z')}"
     facts = [
         f"Reference: {data.reference}",
         f"Service: {data.service_name}",
@@ -107,9 +104,7 @@ def render_booking_email(
         return subject, body
     if kind == "booking_rescheduled":
         subject = f"Booking moved — {data.service_name}"
-        body = "\n".join(
-            ["Your booking has a new time.", "", *facts, *_manage_lines(data)]
-        )
+        body = "\n".join(["Your booking has a new time.", "", *facts, *_manage_lines(data)])
         return subject, body
     if kind == "booking_cancelled":
         subject = f"Booking cancelled — {data.service_name}"
@@ -134,9 +129,7 @@ def render_booking_email(
             due = data.payment_due_at.astimezone(ZoneInfo(data.timezone))
             next_steps.append(f"Payment deadline: {due.strftime('%d %B %Y at %H:%M %Z')}.")
         if data.manual_payment_instructions.strip():
-            next_steps.extend(
-                ["Payment instructions:", data.manual_payment_instructions.strip()]
-            )
+            next_steps.extend(["Payment instructions:", data.manual_payment_instructions.strip()])
     subject = f"Booking received — {data.service_name}"
     body = "\n".join(
         [
@@ -185,3 +178,58 @@ def booking_calendar_file(kind: BookingEmailKind, raw_data: dict[str, object]) -
         cancelled=cancelled,
     )
     return build_calendar([event], method="CANCEL" if cancelled else "PUBLISH")
+
+
+class OperatorEmailTemplateData(ApiModel):
+    reference: str
+    service_name: str
+    client_name: str
+    starts_at: datetime
+    timezone: str
+    booking_status: str
+    approval_status: str
+    payment_status: str
+    admin_url: str
+
+
+OperatorEmailKind = Literal[
+    "operator_booking_new",
+    "operator_booking_cancelled",
+    "operator_booking_rescheduled",
+]
+OPERATOR_EMAIL_KINDS: frozenset[str] = frozenset(get_args(OperatorEmailKind))
+
+
+def render_operator_email(kind: OperatorEmailKind, raw_data: dict[str, object]) -> tuple[str, str]:
+    """What a client did, for the workspace owner. Rendered in the workspace's time zone."""
+    data = OperatorEmailTemplateData.model_validate(raw_data)
+    client = data.client_name or "A client"
+    when = data.starts_at.astimezone(ZoneInfo(data.timezone)).strftime("%A, %d %B %Y at %H:%M %Z")
+    if kind == "operator_booking_new":
+        subject = f"New booking: {client}, {data.service_name}"
+        intro = f"{client} booked {data.service_name}."
+    elif kind == "operator_booking_rescheduled":
+        subject = f"Booking moved: {client}, {data.service_name}"
+        intro = f"{client} moved their {data.service_name} booking to a new time."
+    else:
+        subject = f"Booking cancelled: {client}, {data.service_name}"
+        intro = f"{client} cancelled their {data.service_name} booking."
+    to_do: list[str] = []
+    if kind != "operator_booking_cancelled":
+        if data.approval_status == "pending":
+            to_do.append("It is waiting for your approval.")
+        if data.payment_status == "pending":
+            to_do.append("Their manual payment has not been recorded yet.")
+    body = "\n".join(
+        [
+            intro,
+            "",
+            f"Reference: {data.reference}",
+            f"When: {when}",
+            *(["", *to_do] if to_do else []),
+            "",
+            "Open the booking in Slotera:",
+            data.admin_url,
+        ]
+    )
+    return subject, body

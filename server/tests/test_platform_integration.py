@@ -42,12 +42,12 @@ async def test_superadmin_workspace_reads_are_private_and_display_safe() -> None
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as operator:
-            await _login(operator, "hello@slotera.app")
+            await _login(operator, "hello@slotera.io")
             forbidden = await operator.get("/platform/workspaces")
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as superadmin:
-            await _login(superadmin, "admin@slotera.app")
+            await _login(superadmin, "admin@slotera.io")
             directory = await superadmin.get("/platform/workspaces")
             detail = await superadmin.get(f"/platform/workspaces/{DEMO_SEED.workspace.id}")
     finally:
@@ -67,7 +67,7 @@ async def test_superadmin_workspace_reads_are_private_and_display_safe() -> None
     assert item["name"] == "Hartmann Strategy"
     assert item["slug"] == "lena"
     assert item["ownerName"] == "Lena Maria Hartmann"
-    assert item["ownerEmail"] == "hello@slotera.app"
+    assert item["ownerEmail"] == "hello@slotera.io"
     assert item["operationalStatus"] == "active"
     assert item["createdAt"] == "2025-09-01T10:00:00Z"
     assert all(
@@ -100,7 +100,7 @@ async def test_superadmin_can_provision_a_workspace_without_global_table_access(
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as operator:
-            await _login(operator, "hello@slotera.app")
+            await _login(operator, "hello@slotera.io")
             forbidden = await operator.post(
                 "/platform/workspaces",
                 headers=_csrf_headers(operator),
@@ -109,7 +109,7 @@ async def test_superadmin_can_provision_a_workspace_without_global_table_access(
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as superadmin:
-            await _login(superadmin, "admin@slotera.app")
+            await _login(superadmin, "admin@slotera.io")
             csrf_rejected = await superadmin.post(
                 "/platform/workspaces",
                 headers={"Origin": "http://localhost:3344"},
@@ -242,7 +242,7 @@ async def test_superadmin_workspace_suspension_revokes_access_and_is_audited_onc
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as operator:
-            await _login(operator, "hello@slotera.app")
+            await _login(operator, "hello@slotera.io")
             operator_forbidden = await operator.post(
                 f"/platform/workspaces/{DEMO_SEED.workspace.id}/suspend",
                 headers=_csrf_headers(operator),
@@ -251,7 +251,7 @@ async def test_superadmin_workspace_suspension_revokes_access_and_is_audited_onc
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
             ) as superadmin:
-                await _login(superadmin, "admin@slotera.app")
+                await _login(superadmin, "admin@slotera.io")
                 csrf_rejected = await superadmin.post(
                     f"/platform/workspaces/{DEMO_SEED.workspace.id}/suspend",
                     headers={"Origin": "http://localhost:3344"},
@@ -270,7 +270,7 @@ async def test_superadmin_workspace_suspension_revokes_access_and_is_audited_onc
                     "/auth/login",
                     headers={"Origin": "http://localhost:3344"},
                     json={
-                        "email": "hello@slotera.app",
+                        "email": "hello@slotera.io",
                         "password": DEMO_PASSWORD,
                     },
                 )
@@ -289,7 +289,7 @@ async def test_superadmin_workspace_suspension_revokes_access_and_is_audited_onc
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
                 json={
-                    "email": "hello@slotera.app",
+                    "email": "hello@slotera.io",
                     "password": DEMO_PASSWORD,
                 },
             )

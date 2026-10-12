@@ -237,9 +237,7 @@ class BookingsRepository:
                 platform_terms_version="",
                 terms_accepted_at=None,
                 manual_payment_instructions_snapshot=(
-                    payment_settings.manual_payment_instructions
-                    if service.price_cents > 0
-                    else ""
+                    payment_settings.manual_payment_instructions if service.price_cents > 0 else ""
                 ),
                 notes=values.get("notes"),
             )

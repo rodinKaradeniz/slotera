@@ -3461,6 +3461,25 @@
             "title": "Bookings30D",
             "type": "integer"
           },
+          "emailLastError": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emaillasterror"
+          },
+          "emailsFailing": {
+            "title": "Emailsfailing",
+            "type": "integer"
+          },
+          "emailsPending": {
+            "title": "Emailspending",
+            "type": "integer"
+          },
           "inquiriesUnread": {
             "title": "Inquiriesunread",
             "type": "integer"
@@ -3503,7 +3522,10 @@
           "workspacesOnTrial",
           "signups30D",
           "bookings30D",
-          "inquiriesUnread"
+          "inquiriesUnread",
+          "emailsPending",
+          "emailsFailing",
+          "emailLastError"
         ],
         "title": "PlatformOverviewResponse",
         "type": "object"
@@ -3525,6 +3547,18 @@
           "clientsCount": {
             "title": "Clientscount",
             "type": "integer"
+          },
+          "closureRequestedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closurerequestedat"
           },
           "createdAt": {
             "format": "date-time",
@@ -3628,6 +3662,7 @@
           "billingInterval",
           "trialEndsAt",
           "paidThrough",
+          "closureRequestedAt",
           "servicesCount",
           "clientsCount",
           "bookingsCount",
@@ -3743,6 +3778,18 @@
             "title": "Clientscount",
             "type": "integer"
           },
+          "closureRequestedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closurerequestedat"
+          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -3837,6 +3884,7 @@
           "billingInterval",
           "trialEndsAt",
           "paidThrough",
+          "closureRequestedAt",
           "servicesCount",
           "clientsCount",
           "bookingsCount",
@@ -6392,6 +6440,60 @@
           "plans"
         ],
         "title": "WorkspaceBillingResponse",
+        "type": "object"
+      },
+      "WorkspaceClose": {
+        "properties": {
+          "confirmSlug": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Confirmslug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmSlug"
+        ],
+        "title": "WorkspaceClose",
+        "type": "object"
+      },
+      "WorkspaceClosed": {
+        "properties": {
+          "deletedAfterDays": {
+            "title": "Deletedafterdays",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deletedAfterDays"
+        ],
+        "title": "WorkspaceClosed",
+        "type": "object"
+      },
+      "WorkspaceExportResponse": {
+        "properties": {
+          "exportedAt": {
+            "format": "date-time",
+            "title": "Exportedat",
+            "type": "string"
+          },
+          "tables": {
+            "additionalProperties": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "title": "Tables",
+            "type": "object"
+          }
+        },
+        "required": [
+          "exportedAt",
+          "tables"
+        ],
+        "title": "WorkspaceExportResponse",
         "type": "object"
       },
       "WorkspaceLocationCreate": {
@@ -10033,6 +10135,47 @@
         ]
       }
     },
+    "/settings/close-workspace": {
+      "post": {
+        "operationId": "closeWorkspace",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceClose"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceClosed"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Close Workspace",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
     "/settings/locations": {
       "get": {
         "operationId": "listWorkspaceLocations",
@@ -10235,6 +10378,27 @@
           }
         },
         "summary": "Update Payment Settings",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/settings/workspace-export": {
+      "get": {
+        "operationId": "exportWorkspace",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceExportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Export Workspace",
         "tags": [
           "settings"
         ]

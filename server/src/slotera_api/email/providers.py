@@ -1,5 +1,6 @@
 import base64
 import logging
+import re
 from typing import Any, Protocol
 
 import httpx
@@ -8,6 +9,27 @@ from slotera_api.config import Settings
 from slotera_api.email.repository import OutboxMessage
 
 logger = logging.getLogger("slotera.email")
+
+
+class EmailProviderError(Exception):
+    """A provider rejected a message. Carries only the HTTP status and the provider's
+    error category (e.g. Resend's `validation_error`), never its free-text message,
+    which can echo addresses or content."""
+
+    def __init__(self, status_code: int, category: str) -> None:
+        self.status_code = status_code
+        self.category = category
+        super().__init__(f"{status_code} {category}")
+
+
+def _error_category(response: httpx.Response) -> str:
+    try:
+        name = response.json().get("name")
+    except (ValueError, AttributeError):
+        return "unknown"
+    if isinstance(name, str) and re.fullmatch(r"[a-z_]{1,60}", name):
+        return name
+    return "unknown"
 
 
 class EmailProvider(Protocol):
@@ -62,7 +84,8 @@ class ResendEmailProvider:
                 },
                 json=body,
             )
-            response.raise_for_status()
+            if response.is_error:
+                raise EmailProviderError(response.status_code, _error_category(response))
             payload = response.json()
         provider_id = payload.get("id")
         if not isinstance(provider_id, str) or not provider_id:

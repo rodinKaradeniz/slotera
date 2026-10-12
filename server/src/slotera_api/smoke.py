@@ -1,7 +1,7 @@
 """Read-only launch smoke test against deployed hosts. It never writes anything.
 
-    slotera-smoke --api https://api.slotera.app --app https://app.slotera.app \\
-        --demo https://www.slotera.app [--workspace lena]
+    slotera-smoke --api https://api.slotera.io --app https://app.slotera.io \\
+        --demo https://www.slotera.io [--workspace lena]
 
 Prints one PASS/FAIL line per check and exits 1 if any check fails. The flows that need
 an inbox (sign-up, reset, a booking's manage link) stay manual; see docs/DEPLOYMENT.md.
@@ -96,8 +96,8 @@ async def _main(args: argparse.Namespace) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Read-only Slotera smoke test")
-    parser.add_argument("--api", required=True, help="e.g. https://api.slotera.app")
-    parser.add_argument("--app", required=True, help="e.g. https://app.slotera.app")
-    parser.add_argument("--demo", required=True, help="e.g. https://www.slotera.app")
+    parser.add_argument("--api", required=True, help="e.g. https://api.slotera.io")
+    parser.add_argument("--app", required=True, help="e.g. https://app.slotera.io")
+    parser.add_argument("--demo", required=True, help="e.g. https://www.slotera.io")
     parser.add_argument("--workspace", help="a live workspace slug to check public booking")
     sys.exit(asyncio.run(_main(parser.parse_args())))

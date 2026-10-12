@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from slotera_api.booking_access import emit_booking_event
+from slotera_api.booking_access import emit_booking_event, notify_operator
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
@@ -150,6 +150,7 @@ class BookingManageRepository:
                 session_ends_at=managed.session.end_at,
                 event="cancelled",
             )
+            await notify_operator(session, booking_id=booking_id, action="cancelled")
             return await self._load(session, workspace_id, booking_id, lock=False)
 
     async def reschedule(self, token: str, start_at: datetime) -> ManagedBooking:
@@ -225,6 +226,7 @@ class BookingManageRepository:
                 session_ends_at=target.end_at,
                 event="rescheduled",
             )
+            await notify_operator(session, booking_id=booking_id, action="rescheduled")
             return await self._load(session, workspace_id, booking_id, lock=False)
 
     @staticmethod

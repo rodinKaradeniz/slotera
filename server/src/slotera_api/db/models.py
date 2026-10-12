@@ -220,6 +220,8 @@ class Workspace(Base):
         DateTime(timezone=True), server_default=text("now() + interval '30 days'")
     )
     paid_through: Mapped[date | None] = mapped_column(Date)
+    # Set when the operator closes the workspace; the data is deleted 30 days later.
+    closure_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

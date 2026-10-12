@@ -124,6 +124,17 @@ async def test_customer_link_views_reschedules_once_gets_reminded_and_cancels() 
                     )
                 ).all()
             )
+            operator_recipients = set(
+                (
+                    await session.execute(
+                        text(
+                            "SELECT recipient_email FROM email_outbox "
+                            "WHERE related_booking_id = :id AND kind LIKE 'operator%'"
+                        ),
+                        {"id": booking_id},
+                    )
+                ).scalars()
+            )
             session_states = sorted(
                 (
                     await session.execute(
@@ -192,4 +203,9 @@ async def test_customer_link_views_reschedules_once_gets_reminded_and_cancels() 
         "booking_rescheduled": 1,
         "booking_reminder": 1,
         "booking_cancelled": 1,
+        # The owner hears about each thing the client did themselves.
+        "operator_booking_new": 1,
+        "operator_booking_rescheduled": 1,
+        "operator_booking_cancelled": 1,
     }
+    assert operator_recipients == {"hello@slotera.io"}

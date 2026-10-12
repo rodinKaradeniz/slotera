@@ -25,7 +25,7 @@ class StubAuthService:
         self.session = AuthSession(
             session_id=uuid4(),
             user_id=uuid4(),
-            email="hello@slotera.app",
+            email="hello@slotera.io",
             title="Dr.",
             first_names="Lena Maria",
             last_name="Hartmann",
@@ -84,7 +84,7 @@ async def test_login_sets_http_only_session_and_readable_csrf_cookies() -> None:
             "/auth/login",
             headers={"Origin": "http://localhost:3344"},
             json={
-                "email": " Hello@Slotera.App ",
+                "email": " Hello@Slotera.IO ",
                 "password": "correct",
                 "rememberMe": True,
             },
@@ -113,7 +113,7 @@ async def test_login_rejects_missing_origin_before_checking_credentials() -> Non
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
             "/auth/login",
-            json={"email": "hello@slotera.app", "password": "correct"},
+            json={"email": "hello@slotera.io", "password": "correct"},
         )
 
     assert response.status_code == 403
@@ -129,7 +129,7 @@ async def test_invalid_login_is_generic_and_sets_no_credentials() -> None:
         response = await client.post(
             "/auth/login",
             headers={"Origin": "http://localhost:3344"},
-            json={"email": "hello@slotera.app", "password": "wrong"},
+            json={"email": "hello@slotera.io", "password": "wrong"},
         )
 
     assert response.status_code == 401
@@ -204,9 +204,9 @@ async def test_production_login_cookies_are_secure() -> None:
     settings = Settings(
         environment="production",
         database_url="postgresql+asyncpg://app:secret@db/slotera",
-        cors_origins=["https://app.slotera.app"],
-        csrf_cookie_domain=".slotera.app",
-        public_web_base_url="https://app.slotera.app",
+        cors_origins=["https://app.slotera.io"],
+        csrf_cookie_domain=".slotera.io",
+        public_web_base_url="https://app.slotera.io",
         email_provider="resend",
         resend_api_key="test-only-resend-key",
     )
@@ -217,12 +217,12 @@ async def test_production_login_cookies_are_secure() -> None:
     )
 
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="https://api.slotera.app"
+        transport=ASGITransport(app=app), base_url="https://api.slotera.io"
     ) as client:
         response = await client.post(
             "/auth/login",
-            headers={"Origin": "https://app.slotera.app"},
-            json={"email": "hello@slotera.app", "password": "correct"},
+            headers={"Origin": "https://app.slotera.io"},
+            json={"email": "hello@slotera.io", "password": "correct"},
         )
 
     assert all("Secure" in cookie for cookie in response.headers.get_list("set-cookie"))

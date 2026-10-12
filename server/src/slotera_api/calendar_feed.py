@@ -147,7 +147,7 @@ class CalendarFeedRepository:
             ).mappings()
             events = [
                 CalendarEvent(
-                    uid=f"session-{row['id']}@slotera.app",
+                    uid=f"session-{row['id']}@slotera.io",
                     start=row["start_at"],
                     end=row["end_at"],
                     summary=_summary(row["service_name"], row["capacity"], list(row["clients"])),

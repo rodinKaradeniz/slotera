@@ -28,18 +28,34 @@ demo never receives an API URL, so the mock/API boundary holds. The API, worker,
 maintenance and migrate services share one server image (`server/Dockerfile`).
 
 Use sibling origins. The session cookie stays host-only on `api.`. The readable CSRF
-cookie uses the parent domain (`SLOTERA_CSRF_COOKIE_DOMAIN=.slotera.app`) so `app.` can
-send the token. Do not put the API behind a path proxy.
+cookie uses the parent domain (`SLOTERA_CSRF_COOKIE_DOMAIN=.slotera.io`) so `app.` can
+send the token. Do not put the API behind a path proxy. The bare domain (`ROOT_HOST`)
+only redirects to `www.`.
+
+**Each container gets only its own settings.** `deploy/.env` fills the `${...}` values in
+the compose file; no container receives the whole file. Caddy sees only the host names
+and `ACME_EMAIL`. The API, worker and maintenance job see the app database role, email
+and Sentry settings, but never the owner password, the Sentry auth token or the Storage
+Box login. Only `migrate` gets the owner connection. A new setting must be added to its
+service in `compose.yaml` as well as to `deploy/.env.example`.
+
+**Security headers** are set by Caddy on every host: HSTS (one year, no preload),
+`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY` and a
+`Permissions-Policy`; the API also sends `X-Robots-Tag: noindex`. There is no
+Content-Security-Policy yet ([`TODO.md`](TODO.md)).
 
 ## First deployment
 
 1. **Server:** create a Hetzner Cloud server (Ubuntu LTS; CX22 or larger is fine to
    start). Install Docker Engine with the compose plugin. Allow only ports 22, 80 and 443
    in the Hetzner firewall, and use SSH keys only.
-2. **DNS:** point `www.`, `app.` and `api.` at the server (A and AAAA records).
+2. **DNS:** point the bare domain (`slotera.io`), `www.`, `app.` and `api.` at the
+   server (A and AAAA records).
 3. **Code:** clone the repository on the server.
 4. **Settings:** `cp deploy/.env.example deploy/.env` and fill it in. Generate both
-   database passwords with `openssl rand -hex 32`. The production configuration refuses
+   database passwords with `openssl rand -hex 32`, and run `chmod 600 deploy/.env`. Keep
+   the real values in a password manager too; the file is the only other copy. The
+   production configuration refuses
    to start with local credentials, a console email provider, a missing CSRF cookie
    domain, or a non-HTTPS web URL.
 5. **Off-box backups:** order a Hetzner Storage Box (in a different location from the
@@ -61,9 +77,20 @@ send the token. Do not put the API behind a path proxy.
    the manual flows in the live-release gate:
 
    ```sh
-   cd server && uv run slotera-smoke --api https://api.slotera.app \
-     --app https://app.slotera.app --demo https://www.slotera.app --workspace <slug>
+   cd server && uv run slotera-smoke --api https://api.slotera.io \
+     --app https://app.slotera.io --demo https://www.slotera.io --workspace <slug>
    ```
+
+8. **Email check:** send one message through Resend with the production settings:
+
+   ```sh
+   docker compose -f deploy/compose.yaml --env-file deploy/.env run --rm worker \
+     slotera-send-test-email --to you@example.com
+   ```
+
+   It prints the Resend message id, or the status and error category (401: bad key,
+   403: sending domain not verified, 422: rejected address or field). The superadmin
+   overview also shows how many emails are waiting or failing, with the latest error.
 
 Never run the demo seed in production; the server rejects it by design.
 
@@ -97,14 +124,16 @@ If the rollback crosses a migration, first run
 - `backup` writes `slotera-<timestamp>.dump` daily (`pg_dump --format=custom`), deletes
   local dumps older than 14 days, and mirrors the folder to the Storage Box.
 - **Restore drill:** do this before launch and then every quarter. It takes a few
-  minutes:
+  minutes. The script restores the newest dump into a scratch `restore_drill` database,
+  prints the migration version and the workspace, client and booking counts, then drops
+  it, even on failure. Production data is not touched.
 
   ```sh
-  docker compose -f deploy/compose.yaml --env-file deploy/.env exec backup sh -c '
-    f=$(ls -t /backups/*.dump | head -1)
-    createdb restore_drill && pg_restore --dbname=restore_drill "$f" &&
-    psql -d restore_drill -tAc "select version_num from alembic_version" &&
-    dropdb restore_drill'
+  # newest dump on the server
+  docker compose -f deploy/compose.yaml --env-file deploy/.env exec backup restore-drill.sh
+  # first copy the dumps back from the Storage Box (proves the off-box copy works)
+  docker compose -f deploy/compose.yaml --env-file deploy/.env exec backup \
+    restore-drill.sh --from-storage-box
   ```
 
 - **Real restore:** stop `api`, `worker` and `maintenance`. Drop and recreate the
@@ -137,9 +166,21 @@ terms). Session Replay is deliberately not installed. An exception message can s
 contain an email address; the privacy policy says so.
 
 **Free plan limits:** traces are sampled at 10% (`SLOTERA_SENTRY_TRACES_SAMPLE_RATE` for the
-API) and health checks are never traced. Set one Sentry uptime monitor on
-`https://api.…/health/ready` in the Sentry web UI if the plan includes it; otherwise use a
-free external uptime checker. Alerts go to the one plan user by email.
+API) and health checks are never traced. Alerts go to the one plan user by email.
+
+## Uptime
+
+Sentry only sees errors; it cannot notice that the server is down. Use a free external
+monitor (UptimeRobot or Better Stack's free tier), checking every 5 minutes and emailing
+you on failure:
+
+| Check | Expect |
+|---|---|
+| `https://api.slotera.io/health/ready` | 200 (fails when the database is unreachable) |
+| `https://app.slotera.io/login` | 200 |
+| `https://www.slotera.io/` | 200 |
+
+During a maintenance window the web hosts return 503, so pause the web checks first.
 
 ## Live-release gate
 
@@ -149,11 +190,11 @@ Complete and record each item before telling real operators about `app.`:
    server) and checked.
 2. **Clean install:** the stack was started from an empty volume with the real
    `deploy/.env`. The API connects only as `slotera_app`.
-3. **Email:** Resend has a verified sending domain (SPF, DKIM, DMARC). Activation, reset,
+3. **Email:** Resend has a verified sending domain (SPF, DKIM, DMARC) matching
+   `SLOTERA_EMAIL_FROM_ADDRESS`, and `slotera-send-test-email` succeeds. Activation, reset,
    booking confirmation and reminder emails were received on real inboxes.
 4. **Monitoring:** both Sentry DSNs are set and a test error from each project has
-   arrived. An uptime check watches `https://api.…/health/ready` and both web hosts (a 503
-   from the maintenance page counts as down). Error alerts reach a named person, and logs
+   arrived. The [uptime](#uptime) checks are set up and a test alert has arrived. Error alerts reach a named person, and logs
    are kept for at least 14 days (`docker compose logs` or a log shipper).
 5. **Legal:** the ICO data protection fee is paid for Merulio Ltd. The draft [Terms](../web/src/content/legal/terms.md),
    [Privacy Policy](../web/src/content/legal/privacy.md) and

@@ -1315,6 +1315,45 @@ calendar owner (one-operator workspaces; revisit with team accounts).
 
 ---
 
+### Entry 055 — Pre-pilot hardening, slotera.io, and closing a workspace
+
+*2026-10-12.* The production domain became slotera.io; the bare domain redirects to `www.`.
+Email stays on `no-reply@slotera.merulio.com` (verified in Resend) and the support and
+legal contact is `slotera@merulio.com`.
+
+- **Operations:**
+  - Each compose service now lists the variables it reads instead of loading all of
+    `deploy/.env`. Only `migrate` gets the owner database connection.
+  - Caddy sets security headers on every host.
+  - `restore-drill.sh` proves a backup restores, optionally from the Storage Box.
+  - The superadmin overview shows pending and failing emails with the latest error
+    (migration 0032).
+  - `slotera-send-test-email` checks the provider settings.
+  - Tests no longer pick up a developer's Sentry DSN or Resend key from `server/.env`.
+- **Emails:** every email says replies aren't read.
+- **Operator emails:** the owner gets an email when a client books, cancels or
+  reschedules; their own changes never email them (migration 0034).
+- **Workspace data:**
+  - Operators can export all workspace data as JSON. A test makes every tenant table
+    either exported or deliberately excluded.
+  - Operators can close their workspace, which suspends it at once. The maintenance job
+    deletes it 30 days later (migration 0033), and reactivating it from the superadmin
+    area cancels the closure.
+- **Session outcomes:** a booking's page now offers Completed and No-show for a past
+  one-to-one session, using the existing `complete` and `noshow` commands. Group
+  attendance is unchanged.
+- **Search engines:** the marketing site publishes `robots.txt` and a sitemap; the app
+  allows only booking pages and the pilot form.
+- **Fix:** `slugify` now maps the Turkish ı and German ß.
+
+**Alternatives rejected:**
+- Hard-deleting on close: there would be no undo for a mistaken click.
+- A Content-Security-Policy now: Next.js inline scripts and Sentry need a nonce setup.
+- Re-enabling `react-hooks/set-state-in-effect` in this round: 36 findings across 27
+  files, so it stays a separate task.
+
+---
+
 ## Thematic sections
 
 ### Modelling: what is deliberately *not* in the data model

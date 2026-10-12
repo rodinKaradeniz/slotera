@@ -126,15 +126,16 @@ NEXT_PUBLIC_CSRF_COOKIE_NAME=slotera_csrf
 
 Optional: `NEXT_PUBLIC_SIGNUP_OPEN=false` (real app: `/register` points to the pilot
 form; match the API's `SLOTERA_SIGNUP_OPEN`), `NEXT_PUBLIC_APP_URL` (demo: where "Join
-the pilot" links), `NEXT_PUBLIC_SUPPORT_EMAIL` and `NEXT_PUBLIC_SENTRY_DSN`. Never read or
+the pilot" links), `NEXT_PUBLIC_SITE_URL` (demo: its own origin, for the sitemap),
+`NEXT_PUBLIC_SUPPORT_EMAIL` and `NEXT_PUBLIC_SENTRY_DSN`. Never read or
 edit real `.env` files; change the `*.env.example` templates and tell the user what to set.
 
 **Signing in (mock mode)** — any email and password work and every sign-in lands on
-`/admin/dashboard` as an operator (`hello@slotera.app` is the seeded Dr. Lena Maria
+`/admin/dashboard` as an operator (`hello@slotera.io` is the seeded Dr. Lena Maria
 Hartmann). `wrong@example.com` throws — the seeded failure case for error states. The mock
 demo has no superadmin area, sign-up, onboarding, or password reset; those 404 there.
 
-**Signing in (local API mode)** — use `hello@slotera.app` / `slotera-local-only`.
+**Signing in (local API mode)** — use `hello@slotera.io` / `slotera-local-only`.
 Authentication is cookie-backed and the operator lands on `/admin/dashboard`; Dashboard,
 Calendar, Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are
 exposed in API-mode navigation. The navbar and Cmd/Ctrl-K operator search are also
@@ -626,8 +627,15 @@ Present tense — what exists in the working tree today.
   session revocation on password change. `slotera-email-worker` supports local console and
   production-required Resend delivery; `slotera-maintenance` cleans stale auth state,
   queues reminders, and tops recurring series back up to six months ahead. Confirmed,
-  rescheduled and cancelled booking emails attach `booking.ics`. `slotera-smoke` checks
-  a deployment read-only.
+  rescheduled and cancelled booking emails attach `booking.ics`. Every email carries a
+  "replies aren't read" footer, and the workspace owner is emailed when a client books,
+  cancels or reschedules. `slotera-maintenance` also deletes workspaces closed more than
+  30 days ago. `slotera-smoke` checks a deployment read-only; `slotera-send-test-email`
+  sends one message through the configured provider.
+- Settings → Account (API mode): export all workspace data as JSON, and close the
+  workspace (suspended at once, deleted after 30 days, reopenable by staff). The
+  superadmin overview shows email delivery health. Production compose gives each
+  container only its own variables, and Caddy adds security headers.
 - Operator business-profile, saved-location, and service CRUD. Each workspace has one
   client currency (GBP default; GBP/EUR/USD, chosen at sign-up). Service currency is
   inherited from the workspace, inputs cannot override it, and service notes are exposed

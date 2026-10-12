@@ -10,6 +10,9 @@ export function plural(
 /** Lowercase URL slug: letters/digits joined by single hyphens (matches the API's slug rule). */
 export function slugify(value: string): string {
   return value
+    // Letters NFKD can't reduce to ASCII, from the supported languages (TR, DE).
+    .replace(/ı/g, "i")
+    .replace(/ß/g, "ss")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()

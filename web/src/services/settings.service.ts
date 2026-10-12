@@ -2,6 +2,7 @@ import settingsJson from "@/data/mock/settings.json";
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
+import { clearSession } from "@/lib/session";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
 import type { Address, WorkspaceLocation } from "@/types/address";
@@ -507,4 +508,27 @@ export async function createCalendarFeed(): Promise<string> {
 export async function revokeCalendarFeed(): Promise<void> {
   if (dataSource !== "api") throw new NotImplementedError("revokeCalendarFeed");
   await apiRequest<unknown>("/settings/calendar-feed", { method: "DELETE", csrf: true });
+}
+
+export type WorkspaceExport = components["schemas"]["WorkspaceExportResponse"];
+
+/** Everything the workspace holds, one JSON document (Settings → Account). */
+export async function exportWorkspace(): Promise<WorkspaceExport> {
+  if (dataSource !== "api") throw new NotImplementedError("exportWorkspace");
+  return apiRequest<WorkspaceExport>("/settings/workspace-export");
+}
+
+/**
+ * Closes the workspace: the booking page goes offline, everyone is signed out, and the
+ * data is deleted after the returned number of days. `confirmSlug` must match.
+ */
+export async function closeWorkspace(confirmSlug: string): Promise<number> {
+  if (dataSource !== "api") throw new NotImplementedError("closeWorkspace");
+  const response = await apiRequest<components["schemas"]["WorkspaceClosed"], components["schemas"]["WorkspaceClose"]>(
+    "/settings/close-workspace",
+    { method: "POST", csrf: true, body: { confirmSlug } },
+  );
+  // The server revoked every session of the workspace, including this one.
+  clearSession();
+  return response.deletedAfterDays;
 }

@@ -292,9 +292,7 @@ async def create_public_booking(
         session_address=(
             Address.model_validate(result.session.address) if result.session.address else None
         ),
-        meeting_url=(
-            result.meeting_url if result.booking.status.value == "confirmed" else None
-        ),
+        meeting_url=(result.meeting_url if result.booking.status.value == "confirmed" else None),
         payment_due_at=result.booking.payment_due_at,
         quote=_tax_response(result.quote),
     )

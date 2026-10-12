@@ -40,6 +40,7 @@ import {
 } from "@/services/settings.service";
 import { ApiBillingPanel } from "./ApiBillingPanel";
 import { CalendarFeedCard } from "./CalendarFeedCard";
+import { WorkspaceDataCard } from "./WorkspaceDataCard";
 import { EMPTY_ADDRESS, type WorkspaceLocation } from "@/types/address";
 import type { SettingsData, WorkingDay } from "@/types/settings";
 import { cn } from "@/lib/cn";
@@ -186,6 +187,7 @@ export function SettingsView() {
               )}
               {section === "emails" && data && <EmailsPanel data={data} onChange={setData} />}
               {section === "account" && dataSource === "api" && <ApiAccountPanel />}
+              {section === "account" && dataSource === "api" && <WorkspaceDataCard />}
               {section === "account" && dataSource === "mock" && data && (
                 <AccountPanel data={data} onChange={setData} />
               )}

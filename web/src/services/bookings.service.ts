@@ -152,7 +152,7 @@ export async function cancelBooking(id: string): Promise<Booking> {
 
 async function commandBooking(
   id: string,
-  command: "approve" | "decline" | "mark-payment-received" | "cancel",
+  command: "approve" | "decline" | "mark-payment-received" | "cancel" | "complete" | "noshow",
 ): Promise<Booking> {
   return mapBooking(
     await apiRequest<BookingDto>(
@@ -181,6 +181,17 @@ export async function markBookingPaymentReceived(id: string): Promise<Booking> {
     return updateBooking(id, { paymentStatus: "paid", status: "confirmed" });
   }
   return commandBooking(id, "mark-payment-received");
+}
+
+/** A confirmed 1:1 booking's outcome after the session: it happened, or the client didn't come. */
+export async function completeBooking(id: string): Promise<Booking> {
+  if (dataSource !== "api") return updateBooking(id, { status: "completed" });
+  return commandBooking(id, "complete");
+}
+
+export async function markBookingNoShow(id: string): Promise<Booking> {
+  if (dataSource !== "api") return updateBooking(id, { status: "noshow" });
+  return commandBooking(id, "noshow");
 }
 
 /**

@@ -8,7 +8,7 @@ from slotera_api.database import Database
 from slotera_api.main import create_app
 from slotera_api.seed import import_demo_seed
 
-DEMO_EMAIL = "hello@slotera.app"
+DEMO_EMAIL = "hello@slotera.io"
 DEMO_PASSWORD = "slotera-local-only"
 NEW_PASSWORD = "a-brand-new-password"
 ORIGIN = "http://localhost:3344"

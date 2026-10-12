@@ -58,6 +58,9 @@ export function WorkspaceDetailView({ id }: { id: string }) {
   }
 
   const isSuspended = workspace.operationalStatus === "suspended";
+  const closingOn = workspace.closureRequestedAtISO
+    ? new Date(new Date(workspace.closureRequestedAtISO).getTime() + 30 * 86_400_000)
+    : null;
 
   const handleSuspend = async () => {
     setBusy(true);
@@ -105,6 +108,11 @@ export function WorkspaceDetailView({ id }: { id: string }) {
             <PlanPills workspace={workspace} />
             <span aria-hidden>·</span>
             <span>Joined {fmtDate(new Date(workspace.createdAtISO))}</span>
+            {closingOn && (
+              <Pill tone="danger" icon="trash">
+                Closed by operator · deleted {fmtDate(closingOn)}
+              </Pill>
+            )}
           </span>
         }
         actions={
@@ -116,7 +124,7 @@ export function WorkspaceDetailView({ id }: { id: string }) {
               disabled={busy}
               onClick={() => setConfirmStatusChange(true)}
             >
-              {isSuspended ? "Reactivate" : "Suspend"}
+              {closingOn ? "Cancel closure" : isSuspended ? "Reactivate" : "Suspend"}
             </Button>
           </>
         }
@@ -137,9 +145,17 @@ export function WorkspaceDetailView({ id }: { id: string }) {
         open={confirmStatusChange}
         onClose={() => setConfirmStatusChange(false)}
         onConfirm={handleSuspend}
-        title={isSuspended ? "Reactivate workspace?" : "Suspend workspace?"}
+        title={
+          closingOn
+            ? "Cancel the closure?"
+            : isSuspended
+              ? "Reactivate workspace?"
+              : "Suspend workspace?"
+        }
         description={
-          isSuspended
+          closingOn
+            ? "The operator closed this workspace. Reactivating it cancels the scheduled deletion and lets them sign in again."
+            : isSuspended
             ? "The operator will be able to sign in again. Previously revoked sessions stay revoked."
             : "The operator will lose access immediately and all existing workspace sessions will be revoked. Workspace data is retained."
         }

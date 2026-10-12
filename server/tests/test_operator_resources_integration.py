@@ -12,7 +12,7 @@ from slotera_api.seed import import_demo_seed
 DEMO_PASSWORD = "slotera-local-only"
 
 
-async def _login(client: AsyncClient, email: str = "hello@slotera.app") -> None:
+async def _login(client: AsyncClient, email: str = "hello@slotera.io") -> None:
     response = await client.post(
         "/auth/login",
         headers={"Origin": "http://localhost:3344"},

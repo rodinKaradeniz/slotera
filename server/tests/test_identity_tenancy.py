@@ -1,6 +1,7 @@
 from slotera_api.db.models import TENANT_TABLES, Base
 from slotera_api.identity import hash_opaque_token, normalize_email
 from slotera_api.seed import DEMO_SEED
+from slotera_api.workspace_data import EXPORTED_TABLES, NOT_EXPORTED_TABLES
 
 
 def test_every_declared_tenant_table_carries_workspace_identity() -> None:
@@ -39,8 +40,8 @@ def test_every_declared_tenant_table_carries_workspace_identity() -> None:
 
 
 def test_email_normalisation_is_stable_and_case_insensitive() -> None:
-    assert normalize_email("  Hello@Slotera.App ") == "hello@slotera.app"
-    assert normalize_email("HELLO@SLOTERA.APP") == "hello@slotera.app"
+    assert normalize_email("  Hello@Slotera.IO ") == "hello@slotera.io"
+    assert normalize_email("HELLO@SLOTERA.IO") == "hello@slotera.io"
 
 
 def test_opaque_tokens_are_stored_as_fixed_length_hashes() -> None:
@@ -58,7 +59,14 @@ def test_demo_seed_matches_the_frontend_identity_fixture() -> None:
     assert DEMO_SEED.workspace.slug == "lena"
     assert DEMO_SEED.workspace.currency == "GBP"
     assert DEMO_SEED.workspace.timezone == "Europe/Berlin"
-    assert DEMO_SEED.operator.email == "hello@slotera.app"
+    assert DEMO_SEED.operator.email == "hello@slotera.io"
     assert DEMO_SEED.operator_membership.role == "operator_admin"
-    assert DEMO_SEED.superadmin.email == "admin@slotera.app"
+    assert DEMO_SEED.superadmin.email == "admin@slotera.io"
     assert DEMO_SEED.superadmin.platform_role == "superadmin"
+
+
+def test_every_tenant_table_is_either_exported_or_deliberately_left_out() -> None:
+    exported = set(EXPORTED_TABLES)
+    assert len(exported) == len(EXPORTED_TABLES)
+    assert not exported & NOT_EXPORTED_TABLES
+    assert exported | NOT_EXPORTED_TABLES == TENANT_TABLES

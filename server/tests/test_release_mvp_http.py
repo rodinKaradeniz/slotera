@@ -22,7 +22,7 @@ class StubAuthService:
         self.session = AuthSession(
             session_id=uuid4(),
             user_id=uuid4(),
-            email="hello@slotera.app",
+            email="hello@slotera.io",
             title=None,
             first_names="Lena",
             last_name="Hartmann",

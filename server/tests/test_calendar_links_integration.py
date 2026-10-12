@@ -38,7 +38,7 @@ async def test_meeting_link_and_private_calendar_feed() -> None:
             login = await operator.post(
                 "/auth/login",
                 headers=ORIGIN,
-                json={"email": "hello@slotera.app", "password": "slotera-local-only"},
+                json={"email": "hello@slotera.io", "password": "slotera-local-only"},
             )
             assert login.status_code == 200
             services = (await visitor.get("/public/workspaces/lena/services")).json()["items"]

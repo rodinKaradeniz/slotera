@@ -22,7 +22,7 @@ async def _set_demo_password(owner: Database) -> None:
                 """
                 UPDATE users
                 SET password_hash = :password_hash
-                WHERE email IN ('hello@slotera.app', 'admin@slotera.app')
+                WHERE email IN ('hello@slotera.io', 'admin@slotera.io')
                 """
             ),
             {"password_hash": password_hash},
@@ -43,7 +43,7 @@ async def test_real_login_session_and_logout_are_revocable() -> None:
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
                 json={
-                    "email": "HELLO@SLOTERA.APP",
+                    "email": "HELLO@SLOTERA.IO",
                     "password": LOCAL_DEMO_PASSWORD,
                     "rememberMe": True,
                 },
@@ -60,7 +60,7 @@ async def test_real_login_session_and_logout_are_revocable() -> None:
             after_logout = await client.get("/auth/session")
 
         assert login.status_code == 200
-        assert login.json()["user"]["email"] == "hello@slotera.app"
+        assert login.json()["user"]["email"] == "hello@slotera.io"
         assert login.json()["user"]["role"] == "operator_admin"
         assert login.json()["workspace"]["slug"] == "lena"
         assert current.status_code == 200
@@ -85,7 +85,7 @@ async def test_login_never_persists_raw_session_or_csrf_tokens() -> None:
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
                 json={
-                    "email": "hello@slotera.app",
+                    "email": "hello@slotera.io",
                     "password": LOCAL_DEMO_PASSWORD,
                 },
             )
@@ -135,7 +135,7 @@ async def test_unknown_email_and_wrong_password_share_one_failure_contract() -> 
             wrong = await client.post(
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
-                json={"email": "hello@slotera.app", "password": "wrong"},
+                json={"email": "hello@slotera.io", "password": "wrong"},
             )
     finally:
         await database.dispose()
@@ -159,7 +159,7 @@ async def test_superadmin_session_has_no_synthetic_workspace() -> None:
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
                 json={
-                    "email": "admin@slotera.app",
+                    "email": "admin@slotera.io",
                     "password": LOCAL_DEMO_PASSWORD,
                 },
             )
@@ -185,7 +185,7 @@ async def test_expired_session_cookie_is_rejected() -> None:
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
                 json={
-                    "email": "hello@slotera.app",
+                    "email": "hello@slotera.io",
                     "password": LOCAL_DEMO_PASSWORD,
                 },
             )
@@ -223,12 +223,12 @@ async def test_password_reset_queues_activation_and_revokes_existing_sessions() 
             login = await client.post(
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
-                json={"email": "hello@slotera.app", "password": LOCAL_DEMO_PASSWORD},
+                json={"email": "hello@slotera.io", "password": LOCAL_DEMO_PASSWORD},
             )
             requested = await client.post(
                 "/auth/password-reset/request",
                 headers={"Origin": "http://localhost:3344"},
-                json={"email": "hello@slotera.app"},
+                json={"email": "hello@slotera.io"},
             )
             assert login.status_code == 200
             assert requested.status_code == 202
@@ -239,7 +239,7 @@ async def test_password_reset_queues_activation_and_revokes_existing_sessions() 
                         """
                         SELECT text_body
                         FROM email_outbox
-                        WHERE recipient_email = 'hello@slotera.app'
+                        WHERE recipient_email = 'hello@slotera.io'
                           AND sent_at IS NULL
                         ORDER BY created_at DESC
                         LIMIT 1
@@ -264,7 +264,7 @@ async def test_password_reset_queues_activation_and_revokes_existing_sessions() 
             new_login = await client.post(
                 "/auth/login",
                 headers={"Origin": "http://localhost:3344"},
-                json={"email": "hello@slotera.app", "password": "a-new-secure-password"},
+                json={"email": "hello@slotera.io", "password": "a-new-secure-password"},
             )
 
         assert consumed.status_code == 204

@@ -1,18 +1,32 @@
 # Production stack for one Hetzner server. Run from the repository root:
 #   docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
 # See docs/DEPLOYMENT.md.
+#
+# deploy/.env only fills the ${...} placeholders below; no container receives the whole
+# file. Each service lists exactly the variables it reads, so a new setting must be added
+# here as well as to deploy/.env.example.
 name: slotera-prod
+
+x-server-env: &server-env
+  SLOTERA_ENVIRONMENT: production
+  SLOTERA_RELEASE: ${RELEASE:-latest}
+  SLOTERA_LOG_LEVEL: ${SLOTERA_LOG_LEVEL:-INFO}
+  # The restricted application role: no DDL, row-level security applies.
+  SLOTERA_DATABASE_URL: postgresql+asyncpg://slotera_app:${SLOTERA_APP_DB_PASSWORD}@db:5432/slotera
+  SLOTERA_CORS_ORIGINS: ${SLOTERA_CORS_ORIGINS}
+  SLOTERA_PUBLIC_WEB_BASE_URL: ${SLOTERA_PUBLIC_WEB_BASE_URL}
+  SLOTERA_CSRF_COOKIE_DOMAIN: ${SLOTERA_CSRF_COOKIE_DOMAIN}
+  SLOTERA_EMAIL_PROVIDER: ${SLOTERA_EMAIL_PROVIDER:-resend}
+  SLOTERA_EMAIL_FROM_ADDRESS: ${SLOTERA_EMAIL_FROM_ADDRESS}
+  SLOTERA_RESEND_API_KEY: ${SLOTERA_RESEND_API_KEY}
+  SLOTERA_SIGNUP_OPEN: ${SLOTERA_SIGNUP_OPEN:-false}
+  SLOTERA_SENTRY_DSN: ${SLOTERA_SENTRY_DSN:-}
 
 x-server: &server
   build: ../server
   image: slotera-server:${RELEASE:-latest}
   restart: unless-stopped
-  env_file: .env
-  environment:
-    SLOTERA_ENVIRONMENT: production
-    SLOTERA_DATABASE_URL: postgresql+asyncpg://slotera_app:${SLOTERA_APP_DB_PASSWORD}@db:5432/slotera
-    SLOTERA_MIGRATION_DATABASE_URL: postgresql+asyncpg://slotera_owner:${POSTGRES_PASSWORD}@db:5432/slotera
-    SLOTERA_RELEASE: ${RELEASE:-latest}
+  environment: *server-env
   depends_on:
     db:
       condition: service_healthy
@@ -25,7 +39,12 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
-    env_file: .env
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
+      ROOT_HOST: ${ROOT_HOST:?set ROOT_HOST in deploy/.env}
+      DEMO_HOST: ${DEMO_HOST:?set DEMO_HOST in deploy/.env}
+      APP_HOST: ${APP_HOST:?set APP_HOST in deploy/.env}
+      API_HOST: ${API_HOST:?set API_HOST in deploy/.env}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -39,7 +58,8 @@ services:
         NEXT_PUBLIC_DATA_SOURCE: mock
         # The demo only links to the real app (its pilot form); it never calls the API.
         NEXT_PUBLIC_APP_URL: https://${APP_HOST}
-        NEXT_PUBLIC_SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@slotera.app}
+        NEXT_PUBLIC_SITE_URL: https://${DEMO_HOST}
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${SUPPORT_EMAIL:-slotera@merulio.com}
     image: slotera-web-demo:${RELEASE:-latest}
     restart: unless-stopped
     environment:
@@ -53,7 +73,7 @@ services:
         NEXT_PUBLIC_API_BASE_URL: https://${API_HOST}
         NEXT_PUBLIC_CSRF_COOKIE_NAME: slotera_csrf
         NEXT_PUBLIC_SIGNUP_OPEN: ${SLOTERA_SIGNUP_OPEN:-false}
-        NEXT_PUBLIC_SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@slotera.app}
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${SUPPORT_EMAIL:-slotera@merulio.com}
         NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_WEB_DSN:-}
         SENTRY_ORG: ${SENTRY_ORG:-}
         SENTRY_PROJECT: ${SENTRY_WEB_PROJECT:-}
@@ -65,9 +85,13 @@ services:
       MAINTENANCE_MODE: ${MAINTENANCE_MODE:-0}
 
   # Applies migrations once per deploy; the API waits for it to finish.
+  # The only service with the owner role (DDL, bypasses row-level security).
   migrate:
     <<: *server
     restart: "no"
+    environment:
+      <<: *server-env
+      SLOTERA_MIGRATION_DATABASE_URL: postgresql+asyncpg://slotera_owner:${POSTGRES_PASSWORD}@db:5432/slotera
     command: ["alembic", "upgrade", "head"]
 
   api:

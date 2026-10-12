@@ -116,7 +116,7 @@ class SeedSummary:
 DEMO_SEED = DemoSeed(
     operator=UserSeed(
         id=_seed_id("user:operator:lena"),
-        email="hello@slotera.app",
+        email="hello@slotera.io",
         title="Dr.",
         first_names="Lena Maria",
         last_name="Hartmann",
@@ -125,7 +125,7 @@ DEMO_SEED = DemoSeed(
     ),
     superadmin=UserSeed(
         id=_seed_id("user:superadmin:avery"),
-        email="admin@slotera.app",
+        email="admin@slotera.io",
         title=None,
         first_names="Avery",
         last_name="Quinn",

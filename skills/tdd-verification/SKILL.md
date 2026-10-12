@@ -73,9 +73,9 @@ What "loaded it" should mean, per area:
 - **Public booking** — walk the stepper to Pay, with a service that has attached forms
   (so the conditional Forms step appears) and one without. Check the manual-payment
   branch, since it changes the receipt.
-- **Admin** — log in as `hello@slotera.app` (any password). Exercise the drawer, not just
+- **Admin** — log in as `hello@slotera.io` (any password). Exercise the drawer, not just
   the list: open, save, cancel, and confirm the toast fires.
-- **Superadmin** — log in as `admin@slotera.app`. Confirm role routing sends an operator
+- **Superadmin** — log in as `admin@slotera.io`. Confirm role routing sends an operator
   hitting `/superadmin/*` back to `/admin/dashboard`.
 - **Anything touching mock state** — remember mutations are module-level and reset on HMR.
   A "it saved" observation after an edit that triggered a hot reload proves nothing; do a
