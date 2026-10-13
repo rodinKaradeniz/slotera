@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
@@ -70,9 +71,7 @@ export function NewWorkspaceDrawer({
   const [apiForm, setApiForm] = React.useState<ApiFormState>(() => makeApiForm(initial));
   const [busy, setBusy] = React.useState(false);
 
-  React.useEffect(() => {
-    if (open) setApiForm(makeApiForm(initial));
-  }, [open, initial]);
+  useResetOnOpen(open, [initial], () => setApiForm(makeApiForm(initial)));
 
   const apiValid =
     apiForm.name.trim().length > 1 &&

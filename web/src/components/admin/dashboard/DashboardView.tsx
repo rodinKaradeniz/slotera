@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { Greeting, spell } from "./Greeting";
 import { KpiTile } from "./KpiTile";
 import { TrendChart } from "./TrendChart";
@@ -21,14 +22,13 @@ function buildSubtitle(data: DashboardData): string {
 
 export function DashboardView() {
   const [data, setData] = React.useState<DashboardData | null>(null);
-  const [firstName, setFirstName] = React.useState<string>("");
+  const hydrated = useHydrated();
+  const op = hydrated ? currentSession()?.operator : undefined;
+  const firstName =
+    op?.firstNames?.trim().split(/\s+/)[0] ?? op?.name?.split(/\s+/)[0] ?? "";
 
   React.useEffect(() => {
     getDashboard().then(setData);
-    const op = currentSession()?.operator;
-    const first =
-      op?.firstNames?.trim().split(/\s+/)[0] ?? op?.name?.split(/\s+/)[0] ?? "";
-    setFirstName(first);
   }, []);
 
   const next = data?.nextSession ?? data?.todaySchedule.find((t) => t.status === "next");

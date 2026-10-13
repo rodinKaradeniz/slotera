@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -14,17 +15,26 @@ type Props = {
 
 export function CommandPalette({ open, onClose }: Props) {
   const router = useRouter();
-  const [mounted, setMounted] = React.useState(false);
+  const mounted = useHydrated();
   const [query, setQuery] = React.useState("");
   const [activeIndex, setActiveIndex] = React.useState(0);
+  // A new query starts the keyboard selection from the top again.
+  const changeQuery = (next: string) => {
+    setQuery(next);
+    setActiveIndex(0);
+  };
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => setMounted(true), []);
+
+  // Each opening starts from an empty search.
+  const [wasOpen, setWasOpen] = React.useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) changeQuery("");
+  }
 
   React.useEffect(() => {
     if (!open) return;
-    setQuery("");
-    setActiveIndex(0);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     document.body.classList.add("scroll-locked");
     return () => {
@@ -36,9 +46,6 @@ export function CommandPalette({ open, onClose }: Props) {
   const { loading, error, groups } = useSearch(query, 6);
   const flat = React.useMemo(() => flattenGroups(groups), [groups]);
 
-  React.useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
 
   const navigate = (r: SearchResult) => {
     onClose();
@@ -87,7 +94,7 @@ export function CommandPalette({ open, onClose }: Props) {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => changeQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Search bookings, clients, services, sessions…"
             className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-3 text-ink"

@@ -507,8 +507,11 @@ descriptions, seeded notes) is English-only by design.
   card form uses these; do not write new formatters.
 - **Money** goes through `web/src/lib/money.ts`; the default currency is **GBP**.
 - **IDs** for mock records come from `makeId(prefix)` in `web/src/lib/id.ts`.
-- **`react-hooks/set-state-in-effect` is disabled project-wide** — mount-once data fetches
-  and SSR-portal mount flags both legitimately set state in an effect here.
+- **`react-hooks/set-state-in-effect` is on** (Next's default). Gate browser-only reads
+  and portals with `useHydrated()` (`web/src/lib/use-hydrated.ts`), reset drawer and modal
+  forms with `useResetOnOpen()` (`web/src/lib/use-reset-on-open.ts`), and tag async
+  results with what they answer (a query, a booking id) instead of clearing state
+  synchronously in an effect.
 - **Unused vars** are a warning when prefixed `_`; that's the intentional escape hatch for
   Phase 1 stub parameters (`_password`, `_token`).
 - **Section-root redirects belong in `web/next.config.ts`.** Never add a `page.tsx` whose only

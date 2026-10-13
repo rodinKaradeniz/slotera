@@ -186,7 +186,7 @@ The visual target is the Claude Design handoff (warm cream paper, deep forest gr
 - Service errors are `NotImplementedError` (API branch not built), `NotFoundError` (mock
   resource missing), or `ApiRequestError` (status/code/request id/details from the backend
   envelope); components generally surface `error.message`, usually through a toast.
-- The eslint config disables `react-hooks/set-state-in-effect` project-wide — mount-once data fetches and SSR-portal mount flags both legitimately setState in effects here.
+- `react-hooks/set-state-in-effect` is on: use `useHydrated()` for browser-only reads and portals, `useResetOnOpen()` to reset drawer forms, and keyed async results instead of setting state synchronously in an effect.
 - Status badge / payment-status mappings live in `web/src/lib/status-maps.ts` — extend that file rather than re-deriving colors per page.
 
 ---

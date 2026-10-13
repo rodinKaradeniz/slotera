@@ -20,7 +20,6 @@ export function ServicesView() {
   const [reload, setReload] = React.useState(0);
 
   React.useEffect(() => {
-    setError(null);
     listServices()
       .then(setServices)
       .catch((cause) => {
@@ -29,7 +28,10 @@ export function ServicesView() {
       });
   }, [reload]);
 
-  const refresh = () => setReload((k) => k + 1);
+  const refresh = () => {
+    setError(null);
+    setReload((k) => k + 1);
+  };
 
   return (
     <PageContainer>

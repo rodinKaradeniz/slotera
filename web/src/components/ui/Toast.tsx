@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { createPortal } from "react-dom";
 import { Icon, type IconName } from "./Icon";
 import { cn } from "@/lib/cn";
@@ -162,8 +163,7 @@ function ToastViewport({
   items: ToastItem[];
   onDismiss: (id: string) => void;
 }) {
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   if (!mounted) return null;
   if (items.length === 0) return null;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
@@ -47,9 +48,7 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
   const [form, setForm] = React.useState<ClientInput>(() => inputFor(initial));
   const [busy, setBusy] = React.useState(false);
 
-  React.useEffect(() => {
-    if (open) setForm(inputFor(initial));
-  }, [initial, open]);
+  useResetOnOpen(open, [initial], () => setForm(inputFor(initial)));
 
   const set = <K extends keyof ClientInput>(key: K, value: ClientInput[K]) =>
     setForm((current) => ({ ...current, [key]: value }));

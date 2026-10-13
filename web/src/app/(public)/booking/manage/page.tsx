@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useRouter } from "next/navigation";
 import { BookingTopBar } from "@/components/layout/BookingTopBar";
 import { BookingFooter } from "@/components/layout/BookingFooter";
@@ -47,9 +48,11 @@ export default function ManageBookingPage() {
   const { t, lang } = useI18n();
   const { toast } = useToast();
   const locale = localeForLang(lang);
-  const [token, setToken] = React.useState<string | null>(null);
+  const hydrated = useHydrated();
+  const token = hydrated ? window.location.hash.slice(1) || null : null;
   const [booking, setBooking] = React.useState<ManagedBooking | null>(null);
-  const [invalid, setInvalid] = React.useState(false);
+  const [notFound, setNotFound] = React.useState(false);
+  const invalid = notFound || (hydrated && dataSource !== "mock" && !token);
   const [busy, setBusy] = React.useState(false);
   const [confirmCancel, setConfirmCancel] = React.useState(false);
   const [rescheduling, setRescheduling] = React.useState(false);
@@ -64,21 +67,16 @@ export default function ManageBookingPage() {
       router.replace("/booking/manage/demo");
       return;
     }
-    const fromHash = window.location.hash.slice(1);
-    if (!fromHash) {
-      setInvalid(true);
-      return;
-    }
-    setToken(fromHash);
-    getManagedBooking(fromHash)
+    if (!token) return;
+    getManagedBooking(token)
       .then((result) => {
         // Rescheduling reads availability for this booking's workspace.
         setPublicWorkspaceSlug(result.workspaceSlug);
         setBooking(result);
       })
-      .catch(() => setInvalid(true));
+      .catch(() => setNotFound(true));
     return () => setPublicWorkspaceSlug(null);
-  }, [router]);
+  }, [router, token]);
 
   if (invalid) {
     return (

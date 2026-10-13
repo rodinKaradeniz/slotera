@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -85,7 +86,9 @@ export default function OnboardingPage() {
   const [bookingSlug, setBookingSlug] = React.useState<string>("");
   const [ready, setReady] = React.useState(false);
 
-  const [operatorName, setOperatorName] = React.useState<string>("there");
+  const hydrated = useHydrated();
+  const operatorName =
+    (hydrated && currentSession()?.operator.firstNames?.trim().split(/\s+/)[0]) || "there";
   const [serviceForm, setServiceForm] =
     React.useState<ServiceFormValue>(DEFAULT_SERVICE);
   const [hours, setHours] = React.useState<WorkingDay[]>([]);
@@ -96,10 +99,6 @@ export default function OnboardingPage() {
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
-    const session = currentSession();
-    const first = session?.operator.firstNames?.trim().split(/\s+/)[0];
-    if (first) setOperatorName(first);
-
     let cancelled = false;
     (async () => {
       try {

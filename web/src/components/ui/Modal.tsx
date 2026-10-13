@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
@@ -34,8 +35,7 @@ export function Modal({
   footer,
   className,
 }: ModalProps) {
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   React.useEffect(() => {
     if (!open) return;

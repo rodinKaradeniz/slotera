@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
@@ -129,16 +130,26 @@ export function SessionDrawer({
   const [tab, setTab] = React.useState<"details" | "notes" | "attendance">(
     "details",
   );
-  const [actionItems, setActionItems] = React.useState<SessionActionItem[]>([]);
-  const [actionItemsLoading, setActionItemsLoading] = React.useState(false);
+  // Action items of the open session, tagged with its id; none yet means loading.
+  const [loadedActionItems, setLoadedActionItems] = React.useState<{
+    sessionId: string;
+    items: SessionActionItem[];
+  } | null>(null);
+  const actionItemsReady =
+    !!initial && loadedActionItems?.sessionId === initial.id;
+  const actionItems = actionItemsReady ? loadedActionItems.items : [];
+  const actionItemsLoading = open && !!initial && !actionItemsReady;
+  const setActionItems = (items: SessionActionItem[]) => {
+    if (initial) setLoadedActionItems({ sessionId: initial.id, items });
+  };
   const openActionCount = actionItems.filter((a) => a.status === "todo").length;
 
-  React.useEffect(() => {
-    if (open) {
-      setMode(modeProp);
-      setTab("details");
-    }
-  }, [open, modeProp]);
+  useResetOnOpen(open, [modeProp], () => {
+    setMode(modeProp);
+    setTab("details");
+    // Reopening refetches the action items instead of showing the last copy.
+    setLoadedActionItems(null);
+  });
 
   React.useEffect(() => {
     listServices().then(setServices);
@@ -147,29 +158,25 @@ export function SessionDrawer({
 
   // Load action items for the open session so the tab badge + panel stay in sync.
   React.useEffect(() => {
-    if (!open || !initial) {
-      setActionItems([]);
-      return;
-    }
+    if (!open || !initial) return;
+    const sessionId = initial.id;
     let live = true;
-    setActionItemsLoading(true);
-    listActionItemsForSession(initial.id)
+    listActionItemsForSession(sessionId)
       .then((items) => {
-        if (live) setActionItems(items);
+        if (live) setLoadedActionItems({ sessionId, items });
       })
-      .finally(() => {
-        if (live) setActionItemsLoading(false);
+      .catch(() => {
+        if (live) setLoadedActionItems({ sessionId, items: [] });
       });
     return () => {
       live = false;
     };
   }, [open, initial]);
 
-  React.useEffect(() => {
-    if (!open) return;
+  useResetOnOpen(open, [initial, services], () => {
     setForm(initial ? toForm(initial, services) : emptyForm(services));
     setConflict(null);
-  }, [open, initial, services]);
+  });
 
   const startISO = React.useMemo(() => {
     return `${form.date}T${form.time}:00.000Z`;

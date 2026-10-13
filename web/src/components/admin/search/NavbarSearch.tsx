@@ -16,15 +16,17 @@ export function NavbarSearch({ onOpenPalette }: Props) {
   const [query, setQuery] = React.useState("");
   const [focused, setFocused] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(0);
+  // A new query starts the keyboard selection from the top again.
+  const changeQuery = (next: string) => {
+    setQuery(next);
+    setActiveIndex(0);
+  };
   const inputRef = React.useRef<HTMLInputElement>(null);
   const wrapRef = React.useRef<HTMLDivElement>(null);
 
   const { loading, error, groups } = useSearch(query, 4);
   const flat = React.useMemo(() => flattenGroups(groups), [groups]);
 
-  React.useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
 
   React.useEffect(() => {
     if (!focused) return;
@@ -37,7 +39,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
 
   const navigate = (r: SearchResult) => {
     setFocused(false);
-    setQuery("");
+    changeQuery("");
     inputRef.current?.blur();
     router.push(r.href);
   };
@@ -80,7 +82,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => changeQuery(e.target.value)}
           onFocus={() => setFocused(true)}
           onKeyDown={onKeyDown}
           placeholder="Search…"
@@ -91,7 +93,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
           <button
             type="button"
             onClick={() => {
-              setQuery("");
+              changeQuery("");
               inputRef.current?.focus();
             }}
             className="text-ink-3 hover:text-ink"

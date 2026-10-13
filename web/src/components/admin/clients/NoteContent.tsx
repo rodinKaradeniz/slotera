@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/cn";
 import { sanitizeNoteHtml } from "@/lib/sanitize-note-html";
 import { NOTE_PROSE } from "./NoteEditor";
@@ -15,13 +16,13 @@ export function NoteContent({
   html: string;
   className?: string;
 }) {
-  // Start blank so server and client markup match; populate only after the
-  // browser-side sanitizer has processed the persisted value.
-  const [safeHtml, setSafeHtml] = React.useState("");
-
-  React.useEffect(() => {
-    setSafeHtml(sanitizeNoteHtml(html));
-  }, [html]);
+  // Blank on the server and during hydration so the markup matches; populated only
+  // after the browser-side sanitizer has processed the persisted value.
+  const hydrated = useHydrated();
+  const safeHtml = React.useMemo(
+    () => (hydrated ? sanitizeNoteHtml(html) : ""),
+    [hydrated, html],
+  );
 
   return (
     <div

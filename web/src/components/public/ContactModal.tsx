@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { dataSource } from "@/lib/env";
 import { Modal } from "@/components/ui/Modal";
 import { Field } from "@/components/ui/Field";
@@ -84,8 +85,7 @@ export function ContactModal({
   const [submitting, setSubmitting] = React.useState(false);
   const [success, setSuccess] = React.useState(false);
 
-  React.useEffect(() => {
-    if (!open) return;
+  useResetOnOpen(open, [presetName, presetEmail, presetMessage, defaultReason], () => {
     setForm(
       emptyForm({
         name: presetName,
@@ -96,7 +96,7 @@ export function ContactModal({
     );
     setSuccess(false);
     setSubmitting(false);
-  }, [open, presetName, presetEmail, presetMessage, defaultReason]);
+  });
 
   const valid =
     form.name.trim().length > 0 &&

@@ -1352,6 +1352,28 @@ legal contact is `slotera@merulio.com`.
 - Re-enabling `react-hooks/set-state-in-effect` in this round: 36 findings across 27
   files, so it stays a separate task.
 
+### Entry 056 — `set-state-in-effect` back on
+
+The React lint rule disabled in Phase 1 is on again (Next's default) and its 36 findings
+in 27 files are fixed, not suppressed.
+
+**What changed:**
+- **`useHydrated()`** (`useSyncExternalStore`) replaces every mount-flag effect: portals
+  (drawer, modal, toast, command palette) and browser-only reads (language, sidebar
+  state, session name, reset and manage tokens, booking draft and confirmation).
+- **`useResetOnOpen(open, deps, reset)`** resets drawer and modal forms during render, React's
+  "adjust state when a prop changes" pattern, so a reopened form never shows its previous
+  values for a frame.
+- **Async results carry their key** (search query, session id, booking id, service id),
+  so loading is derived from "the answer isn't for this key yet" instead of clearing state
+  first.
+- **The booking flow** restores its draft once storage is readable and only saves after
+  that, so a reload can't overwrite the draft with an empty one.
+
+**Checked in a browser (mock mode):** draft and language survive a reload, drawer
+enter/exit animation, new-vs-view drawer reset, ⌘K search, sidebar state after a reload,
+no console errors.
+
 ---
 
 ## Thematic sections
@@ -1401,7 +1423,8 @@ Two more are handled in code rather than by a rule:
    patterns trip it: mount-once data fetches (`useEffect(() => { load() }, [])` setting
    loading/data state) and SSR-portal mount flags. The rule was disabled rather than
    suppressed at ~40 call sites. This is a **Phase 1 accommodation** — when data fetching
-   moves to a real backend and can be restructured, the rule is worth re-enabling.
+   moves to a real backend and can be restructured, the rule is worth re-enabling. Re-enabled
+   in Entry 056.
 
 ### Rejected alternatives, collected
 

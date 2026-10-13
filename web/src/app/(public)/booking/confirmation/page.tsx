@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import Link from "next/link";
 import { BookingTopBar } from "@/components/layout/BookingTopBar";
 import { BookingFooter } from "@/components/layout/BookingFooter";
@@ -27,20 +28,21 @@ type Stored = {
   branded?: boolean;
 };
 
+function readStored(): Stored | null {
+  try {
+    const raw = window.sessionStorage.getItem("slotera.booking.last");
+    return raw ? (JSON.parse(raw) as Stored) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function ConfirmationPage() {
   const { t, lang } = useI18n();
   const locale = localeForLang(lang);
-  const [data, setData] = React.useState<Stored | null>(null);
+  const hydrated = useHydrated();
+  const data = React.useMemo(() => (hydrated ? readStored() : null), [hydrated]);
   const [copied, setCopied] = React.useState(false);
-
-  React.useEffect(() => {
-    try {
-      const raw = window.sessionStorage.getItem("slotera.booking.last");
-      if (raw) setData(JSON.parse(raw) as Stored);
-    } catch {
-      // ignore
-    }
-  }, []);
 
   const meetingLink = data ? `https://meet.slotera.io/${data.ref.toLowerCase()}` : "";
   const apiBooking = dataSource === "api" ? data?.booking : undefined;

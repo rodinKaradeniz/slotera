@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import type { Messages } from "@/i18n/messages/en";
 import {
   readLang,
@@ -29,16 +30,14 @@ export function useI18n(): Ctx {
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // Start from "en" for a stable server/first-client render, then hydrate the
-  // persisted choice in an effect to avoid a hydration mismatch.
-  const [lang, setLangState] = React.useState<Lang>("en");
-
-  React.useEffect(() => {
-    setLangState(readLang());
-  }, []);
+  // "en" on the server and during hydration, then the persisted choice, so the first
+  // client render matches the server's.
+  const hydrated = useHydrated();
+  const [chosen, setChosen] = React.useState<Lang | null>(null);
+  const lang = chosen ?? (hydrated ? readLang() : "en");
 
   const setLang = React.useCallback((next: Lang) => {
-    setLangState(next);
+    setChosen(next);
     writeLang(next);
   }, []);
 

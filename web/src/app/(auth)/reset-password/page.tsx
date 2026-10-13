@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { Field } from "@/components/ui/Field";
@@ -16,11 +17,10 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = React.useState(false);
   const [done, setDone] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [token, setToken] = React.useState("");
-
-  React.useEffect(() => {
-    setToken(new URLSearchParams(window.location.search).get("token") ?? "");
-  }, []);
+  const hydrated = useHydrated();
+  const token = hydrated
+    ? (new URLSearchParams(window.location.search).get("token") ?? "")
+    : "";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

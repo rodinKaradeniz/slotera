@@ -13,10 +13,6 @@ const eslintConfig = defineConfig([
   ]),
   {
     rules: {
-      // Phase 1 patterns: mount-once data fetches and SSR-portal mount flags
-      // both legitimately set state inside an effect. Disable the React 19
-      // experimental rule for this codebase.
-      "react-hooks/set-state-in-effect": "off",
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },

@@ -253,8 +253,13 @@ export function groupAndRank(
 
 export function useSearch(query: string, limitPerGroup = 5) {
   const [index, setIndex] = React.useState<SearchResult[] | null>(null);
-  const [apiResults, setApiResults] = React.useState<SearchResult[] | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
+  // The last API answer, tagged with the query it answers; a stale one means loading.
+  const [answer, setAnswer] = React.useState<{
+    key: string;
+    results: SearchResult[];
+    error: string | null;
+  } | null>(null);
+  const key = `${limitPerGroup}:${query}`;
 
   React.useEffect(() => {
     if (dataSource === "api") return;
@@ -268,45 +273,45 @@ export function useSearch(query: string, limitPerGroup = 5) {
   }, []);
 
   React.useEffect(() => {
-    if (dataSource !== "api") return;
-    if (!query.trim()) {
-      setApiResults([]);
-      setError(null);
-      return;
-    }
+    if (dataSource !== "api" || !query.trim()) return;
     let cancelled = false;
-    setApiResults(null);
-    setError(null);
     getWorkspaceSearchMatches(query, limitPerGroup)
       .then((matches) => {
         if (!cancelled) {
-          setApiResults([...matches.map(matchToResult), ...navigationResults()]);
+          setAnswer({
+            key,
+            results: [...matches.map(matchToResult), ...navigationResults()],
+            error: null,
+          });
         }
       })
       .catch((searchError: unknown) => {
         if (!cancelled) {
-          setApiResults([]);
-          setError(
-            searchError instanceof Error
-              ? searchError.message
-              : "Could not search this workspace.",
-          );
+          setAnswer({
+            key,
+            results: [],
+            error:
+              searchError instanceof Error
+                ? searchError.message
+                : "Could not search this workspace.",
+          });
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [query, limitPerGroup]);
+  }, [key, query, limitPerGroup]);
 
   return React.useMemo(() => {
     if (dataSource === "api") {
       if (!query.trim()) {
         return { loading: false, error: null, groups: [] as ReturnType<typeof groupAndRank> };
       }
+      const current = answer?.key === key ? answer : null;
       return {
-        loading: apiResults === null,
-        error,
-        groups: apiResults ? groupAndRank(apiResults, query, limitPerGroup) : [],
+        loading: current === null,
+        error: current?.error ?? null,
+        groups: current ? groupAndRank(current.results, query, limitPerGroup) : [],
       };
     }
     if (!index || !query.trim()) {
@@ -321,5 +326,5 @@ export function useSearch(query: string, limitPerGroup = 5) {
       error: null,
       groups: groupAndRank(index, query, limitPerGroup),
     };
-  }, [apiResults, error, index, query, limitPerGroup]);
+  }, [answer, key, index, query, limitPerGroup]);
 }

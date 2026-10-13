@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -58,15 +59,14 @@ export function ServiceDrawer({
   const [busy, setBusy] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
 
+  useResetOnOpen(open, [initial], () => setForm(initial ? { ...initial } : DEFAULTS));
+
   React.useEffect(() => {
-    if (!open) return;
-    setForm(initial ? { ...initial } : DEFAULTS);
     // New services inherit the workspace's currency; the API derives it anyway.
-    if (!initial) {
-      getWorkspaceCurrency()
-        .then((currency) => setForm((f) => ({ ...f, currency })))
-        .catch(() => undefined);
-    }
+    if (!open || initial) return;
+    getWorkspaceCurrency()
+      .then((currency) => setForm((f) => ({ ...f, currency })))
+      .catch(() => undefined);
   }, [initial, open]);
 
   const save = async () => {

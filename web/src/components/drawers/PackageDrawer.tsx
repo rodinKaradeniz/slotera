@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -59,9 +60,9 @@ export function PackageDrawer({
   const [busy, setBusy] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
 
-  React.useEffect(() => {
-    if (open) setForm(initial ? toFormValue(initial) : DEFAULTS);
-  }, [initial, open]);
+  useResetOnOpen(open, [initial], () =>
+    setForm(initial ? toFormValue(initial) : DEFAULTS),
+  );
 
   const save = async () => {
     if (!form.name.trim()) {

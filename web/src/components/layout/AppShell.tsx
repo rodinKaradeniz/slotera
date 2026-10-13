@@ -6,10 +6,19 @@ import { Topbar, type Crumb } from "./Topbar";
 import { CommandPalette } from "@/components/admin/search/CommandPalette";
 import { currentSession } from "@/services/auth.service";
 import { usePageMeta } from "./PageMeta";
+import { useHydrated } from "@/lib/use-hydrated";
 import { eyebrowForRole, homePathForRole, type NavItem } from "@/lib/nav";
 import type { Operator, UserRole } from "@/types/auth";
 
 const COLLAPSED_KEY = "slotera.sidebar.collapsed";
+
+function readCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(COLLAPSED_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
 
 type Props = {
   role: UserRole;
@@ -32,22 +41,14 @@ export function AppShell({
   userSubtitle,
   children,
 }: Props) {
-  const [collapsed, setCollapsed] = React.useState(true);
-  const [operator, setOperator] = React.useState<Operator | null>(null);
+  const hydrated = useHydrated();
+  // null until the user toggles; until then the stored choice applies.
+  const [collapsedChoice, setCollapsedChoice] = React.useState<boolean | null>(null);
+  const collapsed = collapsedChoice ?? (hydrated ? readCollapsed() : true);
+  const operator: Operator | null = hydrated ? (currentSession()?.operator ?? null) : null;
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const meta = usePageMeta();
   const effectiveCrumbs = crumbs ?? meta.crumbs;
-
-  React.useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(COLLAPSED_KEY);
-      if (stored !== null) setCollapsed(stored === "true");
-    } catch {
-      // ignore
-    }
-    const s = currentSession();
-    setOperator(s?.operator ?? null);
-  }, []);
 
   React.useEffect(() => {
     if (!enableCommandPalette) return;
@@ -64,15 +65,13 @@ export function AppShell({
   }, [enableCommandPalette]);
 
   const toggle = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      try {
-        window.localStorage.setItem(COLLAPSED_KEY, String(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
+    const next = !collapsed;
+    setCollapsedChoice(next);
+    try {
+      window.localStorage.setItem(COLLAPSED_KEY, String(next));
+    } catch {
+      // ignore
+    }
   };
 
   const workspace =

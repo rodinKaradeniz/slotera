@@ -33,12 +33,8 @@ Items are grouped by kind, then roughly by how soon they matter.
   Neither function exists any more: billing moved to staff-recorded plan fields
   (Entry 052), so there is nothing to rename.
 
-- **`react-hooks/set-state-in-effect` is disabled project-wide.** A Phase 1 accommodation
-  for mount-once data fetches and SSR-portal mount flags (HISTORY.md, Framework-level bug
-  catches). When data fetching moves to a real backend and can be restructured, re-enable
-  the rule and fix the genuine cases it surfaces. Checked 2026-10-12: re-enabling it
-  reports 36 findings in 27 files (drawers that reset their form on open, portal mount
-  flags, the public booking flow, search), so it needs its own pass.
+- **~~`react-hooks/set-state-in-effect` is disabled project-wide.~~ DONE (Entry 056).**
+  The rule is back on and all 36 findings are fixed; see AGENTS.md for the patterns.
 
 - **~~Onboarding is pinned to visual-testing mode.~~ DONE.** Onboarding is now real-app
   only and resumes from server state; completion is persisted.

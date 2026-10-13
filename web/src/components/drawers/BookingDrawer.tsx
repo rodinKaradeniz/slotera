@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import Link from "next/link";
 import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Icon } from "@/components/ui/Icon";
@@ -89,9 +90,7 @@ export function BookingDrawer({
   const [idempotencyKey, setIdempotencyKey] = React.useState(() => crypto.randomUUID());
   const [openedAt, setOpenedAt] = React.useState(0);
 
-  React.useEffect(() => {
-    if (open) setMode(modeProp);
-  }, [open, modeProp]);
+  useResetOnOpen(open, [modeProp], () => setMode(modeProp));
 
   React.useEffect(() => {
     Promise.all([listClients(), listSessions(), listServices()]).then(
@@ -103,8 +102,7 @@ export function BookingDrawer({
     );
   }, []);
 
-  React.useEffect(() => {
-    if (!open) return;
+  useResetOnOpen(open, [initial, defaultSessionId, defaultClientId], () => {
     if (initial) {
       setForm({
         clientId: initial.clientId,
@@ -120,18 +118,19 @@ export function BookingDrawer({
       setIdempotencyKey(crypto.randomUUID());
       setOpenedAt(Date.now());
     }
-  }, [open, initial, defaultSessionId, defaultClientId]);
+  });
 
   const selectedSession = sessions.find((s) => s.id === form.sessionId);
   const selectedService = services.find((s) => s.id === selectedSession?.serviceId);
 
-  React.useEffect(() => {
-    if (!initial && selectedService) {
-      setForm((f) =>
-        f.amountCents === 0 ? { ...f, amountCents: selectedService.priceCents } : f,
-      );
+  // A new booking starts at the chosen service's price unless an amount was entered.
+  const [pricedFrom, setPricedFrom] = React.useState<Service | undefined>(undefined);
+  if (!initial && selectedService && selectedService !== pricedFrom) {
+    setPricedFrom(selectedService);
+    if (form.amountCents === 0) {
+      setForm({ ...form, amountCents: selectedService.priceCents });
     }
-  }, [selectedService, initial]);
+  }
 
   const save = async () => {
     setBusy(true);

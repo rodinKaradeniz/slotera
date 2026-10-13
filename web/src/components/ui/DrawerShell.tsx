@@ -4,6 +4,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type DrawerProps = {
   open: boolean;
@@ -26,23 +27,30 @@ export function DrawerShell({
   footer,
   className,
 }: DrawerProps) {
-  const [mounted, setMounted] = React.useState(false);
+  const mounted = useHydrated();
+  // `rendered` keeps the drawer in the DOM through its exit animation; `entered` flips
+  // two frames after mounting so the enter transition runs.
   const [rendered, setRendered] = React.useState(open);
-  const [state, setState] = React.useState<"open" | "closed">("closed");
-
-  React.useEffect(() => setMounted(true), []);
+  const [entered, setEntered] = React.useState(false);
+  if (open && !rendered) setRendered(true);
+  const state = open && entered ? "open" : "closed";
 
   React.useEffect(() => {
     if (open) {
-      setRendered(true);
-      const id = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setState("open"));
+      let inner = 0;
+      const outer = requestAnimationFrame(() => {
+        inner = requestAnimationFrame(() => setEntered(true));
       });
-      return () => cancelAnimationFrame(id);
+      return () => {
+        cancelAnimationFrame(outer);
+        cancelAnimationFrame(inner);
+      };
     }
     if (!rendered) return;
-    setState("closed");
-    const t = window.setTimeout(() => setRendered(false), EXIT_DURATION_MS);
+    const t = window.setTimeout(() => {
+      setRendered(false);
+      setEntered(false);
+    }, EXIT_DURATION_MS);
     return () => window.clearTimeout(t);
   }, [open, rendered]);
 

@@ -172,17 +172,15 @@ function HoverBadge({ info }: { info: HoverInfo }) {
 export function NextSessionCard({ item, schedule }: Props) {
   const [hover, setHover] = React.useState<HoverInfo | null>(null);
   const { openBookingDrawer } = useDrawers();
-  const [booking, setBooking] = React.useState<Booking | null>(null);
+  const [loaded, setLoaded] = React.useState<Booking | null>(null);
+  const booking = item?.bookingId && loaded?.id === item.bookingId ? loaded : null;
 
   React.useEffect(() => {
+    if (!item?.bookingId) return;
     let alive = true;
-    if (item?.bookingId) {
-      getBooking(item.bookingId).then((b) => {
-        if (alive) setBooking(b);
-      });
-    } else {
-      setBooking(null);
-    }
+    getBooking(item.bookingId).then((b) => {
+      if (alive) setLoaded(b);
+    });
     return () => {
       alive = false;
     };

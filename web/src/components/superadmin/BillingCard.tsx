@@ -35,7 +35,12 @@ export function BillingCard({
   );
   const [form, setForm] = React.useState(initial);
   const [busy, setBusy] = React.useState(false);
-  React.useEffect(() => setForm(initial), [initial]);
+  // A saved or reloaded workspace replaces the form's values.
+  const [formFor, setFormFor] = React.useState(initial);
+  if (formFor !== initial) {
+    setFormFor(initial);
+    setForm(initial);
+  }
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
 
   const save = async () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useRouter } from "next/navigation";
 import { BookingTopBar } from "@/components/layout/BookingTopBar";
 import { BookingFooter } from "@/components/layout/BookingFooter";
@@ -39,6 +40,26 @@ const DRAFT_KEY = "slotera.booking.draft";
  * The public booking stepper. Rendered by `/booking` (mock demo) and by
  * `/book/[slug]` (real app), which selects the workspace before rendering.
  */
+const NO_FORMS: FormTemplate[] = [];
+
+function readDraft(): BookingDraft | null {
+  try {
+    const raw = window.sessionStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<BookingDraft>;
+    return {
+      ...EMPTY_DRAFT,
+      ...parsed,
+      formResponses: parsed.formResponses ?? {},
+      customer: { ...EMPTY_DRAFT.customer, ...(parsed.customer ?? {}) },
+      billing: { ...EMPTY_DRAFT.billing, ...(parsed.billing ?? {}) },
+      payment: { ...EMPTY_DRAFT.payment, ...(parsed.payment ?? {}) },
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function PublicBookingFlow() {
   const router = useRouter();
   const { t } = useI18n();
@@ -47,8 +68,7 @@ export function PublicBookingFlow() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [settings, setSettings] = React.useState<SettingsData | null>(null);
-  const [forms, setForms] = React.useState<FormTemplate[]>([]);
-  const [persona, setPersona] = React.useState<DemoPersona | null>(null);
+  const hydrated = useHydrated();
 
   React.useEffect(() => {
     getSettings().then(setSettings);
@@ -56,23 +76,29 @@ export function PublicBookingFlow() {
 
   // `?demo=<slug>` applies a lightweight persona override (provider name +
   // intro copy + which seeded services show). Read client-side to avoid a
-  // useSearchParams Suspense boundary, matching the sessionStorage effects.
-  React.useEffect(() => {
-    const slug = new URLSearchParams(window.location.search).get("demo");
-    setPersona(getPersonaSync(slug));
-  }, []);
+  // useSearchParams Suspense boundary, matching the sessionStorage draft.
+  const persona = React.useMemo<DemoPersona | null>(
+    () =>
+      hydrated
+        ? getPersonaSync(new URLSearchParams(window.location.search).get("demo"))
+        : null,
+    [hydrated],
+  );
 
   // Active forms attached to the chosen service decide whether the conditional
   // Forms step appears. Refetch whenever the selected service changes.
   const serviceId = draft.service?.id ?? null;
+  const [loadedForms, setLoadedForms] = React.useState<{
+    serviceId: string;
+    forms: FormTemplate[];
+  } | null>(null);
+  const forms =
+    serviceId && loadedForms?.serviceId === serviceId ? loadedForms.forms : NO_FORMS;
   React.useEffect(() => {
-    if (!serviceId) {
-      setForms([]);
-      return;
-    }
+    if (!serviceId) return;
     let cancelled = false;
     listFormsForService(serviceId).then((f) => {
-      if (!cancelled) setForms(f);
+      if (!cancelled) setLoadedForms({ serviceId, forms: f });
     });
     return () => {
       cancelled = true;
@@ -85,40 +111,29 @@ export function PublicBookingFlow() {
     [forms.length],
   );
 
-  React.useEffect(() => {
-    try {
-      const raw = window.sessionStorage.getItem(DRAFT_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<BookingDraft>;
-        setDraft({
-          ...EMPTY_DRAFT,
-          ...parsed,
-          formResponses: parsed.formResponses ?? {},
-          customer: { ...EMPTY_DRAFT.customer, ...(parsed.customer ?? {}) },
-          billing: { ...EMPTY_DRAFT.billing, ...(parsed.billing ?? {}) },
-          payment: { ...EMPTY_DRAFT.payment, ...(parsed.payment ?? {}) },
-        });
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
+  // Restore an unfinished draft once the browser's storage is readable.
+  const [restored, setRestored] = React.useState(false);
+  if (hydrated && !restored) {
+    setRestored(true);
+    const saved = readDraft();
+    if (saved) setDraft(saved);
+  }
 
   React.useEffect(() => {
+    // Saving before the restore would overwrite the draft with an empty one.
+    if (!restored) return;
     try {
       window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch {
       // ignore
     }
-  }, [draft]);
+  }, [draft, restored]);
 
   const idx = activeSteps.findIndex((s) => s.key === step);
 
   // If the active step list changes out from under us (e.g. the Forms step
   // disappears), snap back to a valid step rather than rendering nothing.
-  React.useEffect(() => {
-    if (idx === -1) setStep("details");
-  }, [idx]);
+  if (idx === -1 && step !== "details") setStep("details");
 
   const canAdvance = (() => {
     switch (step) {
