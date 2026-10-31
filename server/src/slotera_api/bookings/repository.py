@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from slotera_api.booking_access import emit_booking_event
+from slotera_api.booking_access import emit_booking_event, notify_client_moved
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
@@ -25,11 +25,11 @@ from slotera_api.db.models import (
     PaymentStatus,
     Service,
     Session,
-    SessionOrigin,
     SessionStatus,
     Workspace,
     WorkspacePaymentSettings,
 )
+from slotera_api.session_capacity import CAPACITY_CONSUMING_STATUSES, release_public_session
 
 
 class BookingCapacityExceededError(Exception):
@@ -56,13 +56,16 @@ class BookingPaymentError(Exception):
     pass
 
 
+class BookingMoveError(Exception):
+    """The chosen session can't take this booking (other service, past, cancelled, same)."""
+
+
 @dataclass(frozen=True)
 class BookingCommandResult:
     booking: Booking
     replayed: bool
 
 
-_CAPACITY_CONSUMING_STATUSES = (BookingStatus.PENDING, BookingStatus.CONFIRMED)
 _TRANSITIONS: dict[str, tuple[BookingStatus, tuple[BookingStatus, ...]]] = {
     "confirm": (BookingStatus.CONFIRMED, (BookingStatus.PENDING,)),
     "cancel": (BookingStatus.CANCELLED, (BookingStatus.PENDING, BookingStatus.CONFIRMED)),
@@ -75,6 +78,27 @@ _AUDIT_ACTIONS = {
     "complete": "booking.completed",
     "noshow": "booking.noshow",
 }
+
+
+@dataclass(frozen=True)
+class _Command:
+    """One idempotent booking command: who issued it, under which key, and what it asked for."""
+
+    workspace_id: UUID
+    actor_user_id: UUID
+    idempotency_key: str
+    name: str
+    fingerprint: str
+
+
+def _command(
+    workspace_id: UUID,
+    actor_user_id: UUID,
+    idempotency_key: str,
+    name: str,
+    values: Mapping[str, Any],
+) -> _Command:
+    return _Command(workspace_id, actor_user_id, idempotency_key, name, _fingerprint(name, values))
 
 
 def _fingerprint(command: str, values: Mapping[str, Any]) -> str:
@@ -105,11 +129,14 @@ class BookingsRepository:
         limit: int,
         offset: int,
         session_id: UUID | None = None,
+        client_id: UUID | None = None,
     ) -> tuple[list[Booking], int]:
         async with self.database.tenant_transaction(workspace_id) as session:
             predicate = Booking.workspace_id == workspace_id
             if session_id is not None:
                 predicate = predicate & (Booking.session_id == session_id)
+            if client_id is not None:
+                predicate = predicate & (Booking.client_id == client_id)
             total = await session.scalar(select(func.count(Booking.id)).where(predicate))
             items = list(
                 (
@@ -142,7 +169,10 @@ class BookingsRepository:
     ) -> BookingCommandResult | None:
         session_id = values["session_id"]
         client_id = values["client_id"]
-        fingerprint = _fingerprint(
+        cmd = _command(
+            workspace_id,
+            actor_user_id,
+            idempotency_key,
             "create",
             {
                 "client_id": str(client_id),
@@ -167,13 +197,7 @@ class BookingsRepository:
             if row is None:
                 return None
             scheduled_session, service, workspace = row._tuple()
-            replay = await self._replay_or_conflict(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                fingerprint,
-            )
+            replay = await self._replay_or_conflict(database_session, cmd)
             if replay is not None:
                 return BookingCommandResult(booking=replay, replayed=True)
             client = await database_session.scalar(
@@ -193,7 +217,7 @@ class BookingsRepository:
                 select(func.count(Booking.id)).where(
                     Booking.workspace_id == workspace_id,
                     Booking.session_id == session_id,
-                    Booking.status.in_(_CAPACITY_CONSUMING_STATUSES),
+                    Booking.status.in_(CAPACITY_CONSUMING_STATUSES),
                 )
             )
             if int(consumed or 0) >= scheduled_session.capacity:
@@ -256,16 +280,111 @@ class BookingsRepository:
                     },
                 )
             )
-            await self._record_idempotency(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                "create",
-                fingerprint,
-                booking.id,
-            )
+            await self._record_idempotency(database_session, cmd, booking.id)
             await database_session.flush()
+            await database_session.refresh(booking)
+            return BookingCommandResult(booking=booking, replayed=False)
+
+    async def move_booking(
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        booking_id: UUID,
+        values: Mapping[str, Any],
+        idempotency_key: str,
+    ) -> BookingCommandResult | None:
+        """Move a pending or confirmed booking to another upcoming session of its service.
+
+        The client's price and payment facts stay as booked. A booking the client made
+        themselves also gets a "moved" email; operator-made bookings do not, matching how
+        their confirmation works.
+        """
+        target_id = values["session_id"]
+        cmd = _command(
+            workspace_id,
+            actor_user_id,
+            idempotency_key,
+            "move",
+            {
+                "booking_id": str(booking_id),
+                "session_id": str(target_id),
+                "audit_reason": values["audit_reason"],
+            },
+        )
+        async with self.database.tenant_transaction(workspace_id) as database_session:
+            booking = await database_session.scalar(
+                select(Booking)
+                .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
+                .with_for_update()
+            )
+            if booking is None:
+                return None
+            # Lock both sessions in id order so two opposite moves cannot deadlock.
+            sessions = {
+                item.id: item
+                for item in (
+                    await database_session.scalars(
+                        select(Session)
+                        .where(
+                            Session.workspace_id == workspace_id,
+                            Session.id.in_([booking.session_id, target_id]),
+                        )
+                        .order_by(Session.id)
+                        .with_for_update()
+                    )
+                ).all()
+            }
+            previous = sessions.get(booking.session_id)
+            target = sessions.get(target_id)
+            if previous is None:
+                return None
+            replay = await self._replay_or_conflict(database_session, cmd)
+            if replay is not None:
+                return BookingCommandResult(booking=replay, replayed=True)
+            if booking.status not in CAPACITY_CONSUMING_STATUSES:
+                raise BookingTransitionError
+            if (
+                target is None
+                or target.id == previous.id
+                or target.service_id != previous.service_id
+                or target.status == SessionStatus.CANCELLED
+                or target.start_at <= datetime.now(UTC)
+            ):
+                raise BookingMoveError
+            consumed = await database_session.scalar(
+                select(func.count(Booking.id)).where(
+                    Booking.workspace_id == workspace_id,
+                    Booking.session_id == target.id,
+                    Booking.status.in_(CAPACITY_CONSUMING_STATUSES),
+                )
+            )
+            if int(consumed or 0) >= target.capacity:
+                raise BookingCapacityExceededError
+            booking.session_id = target.id
+            database_session.add(
+                AuditEvent(
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    action="booking.moved",
+                    resource_type="booking",
+                    resource_id=booking.id,
+                    details={
+                        "audit_reason": values["audit_reason"],
+                        "from_session_id": str(previous.id),
+                        "to_session_id": str(target.id),
+                    },
+                )
+            )
+            await self._record_idempotency(database_session, cmd, booking.id)
+            await database_session.flush()
+            await release_public_session(database_session, workspace_id, booking, previous)
+            if booking.origin == BookingOrigin.PUBLIC:
+                await notify_client_moved(
+                    database_session,
+                    workspace_id=workspace_id,
+                    booking_id=booking.id,
+                    session_ends_at=target.end_at,
+                )
             await database_session.refresh(booking)
             return BookingCommandResult(booking=booking, replayed=False)
 
@@ -277,7 +396,10 @@ class BookingsRepository:
         attendance: BookingAttendance,
         idempotency_key: str,
     ) -> BookingCommandResult | None:
-        fingerprint = _fingerprint(
+        cmd = _command(
+            workspace_id,
+            actor_user_id,
+            idempotency_key,
             "attendance",
             {"booking_id": str(booking_id), "attendance": attendance.value},
         )
@@ -299,13 +421,7 @@ class BookingsRepository:
             )
             if scheduled_session is None:
                 return None
-            replay = await self._replay_or_conflict(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                fingerprint,
-            )
+            replay = await self._replay_or_conflict(database_session, cmd)
             if replay is not None:
                 return BookingCommandResult(booking=replay, replayed=True)
             if scheduled_session.capacity <= 1 or booking.status not in (
@@ -334,15 +450,7 @@ class BookingsRepository:
                     },
                 )
             )
-            await self._record_idempotency(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                "attendance",
-                fingerprint,
-                booking.id,
-            )
+            await self._record_idempotency(database_session, cmd, booking.id)
             await database_session.flush()
             await database_session.refresh(booking)
             return BookingCommandResult(booking=booking, replayed=False)
@@ -355,7 +463,9 @@ class BookingsRepository:
         idempotency_key: str,
     ) -> BookingCommandResult | None:
         command = "mark_payment_received"
-        fingerprint = _fingerprint(command, {"booking_id": str(booking_id)})
+        cmd = _command(
+            workspace_id, actor_user_id, idempotency_key, command, {"booking_id": str(booking_id)}
+        )
         async with self.database.tenant_transaction(workspace_id) as database_session:
             locked = await self._lock_booking_and_session(
                 database_session, workspace_id, booking_id
@@ -363,13 +473,7 @@ class BookingsRepository:
             if locked is None:
                 return None
             booking, _scheduled_session = locked
-            replay = await self._replay_or_conflict(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                fingerprint,
-            )
+            replay = await self._replay_or_conflict(database_session, cmd)
             if replay is not None:
                 return BookingCommandResult(booking=replay, replayed=True)
             if (
@@ -398,15 +502,7 @@ class BookingsRepository:
                 self._add_confirmation_audit(
                     database_session, workspace_id, actor_user_id, booking, command
                 )
-            await self._record_idempotency(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                command,
-                fingerprint,
-                booking.id,
-            )
+            await self._record_idempotency(database_session, cmd, booking.id)
             await database_session.flush()
             if confirmed:
                 await self._emit_confirmed_event(database_session, booking)
@@ -423,7 +519,9 @@ class BookingsRepository:
     ) -> BookingCommandResult | None:
         if command not in {"approve", "decline"}:
             raise ValueError("unknown booking approval command")
-        fingerprint = _fingerprint(command, {"booking_id": str(booking_id)})
+        cmd = _command(
+            workspace_id, actor_user_id, idempotency_key, command, {"booking_id": str(booking_id)}
+        )
         async with self.database.tenant_transaction(workspace_id) as database_session:
             locked = await self._lock_booking_and_session(
                 database_session, workspace_id, booking_id
@@ -431,13 +529,7 @@ class BookingsRepository:
             if locked is None:
                 return None
             booking, scheduled_session = locked
-            replay = await self._replay_or_conflict(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                fingerprint,
-            )
+            replay = await self._replay_or_conflict(database_session, cmd)
             if replay is not None:
                 return BookingCommandResult(booking=replay, replayed=True)
             if (
@@ -477,18 +569,10 @@ class BookingsRepository:
                 self._add_confirmation_audit(
                     database_session, workspace_id, actor_user_id, booking, command
                 )
-            await self._record_idempotency(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                command,
-                fingerprint,
-                booking.id,
-            )
+            await self._record_idempotency(database_session, cmd, booking.id)
             await database_session.flush()
             if command == "decline":
-                await self._release_public_session(
+                await release_public_session(
                     database_session, workspace_id, booking, scheduled_session
                 )
             if confirmed:
@@ -505,7 +589,10 @@ class BookingsRepository:
         idempotency_key: str,
     ) -> BookingCommandResult | None:
         target, allowed = _TRANSITIONS[command]
-        fingerprint = _fingerprint(
+        cmd = _command(
+            workspace_id,
+            actor_user_id,
+            idempotency_key,
             command,
             {"booking_id": str(booking_id)},
         )
@@ -516,13 +603,7 @@ class BookingsRepository:
             if locked is None:
                 return None
             booking, scheduled_session = locked
-            replay = await self._replay_or_conflict(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                fingerprint,
-            )
+            replay = await self._replay_or_conflict(database_session, cmd)
             if replay is not None:
                 return BookingCommandResult(booking=replay, replayed=True)
             if booking.status not in allowed:
@@ -544,18 +625,10 @@ class BookingsRepository:
                     },
                 )
             )
-            await self._record_idempotency(
-                database_session,
-                workspace_id,
-                actor_user_id,
-                idempotency_key,
-                command,
-                fingerprint,
-                booking.id,
-            )
+            await self._record_idempotency(database_session, cmd, booking.id)
             await database_session.flush()
             if command == "cancel":
-                await self._release_public_session(
+                await release_public_session(
                     database_session, workspace_id, booking, scheduled_session
                 )
             if command == "confirm":
@@ -632,52 +705,23 @@ class BookingsRepository:
         if not emitted:
             raise RuntimeError("booking confirmation event could not be enqueued")
 
-    @staticmethod
-    async def _release_public_session(
-        database_session: AsyncSession,
-        workspace_id: UUID,
-        booking: Booking,
-        scheduled_session: Session,
-    ) -> None:
-        if (
-            scheduled_session.origin != SessionOrigin.PUBLIC_OPEN
-            or scheduled_session.capacity != 1
-            or scheduled_session.status == SessionStatus.CANCELLED
-        ):
-            return
-        remaining = await database_session.scalar(
-            select(func.count(Booking.id)).where(
-                Booking.workspace_id == workspace_id,
-                Booking.session_id == scheduled_session.id,
-                Booking.id != booking.id,
-                Booking.status.in_(_CAPACITY_CONSUMING_STATUSES),
-            )
-        )
-        if int(remaining or 0) == 0:
-            scheduled_session.status = SessionStatus.CANCELLED
-
     async def _replay_or_conflict(
-        self,
-        database_session: AsyncSession,
-        workspace_id: UUID,
-        actor_user_id: UUID,
-        idempotency_key: str,
-        fingerprint: str,
+        self, database_session: AsyncSession, cmd: _Command
     ) -> Booking | None:
         record = await database_session.scalar(
             select(BookingCommandIdempotency).where(
-                BookingCommandIdempotency.workspace_id == workspace_id,
-                BookingCommandIdempotency.actor_user_id == actor_user_id,
-                BookingCommandIdempotency.idempotency_key == idempotency_key,
+                BookingCommandIdempotency.workspace_id == cmd.workspace_id,
+                BookingCommandIdempotency.actor_user_id == cmd.actor_user_id,
+                BookingCommandIdempotency.idempotency_key == cmd.idempotency_key,
             )
         )
         if record is None:
             return None
-        if record.request_fingerprint != fingerprint:
+        if record.request_fingerprint != cmd.fingerprint:
             raise BookingIdempotencyConflictError
         booking = await database_session.scalar(
             select(Booking).where(
-                Booking.workspace_id == workspace_id,
+                Booking.workspace_id == cmd.workspace_id,
                 Booking.id == record.booking_id,
             )
         )
@@ -686,24 +730,17 @@ class BookingsRepository:
         return booking
 
     async def _record_idempotency(
-        self,
-        database_session: AsyncSession,
-        workspace_id: UUID,
-        actor_user_id: UUID,
-        idempotency_key: str,
-        command: str,
-        fingerprint: str,
-        booking_id: UUID,
+        self, database_session: AsyncSession, cmd: _Command, booking_id: UUID
     ) -> None:
         statement = (
             insert(BookingCommandIdempotency)
             .values(
                 id=uuid4(),
-                workspace_id=workspace_id,
-                actor_user_id=actor_user_id,
-                idempotency_key=idempotency_key,
-                command=command,
-                request_fingerprint=fingerprint,
+                workspace_id=cmd.workspace_id,
+                actor_user_id=cmd.actor_user_id,
+                idempotency_key=cmd.idempotency_key,
+                command=cmd.name,
+                request_fingerprint=cmd.fingerprint,
                 booking_id=booking_id,
             )
             .on_conflict_do_nothing(
@@ -714,12 +751,6 @@ class BookingsRepository:
         inserted = await database_session.scalar(statement)
         if inserted is not None:
             return
-        replay = await self._replay_or_conflict(
-            database_session,
-            workspace_id,
-            actor_user_id,
-            idempotency_key,
-            fingerprint,
-        )
+        replay = await self._replay_or_conflict(database_session, cmd)
         if replay is None:
             raise RuntimeError("booking command idempotency record was not persisted")

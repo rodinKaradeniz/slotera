@@ -15,6 +15,11 @@ class OperatorBookingCreate(StrictApiModel):
     audit_reason: Annotated[NonBlank, Field(max_length=500)]
 
 
+class BookingMoveCommand(StrictApiModel):
+    session_id: UUID
+    audit_reason: Annotated[NonBlank, Field(max_length=500)]
+
+
 class BookingAttendanceCommand(StrictApiModel):
     attendance: Literal["present", "late", "absent"]
 

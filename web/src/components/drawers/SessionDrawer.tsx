@@ -25,7 +25,8 @@ import {
 import { listServices } from "@/services/services.service";
 import { listWorkspaceLocations } from "@/services/settings.service";
 import { listActionItemsForSession } from "@/services/session-action-items.service";
-import { addMinutes } from "@/lib/time";
+import { slotParts, zonedWallToISO } from "@/lib/calendar";
+import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import { dataSource } from "@/lib/env";
 import type { Service } from "@/types/service";
 import type { Recurring, SessionItem, SessionStatus } from "@/types/session";
@@ -59,15 +60,16 @@ type FormState = {
   notes: string;
 };
 
-function toForm(item: SessionItem, services: Service[]): FormState {
+function toForm(item: SessionItem, services: Service[], timezone: string): FormState {
   const start = new Date(item.startISO);
   const end = new Date(item.endISO);
+  const wall = slotParts(item.startISO, timezone);
   const duration = Math.round((end.getTime() - start.getTime()) / 60000);
   const fallback = services[0];
   return {
     serviceId: item.serviceId ?? fallback?.id ?? "",
-    date: start.toISOString().slice(0, 10),
-    time: start.toISOString().slice(11, 16),
+    date: wall.date,
+    time: wall.time,
     durationMin: duration,
     capacity: item.capacity,
     locationType: item.locationType,
@@ -108,6 +110,7 @@ export function SessionDrawer({
 }: SessionDrawerProps) {
   const isEdit = !!initial;
   const { toast } = useToast();
+  const timezone = useWorkspaceTimezone();
   const [mode, setMode] = React.useState<SessionDrawerMode>(modeProp);
   const { openBookingDrawer } = useDrawers();
   const isView = mode === "view" && isEdit;
@@ -173,26 +176,27 @@ export function SessionDrawer({
     };
   }, [open, initial]);
 
-  useResetOnOpen(open, [initial, services], () => {
-    setForm(initial ? toForm(initial, services) : emptyForm(services));
+  useResetOnOpen(open, [initial, services, timezone], () => {
+    setForm(initial ? toForm(initial, services, timezone) : emptyForm(services));
     setConflict(null);
   });
 
   const startISO = React.useMemo(() => {
-    return `${form.date}T${form.time}:00.000Z`;
-  }, [form.date, form.time]);
+    return zonedWallToISO(form.date, form.time, timezone);
+  }, [form.date, form.time, timezone]);
 
   const endISO = React.useMemo(() => {
-    const end = addMinutes(form.time, form.durationMin);
-    return `${form.date}T${end}:00.000Z`;
-  }, [form.date, form.time, form.durationMin]);
+    return new Date(Date.parse(startISO) + form.durationMin * 60000).toISOString();
+  }, [startISO, form.durationMin]);
 
   React.useEffect(() => {
-    if (!open || dataSource === "api") return;
+    if (!open) return;
     let live = true;
-    findConflict({ startISO, endISO, id: initial?.id }).then((c) => {
-      if (live) setConflict(c);
-    });
+    findConflict({ startISO, endISO, id: initial?.id })
+      .then((c) => {
+        if (live) setConflict(c);
+      })
+      .catch(() => undefined);
     return () => {
       live = false;
     };

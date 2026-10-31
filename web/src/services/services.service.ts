@@ -1,5 +1,5 @@
 import servicesJson from "@/data/mock/services.json";
-import { apiRequest } from "@/api/client";
+import { apiListAll, apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
@@ -109,8 +109,7 @@ function patchPayload(patch: Partial<ServiceInput>): ServicePatchDto {
 
 export async function listServices(): Promise<Service[]> {
   if (dataSource === "api") {
-    const response = await apiRequest<ServiceListDto>("/services?limit=200");
-    return response.items.map(mapService);
+    return (await apiListAll<ServiceListDto["items"][number]>("/services")).map(mapService);
   }
   await sleep(60);
   return [...mock];

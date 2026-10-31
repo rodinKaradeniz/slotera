@@ -1,5 +1,6 @@
-from collections.abc import Mapping
-from datetime import UTC, datetime
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
@@ -12,8 +13,10 @@ from slotera_api.db.models import (
     Booking,
     BookingAccessToken,
     BookingFormResponse,
+    BookingStatus,
     Client,
     ClientNote,
+    PaymentStatus,
     Service,
     Session,
 )
@@ -21,6 +24,25 @@ from slotera_api.db.models import (
 
 class ClientEmailConflictError(Exception):
     pass
+
+
+# A client counts as "active" while they have a live booking this recent or upcoming.
+ACTIVE_WINDOW_DAYS = 30
+
+
+@dataclass(frozen=True)
+class ClientStats:
+    """What a client's bookings add up to. Cancelled bookings never count as activity.
+
+    Tag: `new` has no live (non-cancelled) booking yet, `active` has one that starts within
+    the last 30 days or later, and `dormant` has only older ones. Spend is what was paid.
+    """
+
+    total_bookings: int = 0
+    completed_bookings: int = 0
+    cancelled_bookings: int = 0
+    total_spent_cents: int = 0
+    tag: Literal["new", "active", "dormant"] = "new"
 
 
 class ClientsRepository:
@@ -54,6 +76,49 @@ class ClientsRepository:
                 ).all()
             )
             return clients, int(total or 0)
+
+    async def client_stats(
+        self, workspace_id: UUID, client_ids: Sequence[UUID]
+    ) -> dict[UUID, ClientStats]:
+        """Booking totals per client. Clients without bookings are simply absent."""
+        if not client_ids:
+            return {}
+        recent = datetime.now(UTC) - timedelta(days=ACTIVE_WINDOW_DAYS)
+        live = Booking.status != BookingStatus.CANCELLED
+        async with self.database.tenant_transaction(workspace_id) as session:
+            rows = await session.execute(
+                select(
+                    Booking.client_id,
+                    func.count(Booking.id),
+                    func.count(Booking.id).filter(Booking.status == BookingStatus.COMPLETED),
+                    func.count(Booking.id).filter(Booking.status == BookingStatus.CANCELLED),
+                    func.coalesce(
+                        func.sum(Booking.amount_cents).filter(
+                            Booking.payment_status == PaymentStatus.PAID
+                        ),
+                        0,
+                    ),
+                    func.count(Booking.id).filter(live),
+                    func.count(Booking.id).filter(live & (Session.start_at >= recent)),
+                )
+                .join(
+                    Session,
+                    (Session.workspace_id == Booking.workspace_id)
+                    & (Session.id == Booking.session_id),
+                )
+                .where(Booking.workspace_id == workspace_id, Booking.client_id.in_(client_ids))
+                .group_by(Booking.client_id)
+            )
+            stats: dict[UUID, ClientStats] = {}
+            for client_id, total, completed, cancelled, spent, live_total, recent_live in rows:
+                stats[client_id] = ClientStats(
+                    total_bookings=int(total),
+                    completed_bookings=int(completed),
+                    cancelled_bookings=int(cancelled),
+                    total_spent_cents=int(spent),
+                    tag="active" if recent_live else "dormant" if live_total else "new",
+                )
+            return stats
 
     async def get_client(self, workspace_id: UUID, client_id: UUID) -> Client | None:
         async with self.database.tenant_transaction(workspace_id) as session:

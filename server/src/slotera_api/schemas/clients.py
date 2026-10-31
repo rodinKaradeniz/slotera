@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import EmailStr, Field, field_validator
@@ -52,6 +52,11 @@ class ClientResponse(ApiModel):
     vat_id: str | None
     created_at: datetime
     updated_at: datetime
+    total_bookings: int
+    completed_bookings: int
+    cancelled_bookings: int
+    total_spent_cents: int
+    tag: Literal["new", "active", "dormant"]
 
 
 class ClientListResponse(ApiModel):

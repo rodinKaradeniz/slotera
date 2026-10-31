@@ -65,6 +65,8 @@ class SignupRequest(StrictApiModel):
     email: EmailStr
     timezone: Annotated[NonBlank, Field(max_length=64)] = "Europe/Berlin"
     currency: WorkspaceCurrency = "GBP"
+    # The owner ticked the box for the Terms, Data Processing Agreement and Privacy Policy.
+    terms_accepted: Literal[True]
 
     @field_validator("timezone")
     @classmethod

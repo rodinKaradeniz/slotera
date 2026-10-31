@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import text
 
 from slotera_api.database import Database
+from slotera_api.db.models import AuditEvent
 from slotera_api.platform.repository import initialise_workspace_settings
 
 
@@ -191,6 +192,7 @@ class AuthRepository:
         currency: str,
     ) -> str:
         workspace_id = uuid4()
+        owner_user_id = uuid4()
         async with self._database.transaction() as session:
             result_code = await session.scalar(
                 text(
@@ -204,7 +206,7 @@ class AuthRepository:
                 ),
                 {
                     "workspace_id": workspace_id,
-                    "owner_user_id": uuid4(),
+                    "owner_user_id": owner_user_id,
                     "membership_id": uuid4(),
                     "audit_event_id": uuid4(),
                     "name": name,
@@ -218,6 +220,17 @@ class AuthRepository:
             )
             if result_code == "created":
                 await initialise_workspace_settings(session, workspace_id)
+                # The request only validates with the box ticked, so record that it was.
+                session.add(
+                    AuditEvent(
+                        workspace_id=workspace_id,
+                        actor_user_id=owner_user_id,
+                        action="workspace.terms_accepted",
+                        resource_type="workspace",
+                        resource_id=workspace_id,
+                        details={"documents": ["terms", "dpa", "privacy"]},
+                    )
+                )
         return str(result_code)
 
     async def slug_available(self, slug: str) -> bool:

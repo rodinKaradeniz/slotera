@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Pill } from "@/components/ui/Pill";
 import { LoadingRows } from "@/components/shared/LoadingRows";
+import { LoadError } from "@/components/shared/LoadError";
+import { useLoad } from "@/lib/use-load";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { NewWorkspaceDrawer } from "./NewWorkspaceDrawer";
 import { PlanPills } from "./PlanPills";
@@ -20,13 +22,9 @@ import type { PlatformWorkspace } from "@/types/platform";
 
 export function WorkspacesView() {
   const router = useRouter();
-  const [items, setItems] = React.useState<PlatformWorkspace[] | null>(null);
+  const { data: items, error, reload } = useLoad(listWorkspaces);
   const [query, setQuery] = React.useState("");
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    listWorkspaces().then(setItems);
-  }, []);
 
   const filtered = React.useMemo(() => {
     if (!items) return [];
@@ -69,7 +67,9 @@ export function WorkspacesView() {
         />
       </div>
 
-      {!items ? (
+      {error ? (
+        <LoadError message={error} onRetry={reload} />
+      ) : !items ? (
         <LoadingRows count={4} />
       ) : filtered.length === 0 ? (
         <EmptyState
@@ -87,7 +87,7 @@ export function WorkspacesView() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         onCreated={(workspace) => {
-          listWorkspaces().then(setItems);
+          reload();
           router.push(`/superadmin/workspaces/${workspace.id}`);
         }}
       />

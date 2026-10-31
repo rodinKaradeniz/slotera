@@ -80,6 +80,12 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-[13px] focus:shadow-3"
+      >
+        Skip to content
+      </a>
       <Sidebar
         collapsed={collapsed}
         nav={nav}
@@ -89,7 +95,7 @@ export function AppShell({
         userName={operator?.name}
         userSubtitle={
           userSubtitle ??
-          (role === "superadmin" ? "Slotera staff" : "Online · Berlin")
+          (role === "superadmin" ? "Slotera staff" : operator?.email)
         }
       />
       <div className="flex-1 flex flex-col min-w-0">
@@ -103,7 +109,9 @@ export function AppShell({
           right={topbarRight}
           showSearch={enableCommandPalette}
         />
-        <main className="flex-1 px-6 py-10 lg:py-12">{children}</main>
+        <main id="main" tabIndex={-1} className="flex-1 px-6 py-10 lg:py-12 outline-none">
+          {children}
+        </main>
       </div>
       {enableCommandPalette && (
         <CommandPalette

@@ -12,12 +12,15 @@ import type { DashboardScheduleItem } from "@/types/dashboard";
 import type { Booking } from "@/types/booking";
 import { cn } from "@/lib/cn";
 import { dataSource } from "@/lib/env";
+import { MoveBookingDialog } from "@/components/admin/bookings/MoveBookingDialog";
 
 const EVENT_STYLE = { bg: "#E7EDE3", fg: "#2A3F2A" };
 
 type Props = {
   item?: DashboardScheduleItem;
   schedule: DashboardScheduleItem[];
+  /** Called after the booking was moved, so the dashboard can reload. */
+  onChanged?: () => void;
 };
 
 const DAY_START = 8;
@@ -169,10 +172,11 @@ function HoverBadge({ info }: { info: HoverInfo }) {
   );
 }
 
-export function NextSessionCard({ item, schedule }: Props) {
+export function NextSessionCard({ item, schedule, onChanged }: Props) {
   const [hover, setHover] = React.useState<HoverInfo | null>(null);
   const { openBookingDrawer } = useDrawers();
   const [loaded, setLoaded] = React.useState<Booking | null>(null);
+  const [moving, setMoving] = React.useState(false);
   const booking = item?.bookingId && loaded?.id === item.bookingId ? loaded : null;
 
   React.useEffect(() => {
@@ -201,8 +205,10 @@ export function NextSessionCard({ item, schedule }: Props) {
   const openEdit = () => {
     if (booking) openBookingDrawer({ initial: booking, mode: "edit" });
   };
+  const reschedule = () => (dataSource === "api" ? setMoving(true) : openEdit());
 
   return (
+    <>
     <Card padded={false} className="relative h-full flex flex-col overflow-hidden">
       <div
         aria-hidden
@@ -287,17 +293,15 @@ export function NextSessionCard({ item, schedule }: Props) {
             >
               View details
             </Button>
-            {dataSource === "mock" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                icon="refresh"
-                onClick={openEdit}
-                disabled={!booking}
-              >
-                Reschedule
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              icon="refresh"
+              onClick={reschedule}
+              disabled={!booking}
+            >
+              Reschedule
+            </Button>
           </div>
         </div>
 
@@ -315,5 +319,12 @@ export function NextSessionCard({ item, schedule }: Props) {
         </div>
       </div>
     </Card>
+    <MoveBookingDialog
+      open={moving}
+      onClose={() => setMoving(false)}
+      booking={booking}
+      onMoved={() => onChanged?.()}
+    />
+    </>
   );
 }

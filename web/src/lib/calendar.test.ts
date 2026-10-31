@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localDateKey, sessionOverlaps, slotParts } from "./calendar";
+import { clockIn, localDateKey, sessionOverlaps, slotParts, zonedWallToISO } from "./calendar";
 
 describe("availability date keys", () => {
   it("keys a calendar cell by its local date, not a UTC timestamp", () => {
@@ -66,5 +66,24 @@ describe("session overlap detection", () => {
         existing,
       ),
     ).toBeNull();
+  });
+});
+
+describe("zoned wall clock", () => {
+  it("shows an instant as the workspace clock reads", () => {
+    expect(clockIn("2026-07-01T08:00:00.000Z", "Europe/Berlin")).toBe("10:00");
+    expect(clockIn("2026-01-01T08:00:00.000Z", "Europe/Berlin")).toBe("09:00");
+    expect(clockIn("2026-07-01T08:00:00.000Z", "UTC")).toBe("08:00");
+  });
+
+  it("turns a workspace wall time back into the UTC instant", () => {
+    expect(zonedWallToISO("2026-07-01", "10:00", "Europe/Berlin")).toBe("2026-07-01T08:00:00.000Z");
+    expect(zonedWallToISO("2026-01-01", "10:00", "Europe/Berlin")).toBe("2026-01-01T09:00:00.000Z");
+    expect(zonedWallToISO("2026-07-01", "10:00", "UTC")).toBe("2026-07-01T10:00:00.000Z");
+  });
+
+  it("round-trips across a DST change", () => {
+    const iso = zonedWallToISO("2026-03-29", "09:30", "Europe/Berlin");
+    expect(clockIn(iso, "Europe/Berlin")).toBe("09:30");
   });
 });

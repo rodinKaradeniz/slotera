@@ -330,7 +330,12 @@ export const de: Partial<Messages> = {
   "booking.payment.pendingNote":
     "Ihre Buchung bleibt ausstehend, bis der Anbieter den Zahlungseingang bestätigt.",
 
+  "booking.service.approvalRequired": "Bestätigung durch den Anbieter erforderlich",
   "booking.confirm.title": "Ihre Buchung ist bestätigt.",
+  "booking.confirm.pendingTitle": "Ihre Buchung ist eingegangen.",
+  "booking.confirm.emailQueued": "Eine Buchungs-E-Mail an {email} wird gesendet.",
+  "booking.confirm.pendingApproval": "Warten auf die Bestätigung des Anbieters",
+  "booking.confirm.pendingPayment": "Warten auf die Bestätigung der manuellen Zahlung",
   "booking.confirm.emailSent": "Wir haben eine Bestätigungs-E-Mail an {email} gesendet.",
   "booking.confirm.emailSentNoAddress": "Wir haben eine Bestätigungs-E-Mail gesendet.",
   "booking.confirm.reference": "Referenz {ref}",
@@ -389,10 +394,16 @@ export const de: Partial<Messages> = {
   "manage.cancel.done": "Ihre Buchung wurde storniert.",
   "manage.contact": "Kontakt",
 
+  "system.notFound.eyebrow": "404",
   "system.notFound.title": "Diese Seite existiert nicht.",
   "system.notFound.body":
     "Der Link ist möglicherweise fehlerhaft oder die Seite wurde verschoben. Gehen Sie zurück und versuchen Sie es erneut.",
   "system.notFound.home": "Zur Startseite",
+  "system.error.eyebrow": "Etwas ist schiefgelaufen",
+  "system.error.title": "Wir konnten diese Seite nicht anzeigen.",
+  "system.error.body":
+    "Das Problem wurde gemeldet. Versuchen Sie es erneut oder gehen Sie zurück und machen Sie von dort aus weiter.",
+  "system.error.retry": "Erneut versuchen",
   "system.maintenance.eyebrow": "Geplante Wartung",
   "system.maintenance.title": "Wir sind gleich zurück.",
   "system.maintenance.body":

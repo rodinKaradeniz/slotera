@@ -330,7 +330,12 @@ export const tr: Partial<Messages> = {
   "booking.payment.pendingNote":
     "Sağlayıcı ödemeyi aldığını onaylayana kadar rezervasyonunuz beklemede olarak işaretlenecektir.",
 
+  "booking.service.approvalRequired": "Sağlayıcı onayı gerekir",
   "booking.confirm.title": "Rezervasyonunuz onaylandı.",
+  "booking.confirm.pendingTitle": "Rezervasyonunuz alındı.",
+  "booking.confirm.emailQueued": "{email} adresine bir rezervasyon e-postası gönderilecek.",
+  "booking.confirm.pendingApproval": "Sağlayıcı onayı bekleniyor",
+  "booking.confirm.pendingPayment": "Manuel ödeme onayı bekleniyor",
   "booking.confirm.emailSent": "{email} adresine bir onay e-postası gönderdik.",
   "booking.confirm.emailSentNoAddress": "Bir onay e-postası gönderdik.",
   "booking.confirm.reference": "Referans {ref}",
@@ -389,10 +394,16 @@ export const tr: Partial<Messages> = {
   "manage.cancel.done": "Rezervasyonunuz iptal edildi.",
   "manage.contact": "İletişim",
 
+  "system.notFound.eyebrow": "404",
   "system.notFound.title": "Bu sayfa mevcut değil.",
   "system.notFound.body":
     "Bağlantı bozuk olabilir veya sayfa taşınmış olabilir. Geri dönüp oradan tekrar deneyin.",
   "system.notFound.home": "Ana sayfaya dön",
+  "system.error.eyebrow": "Bir şeyler ters gitti",
+  "system.error.title": "Bu sayfayı gösteremedik.",
+  "system.error.body":
+    "Sorun bildirildi. Tekrar deneyin ya da geri dönüp oradan devam edin.",
+  "system.error.retry": "Tekrar dene",
   "system.maintenance.eyebrow": "Planlı bakım",
   "system.maintenance.title": "Birazdan döneceğiz.",
   "system.maintenance.body":

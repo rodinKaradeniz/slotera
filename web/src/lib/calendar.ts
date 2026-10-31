@@ -98,3 +98,19 @@ export function slotParts(startAt: string, timezone: string): { date: string; ti
     time: `${value("hour")}:${value("minute")}`,
   };
 }
+
+/** `HH:mm` of an instant in the given timezone. */
+export function clockIn(iso: string, timezone: string): string {
+  return slotParts(iso, timezone).time;
+}
+
+/** The UTC ISO instant for a wall-clock `date` + `HH:mm` in the given timezone. */
+export function zonedWallToISO(date: string, time: string, timezone: string): string {
+  const wall = Date.parse(`${date}T${time}:00.000Z`);
+  let guess = wall;
+  for (let pass = 0; pass < 2; pass += 1) {
+    const shown = slotParts(new Date(guess).toISOString(), timezone);
+    guess += wall - Date.parse(`${shown.date}T${shown.time}:00.000Z`);
+  }
+  return new Date(guess).toISOString();
+}

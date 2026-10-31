@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from typing import Literal, Self
 
@@ -12,9 +13,19 @@ LOCAL_MIGRATION_DATABASE_URL = (
 )
 
 
+def _env_file() -> str | None:
+    """The developer's env file, or None when it is missing, unreadable or opted out.
+
+    `SLOTERA_ENV_FILE` picks another file; set it empty to read none. Agents and tests run
+    on the defaults above, so they never open the developer's secrets.
+    """
+    path = os.environ.get("SLOTERA_ENV_FILE", ".env")
+    return path if path and os.access(path, os.R_OK) else None
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_env_file(),
         env_prefix="SLOTERA_",
         extra="ignore",
     )
@@ -79,7 +90,7 @@ class Settings(BaseSettings):
 
 class MigrationSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_env_file(),
         env_prefix="SLOTERA_",
         extra="ignore",
     )

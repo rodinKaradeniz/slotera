@@ -33,7 +33,7 @@ function timeGreeting(d: Date): string {
   return "Good evening";
 }
 
-export function Greeting({ firstName = "Lena", subtitle }: Props) {
+export function Greeting({ firstName, subtitle }: Props) {
   const { openBookingDrawer } = useDrawers();
   const { toast } = useToast();
 
@@ -103,8 +103,14 @@ export function Greeting({ firstName = "Lena", subtitle }: Props) {
         <div>
           <div className="eyebrow mb-3">{dateStr}</div>
           <h1 className="text-h1 text-ink">
-            {timeGreeting(date)},{" "}
-            <span className="font-serif italic text-accent">{firstName}</span>.
+            {timeGreeting(date)}
+            {firstName ? (
+              <>
+                ,{" "}
+                <span className="font-serif italic text-accent">{firstName}</span>
+              </>
+            ) : null}
+            .
           </h1>
           {subtitle && (
             <p className="mt-3 text-small text-ink-3">{subtitle}</p>

@@ -63,9 +63,11 @@ platform DTO mappers and the maintenance proxy. Also covered now: `calendar.ts` 
 detection, `text.ts` (`plural()`, `slugify`), robots/sitemap rules, and the
 `listFormsForService` / `listPackagesForService` relationship filters. `status-maps.ts`
 completeness is enforced by its `Record<…>` types. Still worth adding when touched:
-- `card.ts`, `time.ts`, and `cn.ts` (the typography merge group);
-- service-layer patch-merge semantics and `NotFoundError` on unknown ids (mock mode);
-- `getDashboard()` mock composition, including the `ses-demo` exclusion.
+- ~~`card.ts`, `time.ts`, `cn.ts`, mock patch-merge and `NotFoundError`~~ DONE (Entry 058);
+- `getDashboard()` mock composition, including the `ses-demo` exclusion;
+- ~~component render tests~~ started (Entry 059): `useLoad`, `LoadError`, `useDialogFocus`.
+  Still worth adding: the move dialog and the drawers. One Playwright smoke test (sign in,
+  book, approve, move) is still missing; it needs Playwright added.
 
 No component snapshot tests: the browser covers UI.
 
@@ -96,10 +98,18 @@ below are standing security requirements as further API and frontend integration
   and must never be copied into API behavior. A future card-funded booking confirms only
   from a verified payment webhook.
 
-- **No Content-Security-Policy yet.** Caddy sets HSTS, `X-Frame-Options`, `nosniff`,
-  `Referrer-Policy` and `Permissions-Policy` on every host (Entry 055). A CSP needs
-  per-request nonces for Next.js inline scripts plus the Sentry ingest origin; start in
-  report-only mode and add it before accepting card payments.
+- **The Content-Security-Policy is report-only.** Caddy sets HSTS, `X-Frame-Options`,
+  `nosniff`, `Referrer-Policy` and `Permissions-Policy` on every host (Entry 055); the web
+  app adds `Content-Security-Policy-Report-Only` in production (`lib/csp.ts`, Entry 058).
+  It still allows inline scripts and styles: watch the console for violations, add a
+  `report-uri`, then move to per-request nonces and enforce it before accepting card
+  payments.
+- **Smaller code items.** Split `db/models.py` and `public_booking/repository.py` by
+  concern, and the other large web files (demo manage page, onboarding, SessionDrawer,
+  booking detail); have `GET /bookings` return client and service names so the list stops
+  fetching three full lists; use server-side search and paging in the Clients and Bookings
+  views; load only the visible date window in the calendar; keep mock data out of the real
+  bundle; delete the unused `LogoWall` and `Testimonials` components.
 
 - **Manual payment instructions are operator-authored free text shown to the public.**
   Rendered as text today. If that ever becomes rich text, the sanitisation note above
@@ -326,8 +336,9 @@ live environment.
 6. Operator core:
    - **~~Clients API bundle.~~ DONE.** Tenant-scoped client profiles now have normalized,
      workspace-unique emails, operator CRUD/search, audit events, forced RLS, generated
-     transport, and API-mode directory/detail reads. Booking-derived totals/tags remain
-     placeholders until the booking ledger exists.
+     transport, and API-mode directory/detail reads. Booking totals, spend and the
+     `new | active | dormant` tag are now computed by the API from the booking ledger
+     (Entry 057).
    - **~~Bookings read baseline.~~ DONE.** Tenant-scoped ledger rows now persist client and
      session references plus immutable contact, terms, payment, approval, and financial
      snapshots, with forced RLS and API-mode list/detail reads. Commands, attendance, and
@@ -552,12 +563,12 @@ stay demonstrations until the backend can support them properly.
   ordering is deliberate: finish responsive web → make key flows mobile-friendly (drawers
   already render as bottom sheets) → build the backend with a domain-shaped API → build
   native against that same API. No mobile-only endpoints.
-- **Team accounts.** (The Team plan was removed from pricing on 2026-10-09.) The old Team plan advertised 10 members and `SubscriptionStatus` supports
-  it, but there is no member model, no invitations, and no per-member permissions. The
-  billing UI currently promises something the data model cannot express.
-- **Real operator impersonation.** "View as operator" in superadmin fires a
-  `toast.info(...)` placeholder. A real implementation is an audit-logged, scoped,
-  time-limited privilege — not a session swap.
+- **Team accounts.** (The Team plan was removed from pricing on 2026-10-09.) There is no
+  member model, no invitations, and no per-member permissions; nothing in the UI promises
+  them any more.
+- **Real operator impersonation.** The "View as operator" placeholder was removed from
+  superadmin. A real implementation is an audit-logged, scoped, time-limited privilege —
+  not a session swap.
 - **ML-based analytics.** Noted as a long-horizon idea only. Nothing in the current model
   is shaped for it, and it should not influence Phase 2 schema decisions.
 - **Flexible service grouping.** If services ever need categories, it arrives as an

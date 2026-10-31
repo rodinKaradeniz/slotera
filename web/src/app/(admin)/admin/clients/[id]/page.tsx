@@ -22,57 +22,42 @@ import { getClient } from "@/services/clients.service";
 import { listBookingsByClient } from "@/services/bookings.service";
 import { listSessions } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
-import { formatMoney, gbp } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
+import { useLoad } from "@/lib/use-load";
+import { LoadError } from "@/components/shared/LoadError";
+import { useWorkspaceCurrency } from "@/lib/use-workspace-currency";
+import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
+import { clockIn } from "@/lib/calendar";
 import { fmtDate } from "@/lib/time";
 import { dataSource } from "@/lib/env";
-import type { Client } from "@/types/client";
-import type { Booking } from "@/types/booking";
-import type { Service } from "@/types/service";
-import type { SessionItem } from "@/types/session";
 
 type Tab = "overview" | "notes";
+
+const NONE: never[] = [];
 
 export default function ClientDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { openBookingDrawer, openClientDrawer } = useDrawers();
-  const [client, setClient] = React.useState<Client | null>(null);
-  const [bookings, setBookings] = React.useState<Booking[]>([]);
-  const [sessions, setSessions] = React.useState<SessionItem[]>([]);
-  const [services, setServices] = React.useState<Service[]>([]);
+  const id = params?.id;
+  const loadDetail = React.useCallback(async () => {
+    if (!id) return null;
+    const [client, bookings, sessions, services] = await Promise.all([
+      getClient(id),
+      listBookingsByClient(id),
+      listSessions(),
+      listServices(),
+    ]);
+    return { client, bookings, sessions, services };
+  }, [id]);
+  const { data, error, reload } = useLoad(loadDetail);
+  const client = data?.client ?? null;
+  const bookings = data?.bookings ?? NONE;
+  const sessions = data?.sessions ?? NONE;
+  const services = data?.services ?? NONE;
   const [tab, setTab] = React.useState<Tab>("overview");
-  const [reload, setReload] = React.useState(0);
-
-  React.useEffect(() => {
-    if (!params?.id) return;
-    let live = true;
-    const load = async () => {
-      if (dataSource === "api") {
-        const c = await getClient(params.id);
-        if (!live) return;
-        setClient(c);
-        setBookings([]);
-        setSessions([]);
-        setServices([]);
-        return;
-      }
-      const [c, b, s, sv] = await Promise.all([
-        getClient(params.id),
-        listBookingsByClient(params.id),
-        listSessions(),
-        listServices(),
-      ]);
-      if (!live) return;
-      setClient(c);
-      setBookings(b);
-      setSessions(s);
-      setServices(sv);
-    };
-    void load();
-    return () => {
-      live = false;
-    };
-  }, [params?.id, reload]);
+  const currency = useWorkspaceCurrency();
+  const timezone = useWorkspaceTimezone();
 
   useSetCrumbs([
     { label: "Clients", href: "/admin/clients" },
@@ -81,7 +66,9 @@ export default function ClientDetailPage() {
 
   return (
     <PageContainer>
-      {!client ? (
+      {error ? (
+        <LoadError message={error} onRetry={reload} />
+      ) : !client ? (
         <LoadingRows count={3} />
       ) : (
         <>
@@ -124,7 +111,7 @@ export default function ClientDetailPage() {
                   onClick={() =>
                     openClientDrawer({
                       initial: client,
-                      onSaved: setClient,
+                      onSaved: reload,
                     })
                   }
                 >
@@ -133,7 +120,7 @@ export default function ClientDetailPage() {
                 {dataSource === "api" && (
                   <ClientPrivacyActions
                     client={client}
-                    onErased={() => setReload((k) => k + 1)}
+                    onErased={reload}
                   />
                 )}
                 <Button
@@ -143,7 +130,7 @@ export default function ClientDetailPage() {
                   onClick={() =>
                     openBookingDrawer({
                       defaultClientId: client.id,
-                      onSaved: () => setReload((k) => k + 1),
+                      onSaved: reload,
                     })
                   }
                 >
@@ -171,12 +158,15 @@ export default function ClientDetailPage() {
                   <PadStat label="Total bookings" value={String(client.totalBookings)} />
                   <PadStat label="Completed" value={String(client.completedBookings)} />
                   <PadStat label="Cancelled" value={String(client.cancelledBookings)} />
-                  <PadStat label="Total spent" value={gbp(client.totalSpentCents)} />
+                  <PadStat label="Total spent" value={formatMoney(client.totalSpentCents, currency)} />
                   <PadStat
                     label="Avg per session"
                     value={
                       client.completedBookings > 0
-                        ? gbp(Math.round(client.totalSpentCents / client.completedBookings))
+                        ? formatMoney(
+                            Math.round(client.totalSpentCents / client.completedBookings),
+                            currency,
+                          )
                         : "—"
                     }
                   />
@@ -225,7 +215,7 @@ export default function ClientDetailPage() {
                             </div>
                             <div className="text-small whitespace-nowrap">
                               {session
-                                ? `${fmtDate(new Date(session.startISO), "short")} · ${session.startISO.slice(11, 16)}`
+                                ? `${fmtDate(new Date(session.startISO), "short")} · ${clockIn(session.startISO, timezone)}`
                                 : "—"}
                             </div>
                             <div className="text-[14px] font-medium text-ink whitespace-nowrap">

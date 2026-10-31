@@ -29,6 +29,9 @@ import { getClient } from "@/services/clients.service";
 import { getSettings } from "@/services/settings.service";
 import { formatAddressSummary } from "@/components/shared/forms/AddressForm";
 import { formatMoney } from "@/lib/money";
+import { LoadError } from "@/components/shared/LoadError";
+import { clockIn } from "@/lib/calendar";
+import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import { fmtDate } from "@/lib/time";
 import { LOC_TYPE_META } from "@/lib/status-maps";
 import { dataSource } from "@/lib/env";
@@ -39,10 +42,12 @@ import type { SessionItem } from "@/types/session";
 import type { SettingsData } from "@/types/settings";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
+import { MoveBookingDialog } from "@/components/admin/bookings/MoveBookingDialog";
 
 type BookingAction = "approve" | "decline" | "payment" | "cancel";
 
 export default function BookingDetailPage() {
+  const timezone = useWorkspaceTimezone();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { openBookingDrawer } = useDrawers();
@@ -55,8 +60,10 @@ export default function BookingDetailPage() {
   const [service, setService] = React.useState<Service | null>(null);
   const [settings, setSettings] = React.useState<SettingsData | null>(null);
   const [reload, setReload] = React.useState(0);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   const [pendingAction, setPendingAction] = React.useState<BookingAction | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [moving, setMoving] = React.useState(false);
 
   React.useEffect(() => {
     let live = true;
@@ -71,23 +78,30 @@ export default function BookingDetailPage() {
   React.useEffect(() => {
     if (!params?.id) return;
     let live = true;
-    getBooking(params.id).then(async (b) => {
-      if (!live) return;
-      setBooking(b);
-      if (!b) return;
-      const [cl, ss] = await Promise.all([
-        getClient(b.clientId),
-        getSession(b.sessionId),
-      ]);
-      if (!live) return;
-      setClient(cl);
-      setSession(ss);
-      setSessionStarted(!!ss && new Date(ss.startISO).getTime() <= Date.now());
-      if (ss) {
-        const sv = await getService(ss.serviceId);
-        if (live) setService(sv);
-      }
-    });
+    getBooking(params.id)
+      .then(async (b) => {
+        if (!live) return;
+        setLoadError(null);
+        setBooking(b);
+        if (!b) return;
+        const [cl, ss] = await Promise.all([
+          getClient(b.clientId),
+          getSession(b.sessionId),
+        ]);
+        if (!live) return;
+        setClient(cl);
+        setSession(ss);
+        setSessionStarted(!!ss && new Date(ss.startISO).getTime() <= Date.now());
+        if (ss) {
+          const sv = await getService(ss.serviceId);
+          if (live) setService(sv);
+        }
+      })
+      .catch((cause: unknown) => {
+        if (live) {
+          setLoadError(cause instanceof Error ? cause.message : "Couldn't load this booking.");
+        }
+      });
     return () => {
       live = false;
     };
@@ -134,14 +148,16 @@ export default function BookingDetailPage() {
   return (
     <>
       <PageContainer>
-        {!booking ? (
+        {loadError ? (
+          <LoadError message={loadError} onRetry={() => setReload((k) => k + 1)} />
+        ) : !booking ? (
           <LoadingRows count={3} />
         ) : (
           <>
             <button
               type="button"
               onClick={() => router.push("/admin/bookings")}
-              className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1 self-start"
+              className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1 self-start print:hidden"
             >
               ← All bookings
             </button>
@@ -150,7 +166,7 @@ export default function BookingDetailPage() {
               title={service?.name ?? "Booking"}
               description={
                 session
-                  ? `${fmtDate(new Date(session.startISO))} · ${session.startISO.slice(11, 16)} – ${session.endISO.slice(11, 16)}`
+                  ? `${fmtDate(new Date(session.startISO))} · ${clockIn(session.startISO, timezone)} – ${clockIn(session.endISO, timezone)}`
                   : undefined
               }
               meta={
@@ -164,8 +180,8 @@ export default function BookingDetailPage() {
                 </span>
               }
             actions={
-                dataSource === "mock" ? (
-                <>
+              <div className="flex flex-wrap items-center gap-2 print:hidden">
+                {dataSource === "mock" && (
                   <Button
                     variant="primary"
                     size="md"
@@ -180,12 +196,17 @@ export default function BookingDetailPage() {
                   >
                     Edit booking
                   </Button>
-                  <Button variant="secondary" size="md" icon="download">
-                    Invoice PDF
-                  </Button>
-                </>
-                ) : undefined
-              }
+                )}
+                <Button
+                  variant="secondary"
+                  size="md"
+                  icon="download"
+                  onClick={() => window.print()}
+                >
+                  Print summary
+                </Button>
+              </div>
+            }
             />
 
             <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
@@ -200,7 +221,7 @@ export default function BookingDetailPage() {
                           {fmtDate(new Date(session.startISO))}
                         </div>
                         <div className="text-[15px] text-ink-2 mt-1">
-                          {session.startISO.slice(11, 16)} – {session.endISO.slice(11, 16)}
+                          {clockIn(session.startISO, timezone)} – {clockIn(session.endISO, timezone)}
                         </div>
 
                         <div className="mt-4 divide-y divide-line-soft border-t border-line-soft">
@@ -293,11 +314,13 @@ export default function BookingDetailPage() {
                   session?.capacity === 1 &&
                   booking.status === "confirmed" &&
                   sessionStarted && (
-                    <OutcomeCard booking={booking} onSaved={setBooking} />
+                    <div className="print:hidden">
+                      <OutcomeCard booking={booking} onSaved={setBooking} />
+                    </div>
                   )}
                 {dataSource === "api" &&
                   (booking.status === "pending" || booking.status === "confirmed") && (
-                  <Card padded={false}>
+                  <Card padded={false} className="print:hidden">
                     <CardHead
                       title={booking.status === "pending" ? "Actions needed" : "Booking actions"}
                     />
@@ -337,6 +360,9 @@ export default function BookingDetailPage() {
                               Mark payment received
                             </Button>
                           )}
+                        <Button size="sm" variant="secondary" onClick={() => setMoving(true)}>
+                          Move to another session
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -399,6 +425,15 @@ export default function BookingDetailPage() {
           </>
         )}
       </PageContainer>
+      <MoveBookingDialog
+        open={moving}
+        onClose={() => setMoving(false)}
+        booking={booking}
+        onMoved={(next) => {
+          setBooking(next);
+          setReload((value) => value + 1);
+        }}
+      />
       <ConfirmDialog
         open={pendingAction !== null}
         onClose={() => !busy && setPendingAction(null)}

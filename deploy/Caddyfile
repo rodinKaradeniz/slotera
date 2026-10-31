@@ -3,8 +3,8 @@
 	email {$ACME_EMAIL}
 }
 
-# Headers for every host. No Content-Security-Policy yet: Next.js inline scripts and
-# Sentry need a nonce-based policy (docs/TODO.md).
+# Headers for every host. The Content-Security-Policy is sent by the web app itself, in
+# report-only mode for now (docs/TODO.md).
 (security) {
 	header {
 		# One year, without preload: preload is hard to undo.

@@ -312,6 +312,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bookings/{booking_id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Booking */
+        post: operations["moveBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bookings/{booking_id}/noshow": {
         parameters: {
             query?: never;
@@ -1367,6 +1384,16 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** BookingMoveCommand */
+        BookingMoveCommand: {
+            /** Auditreason */
+            auditReason: string;
+            /**
+             * Sessionid
+             * Format: uuid
+             */
+            sessionId: string;
+        };
         /** BookingPendingNotification */
         BookingPendingNotification: {
             /**
@@ -1527,6 +1554,12 @@ export interface components {
             email?: string | null;
             /** Name */
             name?: string | null;
+            /** Notifyoperatorcancelled */
+            notifyOperatorCancelled?: boolean | null;
+            /** Notifyoperatornew */
+            notifyOperatorNew?: boolean | null;
+            /** Notifyoperatorrescheduled */
+            notifyOperatorRescheduled?: boolean | null;
             /** Onboardingcompleted */
             onboardingCompleted?: true | null;
             /** Phone */
@@ -1553,6 +1586,12 @@ export interface components {
             email: string;
             /** Name */
             name: string;
+            /** Notifyoperatorcancelled */
+            notifyOperatorCancelled: boolean;
+            /** Notifyoperatornew */
+            notifyOperatorNew: boolean;
+            /** Notifyoperatorrescheduled */
+            notifyOperatorRescheduled: boolean;
             /** Onboardingcompletedat */
             onboardingCompletedAt: string | null;
             /** Phone */
@@ -1790,8 +1829,12 @@ export interface components {
         ClientResponse: {
             /** Address */
             address: string | null;
+            /** Cancelledbookings */
+            cancelledBookings: number;
             /** Company */
             company: string | null;
+            /** Completedbookings */
+            completedBookings: number;
             /**
              * Createdat
              * Format: date-time
@@ -1810,8 +1853,17 @@ export interface components {
             phone: string | null;
             /** Role */
             role: string | null;
+            /**
+             * Tag
+             * @enum {string}
+             */
+            tag: "new" | "active" | "dormant";
             /** Timezone */
             timezone: string | null;
+            /** Totalbookings */
+            totalBookings: number;
+            /** Totalspentcents */
+            totalSpentCents: number;
             /**
              * Updatedat
              * Format: date-time
@@ -3405,6 +3457,11 @@ export interface components {
             /** Slug */
             slug: string;
             /**
+             * Termsaccepted
+             * @constant
+             */
+            termsAccepted: true;
+            /**
              * Timezone
              * @default Europe/Berlin
              */
@@ -3819,6 +3876,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
                 sessionId?: string | null;
+                clientId?: string | null;
             };
             header?: never;
             path?: never;
@@ -4126,6 +4184,43 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    moveBooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingMoveCommand"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

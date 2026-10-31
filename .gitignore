@@ -53,5 +53,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local dev logs (scripts/dev)
+.logs/
+
 # notes
 notes.txt

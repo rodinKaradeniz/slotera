@@ -14,6 +14,7 @@ from slotera_api.bookings.repository import (
     BookingAttendanceError,
     BookingCapacityExceededError,
     BookingIdempotencyConflictError,
+    BookingMoveError,
     BookingPaymentError,
     BookingsRepository,
     BookingTransitionError,
@@ -24,6 +25,7 @@ from slotera_api.schemas.bookings import (
     BookingAttendanceCommand,
     BookingCustomerSnapshot,
     BookingListResponse,
+    BookingMoveCommand,
     BookingResponse,
     OperatorBookingCreate,
 )
@@ -115,6 +117,12 @@ def _command_error(error: Exception) -> ApiError:
             code="booking_transition_invalid",
             message="The booking cannot make that status transition",
         )
+    if isinstance(error, BookingMoveError):
+        return ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="booking_move_target_invalid",
+            message="Choose a different upcoming session of the same service",
+        )
     if isinstance(error, BookingAttendanceError):
         return ApiError(
             status_code=HTTPStatus.CONFLICT,
@@ -146,12 +154,14 @@ async def list_bookings(
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
     session_id: Annotated[UUID | None, Query(alias="sessionId")] = None,
+    client_id: Annotated[UUID | None, Query(alias="clientId")] = None,
 ) -> BookingListResponse:
     items, total = await BookingsRepository(database).list_bookings(
         operator.workspace_id,
         limit=limit,
         offset=offset,
         session_id=session_id,
+        client_id=client_id,
     )
     _private(response)
     return BookingListResponse(
@@ -191,6 +201,36 @@ async def create_operator_booking(
             code="booking_dependency_not_found",
             message="The client or session was not found or is unavailable",
         )
+    _private(response)
+    return _response(result.booking)
+
+
+@router.post("/{booking_id}/move", response_model=BookingResponse, operation_id="moveBooking")
+async def move_booking(
+    booking_id: UUID,
+    payload: BookingMoveCommand,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    idempotency_key: IdempotencyKey,
+) -> BookingResponse:
+    try:
+        result = await BookingsRepository(database).move_booking(
+            operator.workspace_id,
+            operator.user_id,
+            booking_id,
+            payload.model_dump(),
+            idempotency_key,
+        )
+    except (
+        BookingCapacityExceededError,
+        BookingIdempotencyConflictError,
+        BookingMoveError,
+        BookingTransitionError,
+    ) as exc:
+        raise _command_error(exc) from exc
+    if result is None:
+        raise _booking_not_found()
     _private(response)
     return _response(result.booking)
 

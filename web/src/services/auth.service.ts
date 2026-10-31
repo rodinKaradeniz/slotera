@@ -6,6 +6,7 @@ import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { clearSession, readSession, writeSession } from "@/lib/session";
+import { clearWorkspaceCache } from "./settings.service";
 import type { Operator, Session, UserRole } from "@/types/auth";
 import type { Currency } from "@/types/common";
 import { ApiRequestError } from "./_errors";
@@ -88,6 +89,7 @@ export async function login(
       { method: "POST", body: payload },
     );
     const session = mapApiSession(response);
+    clearWorkspaceCache();
     writeSession(session);
     return session;
   }
@@ -98,6 +100,7 @@ export async function login(
   }
   const { operator, role } = resolveSeedForEmail(normalized || SEED_OPERATOR.email);
   const session: Session = { token: makeToken(), operator, role };
+  clearWorkspaceCache();
   writeSession(session);
   return session;
 }
@@ -114,6 +117,7 @@ export async function register(input: {
   workspaceName: string;
   slug: string;
   currency: Currency;
+  termsAccepted: true;
 }): Promise<void> {
   if (dataSource === "mock") {
     await sleep(260);
@@ -128,6 +132,7 @@ export async function register(input: {
       workspaceName: input.workspaceName.trim(),
       slug: input.slug,
       currency: input.currency,
+      termsAccepted: input.termsAccepted,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin",
     },
   });
@@ -146,11 +151,13 @@ export async function logout(): Promise<void> {
     try {
       await apiRequest<void>("/auth/logout", { method: "POST", csrf: true });
     } finally {
+      clearWorkspaceCache();
       clearSession();
     }
     return;
   }
   await sleep(60);
+  clearWorkspaceCache();
   clearSession();
 }
 
@@ -159,10 +166,12 @@ export async function restoreSession(): Promise<Session | null> {
   try {
     const response = await apiRequest<SessionResponseDto>("/auth/session");
     const session = mapApiSession(response);
+    clearWorkspaceCache();
     writeSession(session);
     return session;
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) {
+      clearWorkspaceCache();
       clearSession();
       return null;
     }
@@ -190,6 +199,7 @@ export async function resetPassword(
       method: "POST",
       body: { token, newPassword },
     });
+    clearWorkspaceCache();
     clearSession();
     return;
   }

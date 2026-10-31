@@ -1,12 +1,12 @@
 import sessionsJson from "@/data/mock/sessions.json";
-import { apiRequest } from "@/api/client";
+import { apiListAll, apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
 import { sessionOverlaps } from "@/lib/calendar";
 import type { SessionItem, SessionInput } from "@/types/session";
-import { ApiRequestError, NotFoundError, NotImplementedError } from "./_errors";
+import { ApiRequestError, NotFoundError } from "./_errors";
 
 type AddressDto = components["schemas"]["Address"];
 type SessionDto = components["schemas"]["SchedulingSessionResponse"];
@@ -106,8 +106,7 @@ function patchPayload(patch: Partial<SessionInput>): SessionPatchDto {
 
 export async function listSessions(): Promise<SessionItem[]> {
   if (dataSource === "api") {
-    const response = await apiRequest<SessionListDto>("/sessions?limit=500");
-    return response.items.map(mapSession);
+    return (await apiListAll<SessionListDto["items"][number]>("/sessions", 500)).map(mapSession);
   }
   await sleep(60);
   return [...mock];
@@ -172,7 +171,18 @@ export async function cancelSession(id: string): Promise<SessionItem> {
 export async function findConflict(
   candidate: { startISO: string; endISO: string; id?: string },
 ): Promise<SessionItem | null> {
-  if (dataSource !== "mock") throw new NotImplementedError("findConflict");
+  if (dataSource === "api") {
+    const start = new Date(candidate.startISO).getTime();
+    const end = new Date(candidate.endISO).getTime();
+    if (Number.isNaN(start) || Number.isNaN(end)) return null;
+    // Sessions are filtered by start time, so look back a day to catch long ones.
+    const from = new Date(start - 24 * 60 * 60 * 1000).toISOString();
+    const before = new Date(end).toISOString();
+    const response = await apiRequest<SessionListDto>(
+      `/sessions?startsFrom=${encodeURIComponent(from)}&startsBefore=${encodeURIComponent(before)}&limit=500`,
+    );
+    return sessionOverlaps(candidate, response.items.map(mapSession));
+  }
   await sleep(20);
   return sessionOverlaps(candidate, mock);
 }

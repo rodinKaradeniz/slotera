@@ -302,7 +302,9 @@ class EmailOutbox(Base):
     __tablename__ = "email_outbox"
     __table_args__ = (
         CheckConstraint("attempt_count >= 0", name="attempt_count_nonnegative"),
-        UniqueConstraint("kind", "related_booking_id", name="uq_email_outbox_booking_event"),
+        UniqueConstraint(
+            "kind", "related_booking_id", "event_key", name="uq_email_outbox_booking_event"
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -319,6 +321,8 @@ class EmailOutbox(Base):
     related_booking_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("bookings.id", ondelete="SET NULL")
     )
+    # Empty for events that happen once per booking; a fresh value for repeatable ones.
+    event_key: Mapped[str] = mapped_column(Text, server_default=text("''"))
     attempt_count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     available_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -386,6 +390,10 @@ class WorkspaceBusinessProfile(Base):
     phone: Mapped[str] = mapped_column(String(40), server_default=text("''"))
     address: Mapped[str] = mapped_column(String(500), server_default=text("''"))
     booking_page_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
+    # Emails to the owner about what a client did (see booking_access.notify_operator).
+    notify_operator_new: Mapped[bool] = mapped_column(server_default=text("true"))
+    notify_operator_cancelled: Mapped[bool] = mapped_column(server_default=text("true"))
+    notify_operator_rescheduled: Mapped[bool] = mapped_column(server_default=text("true"))
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

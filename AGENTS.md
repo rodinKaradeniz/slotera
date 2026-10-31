@@ -80,6 +80,22 @@ but deliberately leaves PostgreSQL running with its named volume intact. Alembic
 the applied revision in PostgreSQL's `alembic_version` table, so repeated starts apply
 only pending migrations.
 
+**Env files and agents** — `server/.env` and `web/.env.local` may hold real keys (Resend,
+Sentry). An agent never reads, edits or prints them, and `.claude/settings.json` denies it.
+
+- The local database URLs are defaults in `server/src/slotera_api/config.py` and match
+  `server/compose.yaml`, so tests and migrations need no env file at all.
+- The backend skips its env file when it is unreadable or `SLOTERA_ENV_FILE` is empty. The
+  pytest `conftest.py` sets it empty, so the suite never opens `.env`.
+- Agents start the stack with `./scripts/dev --api --no-env`: no env file is created or read,
+  dependencies are not installed, and compose runs with `--env-file /dev/null`.
+- Every `./scripts/dev` run writes `.logs/api.log`, `worker.log` and `web.log` (gitignored),
+  so an agent can `tail` them; the console email provider prints outgoing mail in `worker.log`.
+- Agents may run pytest, `tsc`, lint, `docker ps`, `docker logs <c>` and
+  `docker exec <c> psql ...`; they must not run `docker inspect`, `docker exec <c> env` or
+  anything with `deploy/compose.yaml` and `deploy/.env`.
+- Under `--no-env`, Next logs one "Failed to load env from .env.local" line; it is harmless.
+
 **Frontend** — from `web/`:
 
 ```bash
@@ -505,7 +521,20 @@ descriptions, seeded notes) is English-only by design.
 - **Card inputs** are formatted with `web/src/lib/card.ts` (`formatCardNumber`,
   `formatCardExpiry`, `formatCardCvc`, `detectCardBrand`, `isValidCardExpiry`). Every
   card form uses these; do not write new formatters.
-- **Money** goes through `web/src/lib/money.ts`; the default currency is **GBP**.
+- **Money** goes through `web/src/lib/money.ts`; the default currency is **GBP**. In
+  lists, format with the workspace currency (`useWorkspaceCurrency()`), never `gbp()`.
+- **Lists from the API** are fetched with `apiListAll()` (`web/src/api/client.ts`), which
+  pages until `total`; never hardcode a `limit=` that could cut a long list short.
+- **Session times** are shown in the workspace timezone with `clockIn(iso, tz)` and typed
+  back with `zonedWallToISO()` (`web/src/lib/calendar.ts`); get the zone from
+  `useWorkspaceTimezone()`. Never slice the ISO string.
+- **Loading a page or list** goes through `useLoad()` (`web/src/lib/use-load.ts`) with
+  `<LoadError>`, so a failed request shows a retry instead of loading forever.
+- **Dialogs** use `Modal` / `DrawerShell`, which already trap focus (`useDialogFocus`); a new
+  overlay should use them rather than its own markup. Component tests opt into jsdom with
+  `// @vitest-environment jsdom`.
+- **CSV downloads** go through `toCsv` / `downloadText` (`web/src/lib/csv.ts`), which
+  quote cells and neutralise spreadsheet formulas.
 - **IDs** for mock records come from `makeId(prefix)` in `web/src/lib/id.ts`.
 - **`react-hooks/set-state-in-effect` is on** (Next's default). Gate browser-only reads
   and portals with `useHydrated()` (`web/src/lib/use-hydrated.ts`), reset drawer and modal
@@ -652,7 +681,8 @@ Present tense — what exists in the working tree today.
   local operator UI for auth, services, business settings/locations, notifications,
   availability/sessions, clients, booking-ledger reads, forms, client notes, session
   action items, dashboard facts, workspace search, group-session attendance, and narrow
-  booking detail approval/payment/cancel commands. API-mode Calendar uses its real roster/
+  booking detail approval/payment/cancel/move commands (a booking can be moved to another
+  upcoming session of its service; `POST /bookings/{id}/move`). API-mode Calendar uses its real roster/
   attendance resources without mock fallback. The public demo (`www.`) continues to
   default to mock mode.
 - API mode also wires Client Payments and the per-workspace `/book/[slug]` booking flow. Public

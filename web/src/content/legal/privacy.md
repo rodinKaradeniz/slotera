@@ -29,6 +29,10 @@ We do not use advertising trackers or sell personal data.
 
 If you use the calendar subscription link, your calendar provider (for example Google or Apple) fetches your sessions, including your clients' names, from that link. Keep it private; you can turn it off or replace it at any time.
 
+## Cookies and browser storage
+
+We use only what the service needs to work: a sign-in session cookie, and settings kept in your browser (your language, whether the sidebar is collapsed, and a booking form you have not finished, which is removed when you close the tab or finish booking). We use no analytics, advertising or tracking cookies, so there is no cookie banner to accept.
+
 ## Who we share it with
 
 - **Hetzner Online GmbH** — hosting, in the EU.

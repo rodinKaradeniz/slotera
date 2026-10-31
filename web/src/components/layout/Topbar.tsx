@@ -32,7 +32,7 @@ export function Topbar({
   showNotifications = true,
 }: Props) {
   return (
-    <header className="h-16 sticky top-0 z-20 bg-paper/85 backdrop-blur border-b border-line-soft flex items-center px-4 gap-3">
+    <header className="h-16 sticky top-0 z-20 bg-paper/85 backdrop-blur border-b border-line-soft flex items-center px-4 gap-3 print:hidden">
       <button
         type="button"
         onClick={onToggleSidebar}

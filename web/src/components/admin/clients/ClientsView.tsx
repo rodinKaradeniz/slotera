@@ -14,22 +14,22 @@ import { ClientCard } from "./ClientCard";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { listClients } from "@/services/clients.service";
-import { gbp } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
+import { toCsv, downloadText } from "@/lib/csv";
+import { useLoad } from "@/lib/use-load";
+import { LoadError } from "@/components/shared/LoadError";
+import { useWorkspaceCurrency } from "@/lib/use-workspace-currency";
 import { cn } from "@/lib/cn";
-import type { Client } from "@/types/client";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 
 type Layout = "grid" | "rows";
 
 export function ClientsView() {
   const { openClientDrawer } = useDrawers();
-  const [clients, setClients] = React.useState<Client[] | null>(null);
+  const { data: clients, error, reload } = useLoad(listClients);
   const [query, setQuery] = React.useState("");
   const [layout, setLayout] = React.useState<Layout>("grid");
-
-  React.useEffect(() => {
-    listClients().then(setClients);
-  }, []);
+  const currency = useWorkspaceCurrency();
 
   const filtered = (clients ?? []).filter((c) => {
     const q = query.trim().toLowerCase();
@@ -41,6 +41,22 @@ export function ClientsView() {
     );
   });
 
+  const exportCsv = () => {
+    const text = toCsv(filtered, [
+      { header: "Name", value: (c) => c.name },
+      { header: "Email", value: (c) => c.email },
+      { header: "Phone", value: (c) => c.phone ?? "" },
+      { header: "Company", value: (c) => c.company ?? "" },
+      { header: "Status", value: (c) => c.tag },
+      { header: "Bookings", value: (c) => c.totalBookings },
+      { header: "Completed", value: (c) => c.completedBookings },
+      { header: "Cancelled", value: (c) => c.cancelledBookings },
+      { header: `Spent (${currency})`, value: (c) => (c.totalSpentCents / 100).toFixed(2) },
+      { header: "Client since", value: (c) => c.joinedISO.slice(0, 10) },
+    ]);
+    downloadText(`slotera-clients-${new Date().toISOString().slice(0, 10)}.csv`, text);
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -51,22 +67,27 @@ export function ClientsView() {
           clients
             ? `${plural(clients.length, "client")} · ${
                 clients.filter((c) => c.tag === "active").length
-              } active this week`
+              } active`
             : "Loading…"
         }
         actions={
           <>
-            <Button variant="secondary" size="md" icon="download">Export CSV</Button>
+            <Button
+              variant="secondary"
+              size="md"
+              icon="download"
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+            >
+              Export CSV
+            </Button>
             <Button
               variant="primary"
               size="md"
               icon="plus"
               onClick={() =>
                 openClientDrawer({
-                  onSaved: (client) =>
-                    setClients((current) =>
-                      current ? [client, ...current] : [client],
-                    ),
+                  onSaved: reload,
                 })
               }
             >
@@ -91,12 +112,14 @@ export function ClientsView() {
         </div>
       </div>
 
-      {!clients ? (
+      {error ? (
+        <LoadError message={error} onRetry={reload} />
+      ) : !clients ? (
         <LoadingRows count={5} />
       ) : layout === "grid" ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((c) => (
-            <ClientCard key={c.id} client={c} />
+            <ClientCard key={c.id} client={c} currency={currency} />
           ))}
         </div>
       ) : (
@@ -117,7 +140,7 @@ export function ClientsView() {
                 {c.totalBookings} bookings
               </div>
               <div className="text-[14px] font-medium text-ink whitespace-nowrap">
-                {gbp(c.totalSpentCents)}
+                {formatMoney(c.totalSpentCents, currency)}
               </div>
               <StatusBadge kind="client" status={c.tag} />
             </Link>

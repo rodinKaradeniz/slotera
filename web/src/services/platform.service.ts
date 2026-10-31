@@ -6,7 +6,7 @@
 
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
-import { apiRequest } from "@/api/client";
+import { apiListAll, apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import type {
   PlatformInquiry,
@@ -83,8 +83,10 @@ export function mapPlatformWorkspace(
 
 export async function listWorkspaces(): Promise<PlatformWorkspace[]> {
   requireApi("listWorkspaces");
-  const response = await apiRequest<PlatformWorkspaceListDto>("/platform/workspaces?limit=100");
-  return response.items.map(mapPlatformWorkspace);
+  const items = await apiListAll<PlatformWorkspaceListDto["items"][number]>(
+    "/platform/workspaces",
+  );
+  return items.map(mapPlatformWorkspace);
 }
 
 export async function getWorkspace(id: string): Promise<PlatformWorkspace | null> {

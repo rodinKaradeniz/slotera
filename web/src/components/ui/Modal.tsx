@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useDialogFocus } from "@/lib/use-dialog-focus";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
@@ -36,6 +37,9 @@ export function Modal({
   className,
 }: ModalProps) {
   const mounted = useHydrated();
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
+  useDialogFocus(open && mounted, dialogRef);
 
   React.useEffect(() => {
     if (!open) return;
@@ -61,9 +65,12 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 fade-in"
+      ref={dialogRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 fade-in outline-none"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={title ? titleId : undefined}
     >
       <div
         className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
@@ -87,7 +94,11 @@ export function Modal({
             )}
           >
             <div className="flex-1 min-w-0">
-              {title && <h2 className="text-h3 text-ink">{title}</h2>}
+              {title && (
+                <h2 id={titleId} className="text-h3 text-ink">
+                  {title}
+                </h2>
+              )}
               {description && (
                 <p className="text-small mt-1">{description}</p>
               )}

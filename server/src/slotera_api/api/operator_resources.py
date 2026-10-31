@@ -65,6 +65,9 @@ def _business_response(
         phone=profile.phone,
         address=profile.address,
         booking_page_enabled=profile.booking_page_enabled,
+        notify_operator_new=profile.notify_operator_new,
+        notify_operator_cancelled=profile.notify_operator_cancelled,
+        notify_operator_rescheduled=profile.notify_operator_rescheduled,
         onboarding_completed_at=profile.onboarding_completed_at,
         updated_at=max(workspace.updated_at, profile.updated_at),
     )

@@ -438,6 +438,11 @@ export const en = {
   "system.notFound.body":
     "The link may be broken, or the page may have moved. Head back and try again from there.",
   "system.notFound.home": "Back to home",
+  "system.error.eyebrow": "Something went wrong",
+  "system.error.title": "We couldn't show this page.",
+  "system.error.body":
+    "The problem has been reported. Try again, or head back and continue from there.",
+  "system.error.retry": "Try again",
   "system.maintenance.eyebrow": "Scheduled maintenance",
   "system.maintenance.title": "We'll be right back.",
   "system.maintenance.body":

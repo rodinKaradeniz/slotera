@@ -10,7 +10,11 @@ from slotera_api.auth.dependencies import (
     DatabaseDependency,
     OperatorWorkspaceDependency,
 )
-from slotera_api.clients.repository import ClientEmailConflictError, ClientsRepository
+from slotera_api.clients.repository import (
+    ClientEmailConflictError,
+    ClientsRepository,
+    ClientStats,
+)
 from slotera_api.db.models import Client
 from slotera_api.errors import ApiError
 from slotera_api.schemas.clients import (
@@ -32,7 +36,8 @@ def _private(response: Response) -> None:
     response.headers["Cache-Control"] = "no-store"
 
 
-def _client_response(client: Client) -> ClientResponse:
+def _client_response(client: Client, stats: ClientStats | None = None) -> ClientResponse:
+    stats = stats or ClientStats()
     return ClientResponse(
         id=client.id,
         name=client.name,
@@ -45,7 +50,19 @@ def _client_response(client: Client) -> ClientResponse:
         vat_id=client.vat_id,
         created_at=client.created_at,
         updated_at=client.updated_at,
+        total_bookings=stats.total_bookings,
+        completed_bookings=stats.completed_bookings,
+        cancelled_bookings=stats.cancelled_bookings,
+        total_spent_cents=stats.total_spent_cents,
+        tag=stats.tag,
     )
+
+
+async def _with_stats(
+    repository: ClientsRepository, workspace_id: UUID, client: Client
+) -> ClientResponse:
+    stats = await repository.client_stats(workspace_id, [client.id])
+    return _client_response(client, stats.get(client.id))
 
 
 def _not_found() -> ApiError:
@@ -73,12 +90,17 @@ async def list_clients(
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> ClientListResponse:
-    items, total = await ClientsRepository(database).list_clients(
+    repository = ClientsRepository(database)
+    items, total = await repository.list_clients(
         operator.workspace_id, search=search, limit=limit, offset=offset
     )
+    stats = await repository.client_stats(operator.workspace_id, [item.id for item in items])
     _private(response)
     return ClientListResponse(
-        items=[_client_response(item) for item in items], total=total, limit=limit, offset=offset
+        items=[_client_response(item, stats.get(item.id)) for item in items],
+        total=total,
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -101,7 +123,7 @@ async def create_client(
     except ClientEmailConflictError as exc:
         raise _email_conflict() from exc
     _private(response)
-    return _client_response(client)
+    return _client_response(client)  # A new client has no bookings yet.
 
 
 @router.get("/{client_id}", response_model=ClientResponse, operation_id="getClient")
@@ -111,11 +133,12 @@ async def get_client(
     operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
 ) -> ClientResponse:
-    client = await ClientsRepository(database).get_client(operator.workspace_id, client_id)
+    repository = ClientsRepository(database)
+    client = await repository.get_client(operator.workspace_id, client_id)
     if client is None:
         raise _not_found()
     _private(response)
-    return _client_response(client)
+    return await _with_stats(repository, operator.workspace_id, client)
 
 
 @router.patch("/{client_id}", response_model=ClientResponse, operation_id="updateClient")
@@ -141,7 +164,7 @@ async def update_client(
     if client is None:
         raise _not_found()
     _private(response)
-    return _client_response(client)
+    return await _with_stats(repository, operator.workspace_id, client)
 
 
 @router.get("/{client_id}/export", response_model=ClientExportResponse, operation_id="exportClient")
@@ -151,13 +174,14 @@ async def export_client(
     operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
 ) -> ClientExportResponse:
-    exported = await ClientsRepository(database).export_client(operator.workspace_id, client_id)
+    repository = ClientsRepository(database)
+    exported = await repository.export_client(operator.workspace_id, client_id)
     if exported is None:
         raise _not_found()
     _private(response)
     return ClientExportResponse(
         exported_at=datetime.now(UTC),
-        client=_client_response(exported["client"]),
+        client=await _with_stats(repository, operator.workspace_id, exported["client"]),
         bookings=[ClientExportBooking(**item) for item in exported["bookings"]],
         form_responses=[ClientExportFormResponse(**item) for item in exported["form_responses"]],
         notes=[

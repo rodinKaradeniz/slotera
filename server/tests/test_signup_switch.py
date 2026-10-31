@@ -18,6 +18,7 @@ async def test_signup_is_refused_while_closed() -> None:
                 "email": "ada@example.com",
                 "workspaceName": "Ada Coaching",
                 "slug": "ada-coaching",
+                "termsAccepted": True,
             },
         )
     assert response.status_code == 403

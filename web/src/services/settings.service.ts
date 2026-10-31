@@ -109,6 +109,11 @@ function mapBusiness(
     address: business.address,
     bookingPageUrl: business.slug,
     bookingPageEnabled: business.bookingPageEnabled,
+    notifyOperator: {
+      newBooking: business.notifyOperatorNew,
+      cancelled: business.notifyOperatorCancelled,
+      rescheduled: business.notifyOperatorRescheduled,
+    },
     locations,
     onboardingCompletedAt: business.onboardingCompletedAt,
   };
@@ -193,6 +198,7 @@ export async function updateAvailabilitySettings(
   input: AvailabilitySettings,
 ): Promise<AvailabilitySettings> {
   if (dataSource === "api") {
+    clearWorkspaceCache();
     return mapAvailability(
       await apiRequest<AvailabilityResponseDto, AvailabilityUpdateDto>(
         "/availability",
@@ -363,11 +369,47 @@ export async function completeOnboarding(): Promise<void> {
   });
 }
 
+/** Memoises a load for the session; a failed load is retried, `clear` drops it. */
+function memo<T>(load: () => Promise<T>) {
+  let pending: Promise<T> | null = null;
+  return {
+    get: () =>
+      (pending ??= load().catch((error: unknown) => {
+        pending = null;
+        throw error;
+      })),
+    clear: () => {
+      pending = null;
+    },
+  };
+}
+
+const workspaceCurrency = memo(async (): Promise<Currency> => {
+  const business = await apiRequest<BusinessResponseDto>("/settings/business");
+  return apiCurrency(business.currency);
+});
+
+const workspaceTimezone = memo(async (): Promise<string> => {
+  const availability = await apiRequest<AvailabilityResponseDto>("/availability");
+  return availability.timezone;
+});
+
+/** Forget the cached currency and timezone (after settings change or a different sign-in). */
+export function clearWorkspaceCache(): void {
+  workspaceCurrency.clear();
+  workspaceTimezone.clear();
+}
+
 /** The workspace's client-payment currency; services and bookings inherit it. */
 export async function getWorkspaceCurrency(): Promise<Currency> {
   if (dataSource === "mock") return "GBP";
-  const business = await apiRequest<BusinessResponseDto>("/settings/business");
-  return apiCurrency(business.currency);
+  return workspaceCurrency.get();
+}
+
+/** The workspace's timezone; the demo shows session times as written (UTC). */
+export async function getWorkspaceTimezone(): Promise<string> {
+  if (dataSource === "mock") return "UTC";
+  return workspaceTimezone.get();
 }
 
 export async function getBusinessSettings(): Promise<BusinessSettings> {
@@ -390,6 +432,7 @@ export async function updateBusinessSettings(
     mock = { ...mock, business: { ...mock.business, ...patch } };
     return mock.business;
   }
+  clearWorkspaceCache();
   const payload: BusinessPatchDto = {};
   if (patch.name !== undefined) payload.name = patch.name;
   if (patch.displayName !== undefined) payload.displayName = patch.displayName;
@@ -399,6 +442,11 @@ export async function updateBusinessSettings(
   if (patch.address !== undefined) payload.address = patch.address;
   if (patch.bookingPageEnabled !== undefined) {
     payload.bookingPageEnabled = patch.bookingPageEnabled;
+  }
+  if (patch.notifyOperator !== undefined) {
+    payload.notifyOperatorNew = patch.notifyOperator.newBooking;
+    payload.notifyOperatorCancelled = patch.notifyOperator.cancelled;
+    payload.notifyOperatorRescheduled = patch.notifyOperator.rescheduled;
   }
   const [business, locations] = await Promise.all([
     apiRequest<BusinessResponseDto, BusinessPatchDto>("/settings/business", {

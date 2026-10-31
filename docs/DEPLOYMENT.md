@@ -41,8 +41,8 @@ service in `compose.yaml` as well as to `deploy/.env.example`.
 
 **Security headers** are set by Caddy on every host: HSTS (one year, no preload),
 `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY` and a
-`Permissions-Policy`; the API also sends `X-Robots-Tag: noindex`. There is no
-Content-Security-Policy yet ([`TODO.md`](TODO.md)).
+`Permissions-Policy`; the API also sends `X-Robots-Tag: noindex`. The web app also sends a
+report-only Content-Security-Policy in production ([`TODO.md`](TODO.md)).
 
 ## First deployment
 

@@ -607,6 +607,28 @@
         "title": "BookingListResponse",
         "type": "object"
       },
+      "BookingMoveCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "auditReason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Auditreason",
+            "type": "string"
+          },
+          "sessionId": {
+            "format": "uuid",
+            "title": "Sessionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "auditReason"
+        ],
+        "title": "BookingMoveCommand",
+        "type": "object"
+      },
       "BookingPendingNotification": {
         "properties": {
           "id": {
@@ -1089,6 +1111,39 @@
             ],
             "title": "Name"
           },
+          "notifyOperatorCancelled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notifyoperatorcancelled"
+          },
+          "notifyOperatorNew": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notifyoperatornew"
+          },
+          "notifyOperatorRescheduled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notifyoperatorrescheduled"
+          },
           "onboardingCompleted": {
             "anyOf": [
               {
@@ -1161,6 +1216,18 @@
             "title": "Name",
             "type": "string"
           },
+          "notifyOperatorCancelled": {
+            "title": "Notifyoperatorcancelled",
+            "type": "boolean"
+          },
+          "notifyOperatorNew": {
+            "title": "Notifyoperatornew",
+            "type": "boolean"
+          },
+          "notifyOperatorRescheduled": {
+            "title": "Notifyoperatorrescheduled",
+            "type": "boolean"
+          },
           "onboardingCompletedAt": {
             "anyOf": [
               {
@@ -1208,6 +1275,9 @@
           "phone",
           "address",
           "bookingPageEnabled",
+          "notifyOperatorNew",
+          "notifyOperatorCancelled",
+          "notifyOperatorRescheduled",
           "onboardingCompletedAt",
           "updatedAt"
         ],
@@ -1847,6 +1917,10 @@
             ],
             "title": "Address"
           },
+          "cancelledBookings": {
+            "title": "Cancelledbookings",
+            "type": "integer"
+          },
           "company": {
             "anyOf": [
               {
@@ -1857,6 +1931,10 @@
               }
             ],
             "title": "Company"
+          },
+          "completedBookings": {
+            "title": "Completedbookings",
+            "type": "integer"
           },
           "createdAt": {
             "format": "date-time",
@@ -1898,6 +1976,15 @@
             ],
             "title": "Role"
           },
+          "tag": {
+            "enum": [
+              "new",
+              "active",
+              "dormant"
+            ],
+            "title": "Tag",
+            "type": "string"
+          },
           "timezone": {
             "anyOf": [
               {
@@ -1908,6 +1995,14 @@
               }
             ],
             "title": "Timezone"
+          },
+          "totalBookings": {
+            "title": "Totalbookings",
+            "type": "integer"
+          },
+          "totalSpentCents": {
+            "title": "Totalspentcents",
+            "type": "integer"
           },
           "updatedAt": {
             "format": "date-time",
@@ -1937,7 +2032,12 @@
           "address",
           "vatId",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "totalBookings",
+          "completedBookings",
+          "cancelledBookings",
+          "totalSpentCents",
+          "tag"
         ],
         "title": "ClientResponse",
         "type": "object"
@@ -6293,6 +6393,11 @@
             "title": "Slug",
             "type": "string"
           },
+          "termsAccepted": {
+            "const": true,
+            "title": "Termsaccepted",
+            "type": "boolean"
+          },
           "timezone": {
             "default": "Europe/Berlin",
             "maxLength": 64,
@@ -6312,7 +6417,8 @@
           "slug",
           "firstNames",
           "lastName",
-          "email"
+          "email",
+          "termsAccepted"
         ],
         "title": "SignupRequest",
         "type": "object"
@@ -6979,6 +7085,23 @@
               ],
               "title": "Sessionid"
             }
+          },
+          {
+            "in": "query",
+            "name": "clientId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Clientid"
+            }
           }
         ],
         "responses": {
@@ -7487,6 +7610,70 @@
           }
         },
         "summary": "Mark Booking Payment Received",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{booking_id}/move": {
+      "post": {
+        "operationId": "moveBooking",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingMoveCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Move Booking",
         "tags": [
           "bookings"
         ]

@@ -7,6 +7,8 @@ import { SegGroup } from "@/components/ui/SegGroup";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { plural } from "@/lib/text";
+import { useLoad } from "@/lib/use-load";
+import { LoadError } from "@/components/shared/LoadError";
 import { WeekGrid } from "./WeekGrid";
 import { DayGrid } from "./DayGrid";
 import { MonthGrid } from "./MonthGrid";
@@ -17,8 +19,6 @@ import { listClients } from "@/services/clients.service";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { buildWeekDays, sameDay } from "@/lib/calendar";
 import { dataSource } from "@/lib/env";
-import type { SessionItem } from "@/types/session";
-import type { Service } from "@/types/service";
 import type { Booking } from "@/types/booking";
 import type { Client } from "@/types/client";
 import type { CalEvent } from "./EventBlock";
@@ -64,51 +64,35 @@ function shift(view: CalView, anchor: Date, delta: number): Date {
   return next;
 }
 
+const NONE: never[] = [];
+
+/** The real app's calendar only needs sessions and services; the demo also shows client names. */
+async function loadCalendar() {
+  if (dataSource === "api") {
+    const [sessions, services] = await Promise.all([listSessions(), listServices()]);
+    return { sessions, services, bookings: [] as Booking[], clients: [] as Client[] };
+  }
+  const [sessions, services, bookings, clients] = await Promise.all([
+    listSessions(),
+    listServices(),
+    listBookings(),
+    listClients(),
+  ]);
+  return { sessions, services, bookings, clients };
+}
+
 export function CalendarView() {
   const { openSessionDrawer } = useDrawers();
   const [anchor, setAnchor] = React.useState(() =>
     dataSource === "api" ? new Date() : new Date(2026, 4, 11),
   );
   const [view, setView] = React.useState<CalView>("week");
-  const [sessions, setSessions] = React.useState<SessionItem[]>([]);
-  const [services, setServices] = React.useState<Service[]>([]);
-  const [bookings, setBookings] = React.useState<Booking[]>([]);
-  const [clients, setClients] = React.useState<Client[]>([]);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const [reloadKey, setReloadKey] = React.useState(0);
-
-  React.useEffect(() => {
-    let live = true;
-    const load = async () => {
-      if (dataSource === "api") {
-        const [nextSessions, nextServices] = await Promise.all([
-          listSessions(),
-          listServices(),
-        ]);
-        if (!live) return;
-        setSessions(nextSessions);
-        setServices(nextServices);
-        setBookings([]);
-        setClients([]);
-        return;
-      }
-      const [nextSessions, nextServices, nextBookings, nextClients] = await Promise.all([
-        listSessions(),
-        listServices(),
-        listBookings(),
-        listClients(),
-      ]);
-      if (!live) return;
-      setSessions(nextSessions);
-      setServices(nextServices);
-      setBookings(nextBookings);
-      setClients(nextClients);
-    };
-    void load();
-    return () => {
-      live = false;
-    };
-  }, [reloadKey]);
+  const { data, error, reload } = useLoad(loadCalendar);
+  const sessions = data?.sessions ?? NONE;
+  const services = data?.services ?? NONE;
+  const bookings = data?.bookings ?? NONE;
+  const clients = data?.clients ?? NONE;
 
   const clientById = React.useMemo(() => {
     const m = new Map<string, Client>();
@@ -170,10 +154,10 @@ export function CalendarView() {
     openSessionDrawer({
       initial: ev.session,
       mode,
-      onSaved: () => setReloadKey((k) => k + 1),
+      onSaved: reload,
       onCancelled: () => {
         setSelectedId(null);
-        setReloadKey((k) => k + 1);
+        reload();
       },
     });
   };
@@ -237,7 +221,7 @@ export function CalendarView() {
               icon="plus"
               onClick={() =>
                 openSessionDrawer({
-                  onSaved: () => setReloadKey((k) => k + 1),
+                  onSaved: reload,
                 })
               }
             >
@@ -248,6 +232,7 @@ export function CalendarView() {
       />
       <div className="mb-6" />
 
+      {error && <LoadError message={error} onRetry={reload} />}
       {view === "day" && (
         <DayGrid
           anchor={anchor}

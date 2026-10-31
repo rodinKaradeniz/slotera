@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { buildMonthGrid, sameDay } from "@/lib/calendar";
+import { buildMonthGrid, clockIn, sameDay } from "@/lib/calendar";
+import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import type { CalEvent } from "./EventBlock";
 import { cn } from "@/lib/cn";
 
@@ -16,6 +17,7 @@ type Props = {
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function MonthGrid({ anchor, events, onSelect }: Props) {
+  const timezone = useWorkspaceTimezone();
   const cells = buildMonthGrid(anchor);
   const eventsByDay = new Map<string, CalEvent[]>();
   for (const e of events) {
@@ -74,7 +76,7 @@ export function MonthGrid({ anchor, events, onSelect }: Props) {
                     }}
                   >
                     <span className="font-mono opacity-70 mr-1">
-                      {e.session.startISO.slice(11, 16)}
+                      {clockIn(e.session.startISO, timezone)}
                     </span>
                     {e.service?.name ?? "Session"}
                   </button>

@@ -25,6 +25,7 @@ async def test_self_signup_creates_an_activation_pending_workspace_without_enume
         "email": f"ada-{suffix}@harbour.example",
         "timezone": "Europe/Berlin",
         "currency": "EUR",
+        "termsAccepted": True,
     }
     try:
         await import_demo_seed(owner, demo_password="slotera-local-only")
@@ -36,6 +37,11 @@ async def test_self_signup_creates_an_activation_pending_workspace_without_enume
                 "/auth/signup/slug-availability", params={"slug": payload["slug"]}
             )
             no_origin = await client.post("/auth/signup", json=payload)
+            unaccepted = await client.post(
+                "/auth/signup",
+                headers=ORIGIN,
+                json={**payload, "slug": f"unaccepted-{suffix}", "termsAccepted": False},
+            )
             created = await client.post("/auth/signup", headers=ORIGIN, json=payload)
             after = await client.get(
                 "/auth/signup/slug-availability", params={"slug": payload["slug"]}
@@ -64,6 +70,10 @@ async def test_self_signup_creates_an_activation_pending_workspace_without_enume
                               workspace.currency,
                               audit.action,
                               audit.actor_user_id = user_item.id AS self_actor,
+                              (SELECT count(*) FROM audit_events AS accepted
+                                WHERE accepted.workspace_id = workspace.id
+                                  AND accepted.action = 'workspace.terms_accepted'
+                                  AND accepted.actor_user_id = user_item.id) AS terms_records,
                               profile.onboarding_completed_at,
                               (SELECT count(*) FROM workspace_payment_settings AS payment
                                 WHERE payment.workspace_id = workspace.id) AS payment_rows,
@@ -80,7 +90,9 @@ async def test_self_signup_creates_an_activation_pending_workspace_without_enume
                             JOIN users AS user_item ON user_item.id = membership.user_id
                             JOIN workspace_business_profiles AS profile
                               ON profile.workspace_id = workspace.id
-                            JOIN audit_events AS audit ON audit.workspace_id = workspace.id
+                            JOIN audit_events AS audit
+                              ON audit.workspace_id = workspace.id
+                              AND audit.action = 'auth.workspace_signup'
                             WHERE workspace.slug = :slug
                             """
                         ),
@@ -118,6 +130,7 @@ async def test_self_signup_creates_an_activation_pending_workspace_without_enume
 
     assert before.json() == {"slug": payload["slug"], "available": True}
     assert no_origin.status_code == 403
+    assert unaccepted.status_code == 422
     assert created.status_code == 202
     assert after.json()["available"] is False
     assert reserved.json()["available"] is False
@@ -131,6 +144,7 @@ async def test_self_signup_creates_an_activation_pending_workspace_without_enume
         "currency": "EUR",
         "action": "auth.workspace_signup",
         "self_actor": True,
+        "terms_records": 1,
         "onboarding_completed_at": None,
         "payment_rows": 1,
         "availability_rows": 1,

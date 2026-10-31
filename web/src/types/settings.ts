@@ -34,6 +34,8 @@ export type SettingsData = {
     bookingPageEnabled: boolean;
     /** Real app only: false on Professional, which drops "Powered by Slotera". */
     showPlatformBranding?: boolean;
+    /** Real app only: which client actions email the owner. */
+    notifyOperator?: { newBooking: boolean; cancelled: boolean; rescheduled: boolean };
     /** Structured studios/offices the operator can attach to sessions. */
     locations: WorkspaceLocation[];
     /** API mode only: set once onboarding is finished or skipped. */

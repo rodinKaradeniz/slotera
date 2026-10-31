@@ -12,7 +12,7 @@ from typing import Literal
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select, text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from slotera_api.booking_access import emit_booking_event, notify_operator
@@ -35,8 +35,7 @@ from slotera_api.public_booking.repository import (
     PublicBookingRepository,
     PublicSlotUnavailableError,
 )
-
-_CHANGEABLE = (BookingStatus.PENDING, BookingStatus.CONFIRMED)
+from slotera_api.session_capacity import CAPACITY_CONSUMING_STATUSES, release_public_session
 
 
 class BookingLinkInvalidError(Exception):
@@ -58,7 +57,10 @@ class ManagedBooking:
 
     @property
     def can_cancel(self) -> bool:
-        return self.booking.status in _CHANGEABLE and datetime.now(UTC) < self.change_deadline
+        return (
+            self.booking.status in CAPACITY_CONSUMING_STATUSES
+            and datetime.now(UTC) < self.change_deadline
+        )
 
     @property
     def can_reschedule(self) -> bool:
@@ -131,7 +133,7 @@ class BookingManageRepository:
             if not managed.can_cancel:
                 raise CustomerChangeClosedError
             managed.booking.status = BookingStatus.CANCELLED
-            await self._release_if_public(session, workspace_id, managed.booking, managed.session)
+            await release_public_session(session, workspace_id, managed.booking, managed.session)
             session.add(
                 AuditEvent(
                     workspace_id=workspace_id,
@@ -207,7 +209,7 @@ class BookingManageRepository:
             previous = managed.session
             managed.booking.session_id = target.id
             managed.booking.customer_rescheduled_at = now
-            await self._release_if_public(session, workspace_id, managed.booking, previous)
+            await release_public_session(session, workspace_id, managed.booking, previous)
             session.add(
                 AuditEvent(
                     workspace_id=workspace_id,
@@ -228,25 +230,6 @@ class BookingManageRepository:
             )
             await notify_operator(session, booking_id=booking_id, action="rescheduled")
             return await self._load(session, workspace_id, booking_id, lock=False)
-
-    @staticmethod
-    async def _release_if_public(
-        session: AsyncSession, workspace_id: UUID, booking: Booking, scheduled_session: Session
-    ) -> None:
-        """A public 1:1 session exists only for its booking, so free it once unused.
-        Operator-scheduled sessions stay and simply regain the seat."""
-        if scheduled_session.origin != SessionOrigin.PUBLIC_OPEN:
-            return
-        remaining = await session.scalar(
-            select(func.count(Booking.id)).where(
-                Booking.workspace_id == workspace_id,
-                Booking.session_id == scheduled_session.id,
-                Booking.id != booking.id,
-                Booking.status.in_(_CHANGEABLE),
-            )
-        )
-        if int(remaining or 0) == 0:
-            scheduled_session.status = SessionStatus.CANCELLED
 
 
 PendingReason = Literal["approval", "payment"]

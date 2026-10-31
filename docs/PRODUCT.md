@@ -571,6 +571,10 @@ address; it suspends the workspace at once (booking page offline, everyone signe
 and the maintenance job deletes all its data 30 days later. Until then Slotera staff can
 reopen it.
 
+**Business Profile** has an "Accept new bookings" switch that pauses the public page.
+**Emails** (API mode) holds three "Notify me when" switches: a new booking, a client
+cancelling, and a client moving a booking. Clients always get their booking emails.
+
 Keep Settings simple and not enterprise-heavy.
 
 ### Addresses

@@ -1374,6 +1374,107 @@ in 27 files are fixed, not suppressed.
 enter/exit animation, new-vs-view drawer reset, ⌘K search, sidebar state after a reload,
 no console errors.
 
+### Entry 057 — Closing gaps in existing features
+
+A review of what already existed found places where the real app showed fake or missing
+data, or had controls that did nothing. No new product surface; each item finishes
+something that was already there.
+
+**What changed:**
+- **Client stats are real.** `GET /clients` and `/clients/{id}` return booking totals,
+  completed and cancelled counts, paid spend and a tag (`new` has no live booking,
+  `active` has one starting in the last 30 days or later, `dormant` otherwise). The client
+  detail page lists the client's bookings through the new `GET /bookings?clientId=`.
+  Money on the client pages uses the workspace currency, not £.
+- **Operators can move a booking** to another upcoming session of the same service that
+  has room (`POST /bookings/{id}/move`, idempotent, audited as `booking.moved`). A client
+  who booked online gets a "booking moved" email with a fresh calendar file. Migration
+  0036 adds `email_outbox.event_key` to the uniqueness so a second move still emails
+  (the one-email-per-kind rule stays for every other event), and the move does not
+  create the operator's own "reschedule requested" notification.
+- **Operator emails can be switched off** (Settings → Emails, migration 0035): new
+  booking, cancellation and reschedule, each on by default.
+- **Pausing the booking page** has a control in Settings → Business Profile; before, only
+  the demo dashboard had one.
+- **Long lists no longer stop at the page size.** `apiListAll` pages through clients,
+  bookings, services, sessions and workspaces.
+- **The session drawer warns about a clash** in the real app too (`findConflict`).
+- **Exports work:** Clients "Export CSV" and Bookings "Export" download a CSV (formula-
+  safe, UTF-8 with byte-order mark). "Invoice PDF" became "Print summary", which prints
+  the booking page without the app shell.
+- **Smaller:** the dashboard no longer greets "Lena" when the name is missing; six
+  public strings that were English-only in TR and DE are translated, and a test now
+  fails if any English key is missing in either language.
+
+**Rejected / decided:**
+- Moving to a new date and time (rather than an existing session) would need an
+  availability picker for the operator; adding the session in the Calendar first is
+  enough for now.
+- A bookings-by-client filter instead of a stats table: totals are computed on read with
+  one grouped query per page, with no stored counters to drift.
+- The move email reuses `booking_rescheduled` and its template instead of a new kind.
+
+
+### Entry 058 — Correctness, simplification and hardening pass
+
+No new features; this pass finished and tidied what exists.
+
+**What changed:**
+- **Operator session times follow the workspace timezone.** They were cut out of the UTC
+  string (`startISO.slice(11, 16)`), so any workspace outside UTC saw times that disagreed
+  with its public page. `clockIn` / `zonedWallToISO` (`lib/calendar.ts`) and
+  `useWorkspaceTimezone()` now do it; the session drawer reads and saves the typed time in
+  that zone, and derives the end from the duration so a session crossing midnight no
+  longer ends before it starts. The demo reads its mock times as written (UTC).
+- **Workspace currency and timezone are fetched once** per sign-in (memoised in
+  `settings.service.ts`, cleared on login, logout and when settings change).
+- **Failed loads show a message and a retry** (`useLoad` + `LoadError`) in Clients,
+  Bookings, Calendar, client detail and booking detail, instead of loading forever.
+- **The operator sidebar** shows the operator's email, not a hardcoded "Online · Berlin".
+- **Backend:** one `session_capacity.py` holds the seat-holding statuses and the public
+  1:1 session release (was duplicated in the booking and manage code), and the booking
+  commands share one `_Command` for the idempotency replay and record steps.
+- **Settings** is one file per panel instead of a single 1,400-line component.
+- **Bookings list** joins client, session and service through id maps.
+- **A report-only Content-Security-Policy** is sent by the web app in production
+  (`lib/csp.ts`); violations show in the browser console and nothing is blocked yet.
+- **Tests:** `card`, `time`, `cn`, the new calendar zone helpers, the CSP builder and the
+  mock services' patch/not-found behaviour.
+
+**Not done, on purpose:**
+- Component render tests and a browser end-to-end test need packages (jsdom, Playwright)
+  that were not installed and could not be fetched here.
+- The `dataSource` branches inside components are mostly real differences between the
+  demo and the real app, not duplicated plumbing; moving them is not a mechanical change.
+- Splitting `db/models.py` and `public_booking/repository.py`, embedding names in
+  `GET /bookings`, server-side paging in the UIs and excluding mock data from the real
+  bundle remain on the list in `docs/TODO.md`.
+
+
+### Entry 059 — Accessibility, consent record and component tests
+
+**What changed:**
+- **Dialogs trap and restore focus.** `Modal` and `DrawerShell` use `useDialogFocus()`
+  (focus moves in, Tab wraps, focus returns to the opener on close) and are labelled by
+  their title (`aria-labelledby`).
+- **Skip link and `lang`.** Operator pages have a "Skip to content" link and a focusable
+  `<main id="main">`; `<html lang>` follows the chosen language.
+- **Error boundaries.** `app/error.tsx` (EN/TR/DE, reports to Sentry) and
+  `app/global-error.tsx` replace the blank screen when a page throws.
+- **Sign-up records the agreement.** The notice became a required checkbox, the API rejects
+  `termsAccepted: false`, and a `workspace.terms_accepted` audit event names the owner and
+  the three documents.
+- **Privacy policy** now has a "Cookies and browser storage" section (strictly necessary
+  only, so no banner).
+- **Load errors** with retry also on the Dashboard and the superadmin Workspaces list.
+- **Component tests.** jsdom and Testing Library are dev dependencies; `useLoad`,
+  `LoadError` and `useDialogFocus` are covered. A test opts into jsdom with
+  `// @vitest-environment jsdom`.
+
+**Still open (needs the owner):** the legal documents still contain placeholders
+(registered address, company number, publication dates, Resend's data location, retention
+period). They must be filled before launch.
+
 ---
 
 ## Thematic sections
@@ -1496,3 +1597,21 @@ The overlap between `docs/PRODUCT.md` and `AGENTS.md` is real but bounded: `AGEN
 describes structure and mechanics, `docs/PRODUCT.md` states product rules. On a
 product-rule conflict, `docs/PRODUCT.md` wins and the mismatch should be flagged rather
 than silently resolved.
+
+### Entry 060 — Agents work without opening env files
+
+**What changed:**
+- **No generated test env file.** Tests and migrations read nothing from `.env`: the local
+  database URLs are defaults in `config.py` and match `server/compose.yaml`.
+- **Backend skips an unreadable env file.** `_env_file()` returns `None` when the file is
+  missing or unreadable, or when `SLOTERA_ENV_FILE` is empty; `conftest.py` sets it empty.
+  Production is unchanged (the container has no `.env`).
+- **pytest** ignores `.env*` during collection (`--ignore-glob` in `addopts`).
+- **`./scripts/dev --no-env`** creates and reads no env file, skips installs and runs compose
+  with `--env-file /dev/null`.
+- **`.logs/`** (gitignored): every `./scripts/dev` run tees `api.log`, `worker.log` and
+  `web.log`, so an agent can read output without the developer's terminal.
+- **`.claude/settings.json`** denies Read/Edit/Write on `.env`, `.env.local`, `.env.production`.
+
+**Not verified:** the web app under the agent sandbox, which blocks `fonts.googleapis.com`
+(`next/font/google`), so pages answer 404 there; the developer's own run is unaffected.

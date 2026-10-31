@@ -56,7 +56,7 @@ export function Sidebar({
     <>
     <aside
       className={cn(
-        "h-screen sticky top-0 bg-surface-warm border-r border-line flex flex-col flex-shrink-0 transition-[width] duration-200",
+        "h-screen sticky top-0 bg-surface-warm border-r border-line flex flex-col flex-shrink-0 transition-[width] duration-200 print:hidden",
         collapsed ? "w-[68px]" : "w-[244px]",
       )}
     >
@@ -115,9 +115,7 @@ export function Sidebar({
             <div className="text-[13px] font-medium text-ink truncate">
               {userName ?? "Operator"}
             </div>
-            <div className="text-micro truncate">
-              {userSubtitle ?? "Online · Berlin"}
-            </div>
+            {userSubtitle && <div className="text-micro truncate">{userSubtitle}</div>}
           </div>
         )}
         <button

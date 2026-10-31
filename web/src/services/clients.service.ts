@@ -1,5 +1,5 @@
 import clientsJson from "@/data/mock/clients.json";
-import { apiRequest } from "@/api/client";
+import { apiListAll, apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
@@ -25,12 +25,12 @@ function mapClient(client: ClientDto): Client {
     timezone: client.timezone ?? undefined,
     address: client.address ?? undefined,
     vatId: client.vatId ?? undefined,
-    tag: "new",
+    tag: client.tag,
     joinedISO: client.createdAt,
-    totalBookings: 0,
-    completedBookings: 0,
-    cancelledBookings: 0,
-    totalSpentCents: 0,
+    totalBookings: client.totalBookings,
+    completedBookings: client.completedBookings,
+    cancelledBookings: client.cancelledBookings,
+    totalSpentCents: client.totalSpentCents,
   };
 }
 
@@ -44,8 +44,7 @@ function patchPayload(patch: Partial<ClientInput>): ClientPatchDto {
 
 export async function listClients(): Promise<Client[]> {
   if (dataSource === "api") {
-    const response = await apiRequest<ClientListDto>("/clients?limit=200");
-    return response.items.map(mapClient);
+    return (await apiListAll<ClientListDto["items"][number]>("/clients")).map(mapClient);
   }
   await sleep(60);
   return [...mock];

@@ -41,6 +41,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     writeLang(next);
   }, []);
 
+  // The root layout renders lang="en"; keep the attribute in step with the chosen language.
+  React.useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   const value = React.useMemo<Ctx>(
     () => ({
       lang,

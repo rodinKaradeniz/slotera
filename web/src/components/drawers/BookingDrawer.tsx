@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { clockIn } from "@/lib/calendar";
+import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import Link from "next/link";
 import { DrawerShell } from "@/components/ui/DrawerShell";
@@ -205,6 +207,7 @@ export function BookingDrawer({
     !!form.sessionId &&
     (dataSource === "mock" || isEdit || !!form.auditReason.trim());
   // API mode books into upcoming, active sessions that still have room.
+  const timezone = useWorkspaceTimezone();
   const bookableSessions =
     dataSource === "api" && !isEdit
       ? sessions.filter(
@@ -289,7 +292,7 @@ export function BookingDrawer({
                   weekday: "short",
                   day: "numeric",
                   month: "short",
-                })} · ${start.toISOString().slice(11, 16)}`;
+                })} · ${clockIn(s.startISO, timezone)}`;
                 return {
                   value: s.id,
                   label: `${svc?.name ?? "Service"} · ${when}`,

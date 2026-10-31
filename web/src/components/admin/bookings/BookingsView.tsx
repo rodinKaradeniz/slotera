@@ -4,7 +4,11 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { clockIn } from "@/lib/calendar";
+import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import { plural } from "@/lib/text";
+import { useLoad } from "@/lib/use-load";
+import { LoadError } from "@/components/shared/LoadError";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
@@ -17,12 +21,10 @@ import { listClients } from "@/services/clients.service";
 import { listSessions } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
-import type { Booking } from "@/types/booking";
-import type { Client } from "@/types/client";
-import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
 import type { BookingStatus } from "@/types/common";
 import { dataSource } from "@/lib/env";
+import { toCsv, downloadText } from "@/lib/csv";
 
 const STATUS_ORDER: BookingStatus[] = [
   "pending",
@@ -32,65 +34,66 @@ const STATUS_ORDER: BookingStatus[] = [
   "cancelled",
 ];
 
-function whenFromSession(s: SessionItem): string {
+const NONE: never[] = [];
+
+async function loadAll() {
+  const [bookings, clients, sessions, services] = await Promise.all([
+    listBookings(),
+    listClients(),
+    listSessions(),
+    listServices(),
+  ]);
+  return { bookings, clients, sessions, services };
+}
+
+function whenFromSession(s: SessionItem, timezone: string): string {
   const start = new Date(s.startISO);
   return `${start.toLocaleDateString(undefined, {
     weekday: "short",
     day: "numeric",
     month: "short",
-  })} · ${s.startISO.slice(11, 16)}`;
+  })} · ${clockIn(s.startISO, timezone)}`;
 }
 
 export function BookingsView() {
+  const timezone = useWorkspaceTimezone();
   const { openBookingDrawer } = useDrawers();
   const router = useRouter();
   const searchParams = useSearchParams();
   const clientFilterId = searchParams.get("client");
-  const [bookings, setBookings] = React.useState<Booking[] | null>(null);
-  const [clients, setClients] = React.useState<Client[]>([]);
-  const [sessions, setSessions] = React.useState<SessionItem[]>([]);
-  const [services, setServices] = React.useState<Service[]>([]);
+  const { data, error, reload } = useLoad(loadAll);
+  const bookings = data?.bookings ?? null;
+  const clients = data?.clients ?? NONE;
+  const sessions = data?.sessions ?? NONE;
+  const services = data?.services ?? NONE;
   const [query, setQuery] = React.useState("");
   const [serviceFilter, setServiceFilter] = React.useState("all");
-  const [reload, setReload] = React.useState(0);
 
-  const clientFilter = clientFilterId
-    ? (clients.find((c) => c.id === clientFilterId) ?? null)
-    : null;
+  const clientById = React.useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
+  const sessionById = React.useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
+  const serviceById = React.useMemo(() => new Map(services.map((s) => [s.id, s])), [services]);
+
+  const clientFilter = clientFilterId ? (clientById.get(clientFilterId) ?? null) : null;
 
   const clearClientFilter = () => router.replace("/admin/bookings");
-
-  React.useEffect(() => {
-    Promise.all([
-      listBookings(),
-      listClients(),
-      listSessions(),
-      listServices(),
-    ]).then(([b, c, s, sv]) => {
-      setBookings(b);
-      setClients(c);
-      setSessions(s);
-      setServices(sv);
-    });
-  }, [reload]);
 
   const rows = React.useMemo<BookingRowData[]>(() => {
     if (!bookings) return [];
     return bookings.map((b) => {
-      const client = clients.find((c) => c.id === b.clientId);
-      const session = sessions.find((s) => s.id === b.sessionId);
-      const service = services.find((s) => s.id === session?.serviceId);
+      const client = clientById.get(b.clientId);
+      const session = sessionById.get(b.sessionId);
+      const service = session ? serviceById.get(session.serviceId) : undefined;
       return {
         id: b.id,
         booking: b,
         clientName: client?.name ?? "Unknown client",
         clientCompany: client?.company,
         serviceName: service?.name ?? "Service",
-        when: session ? whenFromSession(session) : "—",
-        time: session ? session.startISO.slice(11, 16) : "—",
+        when: session ? whenFromSession(session, timezone) : "—",
+        time: session ? clockIn(session.startISO, timezone) : "—",
       };
     });
-  }, [bookings, clients, sessions, services]);
+  }, [bookings, clientById, sessionById, serviceById, timezone]);
 
   const filtered = rows.filter((r) => {
     const q = query.trim().toLowerCase();
@@ -98,12 +101,29 @@ export function BookingsView() {
       r.clientName.toLowerCase().includes(q) ||
       r.serviceName.toLowerCase().includes(q) ||
       r.id.toLowerCase().includes(q);
-    const session = sessions.find((s) => s.id === r.booking.sessionId);
+    const session = sessionById.get(r.booking.sessionId);
     const sOk =
       serviceFilter === "all" || session?.serviceId === serviceFilter;
     const cOk = !clientFilterId || r.booking.clientId === clientFilterId;
     return qOk && sOk && cOk;
   });
+
+  const exportCsv = () => {
+    const text = toCsv(filtered, [
+      { header: "Reference", value: (r) => r.booking.reference ?? r.id },
+      { header: "Client", value: (r) => r.clientName },
+      { header: "Service", value: (r) => r.serviceName },
+      {
+        header: "Starts (UTC)",
+        value: (r) => sessionById.get(r.booking.sessionId)?.startISO ?? "",
+      },
+      { header: "Status", value: (r) => r.booking.status },
+      { header: "Payment", value: (r) => r.booking.paymentStatus },
+      { header: "Amount", value: (r) => (r.booking.amountCents / 100).toFixed(2) },
+      { header: "Currency", value: (r) => r.booking.currency },
+    ]);
+    downloadText(`slotera-bookings-${new Date().toISOString().slice(0, 10)}.csv`, text);
+  };
 
   const byStatus = STATUS_ORDER.reduce<Record<BookingStatus, BookingRowData[]>>(
     (acc, s) => {
@@ -128,7 +148,13 @@ export function BookingsView() {
         }
         actions={
           <>
-            <Button variant="secondary" size="md" icon="download">
+            <Button
+              variant="secondary"
+              size="md"
+              icon="download"
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+            >
               Export
             </Button>
             <Button
@@ -137,7 +163,7 @@ export function BookingsView() {
               icon="plus"
               onClick={() =>
                 openBookingDrawer({
-                  onSaved: () => setReload((k) => k + 1),
+                  onSaved: reload,
                 })
               }
             >
@@ -182,7 +208,9 @@ export function BookingsView() {
         </div>
       )}
 
-      {!bookings ? (
+      {error ? (
+        <LoadError message={error} onRetry={reload} />
+      ) : !bookings ? (
         <LoadingRows count={4} />
       ) : (
         <div className="flex flex-col gap-3">
@@ -196,8 +224,8 @@ export function BookingsView() {
                 openBookingDrawer({
                   initial: r.booking,
                   mode: dataSource === "api" ? "view" : "edit",
-                  onSaved: () => setReload((k) => k + 1),
-                  onCancelled: () => setReload((k) => k + 1),
+                  onSaved: reload,
+                  onCancelled: reload,
                 })
               }
             />

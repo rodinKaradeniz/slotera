@@ -10,11 +10,11 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from slotera_api.config import get_settings
-from slotera_api.db.models import BookingAccessToken
+from slotera_api.db.models import BookingAccessToken, WorkspaceBusinessProfile
 from slotera_api.identity import hash_opaque_token, issue_opaque_token
 
 BookingEvent = Literal["received", "confirmed", "reminder", "rescheduled", "cancelled"]
@@ -78,8 +78,37 @@ async def notify_operator(session: AsyncSession, *, booking_id: UUID, action: Cl
     Call it only from client-initiated paths (public booking, manage link): the
     operator's own changes must not email them. Runs in the caller's tenant transaction.
     """
+    preference = {
+        "new": WorkspaceBusinessProfile.notify_operator_new,
+        "cancelled": WorkspaceBusinessProfile.notify_operator_cancelled,
+        "rescheduled": WorkspaceBusinessProfile.notify_operator_rescheduled,
+    }[action]
+    # Row-level security limits this to the caller's own workspace profile.
+    if await session.scalar(select(preference).limit(1)) is False:
+        return
     admin_url = f"{get_settings().public_web_base_url}/admin/bookings/{booking_id}"
     await session.execute(
         text("SELECT public.slotera_booking_notify_operator(:booking_id, :event, :admin_url)"),
         {"booking_id": booking_id, "event": action, "admin_url": admin_url},
     )
+
+
+async def notify_client_moved(
+    session: AsyncSession, *, workspace_id: UUID, booking_id: UUID, session_ends_at: datetime
+) -> bool:
+    """Queue the client's "your booking moved" email after the operator moved it.
+
+    Unlike `emit_booking_event`, it can be sent again for every later move and does not
+    notify the operator, who made the change. Runs inside the caller's tenant transaction.
+    """
+    manage_url = await issue_manage_url(
+        session,
+        workspace_id=workspace_id,
+        booking_id=booking_id,
+        session_ends_at=session_ends_at,
+    )
+    queued = await session.scalar(
+        text("SELECT public.slotera_booking_notify_client_moved(:booking_id, :manage_url)"),
+        {"booking_id": booking_id, "manage_url": manage_url},
+    )
+    return queued is True

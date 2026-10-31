@@ -37,6 +37,25 @@ function isErrorEnvelope(value: unknown): value is ErrorEnvelope {
   );
 }
 
+const MAX_LIST_PAGES = 50;
+
+/**
+ * Every item of a paged list endpoint (`items` + `total`), fetched page by page so a
+ * long list is never silently cut at the server's page size. `path` may carry filters.
+ */
+export async function apiListAll<TItem>(path: string, pageSize = 200): Promise<TItem[]> {
+  const separator = path.includes("?") ? "&" : "?";
+  const items: TItem[] = [];
+  for (let page = 0; page < MAX_LIST_PAGES; page += 1) {
+    const response = await apiRequest<{ items: TItem[]; total: number }>(
+      `${path}${separator}limit=${pageSize}&offset=${items.length}`,
+    );
+    items.push(...response.items);
+    if (response.items.length === 0 || items.length >= response.total) break;
+  }
+  return items;
+}
+
 export async function apiRequest<TResponse, TBody = never>(
   path: string,
   options: RequestOptions<TBody> = {},

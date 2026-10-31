@@ -1,5 +1,5 @@
 import bookingsJson from "@/data/mock/bookings.json";
-import { apiRequest } from "@/api/client";
+import { apiListAll, apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
@@ -10,6 +10,7 @@ import { ApiRequestError, NotFoundError, NotImplementedError } from "./_errors";
 type BookingDto = components["schemas"]["BookingResponse"];
 type BookingListDto = components["schemas"]["BookingListResponse"];
 type OperatorBookingCreateDto = components["schemas"]["OperatorBookingCreate"];
+type BookingMoveDto = components["schemas"]["BookingMoveCommand"];
 
 let mock: Booking[] = JSON.parse(JSON.stringify(bookingsJson)) as Booking[];
 
@@ -58,8 +59,7 @@ function mapBooking(booking: BookingDto): Booking {
 
 export async function listBookings(): Promise<Booking[]> {
   if (dataSource === "api") {
-    const response = await apiRequest<BookingListDto>("/bookings?limit=200");
-    return response.items.map(mapBooking);
+    return (await apiListAll<BookingListDto["items"][number]>("/bookings")).map(mapBooking);
   }
   await sleep(60);
   return [...mock];
@@ -79,17 +79,22 @@ export async function getBooking(id: string): Promise<Booking | null> {
 }
 
 export async function listBookingsByClient(clientId: string): Promise<Booking[]> {
-  if (dataSource !== "mock") throw new NotImplementedError("listBookingsByClient");
+  if (dataSource === "api") {
+    const items = await apiListAll<BookingListDto["items"][number]>(
+      `/bookings?clientId=${encodeURIComponent(clientId)}`,
+    );
+    return items.map(mapBooking);
+  }
   await sleep(40);
   return mock.filter((b) => b.clientId === clientId);
 }
 
 export async function listBookingsBySession(sessionId: string): Promise<Booking[]> {
   if (dataSource === "api") {
-    const response = await apiRequest<BookingListDto>(
-      `/bookings?sessionId=${encodeURIComponent(sessionId)}&limit=200`,
+    const items = await apiListAll<BookingListDto["items"][number]>(
+      `/bookings?sessionId=${encodeURIComponent(sessionId)}`,
     );
-    return response.items.map(mapBooking);
+    return items.map(mapBooking);
   }
   await sleep(40);
   return mock.filter((b) => b.sessionId === sessionId);
@@ -126,6 +131,27 @@ export async function createOperatorBooking(
         notes: input.notes?.trim() || null,
         auditReason: input.auditReason.trim(),
       },
+      csrf: true,
+      idempotencyKey,
+    }),
+  );
+}
+
+/**
+ * API mode: move a pending or confirmed booking to another upcoming session of the same
+ * service. A booking the client made online also emails them the new time. Reuse one
+ * `idempotencyKey` per dialog so a retried submit cannot move it twice.
+ */
+export async function moveBooking(
+  id: string,
+  input: { sessionId: string; auditReason: string },
+  idempotencyKey: string,
+): Promise<Booking> {
+  if (dataSource !== "api") throw new NotImplementedError("moveBooking");
+  return mapBooking(
+    await apiRequest<BookingDto, BookingMoveDto>(`/bookings/${encodeURIComponent(id)}/move`, {
+      method: "POST",
+      body: { sessionId: input.sessionId, auditReason: input.auditReason.trim() },
       csrf: true,
       idempotencyKey,
     }),

@@ -10,6 +10,8 @@ import { PendingActions } from "./PendingActions";
 import { currentSession } from "@/services/auth.service";
 import { getDashboard } from "@/services/dashboard.service";
 import { LoadingRows } from "@/components/shared/LoadingRows";
+import { LoadError } from "@/components/shared/LoadError";
+import { useLoad } from "@/lib/use-load";
 import { PageContainer } from "@/components/shared/PageContainer";
 import type { DashboardData } from "@/types/dashboard";
 
@@ -21,30 +23,32 @@ function buildSubtitle(data: DashboardData): string {
 }
 
 export function DashboardView() {
-  const [data, setData] = React.useState<DashboardData | null>(null);
+  const { data, error, reload } = useLoad(getDashboard);
   const hydrated = useHydrated();
   const op = hydrated ? currentSession()?.operator : undefined;
   const firstName =
     op?.firstNames?.trim().split(/\s+/)[0] ?? op?.name?.split(/\s+/)[0] ?? "";
-
-  React.useEffect(() => {
-    getDashboard().then(setData);
-  }, []);
 
   const next = data?.nextSession ?? data?.todaySchedule.find((t) => t.status === "next");
   const subtitle = data ? buildSubtitle(data) : undefined;
 
   return (
     <PageContainer>
-      <Greeting firstName={firstName || "Lena"} subtitle={subtitle} />
+      <Greeting firstName={firstName} subtitle={subtitle} />
 
-      {!data ? (
+      {error ? (
+        <LoadError message={error} onRetry={reload} />
+      ) : !data ? (
         <LoadingRows count={3} />
       ) : (
         <div className="flex flex-col gap-6">
           <div className="grid lg:grid-cols-3 gap-6 items-stretch">
             <div className="lg:col-span-2">
-              <NextSessionCard item={next} schedule={data.todaySchedule} />
+              <NextSessionCard
+                item={next}
+                schedule={data.todaySchedule}
+                onChanged={reload}
+              />
             </div>
             <div className="lg:col-span-1">
               <PendingActions items={data.pendingActions} />

@@ -21,6 +21,7 @@ type Form = {
   workspaceName: string;
   slug: string;
   currency: Currency;
+  termsAccepted: boolean;
 };
 
 const EMPTY: Form = {
@@ -30,6 +31,7 @@ const EMPTY: Form = {
   workspaceName: "",
   slug: "",
   currency: "GBP",
+  termsAccepted: false,
 };
 
 function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
@@ -56,9 +58,13 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
       setError("Your booking page address needs at least 3 characters.");
       return;
     }
+    if (!form.termsAccepted) {
+      setError("Please accept the Terms, Data Processing Agreement and Privacy Policy.");
+      return;
+    }
     setLoading(true);
     try {
-      await register(form);
+      await register({ ...form, termsAccepted: true });
       onDone(form.email.trim());
     } catch (err) {
       if (err instanceof ApiRequestError && err.code === "workspace_slug_unavailable") {
@@ -147,6 +153,30 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         />
       </Field>
 
+      <label className="flex items-start gap-2 text-micro text-ink-2">
+        <input
+          type="checkbox"
+          checked={form.termsAccepted}
+          onChange={(e) => setForm({ ...form, termsAccepted: e.target.checked })}
+          className="mt-0.5"
+          required
+        />
+        <span>
+          I agree to the{" "}
+          <Link href="/terms" target="_blank" className="underline underline-offset-2">
+            Terms
+          </Link>
+          ,{" "}
+          <Link href="/dpa" target="_blank" className="underline underline-offset-2">
+            Data Processing Agreement
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" target="_blank" className="underline underline-offset-2">
+            Privacy Policy
+          </Link>
+          .
+        </span>
+      </label>
       {error && <div className="text-small text-danger">{error}</div>}
       <Button
         type="submit"
@@ -159,21 +189,6 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
       </Button>
       <p className="text-micro text-center">
         30-day free trial, then Essentials (£19/month) or Professional (£39/month).
-      </p>
-      <p className="text-micro text-center">
-        By creating a workspace you agree to the{" "}
-        <Link href="/terms" target="_blank" className="underline underline-offset-2">
-          Terms
-        </Link>
-        ,{" "}
-        <Link href="/dpa" target="_blank" className="underline underline-offset-2">
-          Data Processing Agreement
-        </Link>{" "}
-        and{" "}
-        <Link href="/privacy" target="_blank" className="underline underline-offset-2">
-          Privacy Policy
-        </Link>
-        .
       </p>
     </form>
   );

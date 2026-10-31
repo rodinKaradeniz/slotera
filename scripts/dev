@@ -7,18 +7,24 @@ SERVER_DIR="${REPOSITORY_DIR}/server"
 WEB_DIR="${REPOSITORY_DIR}/web"
 PREPARE_ONLY=false
 API_MODE=false
+NO_ENV=false
+LOG_DIR="${REPOSITORY_DIR}/.logs"
 API_PID=""
 WEB_PID=""
 EMAIL_PID=""
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/dev [--api] [--prepare-only]
+Usage: ./scripts/dev [--api] [--no-env] [--prepare-only]
 
-Prepare and run the complete local Slotera development stack.
+Prepare and run the complete local Slotera development stack. Each process
+writes its output to .logs/ (api.log, worker.log, web.log) as well as the terminal.
 
   --api           Run the frontend against the local FastAPI backend. The
                   default remains the deterministic mock data source.
+  --no-env        Run on the built-in local defaults: never create or read an env
+                  file, and skip dependency installs. For agents and CI; the
+                  developer's own runs use server/.env and web/.env.local.
   --prepare-only  Install dependencies, start PostgreSQL, migrate, and seed;
                   do not start the API or frontend processes.
   -h, --help      Show this help.
@@ -74,6 +80,9 @@ for argument in "$@"; do
     --api)
       API_MODE=true
       ;;
+    --no-env)
+      NO_ENV=true
+      ;;
     -h | --help)
       usage
       exit 0
@@ -91,30 +100,38 @@ require_command uv
 
 docker info >/dev/null 2>&1 || fail "Docker is not running"
 
-if [[ ! -f "${SERVER_DIR}/.env" ]]; then
-  cp "${SERVER_DIR}/.env.example" "${SERVER_DIR}/.env"
-  log "Created server/.env from server/.env.example."
+COMPOSE_ENV_FILE=()
+if [[ "${NO_ENV}" == true ]]; then
+  # An empty value makes the backend skip its env file; compose skips its default one.
+  export SLOTERA_ENV_FILE=""
+  COMPOSE_ENV_FILE=(--env-file /dev/null)
+  log "Running on built-in defaults: no env file is read, no dependencies are installed."
+else
+  if [[ ! -f "${SERVER_DIR}/.env" ]]; then
+    cp "${SERVER_DIR}/.env.example" "${SERVER_DIR}/.env"
+    log "Created server/.env from server/.env.example."
+  fi
+
+  if [[ ! -f "${WEB_DIR}/.env.local" ]]; then
+    cp "${WEB_DIR}/.env.example" "${WEB_DIR}/.env.local"
+    log "Created web/.env.local from web/.env.example."
+  fi
+
+  log "Synchronizing backend dependencies..."
+  (
+    cd "${SERVER_DIR}"
+    uv sync --locked
+  )
+
+  log "Synchronizing frontend dependencies..."
+  npm install --no-audit --no-fund --prefix "${WEB_DIR}"
 fi
-
-if [[ ! -f "${WEB_DIR}/.env.local" ]]; then
-  cp "${WEB_DIR}/.env.example" "${WEB_DIR}/.env.local"
-  log "Created web/.env.local from web/.env.example."
-fi
-
-log "Synchronizing backend dependencies..."
-(
-  cd "${SERVER_DIR}"
-  uv sync --locked
-)
-
-log "Synchronizing frontend dependencies..."
-npm install --no-audit --no-fund --prefix "${WEB_DIR}"
 
 log "Generating frontend transport types from FastAPI OpenAPI..."
 npm run generate:api --prefix "${WEB_DIR}"
 
 log "Starting PostgreSQL and waiting for it to become healthy..."
-docker compose --project-directory "${SERVER_DIR}" up -d --wait db
+docker compose --project-directory "${SERVER_DIR}" ${COMPOSE_ENV_FILE[@]+"${COMPOSE_ENV_FILE[@]}"} up -d --wait db
 
 log "Applying pending Alembic migrations..."
 (
@@ -137,17 +154,21 @@ fi
 trap cleanup EXIT
 trap handle_signal INT TERM HUP
 
+mkdir -p "${LOG_DIR}"
+for name in api worker web; do : >"${LOG_DIR}/${name}.log"; done
+
 log "Starting API at http://localhost:8000 (docs: http://localhost:8000/docs)..."
 (
   cd "${SERVER_DIR}"
-  exec .venv/bin/uvicorn slotera_api.main:app --reload --port 8000 --no-access-log
+  exec .venv/bin/uvicorn slotera_api.main:app --reload --port 8000 --no-access-log \
+    > >(tee -a "${LOG_DIR}/api.log") 2>&1
 ) &
 API_PID=$!
 
 log "Starting transactional email worker..."
 (
   cd "${SERVER_DIR}"
-  exec .venv/bin/slotera-email-worker
+  exec .venv/bin/slotera-email-worker > >(tee -a "${LOG_DIR}/worker.log") 2>&1
 ) &
 EMAIL_PID=$!
 
@@ -155,9 +176,9 @@ log "Starting frontend at http://localhost:3344..."
 (
   cd "${WEB_DIR}"
   if [[ "${API_MODE}" == true ]]; then
-    NEXT_PUBLIC_DATA_SOURCE=api PORT=3344 exec npm run dev
+    NEXT_PUBLIC_DATA_SOURCE=api PORT=3344 exec npm run dev > >(tee -a "${LOG_DIR}/web.log") 2>&1
   fi
-  PORT=3344 exec npm run dev
+  PORT=3344 exec npm run dev > >(tee -a "${LOG_DIR}/web.log") 2>&1
 ) &
 WEB_PID=$!
 

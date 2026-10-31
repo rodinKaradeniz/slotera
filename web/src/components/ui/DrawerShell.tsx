@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useDialogFocus } from "@/lib/use-dialog-focus";
 
 type DrawerProps = {
   open: boolean;
@@ -28,6 +29,8 @@ export function DrawerShell({
   className,
 }: DrawerProps) {
   const mounted = useHydrated();
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
   // `rendered` keeps the drawer in the DOM through its exit animation; `entered` flips
   // two frames after mounting so the enter transition runs.
   const [rendered, setRendered] = React.useState(open);
@@ -67,10 +70,19 @@ export function DrawerShell({
     };
   }, [open, onClose]);
 
+  useDialogFocus(open && mounted && rendered, dialogRef);
+
   if (!mounted || !rendered) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-40" role="dialog" aria-modal="true">
+    <div
+      ref={dialogRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-40 outline-none"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
       <div
         data-state={state}
         className="drawer-backdrop absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
@@ -90,7 +102,9 @@ export function DrawerShell({
             {eyebrow && (
               <div className="eyebrow mb-1.5">{eyebrow}</div>
             )}
-            <h2 className="text-h3 text-ink truncate">{title}</h2>
+            <h2 id={titleId} className="text-h3 text-ink truncate">
+              {title}
+            </h2>
           </div>
           <button
             type="button"
