@@ -94,6 +94,15 @@ Sentry). An agent never reads, edits or prints them, and `.claude/settings.json`
 - Agents may run pytest, `tsc`, lint, `docker ps`, `docker logs <c>` and
   `docker exec <c> psql ...`; they must not run `docker inspect`, `docker exec <c> env` or
   anything with `deploy/compose.yaml` and `deploy/.env`.
+- **Remind the developer to run `./scripts/env-check`** (they run it, not the agent) whenever a
+  task depends on an env value: a new variable, a Resend or Sentry problem, a config
+  validation error, or "works for you but not for me". It prints each variable as
+  set/empty/MISSING/unknown plus the backend's validation errors, never a value, and
+  `--deploy` adds `deploy/.env`. The agent asks for the output and works from the names.
+- A new variable goes in the matching `.env.example` with a one-line comment (commented out
+  when optional), so `env-check` can tell the developer what to set.
+- When a step is blocked on a value, finish everything else, then name the variable and the
+  command for the developer; do not call the task complete.
 - Under `--no-env`, Next logs one "Failed to load env from .env.local" line; it is harmless.
 
 **Frontend** — from `web/`:

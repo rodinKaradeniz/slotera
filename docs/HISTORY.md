@@ -1612,6 +1612,9 @@ than silently resolved.
 - **`.logs/`** (gitignored): every `./scripts/dev` run tees `api.log`, `worker.log` and
   `web.log`, so an agent can read output without the developer's terminal.
 - **`.claude/settings.json`** denies Read/Edit/Write on `.env`, `.env.local`, `.env.production`.
+- **`scripts/env-check`** (run by the developer): compares `server/.env`, `web/.env.local`
+  (and `deploy/.env` with `--deploy`) with their examples and validates the backend settings;
+  it prints names and statuses only. AGENTS.md and DEPLOYMENT.md point to it.
 
 **Not verified:** the web app under the agent sandbox, which blocks `fonts.googleapis.com`
 (`next/font/google`), so pages answer 404 there; the developer's own run is unaffected.

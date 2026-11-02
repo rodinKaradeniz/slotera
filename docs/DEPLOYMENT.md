@@ -57,7 +57,8 @@ report-only Content-Security-Policy in production ([`TODO.md`](TODO.md)).
    the real values in a password manager too; the file is the only other copy. The
    production configuration refuses
    to start with local credentials, a console email provider, a missing CSRF cookie
-   domain, or a non-HTTPS web URL.
+   domain, or a non-HTTPS web URL. Run `./scripts/env-check --deploy` to see which names are
+   set or missing without printing any value.
 5. **Off-box backups:** order a Hetzner Storage Box (in a different location from the
    server). Put an SSH key at `deploy/backup/ssh/id_ed25519` (git-ignored), add its
    public half to the Storage Box, and set `STORAGE_BOX=uXXXXX@uXXXXX.your-storagebox.de`.
@@ -189,7 +190,7 @@ Complete and record each item before telling real operators about `app.`:
 1. **Restore drill:** a backup has been restored from the Storage Box (not only from the
    server) and checked.
 2. **Clean install:** the stack was started from an empty volume with the real
-   `deploy/.env`. The API connects only as `slotera_app`.
+   `deploy/.env` (`./scripts/env-check --deploy` shows no `MISSING` or `FAILED`). The API connects only as `slotera_app`.
 3. **Email:** Resend has a verified sending domain (SPF, DKIM, DMARC) matching
    `SLOTERA_EMAIL_FROM_ADDRESS`, and `slotera-send-test-email` succeeds. Activation, reset,
    booking confirmation and reminder emails were received on real inboxes.
