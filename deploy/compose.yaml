@@ -4,7 +4,7 @@
 #
 # deploy/.env only fills the ${...} placeholders below; no container receives the whole
 # file. Each service lists exactly the variables it reads, so a new setting must be added
-# here as well as to deploy/.env.example.
+# here as well as to deploy/env.example.
 name: slotera-prod
 
 x-server-env: &server-env

@@ -37,7 +37,7 @@ the compose file; no container receives the whole file. Caddy sees only the host
 and `ACME_EMAIL`. The API, worker and maintenance job see the app database role, email
 and Sentry settings, but never the owner password, the Sentry auth token or the Storage
 Box login. Only `migrate` gets the owner connection. A new setting must be added to its
-service in `compose.yaml` as well as to `deploy/.env.example`.
+service in `compose.yaml` as well as to `deploy/env.example`.
 
 **Security headers** are set by Caddy on every host: HSTS (one year, no preload),
 `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY` and a
@@ -52,7 +52,7 @@ report-only Content-Security-Policy in production ([`TODO.md`](TODO.md)).
 2. **DNS:** point the bare domain (`slotera.io`), `www.`, `app.` and `api.` at the
    server (A and AAAA records).
 3. **Code:** clone the repository on the server.
-4. **Settings:** `cp deploy/.env.example deploy/.env` and fill it in. Generate both
+4. **Settings:** `cp deploy/env.example deploy/.env` and fill it in. Generate both
    database passwords with `openssl rand -hex 32`, and run `chmod 600 deploy/.env`. Keep
    the real values in a password manager too; the file is the only other copy. The
    production configuration refuses

@@ -32,7 +32,7 @@ frontend API/service boundary.
 The equivalent backend-only commands are:
 
 ```bash
-cp .env.example .env
+cp env.example .env
 uv sync
 docker compose up -d db
 uv run alembic upgrade head

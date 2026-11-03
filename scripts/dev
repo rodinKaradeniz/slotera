@@ -108,13 +108,13 @@ if [[ "${NO_ENV}" == true ]]; then
   log "Running on built-in defaults: no env file is read, no dependencies are installed."
 else
   if [[ ! -f "${SERVER_DIR}/.env" ]]; then
-    cp "${SERVER_DIR}/.env.example" "${SERVER_DIR}/.env"
-    log "Created server/.env from server/.env.example."
+    cp "${SERVER_DIR}/env.example" "${SERVER_DIR}/.env"
+    log "Created server/.env from server/env.example."
   fi
 
   if [[ ! -f "${WEB_DIR}/.env.local" ]]; then
-    cp "${WEB_DIR}/.env.example" "${WEB_DIR}/.env.local"
-    log "Created web/.env.local from web/.env.example."
+    cp "${WEB_DIR}/env.example" "${WEB_DIR}/.env.local"
+    log "Created web/.env.local from web/env.example."
   fi
 
   log "Synchronizing backend dependencies..."

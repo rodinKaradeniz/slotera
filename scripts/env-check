@@ -2,7 +2,7 @@
 """Report which env variables are set, without ever printing a value.
 
 Run it in your own terminal, then paste the output to an agent when something looks
-env-related. It compares each env file with its `.env.example` (names only), then asks the
+env-related. It compares each env file with its `env.example` (names only), then asks the
 backend to validate its settings and prints only the field name and the rule that failed.
 
     ./scripts/env-check             server/.env and web/.env.local
@@ -17,9 +17,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if "--root" in sys.argv:  # test hook: check another checkout
     ROOT = Path(sys.argv[sys.argv.index("--root") + 1]).resolve()
 
-FILES = [("server/.env", "server/.env.example"), ("web/.env.local", "web/.env.example")]
+FILES = [("server/.env", "server/env.example"), ("web/.env.local", "web/env.example")]
 if "--deploy" in sys.argv:
-    FILES.append(("deploy/.env", "deploy/.env.example"))
+    FILES.append(("deploy/.env", "deploy/env.example"))
 
 VALIDATE = """
 from pydantic import ValidationError
@@ -31,6 +31,26 @@ for cls in (Settings, MigrationSettings):
         for item in error.errors():
             print(f"{cls.__name__}.{'.'.join(map(str, item['loc'])) or 'model'}: {item['msg']}")
 """
+
+
+DEFAULTS = """
+from slotera_api.config import MigrationSettings, Settings
+for cls in (Settings, MigrationSettings):
+    for name, field in cls.model_fields.items():
+        if not field.is_required():
+            print("SLOTERA_" + name.upper())
+"""
+
+
+def backend_defaults() -> set[str]:
+    """Backend variables the code has a default for, so leaving them out is fine."""
+    python = ROOT / "server/.venv/bin/python"
+    if not python.exists():
+        return set()
+    result = subprocess.run(
+        [str(python), "-c", DEFAULTS], cwd=ROOT / "server", capture_output=True, text=True
+    )
+    return set(result.stdout.split())
 
 
 def names(path: Path) -> dict[str, bool]:
@@ -53,6 +73,7 @@ def optional_names(path: Path) -> set[str]:
     return out
 
 
+defaults = backend_defaults()
 problems = 0
 for env_name, example_name in FILES:
     env, example = ROOT / env_name, ROOT / example_name
@@ -70,6 +91,8 @@ for env_name, example_name in FILES:
             state = "unknown"
         elif key in have:
             state = "set" if have[key] else "empty"
+        elif key in defaults:
+            state = "default"
         elif key in wanted:
             state, problems = "MISSING", problems + 1
         else:

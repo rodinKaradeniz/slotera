@@ -99,10 +99,13 @@ Sentry). An agent never reads, edits or prints them, and `.claude/settings.json`
   validation error, or "works for you but not for me". It prints each variable as
   set/empty/MISSING/unknown plus the backend's validation errors, never a value, and
   `--deploy` adds `deploy/.env`. The agent asks for the output and works from the names.
-- A new variable goes in the matching `.env.example` with a one-line comment (commented out
+- A new variable goes in the matching `env.example` with a one-line comment (commented out
   when optional), so `env-check` can tell the developer what to set.
 - When a step is blocked on a value, finish everything else, then name the variable and the
   command for the developer; do not call the task complete.
+- Fonts are self-hosted in `web/src/app/fonts/` (no Google requests, build or runtime); agents
+  can run `npm run build` and `npm run start` offline. `next dev` hits `EMFILE` in the agent
+  sandbox, so verify pages there with the production build.
 - Under `--no-env`, Next logs one "Failed to load env from .env.local" line; it is harmless.
 
 **Frontend** — from `web/`:
@@ -124,7 +127,7 @@ exercised in a running dev server. The backend has its own pytest/Ruff/mypy gate
 **Backend foundation** — from `server/`:
 
 ```bash
-cp .env.example .env
+cp env.example .env
 uv sync
 docker compose up -d db           # PostgreSQL on 127.0.0.1:55432
 uv run alembic upgrade head
@@ -140,7 +143,7 @@ uv run mypy
 The backend exposes `/health/live`, `/health/ready`, `/docs`, and `/openapi.json`. See
 `server/README.md` and `docs/RULES.md` for what may and may not be claimed as verification.
 
-**Frontend environment** — `web/.env.local` (and `web/.env.example`) carry three public
+**Frontend environment** — `web/.env.local` (and `web/env.example`) carry three public
 variables:
 
 ```
@@ -153,7 +156,7 @@ Optional: `NEXT_PUBLIC_SIGNUP_OPEN=false` (real app: `/register` points to the p
 form; match the API's `SLOTERA_SIGNUP_OPEN`), `NEXT_PUBLIC_APP_URL` (demo: where "Join
 the pilot" links), `NEXT_PUBLIC_SITE_URL` (demo: its own origin, for the sitemap),
 `NEXT_PUBLIC_SUPPORT_EMAIL` and `NEXT_PUBLIC_SENTRY_DSN`. Never read or
-edit real `.env` files; change the `*.env.example` templates and tell the user what to set.
+edit real `.env` files; change the `*env.example` templates and tell the user what to set.
 
 **Signing in (mock mode)** — any email and password work and every sign-in lands on
 `/admin/dashboard` as an operator (`hello@slotera.io` is the seeded Dr. Lena Maria

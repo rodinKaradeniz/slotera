@@ -68,9 +68,9 @@
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
 
-  --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-fraunces), 'Cormorant Garamond', Georgia, serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: 'Inter Tight Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: 'Fraunces Variable', 'Cormorant Garamond', Georgia, serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 /* Custom box-shadow tokens. `--shadow-card/pop/overlay` are the semantic

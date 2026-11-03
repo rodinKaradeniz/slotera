@@ -1616,5 +1616,12 @@ than silently resolved.
   (and `deploy/.env` with `--deploy`) with their examples and validates the backend settings;
   it prints names and statuses only. AGENTS.md and DEPLOYMENT.md point to it.
 
-**Not verified:** the web app under the agent sandbox, which blocks `fonts.googleapis.com`
-(`next/font/google`), so pages answer 404 there; the developer's own run is unaffected.
+- **Fonts are self-hosted.** `next/font/google` is replaced by `web/src/app/fonts/`
+  (Fraunces, Inter Tight, JetBrains Mono as `latin` + `latin-ext` woff2, OFL licences,
+  `fonts.css`), so no build or visitor contacts Google. `latin-ext` also adds the Turkish
+  letters (ş, ğ, ı, İ) that the old `latin`-only subset lacked.
+- **`npm run build`** now succeeds offline (first time verified here); `next start` serves
+  `/`, `/login` and `/privacy` with the fonts from `/_next/static/media/`.
+
+**Not verified:** `next dev` under the agent sandbox (its file watcher hits `EMFILE`, so routes
+return 404); use `npm run build` + `npm run start` there. The developer's own dev run is unaffected.
