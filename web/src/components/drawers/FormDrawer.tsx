@@ -53,10 +53,22 @@ export function FormDrawer({
   );
   const [busy, setBusy] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const [persistedActive, setPersistedActive] = React.useState(initial?.status === "active");
+  const [deactivation, setDeactivation] = React.useState<"save" | "toggle" | null>(null);
+  useResetOnOpen(open, [initial], () => {
+    setPersistedActive(initial?.status === "active");
+    setDeactivation(null);
+    setConfirmDelete(false);
+  });
 
   useResetOnOpen(open, [initial], () => setForm(initial ? { ...initial } : DEFAULTS));
 
-  const save = async () => {
+  const save = async (confirmed = false) => {
+    if (busy) return;
+    if (initial && persistedActive && !(form.status === "active") && !confirmed) {
+      setDeactivation("save");
+      return;
+    }
     if (!form.name.trim()) {
       toast.error(uiText("ui.add.a.form.name.first"));
       return;
@@ -83,13 +95,15 @@ export function FormDrawer({
   };
 
   const toggleActive = async () => {
-    if (!initial) return;
+    if (!initial || busy) return;
     setBusy(true);
     try {
       const next =
-        initial.status === "active"
+        persistedActive
           ? await deactivateForm(initial.id)
           : await activateForm(initial.id);
+      setPersistedActive(next.status === "active");
+      setDeactivation(null);
       onSaved?.(next);
       setForm((f) => ({ ...f, status: next.status }));
       toast.success(
@@ -132,7 +146,7 @@ export function FormDrawer({
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             {uiText("ui.cancel")}</Button>
-          <Button onClick={save} loading={busy}>
+          <Button onClick={() => save()} loading={busy}>
             {uiText("ui.save")}</Button>
         </>
       }
@@ -152,10 +166,10 @@ export function FormDrawer({
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={toggleActive}
+                onClick={() => persistedActive ? setDeactivation("toggle") : void toggleActive()}
                 disabled={busy}
               >
-                {form.status === "active" ? uiText("ui.deactivate") : uiText("ui.activate")}
+                {persistedActive ? uiText("ui.deactivate") : uiText("ui.activate")}
               </Button>
               <Button
                 variant="danger"
@@ -171,11 +185,21 @@ export function FormDrawer({
       </div>
 
       <ConfirmDialog
+        open={deactivation !== null}
+        onClose={() => !busy && setDeactivation(null)}
+        onConfirm={() => deactivation === "save" ? save(true) : toggleActive()}
+        title={uiText("catalog.deactivate.named", { name: initial?.name ?? "" })}
+        description={uiText("catalog.form.deactivate.effects")}
+        confirmLabel={uiText("ui.deactivate")}
+        destructive
+        busy={busy}
+      />
+      <ConfirmDialog
         open={confirmDelete}
         onClose={() => !busy && setConfirmDelete(false)}
         onConfirm={remove}
         title={uiText("ui.remove.named", { name: initial?.name ?? uiText("ui.form") })}
-        description={uiText("ui.this.permanently.removes.the.form.services.it.was.attached.to.will.no.longer.ask.clients.t")}
+        description={uiText("catalog.form.delete.effects")}
         confirmLabel={uiText("ui.delete.form")}
         destructive
         busy={busy}

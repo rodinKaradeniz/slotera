@@ -523,6 +523,19 @@ page. Standard page shape:
 </div>
 ```
 
+### Catalog editing and deletion safeguards
+
+Form choice questions use individual option inputs with add/remove controls; Enter advances
+or appends, and whitespace is normalized only when saving. API form writes allow-list
+editable fields; service-side attachment editing reads the persisted template.
+Service, form and package deactivation requires confirmation, including edits saved with
+Active switched off. Deletion dialogs describe removed relationships and preserved history.
+Services referenced by sessions or packages return a recoverable 409; unused service deletion
+unlinks form attachments without deleting templates. Existing client-erasure, location,
+note, task, session and workspace confirmations remain in place.
+Root and shared dialog scroll areas reserve a stable scrollbar gutter. Nested confirmations
+retain the underlying drawer's scroll lock and Escape closes only the focused dialog.
+
 ### Internationalisation
 
 Hand-rolled, no i18n library. `web/src/lib/i18n.ts` exposes `Lang = "en" | "tr" | "de"`,

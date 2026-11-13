@@ -219,7 +219,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                       const type = e.target.value as FormFieldType;
                       updateField(f.id, {
                         type,
-                        options: hasOptions(type) ? f.options ?? [] : undefined,
+                        options: hasOptions(type) ? f.options ?? ["", ""] : undefined,
                       });
                     }}
                     options={FIELD_TYPE_OPTIONS.map((option) => ({ ...option, label: translateInterfaceLabel(labelLang, option.label) }))}
@@ -238,21 +238,10 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
               </div>
 
               {hasOptions(f.type) && (
-                <Field label={uiText("ui.options")} hint={uiText("ui.one.per.line")}>
-                  <Textarea
-                    value={(f.options ?? []).join("\n")}
-                    rows={3}
-                    onChange={(e) =>
-                      updateField(f.id, {
-                        options: e.target.value
-                          .split("\n")
-                          .map((o) => o.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    placeholder={"Option A\nOption B"}
-                  />
-                </Field>
+                <ChoiceOptions
+                  options={f.options?.length ? f.options : ["", ""]}
+                  onChange={(options) => updateField(f.id, { options })}
+                />
               )}
 
               {f.type !== "consent_checkbox" &&
@@ -284,6 +273,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
 
       {/* Attach to services */}
       <Field
+        group
         label={uiText("ui.attached.services")}
         hint={uiText("ui.clients.booking.these.services.will.complete.this.form.before.payment")}
       >
@@ -340,4 +330,44 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
       </div>
     </fieldset>
   );
+}
+
+
+function ChoiceOptions({ options, onChange }: { options: string[]; onChange: (options: string[]) => void }) {
+  const { t } = useI18n();
+  const refs = React.useRef<(HTMLInputElement | null)[]>([]);
+  const pendingFocus = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (pendingFocus.current === null) return;
+    refs.current[pendingFocus.current]?.focus();
+    pendingFocus.current = null;
+  }, [options]);
+  const add = () => {
+    if (options.length >= 100) return;
+    pendingFocus.current = options.length;
+    onChange([...options, ""]);
+  };
+  return <Field group label={t("ui.options")}>
+    <div className="flex flex-col gap-2">
+      {options.map((option, index) => <div key={index} className="flex items-center gap-2">
+        <Input
+          ref={(node) => { refs.current[index] = node; }}
+          className="flex-1"
+          aria-label={t("forms.option.number", { number: index + 1 })}
+          value={option}
+          onChange={(event) => onChange(options.map((value, i) => i === index ? event.target.value : value))}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            if (index + 1 < options.length) refs.current[index + 1]?.focus();
+            else add();
+          }}
+        />
+        <Button variant="ghost" size="sm" icon="trash" aria-label={t("forms.remove.option", { number: index + 1 })}
+          disabled={options.length <= 1} onClick={() => onChange(options.filter((_, i) => i !== index))} />
+        {index === options.length - 1 && <Button variant="secondary" size="sm" icon="plus"
+          aria-label={t("forms.add.option")} disabled={options.length >= 100} onClick={add} />}
+      </div>)}
+    </div>
+  </Field>;
 }

@@ -186,6 +186,18 @@ export async function removeService(id: string): Promise<void> {
     });
     return;
   }
+  const [{ listPackages }, { listSessions }, { listForms, setFormServiceAttachment }] = await Promise.all([
+    import("./packages.service"), import("./sessions.service"), import("./forms.service"),
+  ]);
+  if ((await listPackages()).some((offer) => offer.items.some((item) => item.serviceId === id))) {
+    throw new ApiRequestError(409, "service_in_package", "Remove this service from its packages before deleting it");
+  }
+  if ((await listSessions()).some((session) => session.serviceId === id)) {
+    throw new ApiRequestError(409, "service_in_use", "This service has sessions or bookings. Deactivate it instead");
+  }
+  for (const form of await listForms()) {
+    if (form.attachedServiceIds.includes(id)) await setFormServiceAttachment(form.id, id, false);
+  }
   await sleep(80);
   mock = mock.filter((service) => service.id !== id);
 }

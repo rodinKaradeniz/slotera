@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 
 type FieldProps = {
   label?: string;
+  group?: boolean;
   hint?: string;
   error?: string;
   optional?: boolean;
@@ -16,6 +17,7 @@ type FieldProps = {
 
 export function Field({
   label,
+  group = false,
   hint,
   error,
   optional,
@@ -24,10 +26,12 @@ export function Field({
   className,
 }: FieldProps) {
   const { t: uiText } = useI18n();
+  const Container = group ? "fieldset" : "label";
+  const Heading = group ? "legend" : "div";
   return (
-    <label className={cn("flex flex-col gap-1.5", className)}>
+    <Container className={cn("min-w-0 flex flex-col gap-1.5", className)}>
       {label && (
-        <div className="flex items-center justify-between">
+        <Heading className="flex items-center justify-between">
           <span className="text-[13px] font-medium text-ink">
             {label}
             {required && <span className="text-danger ml-0.5">*</span>}
@@ -36,7 +40,7 @@ export function Field({
             <span className="text-[11px] text-ink-3 font-mono uppercase tracking-wider">
               {uiText("ui.optional")}</span>
           )}
-        </div>
+        </Heading>
       )}
       {children}
       {error && (
@@ -47,6 +51,6 @@ export function Field({
       {!error && hint && (
         <span className="text-[12px] text-ink-3">{hint}</span>
       )}
-    </label>
+    </Container>
   );
 }

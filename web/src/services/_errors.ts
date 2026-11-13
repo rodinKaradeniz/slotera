@@ -35,7 +35,7 @@ export class ApiRequestError extends Error {
       rate_limit_exceeded: "errors.rateLimit", validation_error: "errors.validation",
       public_slot_unavailable: "errors.slot", booking_capacity_exceeded: "errors.slot",
       booking_form_invalid: "errors.validation", booking_form_closed: "errors.formClosed",
-      booking_form_submitted: "errors.formSubmitted", service_in_package: "errors.packageService",
+      booking_form_submitted: "errors.formSubmitted", service_in_package: "errors.packageService", service_in_use: "errors.serviceInUse",
       booking_link_invalid: "errors.bookingLink", customer_change_window_closed: "errors.changeClosed",
     };
     const key = keys[code] ?? (status === 401 ? "errors.session" : status === 403 ? "errors.permission" : status === 404 ? "errors.notFound" : status === 409 ? "errors.conflict" : status === 422 ? "errors.validation" : "errors.unexpected");

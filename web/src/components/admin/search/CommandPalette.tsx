@@ -2,6 +2,7 @@
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { useHydrated } from "@/lib/use-hydrated";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -18,6 +19,7 @@ export function CommandPalette({ open, onClose }: Props) {
   const { t: uiText } = useI18n();
   const router = useRouter();
   const mounted = useHydrated();
+  useScrollLock(open);
   const [query, setQuery] = React.useState("");
   const [activeIndex, setActiveIndex] = React.useState(0);
   // A new query starts the keyboard selection from the top again.
@@ -38,10 +40,8 @@ export function CommandPalette({ open, onClose }: Props) {
   React.useEffect(() => {
     if (!open) return;
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
-    document.body.classList.add("scroll-locked");
     return () => {
       window.clearTimeout(t);
-      document.body.classList.remove("scroll-locked");
     };
   }, [open]);
 
@@ -113,7 +113,7 @@ export function CommandPalette({ open, onClose }: Props) {
             </kbd>
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           <SearchResultsList
             groups={groups}
             query={query}

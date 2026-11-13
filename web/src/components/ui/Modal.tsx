@@ -2,6 +2,7 @@
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { BookingThemeContext } from "@/components/booking/BookingTheme";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useDialogFocus } from "@/lib/use-dialog-focus";
@@ -41,6 +42,7 @@ export function Modal({
   const { t: uiText } = useI18n();
   const theme = React.useContext(BookingThemeContext);
   const mounted = useHydrated();
+  useScrollLock(open);
   const dialogRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
   useDialogFocus(open && mounted, dialogRef);
@@ -48,12 +50,10 @@ export function Modal({
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && dialogRef.current?.contains(document.activeElement)) onClose();
     };
-    document.body.classList.add("scroll-locked");
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.classList.remove("scroll-locked");
       window.removeEventListener("keydown", onKey);
     };
   }, [open, onClose]);
@@ -119,7 +119,7 @@ export function Modal({
           </div>
         )}
         {hasBody && (
-          <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+          <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable] px-6 py-5">{children}</div>
         )}
         {footer && (
           <div className="px-6 py-4 border-t border-line-soft flex justify-end gap-2 bg-surface-warm rounded-b-lg">

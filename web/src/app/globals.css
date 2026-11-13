@@ -88,6 +88,7 @@
 * { box-sizing: border-box; }
 
 html {
+  scrollbar-gutter: stable;
   scroll-behavior: smooth;
   /* Sticky public/admin headers are 64px; offset anchor jumps so the
      section title doesn't slide under the topbar. */

@@ -1701,3 +1701,42 @@ EN/TR/DE and the form editor was opened and saved in the browser. Separate dupli
 rows were removed by the authorized reset rather than hidden by UI deduplication. Integration
 tests now check their own notes, tasks, form responses and reminder idempotency against the
 richer seed; their records stay in a separate disposable test database.
+
+
+### Entry 063 — Repair form edits and catalog removal boundaries
+
+*2026-11-13.* Existing-form editing spread response-only IDs/timestamps into a strict PATCH
+body, causing rejected saves for type and attachment changes. Form service writes now
+allow-list input fields, and service-editor attachment updates load the actual persisted
+form rather than the mock array. Grouped controls use fieldset/legend semantics to avoid
+nested labels activating the wrong checkbox. The choice textarea previously trimmed and
+removed newlines during every keystroke; separate option inputs retain draft whitespace,
+with Enter advancing/appending and normalization at the service write boundary.
+
+All three catalog drawers confirm deactivation through both quick actions and saved edits.
+Their action uses committed state, so deactivation followed by activation works without
+reopening. Delete copy names attachment/item cleanup and preserved booking history.
+The reported crash was a service DELETE returning 500 after packages were removed: sessions
+still held a restrictive foreign key. The repository now locks the service, checks package
+and session references, and returns 409 instead of removing history. Unused-service deletion
+unlinks form attachments in the same transaction. Foreign keys remain a concurrent-reference
+backstop; only foreign-key violations map to the recoverable conflict. The mock follows the
+same reference policy. No schema change or developer database reset is required.
+
+Native `scrollbar-gutter: stable` reserves consistent width on the root and shared dialog
+scroll areas; custom absolute scrollbars were unnecessary and would replace browser/OS
+behavior. Nested confirmations exposed independent body-lock cleanup and Escape listeners:
+a small shared lock counter retains locking until the last overlay closes, and only the
+focused dialog handles Escape. Input minimum widths allow option rows to fit mobile drawers.
+
+Verification: 106 frontend tests pass; TypeScript and ESLint are clean; both mock and API
+production builds pass with real dotenv files excluded. Backend: 92 isolated tests and
+61 real-PostgreSQL integration tests pass; Ruff and mypy (103 files) are clean. Fresh
+migrations were applied only to disposable verification/browser databases. The API production
+server was exercised at `/admin/forms`, `/admin/services`, `/admin/packages`, `/admin/settings`
+and `/book/lena`: form creation, spaces/Enter/add-option, persisted choice-to-date and
+attachment edits, nested Escape/scroll locking, service deactivation/reactivation, package
+deletion then protected service deletion. The latter displayed the recoverable conflict and
+readiness remained 200. A 390px drawer has no horizontal overflow; measured main width is
+unchanged between forced scroll/hidden overflow. Developer data and real environment files
+were untouched. No deployment or external email delivery was attempted.

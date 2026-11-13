@@ -1552,6 +1552,17 @@ export const en = {
   "dashboard.emptyTitle": "Ready for your next session",
   "dashboard.emptyBody": "No upcoming sessions yet. Your next booking will appear here, with everything you need to prepare.",
   "dashboard.openCalendar": "Open calendar",
+  "forms.option.number": "Option {number}",
+  "forms.remove.option": "Remove option {number}",
+  "forms.add.option": "Add option",
+  "catalog.deactivate.named": "Deactivate {name}?",
+  "catalog.service.deactivate.effects": "This hides the service and public package offers containing it. Existing sessions and bookings stay unchanged.",
+  "catalog.form.deactivate.effects": "New bookings will no longer receive this form. Existing booking forms and answers are preserved.",
+  "catalog.package.deactivate.effects": "This hides the package offer. Its services and existing bookings stay unchanged.",
+  "catalog.service.delete.effects": "This removes an unused service and its form attachments. Services referenced by packages or sessions cannot be deleted; deactivate them instead.",
+  "catalog.form.delete.effects": "This removes the template and its service attachments. Existing booking forms and submitted answers are preserved.",
+  "catalog.package.delete.effects": "This removes the package offer and its item list. Services and existing bookings are preserved.",
+  "errors.serviceInUse": "This service has sessions or bookings and cannot be deleted. Deactivate it instead.",
 } as const;
 
 export type MessageKey = keyof typeof en;

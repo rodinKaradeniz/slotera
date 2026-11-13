@@ -433,6 +433,11 @@ answers without snapshots use current labels only when available and identify th
 approximate; missing labels retain field IDs. Older bookings gain no optional assignments.
 Exports, erasure and workspace deletion cover snapshots and responses.
 
+Catalog deactivation and deletion require confirmation with the affected relationships
+explained. Removing a form template also removes its service attachments, while booking
+snapshots and answers stay intact. Deactivating a form stops new assignments only.
+Choice questions are edited as individual single-line options, starting with two rows.
+
 ### Packages
 
 Persisted informational offers for presenting **multi-session offers** — the kind an independent consultant/coach/instructor runs: a 4-session coaching package, a strategy sprint package. `ServicePackage` (`web/src/types/package.ts`), seeded in `web/src/data/mock/packages.json`, served by `web/src/services/packages.service.ts` (`listPackages`, `getPackage`, `create`/`update`, `deactivate`/`activate`, `removePackage`, `listActivePackages`, `listPackagesForService`).
@@ -445,6 +450,12 @@ Persisted informational offers for presenting **multi-session offers** — the k
 - **`/booking/manage/demo`** shows a **display-only** Package tab ("Session N of M" + included services in order) when the booking is part of a package. No credit ledger, balance, or consumption.
 - **This is an informational offer model.** It does **not** implement real checkout, credit/balance ledgers, session consumption, entitlement rules, recurring billing, memberships, coupons, gift cards, or Stripe product/price objects. Future iterations may add package purchase, remaining credits, enrollment, reminders, and customer package management.
 - **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Essentials / Professional). Packages = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
+
+Services with sessions (including cancelled or historical sessions) cannot be deleted;
+deactivate them to retain booking history. Package references also block service deletion.
+Deleting an otherwise unused service removes only its form attachments. Deactivating a
+service also hides public package offers containing it; deactivating or deleting a package
+never deletes its services or bookings. Package deletion removes its ordered item rows.
 
 ### Branding
 

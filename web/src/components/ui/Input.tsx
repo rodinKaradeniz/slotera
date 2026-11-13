@@ -20,7 +20,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div
         className={cn(
-          "flex items-center gap-2 h-11 px-3 bg-surface border rounded-md transition-colors",
+          "min-w-0 flex items-center gap-2 h-11 px-3 bg-surface border rounded-md transition-colors",
           error ? "border-danger" : "border-line focus-within:border-ink-3",
           className,
         )}
@@ -29,7 +29,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {prefix && <span className="text-ink-3 text-[13px]">{prefix}</span>}
         <input
           ref={ref}
-          className="flex-1 bg-transparent outline-none text-[14px] text-ink placeholder:text-ink-4"
+          className="min-w-0 flex-1 bg-transparent outline-none text-[14px] text-ink placeholder:text-ink-4"
           {...rest}
         />
         {suffix && <span className="text-ink-3 text-[13px]">{suffix}</span>}

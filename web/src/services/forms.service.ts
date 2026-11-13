@@ -41,8 +41,21 @@ function mapForm(form: FormDto): FormTemplate {
   };
 }
 
-function createPayload(input: FormTemplateInput): FormCreateDto {
-  return input;
+function formPayload(input: Partial<FormTemplateInput>): Partial<FormTemplateInput> {
+  return {
+    ...(input.name !== undefined && { name: input.name }),
+    ...(input.description !== undefined && { description: input.description }),
+    ...(input.status !== undefined && { status: input.status }),
+    ...(input.requiredBeforePayment !== undefined && { requiredBeforePayment: input.requiredBeforePayment }),
+    ...(input.attachedServiceIds !== undefined && { attachedServiceIds: [...input.attachedServiceIds] }),
+    ...(input.fields !== undefined && { fields: input.fields.map((field) => ({
+      id: field.id, label: field.label, type: field.type, required: field.required,
+      placeholder: field.placeholder, helpText: field.helpText,
+      ...((field.type === "single_select" || field.type === "multi_select") && {
+        options: (field.options ?? []).map((option) => option.trim()).filter(Boolean),
+      }),
+    })) }),
+  };
 }
 
 export async function listForms(): Promise<FormTemplate[]> {
@@ -68,13 +81,13 @@ export async function createForm(
   if (dataSource === "api") {
     return mapForm(await apiRequest<FormDto, FormCreateDto>("/forms", {
       method: "POST",
-      body: createPayload(input),
+      body: formPayload(input) as FormCreateDto,
       csrf: true,
     }));
   }
   await sleep(120);
   const created: FormTemplate = {
-    ...input,
+    ...formPayload(input) as FormTemplateInput,
     id: makeId("frm"),
     createdAtISO: new Date().toISOString(),
   };
@@ -88,13 +101,13 @@ export async function updateForm(
 ): Promise<FormTemplate> {
   if (dataSource === "api") {
     return mapForm(await apiRequest<FormDto, Partial<FormCreateDto>>(`/forms/${encodeURIComponent(id)}`, {
-      method: "PATCH", body: patch, csrf: true,
+      method: "PATCH", body: formPayload(patch), csrf: true,
     }));
   }
   await sleep(100);
   const idx = mock.findIndex((f) => f.id === id);
   if (idx === -1) throw new NotFoundError("form", id);
-  const next: FormTemplate = { ...mock[idx], ...patch };
+  const next: FormTemplate = { ...mock[idx], ...formPayload(patch) };
   mock = [...mock.slice(0, idx), next, ...mock.slice(idx + 1)];
   return next;
 }
@@ -141,7 +154,7 @@ export async function setFormServiceAttachment(
   serviceId: string,
   attached: boolean,
 ): Promise<FormTemplate> {
-  const form = mock.find((f) => f.id === formId);
+  const form = await getForm(formId);
   if (!form) throw new NotFoundError("form", formId);
   const has = form.attachedServiceIds.includes(serviceId);
   if (attached === has) return form;

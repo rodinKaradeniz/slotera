@@ -2,18 +2,23 @@ from collections.abc import Mapping
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
+from sqlalchemy.exc import IntegrityError
 
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
+    FormTemplateService,
     LocationType,
     Service,
+    ServicePackageItem,
+    Session,
     Workspace,
     WorkspaceBusinessProfile,
     WorkspaceLocation,
     WorkspacePaymentSettings,
 )
+from slotera_api.errors import ApiError
 
 
 class OperatorResourcesRepository:
@@ -314,31 +319,40 @@ class OperatorResourcesRepository:
     async def delete_service(
         self, workspace_id: UUID, actor_user_id: UUID, service_id: UUID
     ) -> bool:
-        async with self.database.tenant_transaction(workspace_id) as session:
-            service = await session.scalar(
-                select(Service).where(
-                    Service.id == service_id,
-                    Service.workspace_id == workspace_id,
+        try:
+            async with self.database.tenant_transaction(workspace_id) as session:
+                service = await session.scalar(
+                    select(Service).where(
+                        Service.id == service_id, Service.workspace_id == workspace_id,
+                    ).with_for_update()
                 )
-            )
-            if service is None:
-                return False
-            from slotera_api.db.models import ServicePackageItem
-            from slotera_api.errors import ApiError
-            if await session.scalar(select(ServicePackageItem.id).where(
-                ServicePackageItem.workspace_id == workspace_id,
-                ServicePackageItem.service_id == service_id).limit(1)):
-                raise ApiError(status_code=409, code="service_in_package",
-                    message="Remove this service from its packages before deleting it")
-            await session.delete(service)
-            session.add(
-                AuditEvent(
-                    workspace_id=workspace_id,
-                    actor_user_id=actor_user_id,
-                    action="service.deleted",
-                    resource_type="service",
-                    resource_id=service_id,
+                if service is None:
+                    return False
+                if await session.scalar(select(ServicePackageItem.id).where(
+                    ServicePackageItem.workspace_id == workspace_id,
+                    ServicePackageItem.service_id == service_id).limit(1)):
+                    raise ApiError(status_code=409, code="service_in_package",
+                        message="Remove this service from its packages before deleting it")
+                if await session.scalar(select(Session.id).where(
+                    Session.workspace_id == workspace_id,
+                    Session.service_id == service_id).limit(1)):
+                    raise ApiError(status_code=409, code="service_in_use",
+                        message="This service has sessions or bookings. Deactivate it instead")
+                await session.execute(delete(FormTemplateService).where(
+                    FormTemplateService.workspace_id == workspace_id,
+                    FormTemplateService.service_id == service_id,
+                ))
+                await session.delete(service)
+                session.add(AuditEvent(
+                    workspace_id=workspace_id, actor_user_id=actor_user_id,
+                    action="service.deleted", resource_type="service", resource_id=service_id,
                     details={},
-                )
-            )
-            return True
+                ))
+                await session.flush()
+                return True
+        except IntegrityError as exc:
+            # Foreign keys remain the final guard against concurrent references.
+            if getattr(exc.orig, "sqlstate", None) == "23503":
+                raise ApiError(status_code=409, code="service_in_use",
+                    message="This service is still referenced. Deactivate it instead") from exc
+            raise

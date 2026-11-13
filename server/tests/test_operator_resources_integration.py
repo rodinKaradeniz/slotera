@@ -362,3 +362,51 @@ async def test_operator_updates_gross_inclusive_payment_and_tax_settings() -> No
     finally:
         await application.dispose()
         await owner.dispose()
+
+
+@pytest.mark.integration
+async def test_service_deletion_preserves_history_and_unlinks_only_unused_attachments() -> None:
+    owner = Database(get_migration_settings().migration_database_url)
+    application = Database(get_settings().database_url)
+    try:
+        await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
+        app = create_app(database=application)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await _login(client)
+            services = (await client.get("/services")).json()["items"]
+            used = next(item for item in services if item["name"] == "Discovery Call")
+            # Remove package references first, reproducing the reported failure.
+            packages = (await client.get("/packages")).json()["items"]
+            for package in packages:
+                await client.delete(f"/packages/{package['id']}", headers=_csrf_headers(client))
+            rejected = await client.delete(f"/services/{used['id']}", headers=_csrf_headers(client))
+            assert rejected.status_code == 409
+            assert rejected.json()["error"]["code"] == "service_in_use"
+            assert (await client.get(f"/services/{used['id']}")).status_code == 200
+            assert (await client.get("/health/ready")).status_code == 200
+
+            payload = {key: used[key] for key in (
+                "name", "description", "durationMin", "priceCents", "capacity", "locationType",
+                "location", "bookingMode", "confirmationPolicy", "cancellationRule", "active",
+            )}
+            payload["name"] = "Unused service for deletion"
+            created = await client.post("/services", headers=_csrf_headers(client), json=payload)
+            assert created.status_code == 201
+            service_id = created.json()["id"]
+            form = await client.post("/forms", headers=_csrf_headers(client), json={
+                "name": "Retained template", "description": "", "status": "active",
+                "fields": [{
+                    "id": "q", "label": "Question", "type": "short_text", "required": False,
+                }],
+                "attachedServiceIds": [service_id], "requiredBeforePayment": False,
+            })
+            assert form.status_code == 201
+            deleted = await client.delete(f"/services/{service_id}", headers=_csrf_headers(client))
+            assert deleted.status_code == 204
+            retained = await client.get(f"/forms/{form.json()['id']}")
+            assert retained.status_code == 200
+            assert retained.json()["attachedServiceIds"] == []
+            await client.delete(f"/forms/{form.json()['id']}", headers=_csrf_headers(client))
+    finally:
+        await application.dispose()
+        await owner.dispose()
