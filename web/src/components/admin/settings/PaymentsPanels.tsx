@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -17,23 +18,21 @@ import { PanelProps, PanelCard } from "./PanelCard";
 import { BookingTermsPanel } from "./CalendarPanels";
 
 export function PaymentsPanel({ data, onChange }: PanelProps) {
+  const { t: uiText } = useI18n();
   return (
     <>
       <Card padded>
         <div className="mb-4">
-          <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>Payment Processors</h2>
+          <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>{uiText("ui.payment.processors")}</h2>
           <p className="text-small mt-1">
-            How your clients pay you. To manage how you pay Slotera, see{" "}
-            <span className="text-ink-2">Billing &amp; Subscription</span>.
+            {uiText("ui.how.your.clients.pay.you.to.manage.how.you.pay.slotera.see")}{" "}
+            <span className="text-ink-2">{uiText("ui.billing.subscription")}</span>.
           </p>
         </div>
         <div className="flex items-start gap-2 rounded-md border border-line-soft bg-paper-2 px-3 py-2 mb-4 text-small text-ink-2">
           <Icon name="info" size={14} className="mt-0.5 shrink-0 text-ink-3" />
           <span>
-            Stripe-powered card payments may include processing fees. Fees vary
-            by payment method and region. Review Stripe pricing before enabling
-            live payments.
-          </span>
+            {uiText("ui.stripe.powered.card.payments.may.include.processing.fees.fees.vary.by.payment.method.and.r")}</span>
         </div>
         <div className="flex flex-col">
           {data.payments.processors.map((p) => (
@@ -49,10 +48,10 @@ export function PaymentsPanel({ data, onChange }: PanelProps) {
                 <div className="text-small">{p.detail}</div>
               </div>
               <Pill tone={p.status === "connected" ? "accent" : "neutral"}>
-                {p.status === "connected" ? "Connected" : "Not connected"}
+                {p.status === "connected" ? uiText("ui.connected") : uiText("ui.not.connected")}
               </Pill>
               <Button variant="secondary" size="sm">
-                {p.status === "connected" ? "Manage" : "Connect"}
+                {p.status === "connected" ? uiText("ui.manage") : uiText("ui.connect")}
               </Button>
             </div>
           ))}
@@ -61,12 +60,12 @@ export function PaymentsPanel({ data, onChange }: PanelProps) {
       <ManualPaymentPanel data={data} onChange={onChange} />
       <BookingTermsPanel data={data} onChange={onChange} />
       <Card padded>
-        <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 16 }}>Tax</h3>
+        <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 16 }}>{uiText("ui.tax")}</h3>
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Tax rate (%)">
+          <Field label={uiText("ui.tax.rate")}>
             <Input value={String(data.payments.taxRate)} readOnly />
           </Field>
-          <Field label="VAT number">
+          <Field label={uiText("ui.vat.number")}>
             <Input value={data.payments.vatNumber} readOnly />
           </Field>
         </div>
@@ -82,6 +81,7 @@ export function ApiPaymentsPanel({
   payments: PaymentSettings;
   onChange: (next: PaymentSettings) => void;
 }) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [local, setLocal] = React.useState(payments);
   const [saving, setSaving] = React.useState(false);
@@ -91,9 +91,9 @@ export function ApiPaymentsPanel({
       const next = await updatePaymentSettings(local);
       setLocal(next);
       onChange(next);
-      toast.success("Client payment settings saved");
+      toast.success(uiText("ui.client.payment.settings.saved"));
     } catch (error) {
-      toast.error("Couldn't save client payment settings", {
+      toast.error(uiText("ui.couldn.t.save.client.payment.settings"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -104,12 +104,9 @@ export function ApiPaymentsPanel({
     <div className="flex flex-col gap-6">
       <Card padded>
         <h3 className="text-h3 text-ink mb-1" style={{ fontSize: 18 }}>
-          Offline client payments
-        </h3>
+          {uiText("ui.offline.client.payments")}</h3>
         <p className="text-small mb-5">
-          Slotera records the booking as payment pending. The client pays using
-          instructions you provide outside Slotera.
-        </p>
+          {uiText("ui.slotera.records.the.booking.as.payment.pending.the.client.pays.using.instructions.you.prov")}</p>
         <ManualPaymentForm
           value={{
             enabled: local.manualPaymentEnabled,
@@ -126,12 +123,10 @@ export function ApiPaymentsPanel({
       </Card>
       <Card padded>
         <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 18 }}>
-          Booking terms
-        </h3>
+          {uiText("ui.booking.terms")}</h3>
         <div className="flex items-center justify-between mb-4">
           <span className="text-[14px] font-medium text-ink">
-            Show provider terms at checkout
-          </span>
+            {uiText("ui.show.provider.terms.at.checkout")}</span>
           <Toggle
             checked={local.bookingTermsEnabled}
             onChange={(bookingTermsEnabled) =>
@@ -150,14 +145,11 @@ export function ApiPaymentsPanel({
       </Card>
       <Card padded>
         <h3 className="text-h3 text-ink mb-1" style={{ fontSize: 18 }}>
-          Tax-inclusive pricing
-        </h3>
+          {uiText("ui.tax.inclusive.pricing")}</h3>
         <p className="text-small mb-5">
-          Published service prices are gross totals. A fixed rate splits that
-          total into net and tax snapshots when a booking is created.
-        </p>
+          {uiText("ui.published.service.prices.are.gross.totals.a.fixed.rate.splits.that.total.into.net.and.tax.")}</p>
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Tax treatment">
+          <Field label={uiText("ui.tax.treatment")}>
             <Select
               value={local.taxTreatment}
               onChange={(event) =>
@@ -168,12 +160,12 @@ export function ApiPaymentsPanel({
                 })
               }
               options={[
-                { value: "none", label: "No tax split" },
-                { value: "fixed", label: "Fixed tax rate" },
+                { value: "none", label: uiText("ui.no.tax.split") },
+                { value: "fixed", label: uiText("ui.fixed.tax.rate") },
               ]}
             />
           </Field>
-          <Field label="Tax rate (%)">
+          <Field label={uiText("ui.tax.rate")}>
             <Input
               type="number"
               min="0.01"
@@ -189,13 +181,13 @@ export function ApiPaymentsPanel({
               }
             />
           </Field>
-          <Field label="Tax label">
+          <Field label={uiText("ui.tax.label")}>
             <Input
               value={local.taxLabel}
               onChange={(event) => setLocal({ ...local, taxLabel: event.target.value })}
             />
           </Field>
-          <Field label="Jurisdiction (country code)">
+          <Field label={uiText("ui.jurisdiction.country.code")}>
             <Input
               maxLength={2}
               value={local.taxJurisdiction}
@@ -204,7 +196,7 @@ export function ApiPaymentsPanel({
               }
             />
           </Field>
-          <Field label="Seller tax number" className="sm:col-span-2">
+          <Field label={uiText("ui.seller.tax.number")} className="sm:col-span-2">
             <Input
               value={local.sellerTaxNumber}
               onChange={(event) =>
@@ -215,13 +207,14 @@ export function ApiPaymentsPanel({
         </div>
       </Card>
       <div className="flex justify-end">
-        <Button onClick={save} loading={saving}>Save client payments</Button>
+        <Button onClick={save} loading={saving}>{uiText("ui.save.client.payments")}</Button>
       </div>
     </div>
   );
 }
 
 export function ManualPaymentPanel({ data, onChange }: PanelProps) {
+  const { t: uiText } = useI18n();
   const [value, setValue] = React.useState({
     enabled: data.payments.manualPaymentEnabled,
     instructions: data.payments.manualPaymentInstructions,
@@ -252,8 +245,8 @@ export function ManualPaymentPanel({ data, onChange }: PanelProps) {
 
   return (
     <PanelCard
-      title="Manual Payment"
-      hint="Show clients custom payment instructions (bank transfer, Interac, etc.) at checkout. Bookings using manual payment stay pending until you confirm receipt."
+      title={uiText("ui.manual.payment")}
+      hint={uiText("ui.show.clients.custom.payment.instructions.bank.transfer.interac.etc.at.checkout.bookings.us")}
       onSave={save}
     >
       <ManualPaymentForm value={value} onChange={setValue} />
@@ -261,8 +254,7 @@ export function ManualPaymentPanel({ data, onChange }: PanelProps) {
       {data.payments.manualPaymentInstructions && (
         <div className="flex justify-end mt-4">
           <Button variant="ghost" size="sm" icon="trash" onClick={remove}>
-            Clear instructions
-          </Button>
+            {uiText("ui.clear.instructions")}</Button>
         </div>
       )}
     </PanelCard>

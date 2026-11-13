@@ -15,3 +15,10 @@ export async function getWorkspaceBilling(): Promise<WorkspaceBilling> {
   if (dataSource !== "api") throw new NotImplementedError("getWorkspaceBilling");
   return apiRequest<WorkspaceBilling>("/settings/billing");
 }
+
+export async function requestBillingChange(plan: "essentials" | "professional", billingInterval: "monthly" | "yearly"): Promise<void> {
+  if (dataSource !== "api") throw new NotImplementedError("requestBillingChange");
+  await apiRequest<void, components["schemas"]["BillingChangeRequest"]>("/settings/billing/change-request", {
+    method: "POST", csrf: true, body: { plan, billingInterval },
+  });
+}

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
@@ -48,6 +49,7 @@ const EMPTY_DRAFT: DraftFields = {
  * assignees, comments, reminders, or recurrence.
  */
 export function SessionActionItems({ sessionId, items, onChange, loading }: Props) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [draft, setDraft] = React.useState<DraftFields>(EMPTY_DRAFT);
   const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -81,9 +83,9 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       });
       onChange([...items, created]);
       setDraft(EMPTY_DRAFT);
-      toast.success("Action item added");
+      toast.success(uiText("ui.action.item.added"));
     } catch (err) {
-      toast.error("Couldn't add action item", {
+      toast.error(uiText("ui.couldn.t.add.action.item"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -105,7 +107,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       await toggleActionItemStatus(item.id, item.status);
     } catch (err) {
       onChange(snapshot);
-      toast.error("Couldn't update item", {
+      toast.error(uiText("ui.couldn.t.update.item"), {
         description: err instanceof Error ? err.message : undefined,
       });
     }
@@ -123,7 +125,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       await updateActionItem(item.id, { clientVisible: nextVisible });
     } catch (err) {
       onChange(snapshot);
-      toast.error("Couldn't update item", {
+      toast.error(uiText("ui.couldn.t.update.item"), {
         description: err instanceof Error ? err.message : undefined,
       });
     }
@@ -152,9 +154,9 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       });
       onChange(items.map((i) => (i.id === item.id ? next : i)));
       setEditingId(null);
-      toast.success("Action item updated");
+      toast.success(uiText("ui.action.item.updated"));
     } catch (err) {
-      toast.error("Couldn't update action item", {
+      toast.error(uiText("ui.couldn.t.update.action.item"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -169,9 +171,9 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       await deleteActionItem(pendingDelete.id);
       onChange(items.filter((i) => i.id !== pendingDelete.id));
       setPendingDelete(null);
-      toast.success("Action item removed");
+      toast.success(uiText("ui.action.item.removed"));
     } catch (err) {
-      toast.error("Couldn't remove action item", {
+      toast.error(uiText("ui.couldn.t.remove.action.item"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -182,11 +184,9 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h4 className="text-[13px] font-semibold text-ink">Action items</h4>
+        <h4 className="text-[13px] font-semibold text-ink">{uiText("ui.action.items")}</h4>
         <p className="text-micro text-ink-3 mt-0.5">
-          Track pre/post-session tasks. “Visible to client” flags an item for a
-          future client-facing surface — it stays admin-only for now.
-        </p>
+          {uiText("ui.track.pre.post.session.tasks.visible.to.client.flags.an.item.for.a.future.client.facing.su")}</p>
       </div>
 
       {/* List */}
@@ -197,8 +197,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
         </div>
       ) : sorted.length === 0 ? (
         <div className="rounded-md border border-dashed border-line p-5 text-small text-center text-ink-3">
-          No action items yet. Add the first task below.
-        </div>
+          {uiText("ui.no.action.items.yet.add.the.first.task.below")}</div>
       ) : (
         <ul className="flex flex-col gap-2">
           {sorted.map((item) => {
@@ -213,14 +212,14 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                   <div className="flex flex-col gap-2.5">
                     <Input
                       value={editDraft.title}
-                      placeholder="Task title"
+                      placeholder={uiText("ui.task.title")}
                       onChange={(e) =>
                         setEditDraft({ ...editDraft, title: e.target.value })
                       }
                     />
                     <Input
                       value={editDraft.description}
-                      placeholder="Description (optional)"
+                      placeholder={uiText("ui.description.optional")}
                       onChange={(e) =>
                         setEditDraft({ ...editDraft, description: e.target.value })
                       }
@@ -241,10 +240,9 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                           onChange={(v) =>
                             setEditDraft({ ...editDraft, clientVisible: v })
                           }
-                          aria-label="Visible to client"
+                          aria-label={uiText("ui.visible.to.client")}
                         />
-                        Visible to client
-                      </label>
+                        {uiText("ui.visible.to.client")}</label>
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button
@@ -253,16 +251,14 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                         onClick={() => setEditingId(null)}
                         disabled={busy}
                       >
-                        Cancel
-                      </Button>
+                        {uiText("ui.cancel")}</Button>
                       <Button
                         size="sm"
                         onClick={() => saveEdit(item)}
                         loading={busy}
                         disabled={editDraft.title.trim().length === 0}
                       >
-                        Save
-                      </Button>
+                        {uiText("ui.save")}</Button>
                     </div>
                   </div>
                 ) : (
@@ -270,7 +266,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                     <button
                       type="button"
                       onClick={() => toggle(item)}
-                      aria-label={done ? "Mark as to do" : "Mark as done"}
+                      aria-label={done ? uiText("ui.mark.as.to.do") : uiText("ui.mark.as.done")}
                       className={cn(
                         "mt-0.5 w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center shrink-0 transition-colors",
                         done
@@ -297,12 +293,11 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         {item.clientVisible && (
                           <Pill tone="accent" icon="user">
-                            Visible to client
-                          </Pill>
+                            {uiText("ui.visible.to.client")}</Pill>
                         )}
                         {item.dueDate && (
                           <Pill tone="neutral" icon="calendar">
-                            Due {item.dueDate}
+                            {uiText("ui.due")}{item.dueDate}
                           </Pill>
                         )}
                       </div>
@@ -313,13 +308,13 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                         onClick={() => toggleVisibility(item)}
                         aria-label={
                           item.clientVisible
-                            ? "Hide from client"
-                            : "Share with client"
+                            ? uiText("ui.hide.from.client")
+                            : uiText("ui.share.with.client")
                         }
                         title={
                           item.clientVisible
-                            ? "Hide from client"
-                            : "Share with client"
+                            ? uiText("ui.hide.from.client")
+                            : uiText("ui.share.with.client")
                         }
                         className={cn(
                           "w-7 h-7 rounded-md flex items-center justify-center transition-colors",
@@ -333,7 +328,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                       <button
                         type="button"
                         onClick={() => startEdit(item)}
-                        aria-label="Edit"
+                        aria-label={uiText("ui.edit")}
                         className="w-7 h-7 rounded-md flex items-center justify-center text-ink-4 hover:text-ink-2 hover:bg-paper-2 transition-colors"
                       >
                         <Icon name="edit" size={15} />
@@ -341,7 +336,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                       <button
                         type="button"
                         onClick={() => setPendingDelete(item)}
-                        aria-label="Remove"
+                        aria-label={uiText("ui.remove")}
                         className="w-7 h-7 rounded-md flex items-center justify-center text-ink-4 hover:text-danger hover:bg-paper-2 transition-colors"
                       >
                         <Icon name="trash" size={15} />
@@ -359,7 +354,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       <div className="rounded-md border border-line-soft bg-surface-warm p-3 flex flex-col gap-2.5">
         <Input
           value={draft.title}
-          placeholder="Add an action item…"
+          placeholder={uiText("ui.add.an.action.item")}
           onChange={(e) => setDraft({ ...draft, title: e.target.value })}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -373,7 +368,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
             type="date"
             value={draft.dueDate}
             className="w-auto"
-            aria-label="Due date"
+            aria-label={uiText("ui.due.date")}
             onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })}
           />
           <label className="flex items-center gap-2 text-small text-ink-2 select-none">
@@ -381,10 +376,9 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
               size="sm"
               checked={draft.clientVisible}
               onChange={(v) => setDraft({ ...draft, clientVisible: v })}
-              aria-label="Visible to client"
+              aria-label={uiText("ui.visible.to.client")}
             />
-            Visible to client
-          </label>
+            {uiText("ui.visible.to.client")}</label>
           <Button
             size="sm"
             icon="plus"
@@ -393,8 +387,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
             loading={busy && editingId === null}
             disabled={draft.title.trim().length === 0}
           >
-            Add
-          </Button>
+            {uiText("ui.add")}</Button>
         </div>
       </div>
 
@@ -402,10 +395,10 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
         open={!!pendingDelete}
         onClose={() => !busy && setPendingDelete(null)}
         onConfirm={confirmDelete}
-        title="Remove this action item?"
-        description="This task will be deleted. This can't be undone."
-        confirmLabel="Remove"
-        cancelLabel="Keep"
+        title={uiText("ui.remove.this.action.item")}
+        description={uiText("ui.this.task.will.be.deleted.this.can.t.be.undone")}
+        confirmLabel={uiText("ui.remove")}
+        cancelLabel={uiText("ui.keep")}
         destructive
         busy={busy}
       />

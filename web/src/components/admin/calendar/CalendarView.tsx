@@ -1,4 +1,6 @@
 "use client";
+import { readLang, localeForLang } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
@@ -31,8 +33,16 @@ const MONTH_NAMES = [
 ];
 
 function titleFor(view: CalView, anchor: Date): string {
+  const lang = readLang();
+  if (lang !== "en") {
+    const locale = localeForLang(lang);
+    if (view === "day") return new Intl.DateTimeFormat(locale, { dateStyle: "full" }).format(anchor);
+    if (view === "month") return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(anchor);
+    const days = buildWeekDays(anchor);
+    return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).formatRange(days[0], days[days.length - 1]);
+  }
   if (view === "day") {
-    return anchor.toLocaleDateString(undefined, {
+    return anchor.toLocaleDateString(localeForLang(readLang()), {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -82,6 +92,7 @@ async function loadCalendar() {
 }
 
 export function CalendarView() {
+  const { t: uiText } = useI18n();
   const { openSessionDrawer } = useDrawers();
   const [anchor, setAnchor] = React.useState(() =>
     dataSource === "api" ? new Date() : new Date(2026, 4, 11),
@@ -165,15 +176,15 @@ export function CalendarView() {
   const meta = `${plural(summaryCount, "session")} · ${plural(spotsOpen, "spot")} open`;
   const description =
     view === "day"
-      ? "Everything happening on this day at a glance."
+      ? uiText("ui.everything.happening.on.this.day.at.a.glance")
       : view === "week"
-        ? "Manage availability and bookings across the week."
-        : "Plan ahead across the month, with a chip per session.";
+        ? uiText("ui.manage.availability.and.bookings.across.the.week")
+        : uiText("ui.plan.ahead.across.the.month.with.a.chip.per.session");
 
   return (
     <PageContainer width="wide">
       <PageHeader
-        eyebrow="Schedule"
+        eyebrow={uiText("ui.schedule")}
         title={titleFor(view, anchor)}
         description={description}
         meta={meta}
@@ -185,7 +196,7 @@ export function CalendarView() {
                 type="button"
                 onClick={() => setAnchor(shift(view, anchor, -1))}
                 className="w-9 h-9 hover:bg-paper-2 text-ink-2 flex items-center justify-center"
-                aria-label={`Previous ${view}`}
+                aria-label={uiText("ui.previous.period", { period: uiText(`ui.${view}`) })}
               >
                 <Icon name="chevron-l" size={16} />
               </button>
@@ -194,13 +205,12 @@ export function CalendarView() {
                 onClick={() => setAnchor(new Date())}
                 className="px-3 h-9 text-[13px] hover:bg-paper-2 border-x border-line"
               >
-                Today
-              </button>
+                {uiText("ui.today")}</button>
               <button
                 type="button"
                 onClick={() => setAnchor(shift(view, anchor, 1))}
                 className="w-9 h-9 hover:bg-paper-2 text-ink-2 flex items-center justify-center"
-                aria-label={`Next ${view}`}
+                aria-label={uiText("ui.next.period", { period: uiText(`ui.${view}`) })}
               >
                 <Icon name="chevron-r" size={16} />
               </button>
@@ -209,9 +219,9 @@ export function CalendarView() {
               value={view}
               onChange={setView}
               options={[
-                { value: "day", label: "Day" },
-                { value: "week", label: "Week" },
-                { value: "month", label: "Month" },
+                { value: "day", label: uiText("ui.day") },
+                { value: "week", label: uiText("ui.week") },
+                { value: "month", label: uiText("ui.month") },
               ]}
               size="md"
             />
@@ -225,8 +235,7 @@ export function CalendarView() {
                 })
               }
             >
-              New session
-            </Button>
+              {uiText("ui.new.session")}</Button>
           </>
         }
       />

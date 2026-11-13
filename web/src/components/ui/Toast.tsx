@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -163,6 +164,7 @@ function ToastViewport({
   items: ToastItem[];
   onDismiss: (id: string) => void;
 }) {
+  const { t: uiText } = useI18n();
   const mounted = useHydrated();
   if (!mounted) return null;
   if (items.length === 0) return null;
@@ -173,7 +175,7 @@ function ToastViewport({
       // re-enables them. `aria-live` polite so screen readers announce them.
       className="fixed top-4 right-4 z-60 flex flex-col gap-2 pointer-events-none max-w-[calc(100vw-2rem)] w-[360px]"
       role="region"
-      aria-label="Notifications"
+      aria-label={uiText("ui.notifications")}
       aria-live="polite"
     >
       {items.map((item) => {
@@ -181,7 +183,7 @@ function ToastViewport({
         return (
           <div
             key={item.id}
-            data-state={item.closing ? "closed" : "open"}
+            data-state={item.closing ? "closed" : uiText("ui.open")}
             className={cn(
               "toast-item pointer-events-auto bg-surface border border-line rounded-lg shadow-3 px-3.5 py-3 flex items-center gap-3",
               meta.ring,
@@ -210,7 +212,7 @@ function ToastViewport({
               type="button"
               onClick={() => onDismiss(item.id)}
               className="shrink-0 text-ink-3 hover:text-ink p-1 -m-1 rounded-md"
-              aria-label="Dismiss notification"
+              aria-label={uiText("ui.dismiss.notification")}
             >
               <Icon name="x" size={14} />
             </button>

@@ -1,8 +1,11 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { useLoad } from "@/lib/use-load";
+import { LoadError } from "@/components/shared/LoadError";
 import { plural } from "@/lib/text";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -13,22 +16,16 @@ import { LoadingRows } from "@/components/shared/LoadingRows";
 import { PackageCard } from "./PackageCard";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { listPackages } from "@/services/packages.service";
-import type { ServicePackage } from "@/types/package";
 
 type StatusFilter = "all" | "active" | "inactive";
 
 export function PackagesView() {
+  const { t: uiText } = useI18n();
   const { openPackageDrawer } = useDrawers();
-  const [items, setItems] = React.useState<ServicePackage[] | null>(null);
-  const [reload, setReload] = React.useState(0);
+  const { data: items, error, reload: refresh } = useLoad(listPackages);
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<StatusFilter>("all");
 
-  React.useEffect(() => {
-    listPackages().then(setItems);
-  }, [reload]);
-
-  const refresh = () => setReload((k) => k + 1);
 
   const filtered = (items ?? []).filter((p) => {
     if (status !== "all" && p.status !== status) return false;
@@ -42,16 +39,15 @@ export function PackagesView() {
 
   return (
     <PageContainer>
+      {error && <LoadError message={error} onRetry={refresh} />}
       <PageHeader
-        eyebrow="Catalog"
-        title="Packages"
-        description="Multi-session offers — ordered bundles of your services. Presentational for now; clients still book individual sessions."
+        eyebrow={uiText("ui.catalog")}
+        title={uiText("ui.packages")}
+        description={uiText("ui.multi.session.offers.ordered.bundles.of.your.services.presentational.for.now.clients.still")}
         meta={
           items
-            ? `${plural(items.length, "package")} · ${
-                items.filter((p) => p.status === "active").length
-              } active`
-            : "Loading…"
+            ? `${plural(items.length, "package")} · ${uiText("ui.active.count", { count: items.filter((item) => item.status === "active").length })}`
+            : uiText("ui.loading")
         }
         actions={
           <Button
@@ -60,8 +56,7 @@ export function PackagesView() {
             icon="plus"
             onClick={() => openPackageDrawer({ onSaved: refresh })}
           >
-            New package
-          </Button>
+            {uiText("ui.new.package")}</Button>
         }
       />
 
@@ -69,7 +64,7 @@ export function PackagesView() {
         <div className="flex-1 min-w-[220px]">
           <Input
             icon="search"
-            placeholder="Search packages"
+            placeholder={uiText("ui.search.packages")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -78,9 +73,9 @@ export function PackagesView() {
           value={status}
           onChange={setStatus}
           options={[
-            { value: "all", label: "All" },
-            { value: "active", label: "Active" },
-            { value: "inactive", label: "Inactive" },
+            { value: "all", label: uiText("ui.all") },
+            { value: "active", label: uiText("ui.active") },
+            { value: "inactive", label: uiText("ui.inactive") },
           ]}
         />
       </div>
@@ -111,7 +106,7 @@ export function PackagesView() {
               <span className="w-10 h-10 rounded-md bg-paper-2 flex items-center justify-center">
                 <Icon name="plus" size={20} />
               </span>
-              <span className="text-[14px] font-medium">New package</span>
+              <span className="text-[14px] font-medium">{uiText("ui.new.package")}</span>
             </div>
           </Card>
         </div>

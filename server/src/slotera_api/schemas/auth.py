@@ -39,6 +39,7 @@ class SessionResponse(ApiModel):
 
 
 class PasswordResetRequest(ApiModel):
+    language: Literal["en", "tr", "de"] = "en"
     email: EmailStr
 
 
@@ -58,6 +59,7 @@ WorkspaceSlug = Annotated[
 
 
 class SignupRequest(StrictApiModel):
+    language: Literal["en", "tr", "de"] = "en"
     workspace_name: Annotated[NonBlank, Field(max_length=160)]
     slug: WorkspaceSlug
     first_names: Annotated[NonBlank, Field(max_length=160)]

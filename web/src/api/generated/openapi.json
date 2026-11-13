@@ -346,6 +346,33 @@
         "title": "AvailabilityWindowInput",
         "type": "object"
       },
+      "BillingChangeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "billingInterval": {
+            "enum": [
+              "monthly",
+              "yearly"
+            ],
+            "title": "Billinginterval",
+            "type": "string"
+          },
+          "plan": {
+            "enum": [
+              "essentials",
+              "professional"
+            ],
+            "title": "Plan",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "billingInterval"
+        ],
+        "title": "BillingChangeRequest",
+        "type": "object"
+      },
       "BookingAttendanceCommand": {
         "additionalProperties": false,
         "properties": {
@@ -574,6 +601,115 @@
           "company"
         ],
         "title": "BookingCustomerSnapshot",
+        "type": "object"
+      },
+      "BookingFormSubmit": {
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/PublicFormAnswer"
+            },
+            "maxItems": 100,
+            "title": "Answers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "answers"
+        ],
+        "title": "BookingFormSubmit",
+        "type": "object"
+      },
+      "BookingFormView": {
+        "properties": {
+          "answers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PublicFormAnswer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answers"
+          },
+          "canSubmit": {
+            "default": false,
+            "title": "Cansubmit",
+            "type": "boolean"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FormFieldInput"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "historicalApproximation": {
+            "default": false,
+            "title": "Historicalapproximation",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "requiredBeforePayment": {
+            "title": "Requiredbeforepayment",
+            "type": "boolean"
+          },
+          "submittedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submittedat"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "fields",
+          "answers",
+          "submittedAt",
+          "requiredBeforePayment"
+        ],
+        "title": "BookingFormView",
+        "type": "object"
+      },
+      "BookingFormsResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BookingFormView"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "BookingFormsResponse",
         "type": "object"
       },
       "BookingListResponse": {
@@ -1033,6 +1169,27 @@
           "updatedAt"
         ],
         "title": "BookingResponse",
+        "type": "object"
+      },
+      "Branding": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "default": "#3d5a3d",
+            "title": "Accent",
+            "type": "string"
+          },
+          "fontFamily": {
+            "default": "serif",
+            "enum": [
+              "serif",
+              "sans"
+            ],
+            "title": "Fontfamily",
+            "type": "string"
+          }
+        },
+        "title": "Branding",
         "type": "object"
       },
       "BusinessSettingsPatch": {
@@ -1630,6 +1787,14 @@
               "$ref": "#/components/schemas/ClientExportFormResponse"
             },
             "title": "Formresponses",
+            "type": "array"
+          },
+          "formSnapshots": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Formsnapshots",
             "type": "array"
           },
           "notes": {
@@ -2655,6 +2820,25 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "LanguagePreference": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language"
+        ],
+        "title": "LanguagePreference",
+        "type": "object"
+      },
       "LocationType": {
         "enum": [
           "online",
@@ -2733,6 +2917,9 @@
             ],
             "title": "Approvalstatus",
             "type": "string"
+          },
+          "branding": {
+            "$ref": "#/components/schemas/Branding"
           },
           "canCancel": {
             "title": "Cancancel",
@@ -3023,6 +3210,256 @@
         "title": "OperatorBookingCreate",
         "type": "object"
       },
+      "PackageInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Description",
+            "type": "string"
+          },
+          "featured": {
+            "default": false,
+            "title": "Featured",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PackageItemInput"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "priceCents": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Pricecents",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "inactive"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "priceCents",
+          "items"
+        ],
+        "title": "PackageInput",
+        "type": "object"
+      },
+      "PackageItemInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "serviceId"
+        ],
+        "title": "PackageItemInput",
+        "type": "object"
+      },
+      "PackageItemView": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "order": {
+            "title": "Order",
+            "type": "integer"
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "serviceId",
+          "id",
+          "order"
+        ],
+        "title": "PackageItemView",
+        "type": "object"
+      },
+      "PackageList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PackageView"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PackageList",
+        "type": "object"
+      },
+      "PackageView": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "featured": {
+            "title": "Featured",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PackageItemView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "inactive"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "priceCents",
+          "currency",
+          "items",
+          "featured",
+          "status",
+          "notes",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "PackageView",
+        "type": "object"
+      },
       "PasswordChange": {
         "properties": {
           "currentPassword": {
@@ -3083,6 +3520,16 @@
           "email": {
             "format": "email",
             "title": "Email",
+            "type": "string"
+          },
+          "language": {
+            "default": "en",
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
             "type": "string"
           }
         },
@@ -4122,6 +4569,16 @@
             "title": "Formresponses",
             "type": "array"
           },
+          "language": {
+            "default": "en",
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
           "paymentMethod": {
             "enum": [
               "free",
@@ -4547,6 +5004,69 @@
         "title": "PublicInquiryCreate",
         "type": "object"
       },
+      "PublicPackageList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicPackageView"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PublicPackageList",
+        "type": "object"
+      },
+      "PublicPackageView": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "featured": {
+            "title": "Featured",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PackageItemView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "priceCents",
+          "currency",
+          "items",
+          "featured"
+        ],
+        "title": "PublicPackageView",
+        "type": "object"
+      },
       "PublicPilotApplication": {
         "additionalProperties": false,
         "description": "The pilot waitlist form. Stored as a `pilot` inquiry for staff to review.",
@@ -4799,6 +5319,9 @@
           "bookingTermsEnabled": {
             "title": "Bookingtermsenabled",
             "type": "boolean"
+          },
+          "branding": {
+            "$ref": "#/components/schemas/Branding"
           },
           "currency": {
             "title": "Currency",
@@ -6380,6 +6903,16 @@
             "title": "Firstnames",
             "type": "string"
           },
+          "language": {
+            "default": "en",
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
           "lastName": {
             "maxLength": 160,
             "minLength": 1,
@@ -6870,6 +7403,66 @@
           }
         },
         "summary": "Change Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/preferences": {
+      "get": {
+        "operationId": "getLanguagePreference",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguagePreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Preference",
+        "tags": [
+          "auth"
+        ]
+      },
+      "patch": {
+        "operationId": "setLanguagePreference",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LanguagePreference"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguagePreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Preference",
         "tags": [
           "auth"
         ]
@@ -7556,6 +8149,49 @@
           }
         },
         "summary": "Decline Booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{booking_id}/forms": {
+      "get": {
+        "operationId": "getBookingForms",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingFormsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Booking Forms",
         "tags": [
           "bookings"
         ]
@@ -8529,6 +9165,194 @@
         ]
       }
     },
+    "/packages": {
+      "get": {
+        "operationId": "listPackages",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Packages",
+        "tags": [
+          "packages"
+        ]
+      },
+      "post": {
+        "operationId": "createPackage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Package",
+        "tags": [
+          "packages"
+        ]
+      }
+    },
+    "/packages/{package_id}": {
+      "delete": {
+        "operationId": "deletePackage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Package",
+        "tags": [
+          "packages"
+        ]
+      },
+      "get": {
+        "operationId": "getPackage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Package",
+        "tags": [
+          "packages"
+        ]
+      },
+      "put": {
+        "operationId": "updatePackage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Package",
+        "tags": [
+          "packages"
+        ]
+      }
+    },
     "/platform/inquiries": {
       "get": {
         "operationId": "listPlatformInquiries",
@@ -8983,6 +9807,114 @@
         ]
       }
     },
+    "/public/bookings/manage/forms": {
+      "get": {
+        "operationId": "getManagedBookingForms",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Booking-Token",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 32,
+              "title": "X-Booking-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingFormsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Managed Forms",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/bookings/manage/forms/{form_id}/submit": {
+      "post": {
+        "operationId": "submitManagedBookingForm",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "form_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Form Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Booking-Token",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 32,
+              "title": "X-Booking-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingFormSubmit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingFormsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Managed Form",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
     "/public/bookings/manage/reschedule": {
       "post": {
         "operationId": "rescheduleManagedBooking",
@@ -9220,6 +10152,48 @@
           }
         },
         "summary": "Create Public Booking",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/workspaces/{workspace_slug}/packages": {
+      "get": {
+        "operationId": "listPublicPackages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_slug",
+            "required": true,
+            "schema": {
+              "title": "Workspace Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPackageList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Public Packages",
         "tags": [
           "public-booking"
         ]
@@ -10204,6 +11178,111 @@
           }
         },
         "summary": "Get Workspace Billing",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/settings/billing/change-request": {
+      "post": {
+        "operationId": "requestBillingChange",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Requestbillingchange",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Billing Change",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/settings/branding": {
+      "get": {
+        "operationId": "getBranding",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Branding"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Branding",
+        "tags": [
+          "settings"
+        ]
+      },
+      "patch": {
+        "operationId": "updateBranding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Branding"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Branding"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Branding",
         "tags": [
           "settings"
         ]

@@ -1,4 +1,5 @@
 "use client";
+import { readLang, localeForLang } from "@/lib/i18n";
 
 import * as React from "react";
 import { sameDay } from "@/lib/calendar";
@@ -32,7 +33,7 @@ export function DayGrid({ anchor, events, selectedId, onSelect }: Props) {
           )}
         >
           <div className="text-micro">
-            {anchor.toLocaleDateString(undefined, { weekday: "short" })}
+            {anchor.toLocaleDateString(localeForLang(readLang()), { weekday: "short" })}
           </div>
           <div className={cn("font-serif text-[20px]", today && "text-accent-ink")}>
             {anchor.getDate()}

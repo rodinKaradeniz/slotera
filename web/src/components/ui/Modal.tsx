@@ -1,6 +1,8 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
+import { BookingThemeContext } from "@/components/booking/BookingTheme";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useDialogFocus } from "@/lib/use-dialog-focus";
 import { createPortal } from "react-dom";
@@ -36,6 +38,8 @@ export function Modal({
   footer,
   className,
 }: ModalProps) {
+  const { t: uiText } = useI18n();
+  const theme = React.useContext(BookingThemeContext);
   const mounted = useHydrated();
   const dialogRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
@@ -65,9 +69,10 @@ export function Modal({
 
   return createPortal(
     <div
+      style={theme}
       ref={dialogRef}
       tabIndex={-1}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 fade-in outline-none"
+      className="booking-theme fixed inset-0 z-50 flex items-center justify-center p-4 fade-in outline-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? titleId : undefined}
@@ -107,7 +112,7 @@ export function Modal({
               type="button"
               onClick={onClose}
               className="text-ink-3 hover:text-ink p-1 -mr-1 -mt-1 rounded-md"
-              aria-label="Close"
+              aria-label={uiText("ui.close")}
             >
               <Icon name="x" size={18} />
             </button>

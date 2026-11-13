@@ -1,5 +1,7 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { useWorkspaceCurrency } from "@/lib/use-workspace-currency";
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
@@ -52,25 +54,28 @@ export function PackageDrawer({
   onSaved,
   onRemoved,
 }: PackageDrawerProps) {
+  const { t: uiText } = useI18n();
+  const workspaceCurrency = useWorkspaceCurrency();
+  const defaults = { ...DEFAULTS, currency: workspaceCurrency };
   const isEdit = !!initial;
   const { toast } = useToast();
   const [form, setForm] = React.useState<PackageFormValue>(
-    initial ? toFormValue(initial) : DEFAULTS,
+    initial ? toFormValue(initial) : defaults,
   );
   const [busy, setBusy] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
 
-  useResetOnOpen(open, [initial], () =>
-    setForm(initial ? toFormValue(initial) : DEFAULTS),
+  useResetOnOpen(open, [initial, workspaceCurrency], () =>
+    setForm(initial ? toFormValue(initial) : defaults),
   );
 
   const save = async () => {
     if (!form.name.trim()) {
-      toast.error("Add a name first");
+      toast.error(uiText("ui.add.a.name.first"));
       return;
     }
     if (form.priceCents < 0) {
-      toast.error("Price can't be negative");
+      toast.error(uiText("ui.price.can.t.be.negative"));
       return;
     }
     setBusy(true);
@@ -78,15 +83,15 @@ export function PackageDrawer({
       if (isEdit && initial) {
         const next = await updatePackage(initial.id, form);
         onSaved?.(next);
-        toast.success("Package updated");
+        toast.success(uiText("ui.package.updated"));
       } else {
         const next = await createPackage(form);
         onSaved?.(next);
-        toast.success("Package created");
+        toast.success(uiText("ui.package.created"));
       }
       onClose();
     } catch (err) {
-      toast.error("Couldn't save package", {
+      toast.error(uiText("ui.couldn.t.save.package"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -105,10 +110,10 @@ export function PackageDrawer({
       onSaved?.(next);
       setForm((f) => ({ ...f, status: next.status }));
       toast.success(
-        next.status === "active" ? "Package activated" : "Package deactivated",
+        next.status === "active" ? uiText("ui.package.activated") : uiText("ui.package.deactivated"),
       );
     } catch (err) {
-      toast.error("Couldn't update package", {
+      toast.error(uiText("ui.couldn.t.update.package"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -122,11 +127,11 @@ export function PackageDrawer({
     try {
       await removePackage(initial.id);
       onRemoved?.(initial.id);
-      toast.success("Package deleted");
+      toast.success(uiText("ui.package.deleted"));
       setConfirmDelete(false);
       onClose();
     } catch (err) {
-      toast.error("Couldn't delete package", {
+      toast.error(uiText("ui.couldn.t.delete.package"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -138,16 +143,14 @@ export function PackageDrawer({
     <DrawerShell
       open={open}
       onClose={onClose}
-      eyebrow={isEdit ? "Edit package" : "New package"}
-      title={isEdit ? form.name || "Untitled package" : "Create a package"}
+      eyebrow={isEdit ? uiText("ui.edit.package") : uiText("ui.new.package")}
+      title={isEdit ? form.name || "Untitled package" : uiText("ui.create.a.package")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
+            {uiText("ui.cancel")}</Button>
           <Button onClick={save} loading={busy}>
-            Save
-          </Button>
+            {uiText("ui.save")}</Button>
         </>
       }
     >
@@ -158,12 +161,10 @@ export function PackageDrawer({
           <div className="mt-4 pt-5 border-t border-line-soft">
             <div className="flex items-center gap-2 mb-2">
               <Icon name="alert" size={14} className="text-danger" />
-              <span className="font-medium text-ink">Danger zone</span>
+              <span className="font-medium text-ink">{uiText("ui.danger.zone")}</span>
             </div>
             <p className="text-small mb-3">
-              Deactivating hides it from the booking hint; removing deletes it
-              permanently.
-            </p>
+              {uiText("ui.deactivating.hides.it.from.the.booking.hint.removing.deletes.it.permanently")}</p>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
@@ -171,7 +172,7 @@ export function PackageDrawer({
                 onClick={toggleActive}
                 disabled={busy}
               >
-                {form.status === "active" ? "Deactivate" : "Activate"}
+                {form.status === "active" ? uiText("ui.deactivate") : uiText("ui.activate")}
               </Button>
               <Button
                 variant="danger"
@@ -180,8 +181,7 @@ export function PackageDrawer({
                 onClick={() => setConfirmDelete(true)}
                 disabled={busy}
               >
-                Remove package
-              </Button>
+                {uiText("ui.remove.package")}</Button>
             </div>
           </div>
         )}
@@ -191,9 +191,9 @@ export function PackageDrawer({
         open={confirmDelete}
         onClose={() => !busy && setConfirmDelete(false)}
         onConfirm={remove}
-        title={`Delete "${initial?.name ?? "this package"}"?`}
-        description="This permanently removes the package. Services stay as they are; they just won't be bundled in it anymore."
-        confirmLabel="Delete package"
+        title={uiText("ui.remove.named", { name: initial?.name ?? uiText("ui.package") })}
+        description={uiText("ui.this.permanently.removes.the.package.services.stay.as.they.are.they.just.won.t.be.bundled.")}
+        confirmLabel={uiText("ui.delete.package")}
         destructive
         busy={busy}
       />

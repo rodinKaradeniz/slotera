@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -9,23 +10,23 @@ import { cn } from "@/lib/cn";
 type Props = { items: PendingAction[] };
 
 export function PendingActions({ items }: Props) {
+  const { t: uiText } = useI18n();
   const [list, setList] = React.useState(items);
   return (
     <Card padded={false} className="h-full flex flex-col">
       <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-4 border-b border-line-soft">
         <div>
-          <div className="eyebrow mb-1">Needs your attention</div>
+          <div className="eyebrow mb-1">{uiText("ui.needs.your.attention")}</div>
           <div
             className="font-serif text-ink"
             style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.01em" }}
           >
-            {list.length} pending
-          </div>
+            {list.length} {uiText("ui.pending")}</div>
         </div>
         <button
           type="button"
           onClick={() => setList([...items])}
-          aria-label="Refresh"
+          aria-label={uiText("ui.refresh")}
           className="text-ink-3 hover:text-ink w-7 h-7 rounded-md flex items-center justify-center"
         >
           <Icon name="refresh" size={14} />
@@ -33,7 +34,7 @@ export function PendingActions({ items }: Props) {
       </div>
       <div className="flex-1">
         {list.length === 0 && (
-          <div className="px-5 py-6 text-small text-center">All caught up.</div>
+          <div className="px-5 py-6 text-small text-center">{uiText("ui.all.caught.up")}</div>
         )}
         {list.map((p) => (
           <div

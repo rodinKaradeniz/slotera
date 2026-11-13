@@ -24,3 +24,10 @@ describe("translations", () => {
     expect(extra).toEqual([]);
   });
 });
+
+it.each([["tr", tr], ["de", de]] as const)("%s preserves interpolation variables", (_lang, dictionary) => {
+  const variables = (value: string) => [...value.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort();
+  for (const key of Object.keys(en) as (keyof typeof en)[]) {
+    expect(variables(dictionary[key] ?? ""), key).toEqual(variables(en[key]));
+  }
+});

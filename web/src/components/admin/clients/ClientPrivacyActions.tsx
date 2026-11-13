@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +20,7 @@ export function ClientPrivacyActions({
   client: Client;
   onErased: () => void;
 }) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [busy, setBusy] = React.useState(false);
   const [confirming, setConfirming] = React.useState(false);
@@ -37,7 +39,7 @@ export function ClientPrivacyActions({
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error("Couldn't export client data", {
+      toast.error(uiText("ui.couldn.t.export.client.data"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -47,19 +49,19 @@ export function ClientPrivacyActions({
 
   const erase = async () => {
     if (typed.trim().toLowerCase() !== client.email.toLowerCase()) {
-      toast.error("Type the client's email exactly to confirm.");
+      toast.error(uiText("ui.type.the.client.s.email.exactly.to.confirm"));
       return;
     }
     setBusy(true);
     try {
       await eraseClient(client.id, typed);
       setConfirming(false);
-      toast.success("Client erased", {
-        description: "Personal details are gone; booking amounts were kept.",
+      toast.success(uiText("ui.client.erased"), {
+        description: uiText("ui.personal.details.are.gone.booking.amounts.were.kept"),
       });
       onErased();
     } catch (error) {
-      toast.error("Couldn't erase client", {
+      toast.error(uiText("ui.couldn.t.erase.client"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -70,8 +72,7 @@ export function ClientPrivacyActions({
   return (
     <>
       <Button variant="ghost" size="md" icon="download" onClick={download} disabled={busy}>
-        Download data
-      </Button>
+        {uiText("ui.download.data")}</Button>
       <Button
         variant="ghost"
         size="md"
@@ -82,29 +83,25 @@ export function ClientPrivacyActions({
         }}
         disabled={busy}
       >
-        Erase client
-      </Button>
+        {uiText("ui.erase.client")}</Button>
       <ConfirmDialog
         open={confirming}
         onClose={() => !busy && setConfirming(false)}
         onConfirm={erase}
-        title="Erase this client?"
+        title={uiText("ui.erase.this.client")}
         description={
           <span className="flex flex-col gap-3">
             <span>
-              Their name, contact details, billing addresses, notes, form answers and booking
-              links are removed permanently. Booking amounts and payment status stay for your
-              records. This can&apos;t be undone.
-            </span>
+              {uiText("ui.their.name.contact.details.billing.addresses.notes.form.answers.and.booking.links.are.remo")}</span>
             <Input
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
               placeholder={client.email}
-              aria-label="Type the client's email to confirm"
+              aria-label={uiText("ui.type.the.client.s.email.to.confirm")}
             />
           </span>
         }
-        confirmLabel="Erase permanently"
+        confirmLabel={uiText("ui.erase.permanently")}
         destructive
         busy={busy}
       />

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -21,6 +22,7 @@ import {
 import type { ClientNote } from "@/types/client-note";
 
 export function ClientNotes({ clientId }: { clientId: string }) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [notes, setNotes] = React.useState<ClientNote[] | null>(null);
   const [reload, setReload] = React.useState(0);
@@ -67,8 +69,8 @@ export function ClientNotes({ clientId }: { clientId: string }) {
     setSaving(false);
   };
 
-  const titleError = touched && !title.trim() ? "A title is required." : "";
-  const bodyError = touched && !body.trim() ? "A note is required." : "";
+  const titleError = touched && !title.trim() ? uiText("ui.a.title.is.required") : "";
+  const bodyError = touched && !body.trim() ? uiText("ui.a.note.is.required") : "";
   const canSave = title.trim().length > 0 && body.trim().length > 0;
 
   const save = async () => {
@@ -82,19 +84,19 @@ export function ClientNotes({ clientId }: { clientId: string }) {
           title: title.trim(),
           body,
         });
-        toast.success("Note added");
+        toast.success(uiText("ui.note.added"));
       } else {
         await updateClientNote(editing.id, {
           title: title.trim(),
           body,
         });
-        toast.success("Note saved");
+        toast.success(uiText("ui.note.saved"));
       }
       setReload((k) => k + 1);
       closeModal();
     } catch (err) {
       setSaving(false);
-      toast.error("Couldn't save note", {
+      toast.error(uiText("ui.couldn.t.save.note"), {
         description: err instanceof Error ? err.message : undefined,
       });
     }
@@ -106,10 +108,10 @@ export function ClientNotes({ clientId }: { clientId: string }) {
     try {
       await deleteClientNote(pendingDelete.id);
       setReload((k) => k + 1);
-      toast.success("Note deleted");
+      toast.success(uiText("ui.note.deleted"));
       setPendingDelete(null);
     } catch (err) {
-      toast.error("Couldn't delete note", {
+      toast.error(uiText("ui.couldn.t.delete.note"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -122,20 +124,16 @@ export function ClientNotes({ clientId }: { clientId: string }) {
       <Card padded>
         <div className="flex items-center justify-between gap-3 mb-4">
           <h3 className="text-h3 text-ink" style={{ fontSize: 16 }}>
-            Notes
-          </h3>
+            {uiText("ui.notes")}</h3>
           <Button variant="secondary" size="sm" icon="plus" onClick={openNew}>
-            Add note
-          </Button>
+            {uiText("ui.add.note")}</Button>
         </div>
 
         {!notes ? (
           <LoadingRows count={2} />
         ) : notes.length === 0 ? (
           <div className="text-small text-ink-3 border border-dashed border-line rounded-lg px-5 py-8 text-center">
-            No notes yet. Add context you want to remember before future
-            sessions.
-          </div>
+            {uiText("ui.no.notes.yet.add.context.you.want.to.remember.before.future.sessions")}</div>
         ) : (
           <ul className="flex flex-col gap-3">
             {notes.map((note) => (
@@ -155,22 +153,22 @@ export function ClientNotes({ clientId }: { clientId: string }) {
                       variant="ghost"
                       size="sm"
                       icon="edit"
-                      aria-label="Edit note"
+                      aria-label={uiText("ui.edit.note")}
                       onClick={() => openEdit(note)}
                     />
                     <Button
                       variant="ghost"
                       size="sm"
                       icon="trash"
-                      aria-label="Delete note"
+                      aria-label={uiText("ui.delete.note")}
                       onClick={() => setPendingDelete(note)}
                     />
                   </div>
                 </div>
                 <div className="text-micro text-ink-3 mt-3">
                   {note.updatedAtISO !== note.createdAtISO
-                    ? `Updated ${fmtDate(new Date(note.updatedAtISO), "short")}`
-                    : `Added ${fmtDate(new Date(note.createdAtISO), "short")}`}
+                    ? uiText("ui.note.updated", { date: fmtDate(new Date(note.updatedAtISO), "short") })
+                    : uiText("ui.note.added", { date: fmtDate(new Date(note.createdAtISO), "short") })}
                 </div>
               </li>
             ))}
@@ -181,44 +179,41 @@ export function ClientNotes({ clientId }: { clientId: string }) {
       <Modal
         open={editing !== null}
         onClose={closeModal}
-        title={editing === "new" ? "Add note" : "Edit note"}
+        title={editing === "new" ? uiText("ui.add.note") : uiText("ui.edit.note")}
         size="md"
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="secondary" size="md" onClick={closeModal}>
-              Cancel
-            </Button>
+              {uiText("ui.cancel")}</Button>
             <Button
               variant="primary"
               size="md"
               onClick={save}
               disabled={saving}
             >
-              {editing === "new" ? "Add note" : "Save note"}
+              {editing === "new" ? uiText("ui.add.note") : uiText("ui.save.note")}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <Field label="Title" required error={titleError}>
+          <Field label={uiText("ui.title")} required error={titleError}>
             <Input
               value={title}
-              placeholder="e.g. Prefers morning sessions"
+              placeholder={uiText("ui.e.g.prefers.morning.sessions")}
               onChange={(e) => setTitle(e.target.value)}
             />
           </Field>
-          <Field label="Note" required error={bodyError}>
+          <Field label={uiText("ui.note")} required error={bodyError}>
             <div className="flex flex-col gap-1.5">
               <NoteEditor
                 value={body}
                 onChange={setBody}
                 invalid={!!bodyError}
-                placeholder="Write a note about this client…"
+                placeholder={uiText("ui.write.a.note.about.this.client")}
               />
               <p className="text-micro text-ink-3">
-                Format visually as you type — bold, italic, headings, lists, and
-                quotes. Notes are internal and never shown to clients.
-              </p>
+                {uiText("ui.format.visually.as.you.type.bold.italic.headings.lists.and.quotes.notes.are.internal.and.n")}</p>
             </div>
           </Field>
         </div>
@@ -228,13 +223,13 @@ export function ClientNotes({ clientId }: { clientId: string }) {
         open={pendingDelete !== null}
         onClose={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete note?"
+        title={uiText("ui.delete.note")}
         description={
           pendingDelete
-            ? `"${pendingDelete.title}" will be permanently removed.`
+            ? uiText("ui.remove.note", { name: pendingDelete.title })
             : undefined
         }
-        confirmLabel="Delete"
+        confirmLabel={uiText("ui.delete")}
         destructive
         busy={deleting}
       />

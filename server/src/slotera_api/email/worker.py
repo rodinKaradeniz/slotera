@@ -6,6 +6,7 @@ from typing import cast
 
 from slotera_api.config import get_settings
 from slotera_api.database import Database
+from slotera_api.email.locales import TEXT, language, render_localized
 from slotera_api.email.providers import EmailProvider, EmailProviderError, create_email_provider
 from slotera_api.email.repository import EmailAttachment, EmailOutboxRepository, OutboxMessage
 from slotera_api.email.templates import (
@@ -38,6 +39,13 @@ def _with_footer(message: OutboxMessage) -> OutboxMessage:
         footer = BOOKING_NO_REPLY_FOOTER
     else:
         footer = CANCELLED_NO_REPLY_FOOTER
+    lang = language(message.template_data)
+    if lang != "en":
+        footer = TEXT[lang]["footer"]
+        if message.kind in BOOKING_EMAIL_KINDS:
+            if message.template_data.get("manageUrl"):
+                footer += " " + TEXT[lang]["change"]
+            footer += " " + TEXT[lang]["contact"]
     return replace(message, text_body=f"{message.text_body}\n\n--\n{footer}")
 
 
@@ -54,7 +62,10 @@ async def deliver_available(
             break
         try:
             resolved = message
-            if message.kind in BOOKING_EMAIL_KINDS:
+            if message.kind == "account_activation" and language(message.template_data) != "en":
+                subject, text_body = render_localized(message.kind, message.template_data)
+                resolved = replace(message, subject=subject, text_body=text_body)
+            elif message.kind in BOOKING_EMAIL_KINDS:
                 kind = cast(BookingEmailKind, message.kind)
                 subject, text_body = render_booking_email(kind, message.template_data)
                 calendar = booking_calendar_file(kind, message.template_data)

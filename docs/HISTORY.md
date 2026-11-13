@@ -1625,3 +1625,45 @@ than silently resolved.
 
 **Not verified:** `next dev` under the agent sandbox (its file watcher hits `EMFILE`, so routes
 return 404); use `npm run build` + `npm run start` there. The developer's own dev run is unaffected.
+
+### Entry 061 — Finish persisted offers, booking forms, themes and manual billing
+
+*2026-11-13.* The product decisions for this completion bundle were confirmed explicitly:
+packages become persisted informational offers without purchases or credits; both plans
+get client-page colour/font settings; Professional alone removes the Slotera attribution;
+billing stays staff-operated; all interface and transactional email languages are EN/TR/DE.
+
+Forms are assigned and snapshotted when a booking is created. Required-before-payment
+forms stay in checkout; remaining forms appear only after booking. Clients submit once,
+while pending/confirmed and before the session. Booking-scoped locking makes identical
+retries harmless and rejects replacement answers. Existing bookings gain no assignments;
+legacy answers retain their data and explicitly mark current-template labels as approximate.
+The same field validation now correctly accepts a required yes/no answer of false, while
+rejecting invalid dates, choices, types, and blank required text.
+
+One snapshot table and the existing response table preserve historical questions without
+introducing template version management. Packages keep ordered service references with
+composite tenant foreign keys. The public projection excludes private notes and offers
+with inactive services. Billing requests reuse the inquiries inbox without a new workflow
+or automatic billing mutation. Theme variables are scoped to client pages and their
+portals; colour validation retains readable white button text. Email language is captured
+when the outbox row is inserted, so retries do not follow a later language preference.
+
+No deployment, provider configuration, or legal verification is implied. Developer-supplied
+environment statuses and outstanding operational checks are in `docs/PILOT_READINESS.md`.
+
+Browser verification caught a stale mock session causing public language changes to try
+saving an authenticated preference and revert after a 401. Preference requests now run
+only on operator/staff surfaces; public selection stays local and booking creation captures
+it explicitly. A focused regression test covers this boundary. Browser storage in component
+tests is explicit because Node's optional global storage can shadow jsdom's storage.
+
+Two existing integration fixtures needed deterministic dates: scheduled-booking setup now
+finds a free calendar range, and the series-extension test computes Berlin recurrence times
+in local time across DST. These change test setup, not scheduling behavior. API dashboards
+also omit the demo's hard-coded countdown, since it has no persisted timestamp behind it.
+Free checkout now uses the confirmation wording and omits manual-payment instructions;
+country names are translated in billing and printable summaries.
+Repeated browser journeys also reached the existing rate limit and exposed a misleading
+expired-link screen. Management reads now distinguish an actual 404 from temporary
+failures and offer retry for the latter; the request limits themselves are unchanged.

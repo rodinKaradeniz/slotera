@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
@@ -44,6 +45,7 @@ function inputFor(client: Client | null | undefined): ClientInput {
 }
 
 export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerProps) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [form, setForm] = React.useState<ClientInput>(() => inputFor(initial));
   const [busy, setBusy] = React.useState(false);
@@ -55,7 +57,7 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
 
   const save = async () => {
     if (!form.name.trim() || !form.email.trim()) {
-      toast.error("Name and email are required");
+      toast.error(uiText("ui.name.and.email.are.required"));
       return;
     }
     setBusy(true);
@@ -69,10 +71,10 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
         ? await updateClient(initial.id, normalized)
         : await createClient(normalized);
       onSaved?.(saved);
-      toast.success(initial ? "Client updated" : "Client added");
+      toast.success(initial ? uiText("ui.client.updated") : uiText("ui.client.added"));
       onClose();
     } catch (error) {
-      toast.error("Couldn't save client", {
+      toast.error(uiText("ui.couldn.t.save.client"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -84,42 +86,42 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
     <DrawerShell
       open={open}
       onClose={onClose}
-      eyebrow={initial ? "Edit client" : "New client"}
-      title={initial ? form.name || "Untitled client" : "Add a client"}
+      eyebrow={initial ? uiText("ui.edit.client") : uiText("ui.new.client")}
+      title={initial ? form.name || "Untitled client" : uiText("ui.add.a.client")}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button onClick={save} loading={busy}>Save client</Button>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>{uiText("ui.cancel")}</Button>
+          <Button onClick={save} loading={busy}>{uiText("ui.save.client")}</Button>
         </>
       }
     >
       <fieldset disabled={busy} className="grid gap-4">
-        <Field label="Full name" required>
+        <Field label={uiText("ui.full.name")} required>
           <Input value={form.name} onChange={(event) => set("name", event.target.value)} />
         </Field>
-        <Field label="Email" required>
+        <Field label={uiText("ui.email")} required>
           <Input type="email" value={form.email} onChange={(event) => set("email", event.target.value)} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Phone" optional>
+          <Field label={uiText("ui.phone")} optional>
             <Input value={form.phone ?? ""} onChange={(event) => set("phone", event.target.value)} />
           </Field>
-          <Field label="Company" optional>
+          <Field label={uiText("ui.company")} optional>
             <Input value={form.company ?? ""} onChange={(event) => set("company", event.target.value)} />
           </Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Role" optional>
+          <Field label={uiText("ui.role")} optional>
             <Input value={form.role ?? ""} onChange={(event) => set("role", event.target.value)} />
           </Field>
-          <Field label="Timezone" optional>
+          <Field label={uiText("ui.timezone")} optional>
             <Input value={form.timezone ?? ""} onChange={(event) => set("timezone", event.target.value)} placeholder="Europe/Berlin" />
           </Field>
         </div>
-        <Field label="Address" optional>
+        <Field label={uiText("ui.address")} optional>
           <Textarea rows={3} value={form.address ?? ""} onChange={(event) => set("address", event.target.value)} />
         </Field>
-        <Field label="VAT ID" optional>
+        <Field label={uiText("ui.vat.id")} optional>
           <Input value={form.vatId ?? ""} onChange={(event) => set("vatId", event.target.value)} />
         </Field>
       </fieldset>

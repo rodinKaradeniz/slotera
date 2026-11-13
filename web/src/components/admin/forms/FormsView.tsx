@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -18,6 +19,7 @@ import type { FormTemplate } from "@/types/form";
 type StatusFilter = "all" | "active" | "inactive";
 
 export function FormsView() {
+  const { t: uiText } = useI18n();
   const { openFormDrawer } = useDrawers();
   const [forms, setForms] = React.useState<FormTemplate[] | null>(null);
   const [reload, setReload] = React.useState(0);
@@ -43,15 +45,13 @@ export function FormsView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Catalog"
-        title="Forms"
-        description="Reusable intake questions and acknowledgements you attach to services."
+        eyebrow={uiText("ui.catalog")}
+        title={uiText("ui.forms")}
+        description={uiText("ui.reusable.intake.questions.and.acknowledgements.you.attach.to.services")}
         meta={
           forms
-            ? `${plural(forms.length, "form")} · ${
-                forms.filter((f) => f.status === "active").length
-              } active`
-            : "Loading…"
+            ? `${plural(forms.length, "form")} · ${uiText("ui.active.count", { count: forms.filter((item) => item.status === "active").length })}`
+            : uiText("ui.loading")
         }
         actions={
           <Button
@@ -60,8 +60,7 @@ export function FormsView() {
             icon="plus"
             onClick={() => openFormDrawer({ onSaved: refresh })}
           >
-            New form
-          </Button>
+            {uiText("ui.new.form")}</Button>
         }
       />
 
@@ -69,7 +68,7 @@ export function FormsView() {
         <div className="flex-1 min-w-[220px]">
           <Input
             icon="search"
-            placeholder="Search forms by name"
+            placeholder={uiText("ui.search.forms.by.name")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -78,9 +77,9 @@ export function FormsView() {
           value={status}
           onChange={setStatus}
           options={[
-            { value: "all", label: "All" },
-            { value: "active", label: "Active" },
-            { value: "inactive", label: "Inactive" },
+            { value: "all", label: uiText("ui.all") },
+            { value: "active", label: uiText("ui.active") },
+            { value: "inactive", label: uiText("ui.inactive") },
           ]}
         />
       </div>
@@ -111,7 +110,7 @@ export function FormsView() {
               <span className="w-10 h-10 rounded-md bg-paper-2 flex items-center justify-center">
                 <Icon name="plus" size={20} />
               </span>
-              <span className="text-[14px] font-medium">New form</span>
+              <span className="text-[14px] font-medium">{uiText("ui.new.form")}</span>
             </div>
           </Card>
         </div>

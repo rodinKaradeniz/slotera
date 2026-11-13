@@ -1,4 +1,6 @@
 "use client";
+import { readLang, localeForLang, translate } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Modal } from "@/components/ui/Modal";
@@ -26,13 +28,13 @@ const DEFAULT_REASON = "Moved at the provider's request.";
 
 function when(session: SessionItem, timezone: string): string {
   const start = new Date(session.startISO);
-  const day = start.toLocaleDateString(undefined, {
+  const day = start.toLocaleDateString(localeForLang(readLang()), {
     weekday: "short",
     day: "numeric",
     month: "short",
   });
   const seats =
-    session.capacity > 1 ? ` · ${session.capacity - session.bookedCount} spots left` : "";
+    session.capacity > 1 ? ` · ${translate(readLang(), "ui.spots.left", { count: session.capacity - session.bookedCount })}` : "";
   return `${day} · ${clockIn(session.startISO, timezone)}${seats}`;
 }
 
@@ -41,6 +43,7 @@ function when(session: SessionItem, timezone: string): string {
  * still has room. For a 1:1 at a new time, add the session in the Calendar first.
  */
 export function MoveBookingDialog({ open, onClose, booking, onMoved }: Props) {
+  const { t: uiText } = useI18n();
   const timezone = useWorkspaceTimezone();
   const { toast } = useToast();
   const [sessionId, setSessionId] = React.useState("");
@@ -99,13 +102,13 @@ export function MoveBookingDialog({ open, onClose, booking, onMoved }: Props) {
         { sessionId, auditReason: reason },
         idempotencyKey,
       );
-      toast.success("Booking moved", {
-        description: "Clients who booked online are emailed the new time.",
+      toast.success(uiText("ui.booking.moved"), {
+        description: uiText("ui.clients.who.booked.online.are.emailed.the.new.time"),
       });
       onMoved(next);
       onClose();
     } catch (error) {
-      toast.error("Couldn't move the booking", {
+      toast.error(uiText("ui.couldn.t.move.the.booking"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -117,31 +120,29 @@ export function MoveBookingDialog({ open, onClose, booking, onMoved }: Props) {
     <Modal
       open={open}
       onClose={() => !busy && onClose()}
-      title="Move to another session"
-      description="Choose an upcoming session of the same service that has room."
+      title={uiText("ui.move.to.another.session")}
+      description={uiText("ui.choose.an.upcoming.session.of.the.same.service.that.has.room")}
       size="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
+            {uiText("ui.cancel")}</Button>
           <Button
             onClick={submit}
             loading={busy}
             disabled={!sessionId || !reason.trim() || busy}
           >
-            Move booking
-          </Button>
+            {uiText("ui.move.booking")}</Button>
         </>
       }
     >
       <div className="flex flex-col gap-4">
         <Field
-          label="New session"
+          label={uiText("ui.new.session")}
           required
           hint={
             candidates && candidates.length === 0
-              ? "No other upcoming session of this service has room. Add one in the Calendar first."
+              ? uiText("ui.no.other.upcoming.session.of.this.service.has.room.add.one.in.the.calendar.first")
               : undefined
           }
         >
@@ -151,13 +152,13 @@ export function MoveBookingDialog({ open, onClose, booking, onMoved }: Props) {
             options={[
               {
                 value: "",
-                label: candidates === null ? "Loading sessions…" : "Select a session…",
+                label: candidates === null ? uiText("ui.loading.sessions") : uiText("ui.select.a.session"),
               },
               ...(candidates ?? []).map((s) => ({ value: s.id, label: when(s, timezone) })),
             ]}
           />
         </Field>
-        <Field label="Reason (recorded in the audit log)" required>
+        <Field label={uiText("ui.reason.recorded.in.the.audit.log")} required>
           <Input value={reason} onChange={(event) => setReason(event.target.value)} />
         </Field>
       </div>

@@ -13,6 +13,7 @@ from slotera_api.db.models import (
     Booking,
     BookingAccessToken,
     BookingFormResponse,
+    BookingFormSnapshot,
     BookingStatus,
     Client,
     ClientNote,
@@ -208,6 +209,9 @@ class ClientsRepository:
                 )
             ).all()
             references = {booking.id: booking.reference for booking, _, _ in bookings}
+            snapshots = list((await session.scalars(select(BookingFormSnapshot).where(
+                BookingFormSnapshot.workspace_id == workspace_id,
+                BookingFormSnapshot.booking_id.in_(references)))).all()) if references else []
             responses = (
                 list(
                     await session.scalars(
@@ -253,6 +257,12 @@ class ClientsRepository:
                         "created_at": booking.created_at,
                     }
                     for booking, start_at, service_name in bookings
+                ],
+                "form_snapshots": [
+                    {"booking_reference": references[item.booking_id], "name": item.name,
+                     "description": item.description, "fields": item.fields,
+                     "required_before_payment": item.required_before_payment}
+                    for item in snapshots
                 ],
                 "form_responses": [
                     {
@@ -306,6 +316,9 @@ class ClientsRepository:
                 )
             )
             if booking_ids:
+                await session.execute(delete(BookingFormSnapshot).where(
+                    BookingFormSnapshot.workspace_id == workspace_id,
+                    BookingFormSnapshot.booking_id.in_(booking_ids)))
                 await session.execute(
                     delete(BookingFormResponse).where(
                         BookingFormResponse.workspace_id == workspace_id,

@@ -1,4 +1,6 @@
 "use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -6,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { getAvailabilitySettings, getBusinessSettings, getPaymentSettings, getSettings, type BusinessSettings, type AvailabilitySettings, type PaymentSettings } from "@/services/settings.service";
+import { ApiBrandingPanel } from "./ApiBrandingPanel";
 import { ApiBillingPanel } from "./ApiBillingPanel";
 import { WorkspaceDataCard } from "./WorkspaceDataCard";
 import type { SettingsData } from "@/types/settings";
@@ -39,6 +42,7 @@ const NAV: { id: SectionId; label: string; icon: IconName }[] = [
 ];
 
 export function SettingsView() {
+  const { t: uiText, lang: labelLang } = useI18n();
   const [section, setSection] = React.useState<SectionId>("business");
   const [data, setData] = React.useState<SettingsData | null>(null);
   const [business, setBusiness] = React.useState<BusinessSettings | null>(null);
@@ -64,16 +68,16 @@ export function SettingsView() {
         setData(settings);
         setBusiness(settings.business);
       } catch (error) {
-        setLoadError(error instanceof Error ? error.message : "Settings could not be loaded.");
+        setLoadError(error instanceof Error ? error.message : uiText("ui.settings.could.not.be.loaded"));
       }
     };
     void load();
-  }, []);
+  }, [uiText]);
 
   // Platform billing is a real-app concern; the mock demo never shows it.
   const visibleNav = dataSource === "api"
     ? NAV.filter((item) =>
-        ["business", "payments", "billing", "calendar", "emails", "account"].includes(item.id)
+        ["business", "branding", "payments", "billing", "calendar", "emails", "account"].includes(item.id)
       )
     : NAV.filter((item) => item.id !== "billing");
   const activeMeta = visibleNav.find((n) => n.id === section);
@@ -85,11 +89,10 @@ export function SettingsView() {
     <PageContainer>
       <div className="grid lg:grid-cols-[280px_1fr] gap-10 items-start">
         <aside className="flex flex-col lg:sticky lg:top-24">
-          <div className="eyebrow mb-3">Workspace</div>
-          <h1 className="text-h1 text-ink">Settings</h1>
+          <div className="eyebrow mb-3">{uiText("ui.workspace")}</div>
+          <h1 className="text-h1 text-ink">{uiText("ui.settings")}</h1>
           <p className="text-body text-ink-2 mt-3 max-w-[28ch]">
-            Configure your booking workflow, branding, and notifications.
-          </p>
+            {uiText("ui.configure.your.booking.workflow.branding.and.notifications")}</p>
           <nav className="flex flex-col gap-1 mt-8">
             {visibleNav.map((n) => {
               const active = section === n.id;
@@ -106,7 +109,7 @@ export function SettingsView() {
                   )}
                 >
                   <Icon name={n.icon} size={16} />
-                  {n.label}
+                  {translateInterfaceLabel(labelLang, n.label)}
                 </button>
               );
             })}
@@ -116,12 +119,12 @@ export function SettingsView() {
         <section className="min-w-0">
           {activeMeta && (
             <div className="mb-6">
-              <div className="eyebrow mb-2">Settings</div>
+              <div className="eyebrow mb-2">{uiText("ui.settings")}</div>
               <h2
                 className="font-serif text-ink"
                 style={{ fontSize: 28, fontWeight: 380, letterSpacing: "-0.015em" }}
               >
-                {activeMeta.label}
+                {translateInterfaceLabel(labelLang, activeMeta.label)}
               </h2>
             </div>
           )}
@@ -139,6 +142,7 @@ export function SettingsView() {
                   <LocationsCard business={business} onChange={handleBusinessChange} />
                 </>
               )}
+              {section === "branding" && dataSource === "api" && <ApiBrandingPanel />}
               {section === "branding" && data && <BrandingPanel data={data} onChange={setData} />}
               {section === "payments" && data && <PaymentsPanel data={data} onChange={setData} />}
               {section === "payments" && dataSource === "api" && paymentSettings && (

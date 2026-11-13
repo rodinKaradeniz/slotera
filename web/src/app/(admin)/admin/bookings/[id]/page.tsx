@@ -1,4 +1,7 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { BookingForms } from "@/components/booking/BookingForms";
+import { SESSION_RECURRENCE_TEXT, SESSION_STATUS_TEXT } from "@/lib/status-maps";
 
 import * as React from "react";
 import Link from "next/link";
@@ -47,6 +50,7 @@ import { MoveBookingDialog } from "@/components/admin/bookings/MoveBookingDialog
 type BookingAction = "approve" | "decline" | "payment" | "cancel";
 
 export default function BookingDetailPage() {
+  const { t: uiText } = useI18n();
   const timezone = useWorkspaceTimezone();
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -99,17 +103,17 @@ export default function BookingDetailPage() {
       })
       .catch((cause: unknown) => {
         if (live) {
-          setLoadError(cause instanceof Error ? cause.message : "Couldn't load this booking.");
+          setLoadError(cause instanceof Error ? cause.message : uiText("ui.couldn.t.load.this.booking"));
         }
       });
     return () => {
       live = false;
     };
-  }, [params?.id, reload]);
+  }, [params?.id, reload, uiText]);
 
   useSetCrumbs([
-    { label: "Bookings", href: "/admin/bookings" },
-    { label: booking ? booking.id : "Detail" },
+    { label: uiText("ui.bookings"), href: "/admin/bookings" },
+    { label: booking ? booking.id : uiText("ui.detail") },
   ]);
 
   const runAction = async () => {
@@ -128,16 +132,16 @@ export default function BookingDetailPage() {
       setReload((value) => value + 1);
       toast.success(
         pendingAction === "payment"
-          ? "Payment recorded"
+          ? uiText("ui.payment.recorded")
           : pendingAction === "approve"
-            ? "Booking approved"
+            ? uiText("ui.booking.approved")
             : pendingAction === "decline"
-              ? "Booking declined"
-              : "Booking cancelled",
+              ? uiText("ui.booking.declined")
+              : uiText("ui.booking.cancelled"),
       );
       setPendingAction(null);
     } catch (error) {
-      toast.error("The booking could not be updated", {
+      toast.error(uiText("ui.the.booking.could.not.be.updated"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -159,11 +163,10 @@ export default function BookingDetailPage() {
               onClick={() => router.push("/admin/bookings")}
               className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1 self-start print:hidden"
             >
-              ← All bookings
-            </button>
+              {uiText("ui.all.bookings")}</button>
             <PageHeader
-              eyebrow="Booking"
-              title={service?.name ?? "Booking"}
+              eyebrow={uiText("ui.booking")}
+              title={service?.name ?? uiText("ui.booking")}
               description={
                 session
                   ? `${fmtDate(new Date(session.startISO))} · ${clockIn(session.startISO, timezone)} – ${clockIn(session.endISO, timezone)}`
@@ -194,8 +197,7 @@ export default function BookingDetailPage() {
                       })
                     }
                   >
-                    Edit booking
-                  </Button>
+                    {uiText("ui.edit.booking")}</Button>
                 )}
                 <Button
                   variant="secondary"
@@ -203,8 +205,7 @@ export default function BookingDetailPage() {
                   icon="download"
                   onClick={() => window.print()}
                 >
-                  Print summary
-                </Button>
+                  {uiText("ui.print.summary")}</Button>
               </div>
             }
             />
@@ -213,7 +214,7 @@ export default function BookingDetailPage() {
               {/* Left: what session/booking is this? */}
               <div className="flex flex-col gap-6">
                 <Card padded={false}>
-                  <CardHead title="Session" />
+                  <CardHead title={uiText("ui.session")} />
                   <div className="p-5">
                     {session ? (
                       <>
@@ -227,12 +228,12 @@ export default function BookingDetailPage() {
                         <div className="mt-4 divide-y divide-line-soft border-t border-line-soft">
                           <DetailLine
                             icon="clipboard"
-                            label="Service"
+                            label={uiText("ui.service")}
                             value={service?.name ?? "—"}
                           />
                           <DetailLine
                             icon="user"
-                            label="Client"
+                            label={uiText("ui.client")}
                             value={
                               client ? (
                                 <Link
@@ -248,7 +249,7 @@ export default function BookingDetailPage() {
                           />
                           <DetailLine
                             icon="check"
-                            label="Booking status"
+                            label={uiText("ui.booking.status")}
                             value={
                               <StatusBadge kind="booking" status={booking.status} />
                             }
@@ -256,19 +257,19 @@ export default function BookingDetailPage() {
                         </div>
 
                         <div className="mt-4 grid sm:grid-cols-3 gap-3">
-                          <Stat label="Capacity" value={`${session.bookedCount} / ${session.capacity}`} />
-                          <Stat label="Recurrence" value={session.recurring} />
-                          <Stat label="Session" value={session.status} />
+                          <Stat label={uiText("ui.capacity")} value={`${session.bookedCount} / ${session.capacity}`} />
+                          <Stat label={uiText("ui.recurrence")} value={uiText(SESSION_RECURRENCE_TEXT[session.recurring])} />
+                          <Stat label={uiText("ui.session")} value={uiText(SESSION_STATUS_TEXT[session.status])} />
                         </div>
                       </>
                     ) : (
-                      <p className="text-small">Session details unavailable.</p>
+                      <p className="text-small">{uiText("ui.session.details.unavailable")}</p>
                     )}
                   </div>
                 </Card>
 
                 <Card padded={false}>
-                  <CardHead title="Location" />
+                  <CardHead title={uiText("ui.location")} />
                   <div className="p-2">
                     {session ? (
                       <>
@@ -282,27 +283,27 @@ export default function BookingDetailPage() {
                           }
                           action={
                             <Button variant="ghost" size="sm" icon="copy">
-                              Copy
-                            </Button>
+                              {uiText("ui.copy")}</Button>
                           }
                         />
                         {session.address && (
                           <DetailLine
                             icon="map-pin"
-                            label="Address"
+                            label={uiText("ui.address")}
                             value={formatAddressSummary(session.address)}
                           />
                         )}
                       </>
                     ) : (
-                      <p className="text-small p-3">Location unavailable.</p>
+                      <p className="text-small p-3">{uiText("ui.location.unavailable")}</p>
                     )}
                   </div>
                 </Card>
 
+                {dataSource === "api" && <BookingForms bookingId={booking.id} />}
                 {booking.notes && (
                   <Card padded={false}>
-                    <CardHead title="Booking note" />
+                    <CardHead title={uiText("ui.booking.note")} />
                     <div className="p-5 text-body italic">&ldquo;{booking.notes}&rdquo;</div>
                   </Card>
                 )}
@@ -322,16 +323,16 @@ export default function BookingDetailPage() {
                   (booking.status === "pending" || booking.status === "confirmed") && (
                   <Card padded={false} className="print:hidden">
                     <CardHead
-                      title={booking.status === "pending" ? "Actions needed" : "Booking actions"}
+                      title={booking.status === "pending" ? uiText("ui.actions.needed") : uiText("ui.booking.actions")}
                     />
                     <div className="p-5 space-y-4">
                       {booking.status === "pending" && (
                         <div className="text-small">
                           {booking.pendingReasons?.includes("approval") && (
-                            <p>This booking is waiting for your approval.</p>
+                            <p>{uiText("ui.this.booking.is.waiting.for.your.approval")}</p>
                           )}
                           {booking.pendingReasons?.includes("payment") && (
-                            <p>Manual payment has not been recorded yet.</p>
+                            <p>{uiText("ui.manual.payment.has.not.been.recorded.yet")}</p>
                           )}
                         </div>
                       )}
@@ -339,15 +340,13 @@ export default function BookingDetailPage() {
                         {booking.approvalStatus === "pending" && (
                           <>
                             <Button size="sm" onClick={() => setPendingAction("approve")}>
-                              Approve booking
-                            </Button>
+                              {uiText("ui.approve.booking")}</Button>
                             <Button
                               size="sm"
                               variant="danger"
                               onClick={() => setPendingAction("decline")}
                             >
-                              Decline
-                            </Button>
+                              {uiText("ui.decline")}</Button>
                           </>
                         )}
                         {booking.paymentMethod === "manual" &&
@@ -357,33 +356,30 @@ export default function BookingDetailPage() {
                               variant="secondary"
                               onClick={() => setPendingAction("payment")}
                             >
-                              Mark payment received
-                            </Button>
+                              {uiText("ui.mark.payment.received")}</Button>
                           )}
                         <Button size="sm" variant="secondary" onClick={() => setMoving(true)}>
-                          Move to another session
-                        </Button>
+                          {uiText("ui.move.to.another.session")}</Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => setPendingAction("cancel")}
                         >
-                          Cancel booking
-                        </Button>
+                          {uiText("ui.cancel.booking")}</Button>
                       </div>
                     </div>
                   </Card>
                 )}
 
                 <Card padded={false}>
-                  <CardHead title="Payment" />
+                  <CardHead title={uiText("ui.payment")} />
                   <div className="p-5">
                     <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-line-soft">
-                      <span className="text-ink-3 text-[14px]">Status</span>
+                      <span className="text-ink-3 text-[14px]">{uiText("ui.status")}</span>
                       <StatusBadge kind="payment" status={booking.paymentStatus} />
                     </div>
                     <Row
-                      label="Subtotal"
+                      label={uiText("ui.subtotal")}
                       value={formatMoney(
                         booking.netAmountCents ?? booking.amountCents,
                         booking.currency,
@@ -392,14 +388,14 @@ export default function BookingDetailPage() {
                     <Row
                       label={
                         booking.taxRateBps
-                          ? `${booking.taxLabel ?? "Tax"} (${booking.taxRateBps / 100}%)`
-                          : booking.taxLabel ?? "Tax"
+                          ? `${booking.taxLabel ?? uiText("ui.tax")} (${booking.taxRateBps / 100}%)`
+                          : booking.taxLabel ?? uiText("ui.tax")
                       }
                       value={formatMoney(booking.taxAmountCents ?? 0, booking.currency)}
                     />
                     <div className="border-t border-line-soft my-3" />
                     <Row
-                      label="Total"
+                      label={uiText("ui.total")}
                       value={formatMoney(booking.amountCents, booking.currency)}
                       bold
                     />
@@ -410,8 +406,7 @@ export default function BookingDetailPage() {
                         settings.payments.manualPaymentInstructions.trim())) && (
                         <div className="mt-5">
                           <div className="eyebrow mb-2">
-                            Manual payment instructions
-                          </div>
+                            {uiText("ui.manual.payment.instructions")}</div>
                           <div className="rounded-lg bg-paper-2 border border-line-soft p-3 text-[13px] text-ink-2 whitespace-pre-line">
                             {booking.manualPaymentInstructionsSnapshot ||
                               settings?.payments.manualPaymentInstructions}
@@ -440,28 +435,28 @@ export default function BookingDetailPage() {
         onConfirm={runAction}
         title={
           pendingAction === "payment"
-            ? "Record manual payment?"
+            ? uiText("ui.record.manual.payment")
             : pendingAction === "approve"
-              ? "Approve this booking?"
+              ? uiText("ui.approve.this.booking")
               : pendingAction === "decline"
-                ? "Decline this booking?"
-                : "Cancel this booking?"
+                ? uiText("ui.decline.this.booking")
+                : uiText("ui.cancel.this.booking")
         }
         description={
           pendingAction === "payment"
-            ? "This records that the provider received payment. The booking confirms automatically once every required gate is satisfied."
+            ? uiText("ui.this.records.that.the.provider.received.payment.the.booking.confirms.automatically.once.ev")
             : pendingAction === "approve"
-              ? "The booking confirms now if payment is already satisfied; otherwise it remains payment-pending."
-              : "The slot will become available again when this is a public capacity-one booking. Payment state is not changed."
+              ? uiText("ui.the.booking.confirms.now.if.payment.is.already.satisfied.otherwise.it.remains.payment.pend")
+              : uiText("ui.the.slot.will.become.available.again.when.this.is.a.public.capacity.one.booking.payment.st")
         }
         confirmLabel={
           pendingAction === "payment"
-            ? "Record payment"
+            ? uiText("ui.record.payment")
             : pendingAction === "approve"
-              ? "Approve"
+              ? uiText("ui.approve")
               : pendingAction === "decline"
-                ? "Decline"
-                : "Cancel booking"
+                ? uiText("ui.decline")
+                : uiText("ui.cancel.booking")
         }
         destructive={pendingAction === "decline" || pendingAction === "cancel"}
         busy={busy}
@@ -481,6 +476,7 @@ function OutcomeCard({
   booking: Booking;
   onSaved: (booking: Booking) => void;
 }) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [busy, setBusy] = React.useState<"complete" | "noshow" | null>(null);
   const record = async (outcome: "complete" | "noshow") => {
@@ -491,9 +487,9 @@ function OutcomeCard({
           ? await completeBooking(booking.id)
           : await markBookingNoShow(booking.id),
       );
-      toast.success(outcome === "complete" ? "Session marked as completed" : "Marked as no-show");
+      toast.success(outcome === "complete" ? uiText("ui.session.marked.as.completed") : uiText("ui.marked.as.no.show"));
     } catch (error) {
-      toast.error("Couldn't record the outcome", {
+      toast.error(uiText("ui.couldn.t.record.the.outcome"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -502,7 +498,7 @@ function OutcomeCard({
   };
   return (
     <Card padded={false}>
-      <CardHead title="Session outcome" />
+      <CardHead title={uiText("ui.session.outcome")} />
       <div className="p-5 flex flex-wrap gap-2">
         <Button
           size="sm"
@@ -510,8 +506,7 @@ function OutcomeCard({
           disabled={busy !== null}
           onClick={() => record("complete")}
         >
-          Completed
-        </Button>
+          {uiText("ui.completed")}</Button>
         <Button
           size="sm"
           variant="secondary"
@@ -519,8 +514,7 @@ function OutcomeCard({
           disabled={busy !== null}
           onClick={() => record("noshow")}
         >
-          No-show
-        </Button>
+          {uiText("ui.no.show")}</Button>
       </div>
     </Card>
   );

@@ -1,4 +1,6 @@
 "use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Icon } from "@/components/ui/Icon";
@@ -31,13 +33,14 @@ export function Topbar({
   showSearch = false,
   showNotifications = true,
 }: Props) {
+  const { t: uiText, lang: labelLang } = useI18n();
   return (
     <header className="h-16 sticky top-0 z-20 bg-paper/85 backdrop-blur border-b border-line-soft flex items-center px-4 gap-3 print:hidden">
       <button
         type="button"
         onClick={onToggleSidebar}
         className="w-9 h-9 rounded-md hover:bg-paper-2 text-ink-2 flex items-center justify-center"
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={collapsed ? uiText("ui.expand.sidebar") : uiText("ui.collapse.sidebar")}
       >
         <Icon name="panel-l" size={18} />
       </button>
@@ -53,7 +56,7 @@ export function Topbar({
                 href={c.href}
                 className="text-ink-3 hover:text-ink truncate"
               >
-                {c.label}
+                {translateInterfaceLabel(labelLang, c.label)}
               </a>
             ) : (
               <span
@@ -64,7 +67,7 @@ export function Topbar({
                     : "text-ink-3",
                 )}
               >
-                {c.label}
+                {translateInterfaceLabel(labelLang, c.label)}
               </span>
             )}
           </React.Fragment>

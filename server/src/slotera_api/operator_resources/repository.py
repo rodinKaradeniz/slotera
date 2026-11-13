@@ -323,6 +323,13 @@ class OperatorResourcesRepository:
             )
             if service is None:
                 return False
+            from slotera_api.db.models import ServicePackageItem
+            from slotera_api.errors import ApiError
+            if await session.scalar(select(ServicePackageItem.id).where(
+                ServicePackageItem.workspace_id == workspace_id,
+                ServicePackageItem.service_id == service_id).limit(1)):
+                raise ApiError(status_code=409, code="service_in_package",
+                    message="Remove this service from its packages before deleting it")
             await session.delete(service)
             session.add(
                 AuditEvent(

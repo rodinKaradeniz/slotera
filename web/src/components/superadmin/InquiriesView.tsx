@@ -1,4 +1,6 @@
 "use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -44,6 +46,7 @@ const READ_OPTIONS: Array<{ value: "" | "unread" | "read"; label: string }> = [
 ];
 
 export function InquiriesView() {
+  const { t: uiText, lang: labelLang } = useI18n();
   const router = useRouter();
   const [items, setItems] = React.useState<PlatformInquiry[] | null>(null);
   const [query, setQuery] = React.useState("");
@@ -97,25 +100,25 @@ export function InquiriesView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Platform"
-        title="Inquiries"
-        description="Incoming contact, support, and business messages. Pro upgrade requests from operators land here too. Click an inquiry to read the full message."
+        eyebrow={uiText("ui.platform")}
+        title={uiText("ui.inquiries")}
+        description={uiText("ui.incoming.contact.support.and.business.messages.pro.upgrade.requests.from.operators.land.he")}
         meta={
-          items ? `${items.length} total · ${unreadCount} unread` : undefined
+          items ? uiText("ui.inquiry.count", { count: items.length, unread: unreadCount }) : undefined
         }
       />
 
       <div className="grid sm:grid-cols-[1fr_180px_140px] gap-3 mb-4">
         <Input
           icon="search"
-          placeholder="Search by name, email, message…"
+          placeholder={uiText("ui.search.by.name.email.message")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <Select
           value={type}
           onChange={(e) => setType(e.target.value as "" | PlatformInquiryType)}
-          options={TYPE_OPTIONS}
+          options={TYPE_OPTIONS.map((option) => ({ ...option, label: translateInterfaceLabel(labelLang, option.label) }))}
         />
         <Select
           value={readFilter}
@@ -131,7 +134,7 @@ export function InquiriesView() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon="mail"
-          title="No inquiries match"
+          title={uiText("ui.no.inquiries.match")}
           body="Try clearing the filters above."
         />
       ) : (
@@ -184,6 +187,7 @@ function InquiryRow({
   inquiry: PlatformInquiry;
   onClick: () => void;
 }) {
+  const { lang: labelLang } = useI18n();
   const tMeta = INQUIRY_TYPE[inquiry.type];
   const unread = !inquiry.read;
   return (
@@ -221,7 +225,7 @@ function InquiryRow({
           {inquiry.email}
         </div>
       </div>
-      <Pill tone={tMeta.tone}>{tMeta.label}</Pill>
+      <Pill tone={tMeta.tone}>{translateInterfaceLabel(labelLang, tMeta.label)}</Pill>
       <div
         className={cn(
           // Wider left padding pushes the message away from the type pill;
@@ -253,6 +257,7 @@ function InquiryPreviewModal({
   onMarkUnread: () => void;
   onPromote: (i: PlatformInquiry) => void;
 }) {
+  const { t: uiText, lang: labelLang } = useI18n();
   if (!inquiry) {
     return (
       <Modal open={false} onClose={onClose} title="">
@@ -268,7 +273,7 @@ function InquiryPreviewModal({
       size="md"
       title={
         <span className="block">
-          <span className="eyebrow block mb-2">Inquiry</span>
+          <span className="eyebrow block mb-2">{uiText("ui.inquiry")}</span>
           <span
             className="block font-serif text-ink"
             style={{
@@ -289,7 +294,7 @@ function InquiryPreviewModal({
               {inquiry.email}
             </a>
             <span aria-hidden>·</span>
-            <Pill tone={tMeta.tone}>{tMeta.label}</Pill>
+            <Pill tone={tMeta.tone}>{translateInterfaceLabel(labelLang, tMeta.label)}</Pill>
             <span aria-hidden>·</span>
             <span>{fmtDate(new Date(inquiry.createdAtISO))}</span>
           </span>
@@ -298,19 +303,16 @@ function InquiryPreviewModal({
       footer={
         <>
           <Button variant="ghost" onClick={onMarkUnread}>
-            Mark unread
-          </Button>
+            {uiText("ui.mark.unread")}</Button>
           <Button variant="ghost" onClick={onClose}>
-            Close
-          </Button>
+            {uiText("ui.close")}</Button>
           {(inquiry.type === "business" || inquiry.type === "pilot") && (
             <Button
               variant="primary"
               icon="building"
               onClick={() => onPromote(inquiry)}
             >
-              Promote to workspace
-            </Button>
+              {uiText("ui.promote.to.workspace")}</Button>
           )}
         </>
       }

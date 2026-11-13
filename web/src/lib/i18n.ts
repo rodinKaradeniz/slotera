@@ -1,3 +1,4 @@
+import { INTERFACE_KEYS } from "@/i18n/interface-keys";
 import { en, type Messages } from "@/i18n/messages/en";
 import { tr } from "@/i18n/messages/tr";
 import { de } from "@/i18n/messages/de";
@@ -66,4 +67,10 @@ export function translate(
     }
   }
   return value;
+}
+
+/** Translate static shared metadata labels; never apply to consultant-authored content. */
+export function translateInterfaceLabel(lang: Lang, label: string): string {
+  const key = INTERFACE_KEYS[label];
+  return key ? translate(lang, key) : label;
 }

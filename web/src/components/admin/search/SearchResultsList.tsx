@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Icon } from "@/components/ui/Icon";
@@ -32,17 +33,17 @@ export function SearchResultsList({
   onHover,
   variant = "dropdown",
 }: Props) {
+  const { t: uiText } = useI18n();
   if (!query.trim()) {
     return (
       <div className="px-4 py-8 text-center text-small">
-        Start typing to search bookings, clients, services, sessions, and pages.
-      </div>
+        {uiText("ui.start.typing.to.search.bookings.clients.services.sessions.and.pages")}</div>
     );
   }
 
   if (loading) {
     return (
-      <div className="px-4 py-8 text-center text-small">Searching…</div>
+      <div className="px-4 py-8 text-center text-small">{uiText("ui.searching")}</div>
     );
   }
 
@@ -53,7 +54,7 @@ export function SearchResultsList({
   if (groups.length === 0) {
     return (
       <div className="px-4 py-8 text-center text-small">
-        No results for <span className="text-ink">&ldquo;{query}&rdquo;</span>.
+        {uiText("ui.no.results.for")}<span className="text-ink">&ldquo;{query}&rdquo;</span>.
       </div>
     );
   }

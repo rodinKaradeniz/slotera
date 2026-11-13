@@ -1,3 +1,4 @@
+import { readLang, localeForLang } from "@/lib/i18n";
 const MONTH_NAMES = [
   "January",
   "February",
@@ -33,6 +34,8 @@ export function addMinutes(hhmm: string, minutes: number): string {
 }
 
 export function fmtDate(d: Date, format: "short" | "long" = "long"): string {
+  const lang = readLang();
+  if (lang !== "en") return new Intl.DateTimeFormat(localeForLang(lang), { day: "numeric", month: format === "long" ? "long" : "short", year: "numeric" }).format(d);
   if (format === "long") {
     return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
   }
@@ -40,10 +43,13 @@ export function fmtDate(d: Date, format: "short" | "long" = "long"): string {
 }
 
 export function fmtDayShort(d: Date): string {
-  return DAY_NAMES_SHORT[d.getDay()];
+  const lang = readLang();
+  return lang === "en" ? DAY_NAMES_SHORT[d.getDay()] : new Intl.DateTimeFormat(localeForLang(lang), { weekday: "short" }).format(d);
 }
 
 export function fmtWeekday(d: Date): string {
+  const lang = readLang();
+  if (lang !== "en") return new Intl.DateTimeFormat(localeForLang(lang), { weekday: "long" }).format(d);
   return [
     "Sunday",
     "Monday",
@@ -57,6 +63,13 @@ export function fmtWeekday(d: Date): string {
 
 export function fmtRelative(targetISO: string, now: Date = new Date()): string {
   const target = new Date(targetISO);
+  const lang = readLang();
+  if (lang !== "en") {
+    const minutes = (target.getTime() - now.getTime()) / 60000;
+    const unit = Math.abs(minutes) < 60 ? "minute" : Math.abs(minutes) < 1440 ? "hour" : "day";
+    const value = Math.round(minutes / (unit === "day" ? 1440 : unit === "hour" ? 60 : 1));
+    return new Intl.RelativeTimeFormat(localeForLang(lang), { numeric: "auto", style: "short" }).format(value, unit);
+  }
   const diffMs = target.getTime() - now.getTime();
   const absMin = Math.round(Math.abs(diffMs) / 60_000);
   const sign = diffMs >= 0 ? "in" : "ago";

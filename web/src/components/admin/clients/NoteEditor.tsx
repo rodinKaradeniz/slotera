@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
@@ -31,13 +32,15 @@ export function NoteEditor({
   value,
   onChange,
   invalid,
-  placeholder = "Write a note about this client…",
+  placeholder: placeholderProp,
 }: {
   value: string;
   onChange: (html: string) => void;
   invalid?: boolean;
   placeholder?: string;
 }) {
+  const { t: uiText } = useI18n();
+  const placeholder = placeholderProp ?? uiText("ui.write.a.note.about.this.client");
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -96,17 +99,18 @@ export function NoteEditor({
 }
 
 function Toolbar({ editor }: { editor: Editor }) {
+  const { t: uiText } = useI18n();
   return (
     <div className="flex flex-wrap items-center gap-0.5 border-b border-line-soft bg-paper-2 px-1.5 py-1">
       <ToolButton
-        label="Bold"
+        label={uiText("ui.bold")}
         active={editor.isActive("bold")}
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
         <span className="font-bold">B</span>
       </ToolButton>
       <ToolButton
-        label="Italic"
+        label={uiText("ui.italic")}
         active={editor.isActive("italic")}
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
@@ -114,7 +118,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       </ToolButton>
       <Divider />
       <ToolButton
-        label="Heading"
+        label={uiText("ui.heading")}
         active={editor.isActive("heading", { level: 3 })}
         onClick={() =>
           editor.chain().focus().toggleHeading({ level: 3 }).run()
@@ -123,36 +127,33 @@ function Toolbar({ editor }: { editor: Editor }) {
         H
       </ToolButton>
       <ToolButton
-        label="Bullet list"
+        label={uiText("ui.bullet.list")}
         active={editor.isActive("bulletList")}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
       >
-        • List
-      </ToolButton>
+        {uiText("ui.list")}</ToolButton>
       <ToolButton
-        label="Numbered list"
+        label={uiText("ui.numbered.list")}
         active={editor.isActive("orderedList")}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
       >
-        1. List
-      </ToolButton>
+        {uiText("ui.1.list")}</ToolButton>
       <ToolButton
-        label="Quote"
+        label={uiText("ui.quote")}
         active={editor.isActive("blockquote")}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
       >
-        Quote
-      </ToolButton>
+        {uiText("ui.quote")}</ToolButton>
       <Divider />
       <ToolButton
-        label="Undo"
+        label={uiText("ui.undo")}
         disabled={!editor.can().undo()}
         onClick={() => editor.chain().focus().undo().run()}
       >
         ↶
       </ToolButton>
       <ToolButton
-        label="Redo"
+        label={uiText("ui.redo")}
         disabled={!editor.can().redo()}
         onClick={() => editor.chain().focus().redo().run()}
       >

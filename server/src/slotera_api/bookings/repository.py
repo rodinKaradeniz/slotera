@@ -266,6 +266,9 @@ class BookingsRepository:
                 notes=values.get("notes"),
             )
             database_session.add(booking)
+            await database_session.flush()
+            from slotera_api.booking_forms import snapshot_forms
+            await snapshot_forms(database_session, workspace_id, booking.id, service.id)
             database_session.add(
                 AuditEvent(
                     workspace_id=workspace_id,

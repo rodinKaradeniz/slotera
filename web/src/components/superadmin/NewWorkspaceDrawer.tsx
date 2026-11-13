@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
@@ -67,6 +68,7 @@ export function NewWorkspaceDrawer({
   initial,
   onCreated,
 }: NewWorkspaceDrawerProps) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [apiForm, setApiForm] = React.useState<ApiFormState>(() => makeApiForm(initial));
   const [busy, setBusy] = React.useState(false);
@@ -87,13 +89,13 @@ export function NewWorkspaceDrawer({
     try {
       const workspace = await provisionWorkspace(apiForm satisfies ProvisionWorkspaceInput);
       if (fromInquiryId) await setInquiryRead(fromInquiryId, true);
-      toast.success("Workspace provisioned", {
-        description: "The owner has been emailed a link to set their password.",
+      toast.success(uiText("ui.workspace.provisioned"), {
+        description: uiText("ui.the.owner.has.been.emailed.a.link.to.set.their.password"),
       });
       onCreated?.(workspace);
       onClose();
     } catch (err) {
-      toast.error("Couldn't create workspace", {
+      toast.error(uiText("ui.couldn.t.create.workspace"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -105,30 +107,28 @@ export function NewWorkspaceDrawer({
     <DrawerShell
       open={open}
       onClose={onClose}
-      eyebrow={fromInquiryId ? "Promote inquiry" : "Provision workspace"}
-      title={apiForm.name.trim() || "New workspace"}
+      eyebrow={fromInquiryId ? uiText("ui.promote.inquiry") : uiText("ui.provision.workspace")}
+      title={apiForm.name.trim() || uiText("ui.new.workspace")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
+            {uiText("ui.cancel")}</Button>
           <Button onClick={save} loading={busy} disabled={!apiValid}>
-            Provision workspace
-          </Button>
+            {uiText("ui.provision.workspace")}</Button>
         </>
       }
     >
       <fieldset disabled={busy} className="flex flex-col gap-5 disabled:opacity-90">
-        <Field label="Workspace name" required>
+        <Field label={uiText("ui.workspace.name")} required>
           <Input
             value={apiForm.name}
             onChange={(event) =>
               setApiForm({ ...apiForm, name: event.target.value })
             }
-            placeholder="e.g. North Star Coaching"
+            placeholder={uiText("ui.e.g.north.star.coaching")}
           />
         </Field>
-        <Field label="Workspace slug" required hint="Lowercase letters, numbers, and hyphens.">
+        <Field label={uiText("ui.workspace.slug")} required hint={uiText("ui.lowercase.letters.numbers.and.hyphens")}>
           <Input
             value={apiForm.slug}
             onChange={(event) =>
@@ -138,7 +138,7 @@ export function NewWorkspaceDrawer({
           />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Owner first names" required>
+          <Field label={uiText("ui.owner.first.names")} required>
             <Input
               value={apiForm.ownerFirstNames}
               onChange={(event) =>
@@ -146,7 +146,7 @@ export function NewWorkspaceDrawer({
               }
             />
           </Field>
-          <Field label="Owner last name" required>
+          <Field label={uiText("ui.owner.last.name")} required>
             <Input
               value={apiForm.ownerLastName}
               onChange={(event) =>
@@ -155,7 +155,7 @@ export function NewWorkspaceDrawer({
             />
           </Field>
         </div>
-        <Field label="Owner email" required>
+        <Field label={uiText("ui.owner.email")} required>
           <Input
             type="email"
             value={apiForm.ownerEmail}
@@ -165,7 +165,7 @@ export function NewWorkspaceDrawer({
             autoComplete="email"
           />
         </Field>
-        <Field label="Workspace timezone" required>
+        <Field label={uiText("ui.workspace.timezone")} required>
           <Input
             value={apiForm.timezone}
             onChange={(event) =>
@@ -174,7 +174,7 @@ export function NewWorkspaceDrawer({
             placeholder="Europe/London"
           />
         </Field>
-        <Field label="Client currency" required>
+        <Field label={uiText("ui.client.currency")} required>
           <Select
             value={apiForm.currency}
             onChange={(event) =>
@@ -184,9 +184,7 @@ export function NewWorkspaceDrawer({
           />
         </Field>
         <div className="rounded-md border border-line-soft bg-paper-2 px-3 py-2.5 text-small">
-          This creates the workspace on Essentials with a 30-day trial and emails the owner a
-          link to set their password. Change the plan or extend the trial afterwards.
-        </div>
+          {uiText("ui.this.creates.the.workspace.on.essentials.with.a.30.day.trial.and.emails.the.owner.a.link.t")}</div>
       </fieldset>
     </DrawerShell>
   );

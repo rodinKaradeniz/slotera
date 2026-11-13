@@ -1,4 +1,6 @@
 "use client";
+import { readLang, localeForLang } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -48,7 +50,7 @@ async function loadAll() {
 
 function whenFromSession(s: SessionItem, timezone: string): string {
   const start = new Date(s.startISO);
-  return `${start.toLocaleDateString(undefined, {
+  return `${start.toLocaleDateString(localeForLang(readLang()), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -56,6 +58,7 @@ function whenFromSession(s: SessionItem, timezone: string): string {
 }
 
 export function BookingsView() {
+  const { t: uiText } = useI18n();
   const timezone = useWorkspaceTimezone();
   const { openBookingDrawer } = useDrawers();
   const router = useRouter();
@@ -88,12 +91,12 @@ export function BookingsView() {
         booking: b,
         clientName: client?.name ?? "Unknown client",
         clientCompany: client?.company,
-        serviceName: service?.name ?? "Service",
+        serviceName: service?.name ?? uiText("ui.service"),
         when: session ? whenFromSession(session, timezone) : "—",
         time: session ? clockIn(session.startISO, timezone) : "—",
       };
     });
-  }, [bookings, clientById, sessionById, serviceById, timezone]);
+  }, [bookings, clientById, sessionById, serviceById, timezone, uiText]);
 
   const filtered = rows.filter((r) => {
     const q = query.trim().toLowerCase();
@@ -111,16 +114,16 @@ export function BookingsView() {
   const exportCsv = () => {
     const text = toCsv(filtered, [
       { header: "Reference", value: (r) => r.booking.reference ?? r.id },
-      { header: "Client", value: (r) => r.clientName },
-      { header: "Service", value: (r) => r.serviceName },
+      { header: uiText("ui.client"), value: (r) => r.clientName },
+      { header: uiText("ui.service"), value: (r) => r.serviceName },
       {
         header: "Starts (UTC)",
         value: (r) => sessionById.get(r.booking.sessionId)?.startISO ?? "",
       },
-      { header: "Status", value: (r) => r.booking.status },
-      { header: "Payment", value: (r) => r.booking.paymentStatus },
-      { header: "Amount", value: (r) => (r.booking.amountCents / 100).toFixed(2) },
-      { header: "Currency", value: (r) => r.booking.currency },
+      { header: uiText("ui.status"), value: (r) => r.booking.status },
+      { header: uiText("ui.payment"), value: (r) => r.booking.paymentStatus },
+      { header: uiText("ui.amount"), value: (r) => (r.booking.amountCents / 100).toFixed(2) },
+      { header: uiText("ui.currency"), value: (r) => r.booking.currency },
     ]);
     downloadText(`slotera-bookings-${new Date().toISOString().slice(0, 10)}.csv`, text);
   };
@@ -136,15 +139,13 @@ export function BookingsView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Operations"
-        title="Bookings"
-        description="All client bookings across 1:1 calls, group classes and workshops."
+        eyebrow={uiText("ui.operations")}
+        title={uiText("ui.bookings")}
+        description={uiText("ui.all.client.bookings.across.1.1.calls.group.classes.and.workshops")}
         meta={
           bookings
-            ? `${plural(bookings.length, "booking")} · ${
-                bookings.filter((b) => b.paymentStatus === "pending").length
-              } pending payment`
-            : "Loading…"
+            ? `${plural(bookings.length, "booking")} · ${uiText("ui.pending.payment.count", { count: bookings.filter((b) => b.paymentStatus === "pending").length })}`
+            : uiText("ui.loading")
         }
         actions={
           <>
@@ -155,8 +156,7 @@ export function BookingsView() {
               onClick={exportCsv}
               disabled={filtered.length === 0}
             >
-              Export
-            </Button>
+              {uiText("ui.export")}</Button>
             <Button
               variant="primary"
               size="md"
@@ -167,8 +167,7 @@ export function BookingsView() {
                 })
               }
             >
-              New booking
-            </Button>
+              {uiText("ui.new.booking")}</Button>
           </>
         }
       />
@@ -177,7 +176,7 @@ export function BookingsView() {
         <div className="flex-1 min-w-[220px]">
           <Input
             icon="search"
-            placeholder="Search by client, service, or ID"
+            placeholder={uiText("ui.search.by.client.service.or.id")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -187,7 +186,7 @@ export function BookingsView() {
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
             options={[
-              { value: "all", label: "All services" },
+              { value: "all", label: uiText("ui.all.services") },
               ...services.map((s) => ({ value: s.id, label: s.name })),
             ]}
           />
@@ -196,7 +195,7 @@ export function BookingsView() {
 
       {clientFilterId && (
         <div className="flex items-center gap-2 mb-6 -mt-2">
-          <span className="text-small text-ink-3">Filtered by client:</span>
+          <span className="text-small text-ink-3">{uiText("ui.filtered.by.client")}</span>
           <button
             type="button"
             onClick={clearClientFilter}

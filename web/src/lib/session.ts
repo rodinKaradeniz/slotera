@@ -21,9 +21,11 @@ export function readSession(): Session | null {
 export function writeSession(session: Session): void {
   if (!isBrowser()) return;
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  window.dispatchEvent(new Event("slotera-session-change"));
 }
 
 export function clearSession(): void {
   if (!isBrowser()) return;
   window.localStorage.removeItem(SESSION_KEY);
+  window.dispatchEvent(new Event("slotera-session-change"));
 }

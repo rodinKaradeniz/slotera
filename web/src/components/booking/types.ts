@@ -68,7 +68,7 @@ export const EMPTY_DRAFT: BookingDraft = {
 };
 
 export type CountryRow = {
-  code: string;
+  code: "DE" | "AT" | "FR" | "NL" | "ES" | "IT" | "GB";
   name: string;
   vat: number;
   flag: string;

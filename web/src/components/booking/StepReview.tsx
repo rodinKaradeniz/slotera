@@ -76,8 +76,8 @@ export function StepReview({ draft, onEdit }: Props) {
           value={draft.billing.street || "—"}
           hint={
             draft.billing.city
-              ? `${draft.billing.zip} ${draft.billing.city} · ${country.name}`
-              : country.name
+              ? `${draft.billing.zip} ${draft.billing.city} · ${t(`booking.country.${country.code}`)}`
+              : t(`booking.country.${country.code}`)
           }
           onEdit={() => onEdit("billing")}
         />

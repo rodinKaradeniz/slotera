@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { localeForLang } from "@/lib/i18n";
 import * as React from "react";
 import { Input } from "@/components/ui/Input";
 import { Toggle } from "@/components/ui/Toggle";
@@ -16,6 +18,7 @@ type Props = {
 };
 
 export function WorkingHoursForm({ value, onChange, disabled }: Props) {
+  const { lang } = useI18n();
   const updateDay = (i: number, patch: Partial<WorkingDay>) =>
     onChange(value.map((h, idx) => (i === idx ? { ...h, ...patch } : h)));
 
@@ -26,7 +29,7 @@ export function WorkingHoursForm({ value, onChange, disabled }: Props) {
           key={`${h.day}-${i}`}
           className="grid grid-cols-[60px_auto_1fr_1fr] items-center gap-3 py-2"
         >
-          <div className="text-[14px] font-medium text-ink">{h.day}</div>
+          <div className="text-[14px] font-medium text-ink">{new Intl.DateTimeFormat(localeForLang(lang), { weekday: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2024, 0, 1 + i)))}</div>
           <Toggle
             checked={h.enabled}
             onChange={(v) => updateDay(i, { enabled: v })}

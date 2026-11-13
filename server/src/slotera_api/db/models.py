@@ -45,6 +45,9 @@ TENANT_TABLES = frozenset(
         "bookings",
         "booking_command_idempotency",
         "booking_form_responses",
+        "booking_form_snapshots",
+        "service_packages",
+        "service_package_items",
         "booking_access_tokens",
         "calendar_feed_tokens",
         "public_booking_idempotency",
@@ -170,6 +173,7 @@ class User(Base):
     __table_args__ = (CheckConstraint("email = lower(btrim(email))", name="email_normalized"),)
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    preferred_language: Mapped[str] = mapped_column(String(2), server_default="en")
     email: Mapped[str] = mapped_column(String(320), unique=True)
     title: Mapped[str | None] = mapped_column(String(32))
     first_names: Mapped[str] = mapped_column(String(160))
@@ -386,6 +390,8 @@ class WorkspaceBusinessProfile(Base):
     )
     display_name: Mapped[str] = mapped_column(String(160))
     bio: Mapped[str] = mapped_column(String(4000), server_default=text("''"))
+    brand_accent: Mapped[str] = mapped_column(String(7), server_default="#3d5a3d")
+    brand_font: Mapped[str] = mapped_column(String(5), server_default="serif")
     email: Mapped[str] = mapped_column(String(320))
     phone: Mapped[str] = mapped_column(String(40), server_default=text("''"))
     address: Mapped[str] = mapped_column(String(500), server_default=text("''"))
@@ -705,6 +711,7 @@ class Booking(Base):
         ),
         server_default=text("'not_required'"),
     )
+    language: Mapped[str] = mapped_column(String(2), server_default="en")
     reference: Mapped[str] = mapped_column(String(32))
     payment_method: Mapped[str] = mapped_column(String(16))
     attendance: Mapped[BookingAttendance | None] = mapped_column(
@@ -1060,3 +1067,53 @@ __all__ = [
     "WorkspaceLocation",
     "WorkspaceSlugHistory",
 ]
+
+
+class BookingFormSnapshot(Base):
+    __tablename__ = "booking_form_snapshots"
+    __table_args__ = (
+        ForeignKeyConstraint(["workspace_id", "booking_id"],
+            ["bookings.workspace_id", "bookings.id"], ondelete="CASCADE"),
+        UniqueConstraint("workspace_id", "booking_id", "form_template_id"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    booking_id: Mapped[UUID]
+    form_template_id: Mapped[UUID]
+    name: Mapped[str] = mapped_column(String(160))
+    description: Mapped[str] = mapped_column(String(1000))
+    fields: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
+    required_before_payment: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ServicePackage(Base):
+    __tablename__ = "service_packages"
+    __table_args__ = (UniqueConstraint("workspace_id", "id"),
+        CheckConstraint("price_cents >= 0", name="package_price"), CheckConstraint("status IN ('active', 'inactive')", name="package_status"))
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    description: Mapped[str] = mapped_column(String(4000))
+    status: Mapped[str] = mapped_column(String(8))
+    price_cents: Mapped[int] = mapped_column(Integer)
+    notes: Mapped[str | None] = mapped_column(String(4000))
+    featured: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class ServicePackageItem(Base):
+    __tablename__ = "service_package_items"
+    __table_args__ = (
+        ForeignKeyConstraint(["workspace_id", "package_id"], ["service_packages.workspace_id", "service_packages.id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["workspace_id", "service_id"], ["services.workspace_id", "services.id"], ondelete="RESTRICT"),
+        UniqueConstraint("workspace_id", "package_id", "position"), CheckConstraint("position >= 0", name="package_position"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    package_id: Mapped[UUID]
+    service_id: Mapped[UUID]
+    title: Mapped[str | None] = mapped_column(String(160))
+    description: Mapped[str | None] = mapped_column(String(1000))
+    position: Mapped[int] = mapped_column(Integer)

@@ -14,6 +14,7 @@ type Props = {
 };
 
 export function ServiceSelectorCard({ service, selected, onSelect }: Props) {
+  const { t: uiText } = useI18n();
   const { t } = useI18n();
   return (
     <Card
@@ -52,8 +53,7 @@ export function ServiceSelectorCard({ service, selected, onSelect }: Props) {
         </div>
         <p className="text-small mt-1">{service.description}</p>
         <div className="text-micro mt-2">
-          {service.durationMin} min
-          {service.confirmationPolicy === "operator_approval" && (
+          {service.durationMin} {uiText("ui.min")}{service.confirmationPolicy === "operator_approval" && (
             <> · {t("booking.service.approvalRequired")}</>
           )}
         </div>

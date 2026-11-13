@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Modal } from "./Modal";
@@ -35,10 +36,12 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  cancelLabel: cancelLabelProp,
   destructive,
   busy,
 }: Props) {
+  const { t: uiText } = useI18n();
+  const cancelLabel = cancelLabelProp ?? uiText("ui.cancel");
   const variant = destructive ? "danger" : "primary";
   return (
     <Modal

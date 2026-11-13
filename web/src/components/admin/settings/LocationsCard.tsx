@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -30,6 +31,7 @@ export function LocationsCard({
   business: BusinessSettings;
   onChange: (next: BusinessSettings) => void;
 }) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const locations = business.locations ?? [];
   const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -60,11 +62,11 @@ export function LocationsCard({
   const save = async () => {
     if (!draft) return;
     if (draft.label.trim().length === 0) {
-      toast.error("Give the location a name.");
+      toast.error(uiText("ui.give.the.location.a.name"));
       return;
     }
     if (draft.address.street.trim().length === 0) {
-      toast.error("Address line 1 is required.");
+      toast.error(uiText("ui.address.line.1.is.required"));
       return;
     }
     const exists = editingId !== "__new__";
@@ -83,10 +85,10 @@ export function LocationsCard({
         ? locations.map((location) => (location.id === saved.id ? saved : location))
         : [...locations, saved];
       onChange({ ...business, locations: next });
-      toast.success(exists ? "Location updated" : "Location added");
+      toast.success(exists ? uiText("ui.location.updated") : uiText("ui.location.added"));
       cancelEdit();
     } catch (error) {
-      toast.error("Couldn't save location", {
+      toast.error(uiText("ui.couldn.t.save.location"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -102,11 +104,11 @@ export function LocationsCard({
         ...business,
         locations: locations.filter((location) => location.id !== loc.id),
       });
-      toast.success("Location deleted");
+      toast.success(uiText("ui.location.deleted"));
       if (editingId === loc.id) cancelEdit();
       setPendingDelete(null);
     } catch (error) {
-      toast.error("Couldn't delete location", {
+      toast.error(uiText("ui.couldn.t.delete.location"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -119,24 +121,19 @@ export function LocationsCard({
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>
-            Studios &amp; offices
-          </h2>
+            {uiText("ui.studios.offices")}</h2>
           <p className="text-small mt-1">
-            Save the places you regularly host sessions, then attach them to a
-            session in one click.
-          </p>
+            {uiText("ui.save.the.places.you.regularly.host.sessions.then.attach.them.to.a.session.in.one.click")}</p>
         </div>
         {!editingId && (
           <Button variant="secondary" size="sm" icon="plus" onClick={startNew}>
-            Add location
-          </Button>
+            {uiText("ui.add.location")}</Button>
         )}
       </div>
 
       {locations.length === 0 && !editingId && (
         <div className="rounded-md border border-dashed border-line bg-paper-2 px-4 py-5 text-small text-center">
-          No saved locations yet. Add one to reuse it across sessions.
-        </div>
+          {uiText("ui.no.saved.locations.yet.add.one.to.reuse.it.across.sessions")}</div>
       )}
 
       <div className="flex flex-col">
@@ -205,9 +202,9 @@ export function LocationsCard({
         onConfirm={() => {
           if (pendingDelete) remove(pendingDelete);
         }}
-        title={`Delete "${pendingDelete?.label ?? "this location"}"?`}
-        description="Sessions that already use this location keep their address — only the saved entry is removed."
-        confirmLabel="Delete location"
+        title={uiText("ui.remove.named", { name: pendingDelete?.label ?? uiText("ui.location") })}
+        description={uiText("ui.sessions.that.already.use.this.location.keep.their.address.only.the.saved.entry.is.removed")}
+        confirmLabel={uiText("ui.delete.location")}
         destructive
         busy={busy}
       />
@@ -228,13 +225,14 @@ export function LocationEditor({
   onCancel: () => void;
   busy: boolean;
 }) {
+  const { t: uiText } = useI18n();
   return (
     <div className="rounded-md border border-line bg-surface-warm p-4 my-2 flex flex-col gap-4">
-      <Field label="Location name" required>
+      <Field label={uiText("ui.location.name")} required>
         <Input
           value={draft.label}
           onChange={(e) => onChange({ ...draft, label: e.target.value })}
-          placeholder="e.g. Mitte Studio"
+          placeholder={uiText("ui.e.g.mitte.studio")}
         />
       </Field>
       <AddressForm
@@ -244,11 +242,9 @@ export function LocationEditor({
       />
       <div className="flex justify-end gap-2 pt-1">
         <Button variant="ghost" size="sm" onClick={onCancel} disabled={busy}>
-          Cancel
-        </Button>
+          {uiText("ui.cancel")}</Button>
         <Button variant="primary" size="sm" onClick={onSave} loading={busy}>
-          Save location
-        </Button>
+          {uiText("ui.save.location")}</Button>
       </div>
     </div>
   );

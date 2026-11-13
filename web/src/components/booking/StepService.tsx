@@ -8,7 +8,6 @@ import { listBookingServices } from "@/services/demo.service";
 import type { Service } from "@/types/service";
 import type { DemoPersona } from "@/types/demo";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { dataSource } from "@/lib/env";
 
 type Props = {
   selected: Service | null;
@@ -57,7 +56,7 @@ export function StepService({ selected, onSelect, persona }: Props) {
     </div>
       {/* Informational-only: surfaces multi-session packages this service is part
           of. Never gates or changes what gets booked. */}
-      {selected && dataSource === "mock" && (
+      {selected && (
         <PackageOptionsHint serviceId={selected.id} />
       )}
     </div>

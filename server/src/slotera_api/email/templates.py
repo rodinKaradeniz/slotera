@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from pydantic import Field
 
 from slotera_api.calendar_ics import CalendarEvent, booking_uid, build_calendar
+from slotera_api.email.locales import TEXT, language, render_localized
 from slotera_api.schemas.base import ApiModel
 
 
@@ -83,6 +84,8 @@ def render_booking_email(
     kind: BookingEmailKind,
     raw_data: dict[str, object],
 ) -> tuple[str, str]:
+    if language(raw_data) != "en":
+        return render_localized(kind, raw_data)
     data = BookingEmailTemplateData.model_validate(raw_data)
     facts = _booking_facts(data)
     if kind == "booking_confirmed":
@@ -161,16 +164,20 @@ def booking_calendar_file(kind: BookingEmailKind, raw_data: dict[str, object]) -
     if kind not in CALENDAR_EMAIL_KINDS:
         return None
     data = BookingEmailTemplateData.model_validate(raw_data)
+    lang = language(raw_data)
     cancelled = kind == "booking_cancelled"
+    connector = TEXT[lang]["with"] if lang != "en" else "with"
     event = CalendarEvent(
         uid=booking_uid(data.reference),
         start=data.starts_at,
         end=data.ends_at,
-        summary=f"{data.service_name} with {data.provider_name}",
+        summary=f"{data.service_name} {connector} {data.provider_name}",
         location=data.meeting_url or _where(data),
         description=(
             f"Reference: {data.reference}\n"
             "To change or cancel, use the link in your confirmation email."
+            if lang == "en"
+            else f"{TEXT[lang]['reference']}: {data.reference}\n{TEXT[lang]['calendar']}"
         ),
         url=data.meeting_url,
         # Each later file must outrank the earlier one, so use the send time.
@@ -202,6 +209,8 @@ OPERATOR_EMAIL_KINDS: frozenset[str] = frozenset(get_args(OperatorEmailKind))
 
 def render_operator_email(kind: OperatorEmailKind, raw_data: dict[str, object]) -> tuple[str, str]:
     """What a client did, for the workspace owner. Rendered in the workspace's time zone."""
+    if language(raw_data) != "en":
+        return render_localized(kind, raw_data)
     data = OperatorEmailTemplateData.model_validate(raw_data)
     client = data.client_name or "A client"
     when = data.starts_at.astimezone(ZoneInfo(data.timezone)).strftime("%A, %d %B %Y at %H:%M %Z")

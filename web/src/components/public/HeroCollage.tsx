@@ -1,3 +1,5 @@
+"use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import * as React from "react";
 import { Icon } from "@/components/ui/Icon";
 
@@ -89,13 +91,14 @@ function CardFrame({
 /* ────────────────────────────────────────────── */
 
 function NextSessionMini() {
+  const { t: uiText } = useI18n();
   return (
     <div className="p-4">
       <div className="flex items-center gap-2">
         <span className="w-7 h-7 rounded-md bg-accent-soft text-accent flex items-center justify-center">
           <Icon name="calendar-days" size={14} />
         </span>
-        <span className="eyebrow">Next session</span>
+        <span className="eyebrow">{uiText("ui.next.session")}</span>
       </div>
       <div
         className="font-serif text-ink mt-2.5 leading-tight"
@@ -103,11 +106,10 @@ function NextSessionMini() {
       >
         Strategy Call · Mara K.
       </div>
-      <div className="text-[11.5px] text-ink-3 mt-1">Today · 14:30–15:00</div>
+      <div className="text-[11.5px] text-ink-3 mt-1">{uiText("ui.today")} · 14:30–15:00</div>
       <div className="mt-3 flex items-center gap-1.5">
         <span className="text-[10.5px] font-mono uppercase tracking-wider text-accent">
-          Confirmed
-        </span>
+          {uiText("ui.confirmed")}</span>
         <span className="w-1 h-1 rounded-full bg-ink-4" />
         <span className="text-[10.5px] text-ink-3">Zoom</span>
       </div>
@@ -116,12 +118,13 @@ function NextSessionMini() {
 }
 
 function RevenueMini() {
+  const { t: uiText } = useI18n();
   const bars = [38, 52, 44, 60, 48, 72, 84];
   const max = 84;
   return (
     <div className="p-4">
       <div className="flex items-center justify-between">
-        <span className="eyebrow">Revenue · 7d</span>
+        <span className="eyebrow">{uiText("ui.revenue.7d")}</span>
         <span className="text-[10.5px] font-mono text-accent">+12%</span>
       </div>
       <div
@@ -148,6 +151,7 @@ function RevenueMini() {
 }
 
 function CalendarMini() {
+  const { t: uiText } = useI18n();
   const days = ["M", "T", "W", "T", "F", "S", "S"];
   const cells = Array.from({ length: 28 }, (_, i) => i + 1);
   const accents = new Set([4, 11, 18, 22]);
@@ -155,7 +159,7 @@ function CalendarMini() {
   return (
     <div className="p-3">
       <div className="flex items-center justify-between px-1 mb-2">
-        <span className="text-[11px] font-medium text-ink">May 2026</span>
+        <span className="text-[11px] font-medium text-ink">{uiText("ui.may.2026")}</span>
         <div className="flex gap-1 text-ink-4">
           <Icon name="chevron-l" size={11} />
           <Icon name="chevron-r" size={11} />
@@ -200,6 +204,7 @@ function CalendarMini() {
 }
 
 function BookingRowMini() {
+  const { t: uiText } = useI18n();
   const rows = [
     { name: "Léa Mertens", time: "10:00", svc: "Deep dive" },
     { name: "Jamal Reid", time: "11:30", svc: "Discovery" },
@@ -208,7 +213,7 @@ function BookingRowMini() {
   return (
     <div className="py-2.5">
       <div className="px-4 pb-2 flex items-center justify-between border-b border-line-soft">
-        <span className="eyebrow">Today · 3 bookings</span>
+        <span className="eyebrow">{uiText("ui.today.3.bookings")}</span>
         <Icon name="filter" size={11} className="text-ink-4" />
       </div>
       {rows.map((r, i) => (
@@ -234,10 +239,11 @@ function BookingRowMini() {
 }
 
 function ReceiptMini() {
+  const { t: uiText } = useI18n();
   return (
     <div className="p-3.5">
       <div className="flex items-center justify-between">
-        <span className="eyebrow">Receipt</span>
+        <span className="eyebrow">{uiText("ui.receipt")}</span>
         <span className="text-[10px] font-mono text-ink-3">SLT-7K2P</span>
       </div>
       <div className="mt-2 text-[11px] text-ink">Strategy Call · 30 min</div>
@@ -248,8 +254,8 @@ function ReceiptMini() {
             "repeating-linear-gradient(to right, var(--line-soft) 0 4px, transparent 4px 8px)",
         }}
       />
-      <RowMini label="Subtotal" value="£140" />
-      <RowMini label="VAT 20%" value="£28" />
+      <RowMini label={uiText("ui.subtotal")} value="£140" />
+      <RowMini label={uiText("ui.vat.20")} value="£28" />
       <div
         className="h-px my-2"
         style={{
@@ -259,8 +265,7 @@ function ReceiptMini() {
       />
       <div className="flex items-baseline justify-between">
         <span className="text-[10px] uppercase tracking-wider text-ink-3">
-          Total
-        </span>
+          {uiText("ui.total")}</span>
         <span
           className="font-serif text-ink"
           style={{ fontSize: 16, fontWeight: 400 }}

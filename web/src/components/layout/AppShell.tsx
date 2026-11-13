@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Sidebar } from "./Sidebar";
@@ -41,6 +42,7 @@ export function AppShell({
   userSubtitle,
   children,
 }: Props) {
+  const { t: uiText } = useI18n();
   const hydrated = useHydrated();
   // null until the user toggles; until then the stored choice applies.
   const [collapsedChoice, setCollapsedChoice] = React.useState<boolean | null>(null);
@@ -84,8 +86,7 @@ export function AppShell({
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-[13px] focus:shadow-3"
       >
-        Skip to content
-      </a>
+        {uiText("ui.skip.to.content")}</a>
       <Sidebar
         collapsed={collapsed}
         nav={nav}
@@ -95,7 +96,7 @@ export function AppShell({
         userName={operator?.name}
         userSubtitle={
           userSubtitle ??
-          (role === "superadmin" ? "Slotera staff" : operator?.email)
+          (role === "superadmin" ? uiText("ui.slotera.staff") : operator?.email)
         }
       />
       <div className="flex-1 flex flex-col min-w-0">

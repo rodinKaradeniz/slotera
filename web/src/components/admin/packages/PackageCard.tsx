@@ -1,4 +1,6 @@
 "use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -12,6 +14,7 @@ import type { ServicePackage } from "@/types/package";
 type Props = { item: ServicePackage; onClick: () => void };
 
 export function PackageCard({ item, onClick }: Props) {
+  const { t: uiText, lang: labelLang } = useI18n();
   const status = PACKAGE_STATUS[item.status];
 
   return (
@@ -25,12 +28,11 @@ export function PackageCard({ item, onClick }: Props) {
         <div className="flex items-center justify-between gap-2">
           {item.featured ? (
             <Pill tone="accent" icon="star">
-              Featured
-            </Pill>
+              {uiText("ui.featured")}</Pill>
           ) : (
             <span />
           )}
-          <Pill tone={status.tone}>{status.label}</Pill>
+          <Pill tone={status.tone}>{translateInterfaceLabel(labelLang, status.label)}</Pill>
         </div>
         <h3
           className="font-serif text-ink mt-3"
@@ -42,12 +44,12 @@ export function PackageCard({ item, onClick }: Props) {
         <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-line-soft">
           <Stat
             icon="card"
-            label="Price"
+            label={uiText("ui.price")}
             value={formatMoney(item.priceCents, item.currency)}
           />
           <Stat
             icon="layers"
-            label="Includes"
+            label={uiText("ui.includes")}
             value={plural(item.items.length, "session")}
           />
         </div>

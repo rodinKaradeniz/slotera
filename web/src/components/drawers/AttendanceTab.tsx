@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -37,6 +38,7 @@ const ATTENDANCE_OPTIONS = [
  * be marked yet.
  */
 export function AttendanceTab({ sessionId }: Props) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [rows, setRows] = React.useState<Row[] | null>(null);
   const [busyIds, setBusyIds] = React.useState<Set<string>>(new Set());
@@ -75,7 +77,7 @@ export function AttendanceTab({ sessionId }: Props) {
     } catch (err) {
       // Roll back on failure.
       setRows(snapshot);
-      toast.error("Couldn't update attendance", {
+      toast.error(uiText("ui.couldn.t.update.attendance"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -104,10 +106,10 @@ export function AttendanceTab({ sessionId }: Props) {
       await Promise.all(
         targets.map((t) => setBookingAttendance(t.booking.id, "present")),
       );
-      toast.success(`Marked ${targets.length} attendee${targets.length === 1 ? "" : "s"} present`);
+      toast.success(uiText("ui.attendance.marked", { count: targets.length }));
     } catch (err) {
       setRows(snapshot);
-      toast.error("Couldn't mark all present", {
+      toast.error(uiText("ui.couldn.t.mark.all.present"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -129,9 +131,7 @@ export function AttendanceTab({ sessionId }: Props) {
   if (rows.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-line p-6 text-small text-center">
-        No bookings to mark. Once clients reserve this session, they&apos;ll
-        appear here.
-      </div>
+        {uiText("ui.no.bookings.to.mark.once.clients.reserve.this.session.they.ll.appear.here")}</div>
     );
   }
 
@@ -142,7 +142,7 @@ export function AttendanceTab({ sessionId }: Props) {
       <div className="flex items-center justify-between gap-3">
         <div className="text-small">
           <span className="font-medium text-ink">{marked}</span>
-          <span className="text-ink-3"> / {rows.length} marked</span>
+          <span className="text-ink-3"> / {rows.length} {" "}{uiText("ui.marked")}</span>
         </div>
         <Button
           variant="secondary"
@@ -151,8 +151,7 @@ export function AttendanceTab({ sessionId }: Props) {
           onClick={markAllPresent}
           disabled={marked === rows.length || busyIds.size > 0}
         >
-          Mark all present
-        </Button>
+          {uiText("ui.mark.all.present")}</Button>
       </div>
 
       <div className="flex flex-col rounded-md border border-line bg-surface overflow-hidden">
@@ -166,7 +165,7 @@ export function AttendanceTab({ sessionId }: Props) {
                 (i < rows.length - 1 ? " border-b border-line-soft" : "")
               }
             >
-              <Avatar name={r.client?.name ?? "Client"} size={32} />
+              <Avatar name={r.client?.name ?? uiText("ui.client")} size={32} />
               <div className="flex-1 min-w-0">
                 <div className="text-[14px] font-medium text-ink truncate">
                   {r.client?.name ?? "Unknown client"}
@@ -190,8 +189,7 @@ export function AttendanceTab({ sessionId }: Props) {
       </div>
 
       <p className="text-micro text-ink-3">
-        Attendance is recorded per attendee and saved as you mark each row.
-      </p>
+        {uiText("ui.attendance.is.recorded.per.attendee.and.saved.as.you.mark.each.row")}</p>
     </div>
   );
 }

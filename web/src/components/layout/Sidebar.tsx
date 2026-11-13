@@ -30,6 +30,7 @@ export function Sidebar({
   userName,
   userSubtitle,
 }: Props) {
+  const { t: uiText } = useI18n();
   const pathname = usePathname();
   const operatorEmail = currentSession()?.operator?.email;
   const router = useRouter();
@@ -122,7 +123,7 @@ export function Sidebar({
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           className="w-8 h-8 rounded-md hover:bg-paper-2 text-ink-3 flex items-center justify-center"
-          aria-label="Account menu"
+          aria-label={uiText("ui.account.menu")}
         >
           <Icon name="more" size={18} />
         </button>
@@ -141,8 +142,7 @@ export function Sidebar({
                 className="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2"
                 onClick={() => setMenuOpen(false)}
               >
-                <Icon name="eye" size={14} /> View page
-              </Link>
+                <Icon name="eye" size={14} /> {uiText("ui.view.page")}</Link>
             )}
             <button
               type="button"
@@ -152,15 +152,13 @@ export function Sidebar({
                 setReportOpen(true);
               }}
             >
-              <Icon name="alert" size={14} /> Report a problem
-            </button>
+              <Icon name="alert" size={14} /> {uiText("ui.report.a.problem")}</button>
             <button
               type="button"
               className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper-2 text-left text-danger"
               onClick={handleLogout}
             >
-              <Icon name="power" size={14} /> Logout
-            </button>
+              <Icon name="power" size={14} /> {uiText("ui.logout")}</button>
           </div>
         )}
       </div>
@@ -170,13 +168,13 @@ export function Sidebar({
       onClose={() => setReportOpen(false)}
       persist
       defaultReason="development"
-      eyebrow="Operator workspace"
-      title="Report a problem"
-      description="Spotted a bug or a broken flow? Send us a note — we'll take a look."
+      eyebrow={uiText("ui.operator.workspace")}
+      title={uiText("ui.report.a.problem")}
+      description={uiText("ui.spotted.a.bug.or.a.broken.flow.send.us.a.note.we.ll.take.a.look")}
       presetName={userName}
       presetEmail={operatorEmail}
       // The page path only: no query string or fragment, which can carry tokens.
-      presetMessage={`Page: ${pathname}\n\nWhat happened:\n`}
+      presetMessage={uiText("ui.report.template", { path: pathname })}
     />
     </>
   );

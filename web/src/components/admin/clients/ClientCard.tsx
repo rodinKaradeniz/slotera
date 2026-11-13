@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import Link from "next/link";
@@ -10,6 +11,7 @@ import type { Currency } from "@/types/common";
 import type { Client } from "@/types/client";
 
 export function ClientCard({ client, currency }: { client: Client; currency: Currency }) {
+  const { t: uiText } = useI18n();
   return (
     <Link href={`/admin/clients/${client.id}`}>
       <Card hover className="cursor-pointer">
@@ -26,9 +28,9 @@ export function ClientCard({ client, currency }: { client: Client; currency: Cur
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-line-soft text-center">
-          <Stat label="Bookings" value={String(client.totalBookings)} />
-          <Stat label="Completed" value={String(client.completedBookings)} />
-          <Stat label="Spent" value={formatMoney(client.totalSpentCents, currency)} />
+          <Stat label={uiText("ui.bookings")} value={String(client.totalBookings)} />
+          <Stat label={uiText("ui.completed")} value={String(client.completedBookings)} />
+          <Stat label={uiText("ui.spent")} value={formatMoney(client.totalSpentCents, currency)} />
         </div>
       </Card>
     </Link>

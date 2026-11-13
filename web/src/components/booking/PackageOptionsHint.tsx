@@ -7,8 +7,9 @@ import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { formatMoney } from "@/lib/money";
 import { listPackagesForService } from "@/services/packages.service";
+import { useLoad } from "@/lib/use-load";
 import { useI18n } from "@/components/i18n/I18nProvider";
-import type { ServicePackage } from "@/types/package";
+import type { PackageOffer } from "@/services/packages.service";
 
 /**
  * Informational-only hint shown on the booking Service step when the selected
@@ -21,18 +22,11 @@ type Props = { serviceId: string };
 
 export function PackageOptionsHint({ serviceId }: Props) {
   const { t } = useI18n();
-  const [items, setItems] = React.useState<ServicePackage[]>([]);
   const [open, setOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    listPackagesForService(serviceId).then((list) => {
-      if (!cancelled) setItems(list);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [serviceId]);
+  const load = React.useCallback(() => listPackagesForService(serviceId), [serviceId]);
+  const { data, error, loading, reload } = useLoad(load);
+  const items = loading ? [] : data ?? [];
+  if (error) return <div role="alert" className="mt-4 text-small">{error} <Button variant="ghost" onClick={reload}>{t("forms.retry")}</Button></div>;
 
   if (items.length === 0) return null;
 
@@ -41,7 +35,7 @@ export function PackageOptionsHint({ serviceId }: Props) {
     (a, b) => Number(!!b.featured) - Number(!!a.featured),
   );
 
-  const meta = (p: ServicePackage) =>
+  const meta = (p: PackageOffer) =>
     `${p.items.length} ${t("booking.packages.sessionsSuffix")}`;
 
   return (
@@ -83,7 +77,7 @@ export function PackageOptionsHint({ serviceId }: Props) {
               {t("booking.packages.modalTitle")}
             </span>
             <span className="block text-body text-ink-2 mt-3">
-              {t("booking.packages.modalBody")}
+              {t("packages.arrange")}
             </span>
           </span>
         }

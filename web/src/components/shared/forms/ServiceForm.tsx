@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
@@ -41,6 +42,7 @@ export function ServiceForm({
   serviceId,
   disabled,
 }: Props) {
+  const { t: uiText } = useI18n();
   const [savedLocations, setSavedLocations] = React.useState<WorkspaceLocation[]>(
     [],
   );
@@ -54,15 +56,15 @@ export function ServiceForm({
 
   return (
     <fieldset disabled={disabled} className="flex flex-col gap-5 disabled:opacity-90">
-      <Field label="Service name" required>
+      <Field label={uiText("ui.service.name")} required>
         <Input
           value={value.name}
           onChange={(e) => onChange({ ...value, name: e.target.value })}
-          placeholder="e.g. Strategy Deep Dive"
+          placeholder={uiText("ui.e.g.strategy.deep.dive")}
         />
       </Field>
 
-      <Field label="Description" hint="One short line clients see on the booking page.">
+      <Field label={uiText("ui.description")} hint={uiText("ui.one.short.line.clients.see.on.the.booking.page")}>
         <Textarea
           value={value.description}
           rows={3}
@@ -70,7 +72,7 @@ export function ServiceForm({
         />
       </Field>
 
-      <Field label="Duration (min)">
+      <Field label={uiText("ui.duration.min")}>
         <Input
           type="number"
           value={String(value.durationMin)}
@@ -82,7 +84,7 @@ export function ServiceForm({
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Price">
+        <Field label={uiText("ui.price")}>
           <Input
             type="number"
             prefix={value.currency}
@@ -96,7 +98,7 @@ export function ServiceForm({
             min={0}
           />
         </Field>
-        <Field label="Currency">
+        <Field label={uiText("ui.currency")}>
           <Select
             value={value.currency}
             disabled={dataSource === "api"}
@@ -108,7 +110,7 @@ export function ServiceForm({
         </Field>
       </div>
 
-      <Field label="Capacity" hint="1 for 1:1. Higher for group sessions or workshops.">
+      <Field label={uiText("ui.capacity")} hint={uiText("ui.1.for.1.1.higher.for.group.sessions.or.workshops")}>
         <Input
           type="number"
           value={String(value.capacity)}
@@ -123,8 +125,8 @@ export function ServiceForm({
       </Field>
 
       <Field
-        label="Booking confirmation"
-        hint="Choose whether bookings confirm automatically or wait for your approval."
+        label={uiText("ui.booking.confirmation")}
+        hint={uiText("ui.choose.whether.bookings.confirm.automatically.or.wait.for.your.approval")}
       >
         <Select
           value={value.confirmationPolicy}
@@ -135,14 +137,14 @@ export function ServiceForm({
             })
           }
           options={[
-            { value: "automatic", label: "Confirm automatically" },
-            { value: "operator_approval", label: "Review before confirming" },
+            { value: "automatic", label: uiText("ui.confirm.automatically") },
+            { value: "operator_approval", label: uiText("ui.review.before.confirming") },
           ]}
         />
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Location type">
+        <Field label={uiText("ui.location.type")}>
           <Select
             value={value.locationType}
             onChange={(e) =>
@@ -152,13 +154,13 @@ export function ServiceForm({
               })
             }
             options={[
-              { value: "online", label: "Online" },
-              { value: "physical", label: "In person" },
-              { value: "hybrid", label: "Hybrid" },
+              { value: "online", label: uiText("ui.online") },
+              { value: "physical", label: uiText("ui.in.person") },
+              { value: "hybrid", label: uiText("ui.hybrid") },
             ]}
           />
         </Field>
-        <Field label="Meeting / location">
+        <Field label={uiText("ui.meeting.location")}>
           <Input
             value={value.location}
             onChange={(e) => onChange({ ...value, location: e.target.value })}
@@ -168,12 +170,12 @@ export function ServiceForm({
 
       {value.locationType !== "physical" && (
         <Field
-          label="Meeting link"
+          label={uiText("ui.meeting.link")}
           optional
-          hint="Zoom, Google Meet or Teams. Clients get it once their booking is confirmed."
+          hint={uiText("ui.zoom.google.meet.or.teams.clients.get.it.once.their.booking.is.confirmed")}
           error={
             value.meetingUrl && !/^https:\/\/\S+$/.test(value.meetingUrl.trim())
-              ? "Use a full https:// link."
+              ? uiText("ui.use.a.full.https.link")
               : undefined
           }
         >
@@ -192,12 +194,12 @@ export function ServiceForm({
           value={value.address}
           onChange={(address) => onChange({ ...value, address })}
           savedLocations={savedLocations}
-          title="Default address"
-          description="New sessions of this service will inherit this address. You can override per session."
+          title={uiText("ui.default.address")}
+          description={uiText("ui.new.sessions.of.this.service.will.inherit.this.address.you.can.override.per.session")}
         />
       )}
 
-      <Field label="Cancellation / reschedule rule">
+      <Field label={uiText("ui.cancellation.reschedule.rule")}>
         <Textarea
           value={value.cancellationRule}
           rows={2}
@@ -208,15 +210,15 @@ export function ServiceForm({
       </Field>
 
       <Field
-        label="Internal notes"
+        label={uiText("ui.internal.notes")}
         optional
-        hint="Only visible to you. Use for prep instructions, materials, or context."
+        hint={uiText("ui.only.visible.to.you.use.for.prep.instructions.materials.or.context")}
       >
         <Textarea
           value={value.notes ?? ""}
           rows={3}
           onChange={(e) => onChange({ ...value, notes: e.target.value })}
-          placeholder="e.g. Bring projector + whiteboard markers. Send pre-reads 48h ahead."
+          placeholder={uiText("ui.e.g.bring.projector.whiteboard.markers.send.pre.reads.48h.ahead")}
         />
       </Field>
 
@@ -228,11 +230,10 @@ export function ServiceForm({
         <div className="flex items-center justify-between rounded-md border border-line bg-surface-warm p-4">
           <div>
             <div className="text-[14px] font-medium text-ink">
-              {value.active ? "Active" : "Inactive"}
+              {value.active ? uiText("ui.active") : uiText("ui.inactive")}
             </div>
             <div className="text-small">
-              Inactive services don&apos;t appear on the booking page.
-            </div>
+              {uiText("ui.inactive.services.don.t.appear.on.the.booking.page")}</div>
           </div>
           <Toggle
             checked={value.active}

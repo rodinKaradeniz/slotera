@@ -74,7 +74,7 @@ export function areRequiredFormsComplete(
       if (answer === undefined || answer === null) return false;
       if (typeof answer === "string") return answer.trim().length > 0;
       if (Array.isArray(answer)) return answer.length > 0;
-      if (typeof answer === "boolean") return answer === true;
+      if (typeof answer === "boolean") return field.type === "yes_no" || answer === true;
       return true;
     }),
   );

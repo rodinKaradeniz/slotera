@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { BookingTheme } from "@/components/booking/BookingTheme";
 import { useHydrated } from "@/lib/use-hydrated";
 import Link from "next/link";
 import { BookingTopBar } from "@/components/layout/BookingTopBar";
@@ -26,6 +27,7 @@ type Stored = {
   /** API mode: the operator's name, and false on Professional (no "Powered by"). */
   providerName?: string;
   branded?: boolean;
+  branding?: import("@/services/branding.service").Branding;
 };
 
 function readStored(): Stored | null {
@@ -70,7 +72,7 @@ export default function ConfirmationPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <BookingTheme slug={data?.slug} branding={data?.branding}><div className="min-h-screen flex flex-col">
       <BookingTopBar consultantName={data?.providerName} />
       <main className="flex-1 max-w-[820px] mx-auto w-full px-6 pt-12 pb-12">
         <Card padded className="text-center">
@@ -209,7 +211,7 @@ export default function ConfirmationPage() {
         </div>}
       </main>
       <BookingFooter branded={data?.branded ?? true} />
-    </div>
+    </div></BookingTheme>
   );
 }
 

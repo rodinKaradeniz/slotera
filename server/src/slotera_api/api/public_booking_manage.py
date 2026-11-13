@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from typing import Annotated, Literal, cast
+from uuid import UUID
 
 from fastapi import APIRouter, Header, Request, Response
 from sqlalchemy.exc import IntegrityError
@@ -8,6 +9,12 @@ from slotera_api.auth.dependencies import (
     DatabaseDependency,
     SettingsDependency,
     require_trusted_origin,
+)
+from slotera_api.booking_forms import (
+    BookingFormsResponse,
+    BookingFormSubmit,
+    read_forms,
+    submit_form,
 )
 from slotera_api.errors import ApiError
 from slotera_api.plans import shows_platform_branding
@@ -22,6 +29,7 @@ from slotera_api.public_booking.repository import (
     PublicBookingRepository,
     PublicSlotUnavailableError,
 )
+from slotera_api.schemas.branding import Branding
 from slotera_api.schemas.operator_resources import Address
 from slotera_api.schemas.public_booking import ManagedBookingReschedule, ManagedBookingResponse
 
@@ -35,6 +43,9 @@ BookingToken = Annotated[str, Header(alias="X-Booking-Token", min_length=32, max
 def _response(managed: ManagedBooking) -> ManagedBookingResponse:
     booking, session = managed.booking, managed.session
     return ManagedBookingResponse(
+        branding=Branding.model_validate(
+            {"accent": managed.profile.brand_accent, "fontFamily": managed.profile.brand_font}
+        ),
         reference=booking.reference,
         status=booking.status.value,
         payment_status=booking.payment_status.value,
@@ -161,3 +172,48 @@ async def reschedule_managed_booking(
         ) from exc
     response.headers["Cache-Control"] = "no-store"
     return _response(managed)
+
+
+@router.get("/forms", response_model=BookingFormsResponse, operation_id="getManagedBookingForms")
+async def get_managed_forms(
+    token: BookingToken, request: Request, response: Response, database: DatabaseDependency
+) -> BookingFormsResponse:
+    await _limit(request, database, "public_booking_manage_read")
+    repository = BookingManageRepository(database)
+    try:
+        workspace_id, booking_id = await repository._resolve(token)
+        async with database.tenant_transaction(workspace_id) as session:
+            managed = await repository._load(session, workspace_id, booking_id, lock=False)
+            result = await read_forms(
+                session, workspace_id, managed.booking, managed.session.start_at
+            )
+    except BookingLinkInvalidError as exc:
+        raise _link_invalid() from exc
+    response.headers["Cache-Control"] = "no-store"
+    return result
+
+
+@router.post(
+    "/forms/{form_id}/submit",
+    response_model=BookingFormsResponse,
+    operation_id="submitManagedBookingForm",
+)
+async def submit_managed_form(
+    form_id: UUID,
+    token: BookingToken,
+    payload: BookingFormSubmit,
+    request: Request,
+    response: Response,
+    database: DatabaseDependency,
+    settings: SettingsDependency,
+) -> BookingFormsResponse:
+    require_trusted_origin(request, settings)
+    await _limit(request, database, "public_booking_manage_change")
+    try:
+        workspace_id, booking_id = await BookingManageRepository(database)._resolve(token)
+        async with database.tenant_transaction(workspace_id) as session:
+            result = await submit_form(session, workspace_id, booking_id, form_id, payload.answers)
+    except BookingLinkInvalidError as exc:
+        raise _link_invalid() from exc
+    response.headers["Cache-Control"] = "no-store"
+    return result

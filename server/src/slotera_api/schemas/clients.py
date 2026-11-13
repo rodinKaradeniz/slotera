@@ -105,6 +105,7 @@ class ClientExportResponse(ApiModel):
     exported_at: datetime
     client: ClientResponse
     bookings: list[ClientExportBooking]
+    form_snapshots: list[JsonObject] = Field(default_factory=list)
     form_responses: list[ClientExportFormResponse]
     notes: list[ClientExportNote]
 

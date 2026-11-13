@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
@@ -36,10 +37,13 @@ export function AddressPicker({
   value,
   onChange,
   savedLocations,
-  title = "Physical address",
-  description = "Shown to attendees on the booking confirmation.",
+  title: titleProp,
+  description: descriptionProp,
   addLabel = "Add address",
 }: Props) {
+  const { t: uiText } = useI18n();
+  const description = descriptionProp ?? uiText("ui.shown.to.attendees.on.the.booking.confirmation");
+  const title = titleProp ?? uiText("ui.physical.address");
   // Local "picker" state — which saved location was last applied. Editing any
   // field doesn't reset this, so the dropdown can still show what was picked.
   const [picker, setPicker] = React.useState<string>("");
@@ -78,7 +82,7 @@ export function AddressPicker({
                 value=""
                 onChange={(e) => applySaved(e.target.value)}
                 options={[
-                  { value: "", label: "Or use a saved location…" },
+                  { value: "", label: uiText("ui.or.use.a.saved.location") },
                   ...savedLocations.map((l) => ({
                     value: l.id,
                     label: l.label,
@@ -108,12 +112,11 @@ export function AddressPicker({
             onChange(undefined);
           }}
         >
-          Remove
-        </Button>
+          {uiText("ui.remove")}</Button>
       </div>
 
       {savedLocations.length > 0 && (
-        <Field label="Quick fill from saved location" optional>
+        <Field label={uiText("ui.quick.fill.from.saved.location")} optional>
           <Select
             value={picker}
             onChange={(e) => applySaved(e.target.value)}

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -23,6 +24,7 @@ export function BillingCard({
   workspace: PlatformWorkspace;
   onSaved: (workspace: PlatformWorkspace) => void;
 }) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const initial = React.useMemo(
     () => ({
@@ -54,9 +56,9 @@ export function BillingCard({
         paidThrough: form.paidThrough || null,
       });
       onSaved(saved);
-      toast.success("Billing saved", { description: "Recorded in the audit log." });
+      toast.success(uiText("ui.billing.saved"), { description: uiText("ui.recorded.in.the.audit.log") });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save billing");
+      toast.error(error instanceof Error ? error.message : uiText("ui.could.not.save.billing"));
     } finally {
       setBusy(false);
     }
@@ -64,12 +66,11 @@ export function BillingCard({
 
   return (
     <Card padded>
-      <h3 className="text-h3 text-ink mb-1" style={{ fontSize: 16 }}>Billing</h3>
+      <h3 className="text-h3 text-ink mb-1" style={{ fontSize: 16 }}>{uiText("ui.billing")}</h3>
       <p className="text-small mb-4">
-        Invoiced by hand until card billing exists. Extend the trial for pilot members.
-      </p>
+        {uiText("ui.invoiced.by.hand.until.card.billing.exists.extend.the.trial.for.pilot.members")}</p>
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Plan">
+        <Field label={uiText("ui.plan")}>
           <Select
             value={form.plan}
             onChange={(event) => setForm({ ...form, plan: event.target.value as PlanId })}
@@ -79,19 +80,19 @@ export function BillingCard({
             }))}
           />
         </Field>
-        <Field label="Billed">
+        <Field label={uiText("ui.billed")}>
           <Select
             value={form.billingInterval}
             onChange={(event) =>
               setForm({ ...form, billingInterval: event.target.value as BillingInterval })
             }
             options={[
-              { value: "monthly", label: "Monthly" },
-              { value: "yearly", label: "Yearly" },
+              { value: "monthly", label: uiText("ui.monthly") },
+              { value: "yearly", label: uiText("ui.yearly") },
             ]}
           />
         </Field>
-        <Field label="Trial ends">
+        <Field label={uiText("ui.trial.ends")}>
           <Input
             type="date"
             required
@@ -99,7 +100,7 @@ export function BillingCard({
             onChange={(event) => setForm({ ...form, trialEnds: event.target.value })}
           />
         </Field>
-        <Field label="Paid through" optional hint="Leave empty until the first invoice is paid.">
+        <Field label={uiText("ui.paid.through")} optional hint={uiText("ui.leave.empty.until.the.first.invoice.is.paid")}>
           <Input
             type="date"
             value={form.paidThrough}
@@ -109,8 +110,7 @@ export function BillingCard({
       </div>
       <div className="mt-5 flex justify-end">
         <Button disabled={!dirty || busy || !form.trialEnds} onClick={save}>
-          Save billing
-        </Button>
+          {uiText("ui.save.billing")}</Button>
       </div>
     </Card>
   );

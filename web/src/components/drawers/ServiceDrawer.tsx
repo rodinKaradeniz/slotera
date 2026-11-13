@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
@@ -51,6 +52,7 @@ export function ServiceDrawer({
   onSaved,
   onRemoved,
 }: ServiceDrawerProps) {
+  const { t: uiText } = useI18n();
   const isEdit = !!initial;
   const { toast } = useToast();
   const [form, setForm] = React.useState<ServiceFormValue>(
@@ -75,15 +77,15 @@ export function ServiceDrawer({
       if (isEdit && initial) {
         const next = await updateService(initial.id, form);
         onSaved?.(next);
-        toast.success("Service updated");
+        toast.success(uiText("ui.service.updated"));
       } else {
         const next = await createService(form);
         onSaved?.(next);
-        toast.success("Service created");
+        toast.success(uiText("ui.service.created"));
       }
       onClose();
     } catch (err) {
-      toast.error("Couldn't save service", {
+      toast.error(uiText("ui.couldn.t.save.service"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -101,10 +103,10 @@ export function ServiceDrawer({
       onSaved?.(next);
       setForm((f) => ({ ...f, active: next.active }));
       toast.success(
-        next.active ? "Service activated" : "Service deactivated",
+        next.active ? uiText("ui.service.activated") : uiText("ui.service.deactivated"),
       );
     } catch (err) {
-      toast.error("Couldn't update service", {
+      toast.error(uiText("ui.couldn.t.update.service"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -118,11 +120,11 @@ export function ServiceDrawer({
     try {
       await removeService(initial.id);
       onRemoved?.(initial.id);
-      toast.success("Service deleted");
+      toast.success(uiText("ui.service.deleted"));
       setConfirmDelete(false);
       onClose();
     } catch (err) {
-      toast.error("Couldn't delete service", {
+      toast.error(uiText("ui.couldn.t.delete.service"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -134,16 +136,14 @@ export function ServiceDrawer({
     <DrawerShell
       open={open}
       onClose={onClose}
-      eyebrow={isEdit ? "Edit service" : "New service"}
-      title={isEdit ? form.name || "Untitled service" : "Create a service"}
+      eyebrow={isEdit ? uiText("ui.edit.service") : uiText("ui.new.service")}
+      title={isEdit ? form.name || "Untitled service" : uiText("ui.create.a.service")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
+            {uiText("ui.cancel")}</Button>
           <Button onClick={save} loading={busy}>
-            Save
-          </Button>
+            {uiText("ui.save")}</Button>
         </>
       }
     >
@@ -159,11 +159,10 @@ export function ServiceDrawer({
           <div className="mt-4 pt-5 border-t border-line-soft">
             <div className="flex items-center gap-2 mb-2">
               <Icon name="alert" size={14} className="text-danger" />
-              <span className="font-medium text-ink">Danger zone</span>
+              <span className="font-medium text-ink">{uiText("ui.danger.zone")}</span>
             </div>
             <p className="text-small mb-3">
-              Deactivating hides the service; removing deletes it permanently.
-            </p>
+              {uiText("ui.deactivating.hides.the.service.removing.deletes.it.permanently")}</p>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
@@ -171,7 +170,7 @@ export function ServiceDrawer({
                 onClick={toggleActive}
                 disabled={busy}
               >
-                {form.active ? "Deactivate" : "Activate"}
+                {form.active ? uiText("ui.deactivate") : uiText("ui.activate")}
               </Button>
               <Button
                 variant="danger"
@@ -180,8 +179,7 @@ export function ServiceDrawer({
                 onClick={() => setConfirmDelete(true)}
                 disabled={busy}
               >
-                Remove service
-              </Button>
+                {uiText("ui.remove.service")}</Button>
             </div>
           </div>
         )}
@@ -191,9 +189,9 @@ export function ServiceDrawer({
         open={confirmDelete}
         onClose={() => !busy && setConfirmDelete(false)}
         onConfirm={remove}
-        title={`Delete "${initial?.name ?? "this service"}"?`}
-        description="This permanently removes the service. Existing sessions and bookings stay on your calendar but new clients can't book it."
-        confirmLabel="Delete service"
+        title={uiText("ui.remove.named", { name: initial?.name ?? uiText("ui.service") })}
+        description={uiText("ui.this.permanently.removes.the.service.existing.sessions.and.bookings.stay.on.your.calendar.")}
+        confirmLabel={uiText("ui.delete.service")}
         destructive
         busy={busy}
       />

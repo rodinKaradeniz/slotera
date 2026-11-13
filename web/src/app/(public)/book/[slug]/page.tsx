@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { BookingTheme } from "@/components/booking/BookingTheme";
 import { useParams } from "next/navigation";
 import { PublicBookingFlow } from "@/components/booking/PublicBookingFlow";
 import { setPublicWorkspaceSlug } from "@/services/public-booking.service";
@@ -12,5 +13,5 @@ export default function WorkspaceBookingPage() {
   // workspace in their own effects, which run before this component's.
   setPublicWorkspaceSlug(dataSource === "api" ? slug : null);
   React.useEffect(() => () => setPublicWorkspaceSlug(null), []);
-  return <PublicBookingFlow />;
+  return <BookingTheme slug={slug}><PublicBookingFlow /></BookingTheme>;
 }

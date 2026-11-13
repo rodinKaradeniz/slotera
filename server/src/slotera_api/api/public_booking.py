@@ -4,6 +4,7 @@ from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Header, Query, Request, Response
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from slotera_api.auth.dependencies import (
@@ -11,7 +12,9 @@ from slotera_api.auth.dependencies import (
     SettingsDependency,
     require_trusted_origin,
 )
+from slotera_api.db.models import Service, ServicePackage, Workspace
 from slotera_api.errors import ApiError
+from slotera_api.packages.repository import package_view
 from slotera_api.plans import shows_platform_branding
 from slotera_api.public_booking.repository import (
     PublicBookingIdempotencyConflictError,
@@ -25,8 +28,10 @@ from slotera_api.public_booking.repository import (
     TaxQuote,
     quote_for,
 )
+from slotera_api.schemas.branding import Branding
 from slotera_api.schemas.forms import FormFieldInput
 from slotera_api.schemas.operator_resources import Address
+from slotera_api.schemas.packages import PublicPackageList, PublicPackageView
 from slotera_api.schemas.public_booking import (
     PublicAvailabilityResponse,
     PublicAvailabilitySlot,
@@ -71,6 +76,9 @@ def _tax_response(quote: TaxQuote) -> PublicTaxQuote:
 
 def _workspace_response(context: PublicWorkspaceContext) -> PublicWorkspaceResponse:
     return PublicWorkspaceResponse(
+        branding=Branding.model_validate(
+            {"accent": context.profile.brand_accent, "fontFamily": context.profile.brand_font}
+        ),
         slug=context.workspace.slug,
         display_name=context.profile.display_name,
         bio=context.profile.bio,
@@ -296,3 +304,47 @@ async def create_public_booking(
         payment_due_at=result.booking.payment_due_at,
         quote=_tax_response(result.quote),
     )
+
+
+@router.get("/packages", response_model=PublicPackageList, operation_id="listPublicPackages")
+async def list_public_packages(
+    workspace_slug: str, response: Response, database: DatabaseDependency
+) -> PublicPackageList:
+    repository = PublicBookingRepository(database)
+    workspace_id = await _workspace_id(repository, workspace_slug)
+    try:
+        await repository.get_workspace(workspace_id)
+    except PublicWorkspaceNotFoundError as exc:
+        raise _not_found() from exc
+    async with database.tenant_transaction(workspace_id) as session:
+        currency = await session.scalar(
+            select(Workspace.currency).where(Workspace.id == workspace_id)
+        )
+        rows = (
+            await session.scalars(
+                select(ServicePackage)
+                .where(
+                    ServicePackage.workspace_id == workspace_id, ServicePackage.status == "active"
+                )
+                .order_by(ServicePackage.created_at, ServicePackage.id)
+            )
+        ).all()
+        offers = []
+        for row in rows:
+            view = await package_view(session, row, str(currency))
+            ids = {item.service_id for item in view.items}
+            active = set(
+                (
+                    await session.scalars(
+                        select(Service.id).where(
+                            Service.workspace_id == workspace_id,
+                            Service.id.in_(ids),
+                            Service.active.is_(True),
+                        )
+                    )
+                ).all()
+            )
+            if ids and active == ids:
+                offers.append(PublicPackageView.model_validate(view.model_dump()))
+        response.headers["Cache-Control"] = "no-store"
+        return PublicPackageList(items=offers)

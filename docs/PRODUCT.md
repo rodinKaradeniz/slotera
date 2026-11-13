@@ -98,7 +98,7 @@ npm run lint     # eslint (config: web/eslint.config.mjs)
 npx tsc --noEmit # type-check; tsconfig has noEmit:true so this is the type-check command
 ```
 
-No test runner is configured.
+Vitest covers frontend logic and selected components; pytest covers backend contracts and PostgreSQL integration.
 
 ## Architecture
 
@@ -419,20 +419,23 @@ without "Powered by Slotera".
 
 ### Forms
 
-The local API form bundle persists and manages reusable templates and their service
-attachments. The capacity-one public booking slice returns attached active templates,
-validates required responses, and snapshots answers in the booking transaction. Optional
-post-booking responses remain deferred until booking-scoped magic access exists.
+Reusable templates attach to services through `FormTemplate.attachedServiceIds` only.
+There is no purpose/category field or reverse service attachment field. Each new booking
+snapshots the active attached forms, including original question text, choices and rules.
+Template changes and deletion do not alter existing booking questions.
 
-- Reusable `FormTemplate`s (`web/src/types/form.ts`) are created under `/admin/forms` and attached to services. Attachment is **single-sourced on `FormTemplate.attachedServiceIds`** — there is no `Service.attachedFormIds` field. The public flow resolves attachment via `listFormsForService(serviceId)`. Don't reintroduce a dual-write relationship.
-- **Simplified shape (no `purpose`).** A `FormTemplate` is `{ id, name, description, status, fields, attachedServiceIds, requiredBeforePayment, createdAtISO }`. There is **no `purpose`/`FormPurpose` field, category, or filter** — don't reintroduce one. Mock forms are curated around the consultant/coach/instructor ICP (Discovery Call prep, Business context questions, Workshop intake, Mutual NDA acknowledgement). Don't add back profession-specific forms (pet/therapy/trainer).
-- Forms attach at the **service** level only; sessions inherit, they are not attached per-session.
-- The booking flow handles **pre-payment** form completion: a conditional Forms step (one step, all attached active forms stacked) appears between Details and Billing when the chosen service has attached forms, and is gated on required fields before payment. `FormTemplate.requiredBeforePayment` already exists for this.
-- **Optional / post-booking forms** are demonstrated (mocked) on the customer booking workspace (`/booking/manage/demo` → Forms tab). A real version would let clients complete *optional* forms after booking via a secure booking-management link (e.g. `/booking/manage?token=...`): view booking details, complete remaining optional forms, review manual payment instructions, reschedule/cancel if allowed, and see address/meeting details. The real flow is deferred — it needs guest access / magic links, email delivery, and backend persistence (Phase 2/3). Keep wording non-clinical/non-legal (intake questions, pre-visit information, client-provided notes, agreement acknowledgement); no medical-record or compliance claims.
+Required-before-payment forms appear during checkout. Other forms appear only through
+the booking-management link, where pending/confirmed bookings may submit once before the
+session starts. Submitted answers are read-only; corrections go through the consultant.
+Identical retries succeed without replacing answers. No submission changes payment or approval.
+Operators read questions, answers and submission dates on booking details. Historical
+answers without snapshots use current labels only when available and identify them as
+approximate; missing labels retain field IDs. Older bookings gain no optional assignments.
+Exports, erasure and workspace deletion cover snapshots and responses.
 
 ### Packages
 
-Lightweight Phase 1 demo entities for selling/presenting **multi-session offers** — the kind an independent consultant/coach/instructor runs: a 4-session coaching package, a strategy sprint package. `ServicePackage` (`web/src/types/package.ts`), seeded in `web/src/data/mock/packages.json`, served by `web/src/services/packages.service.ts` (`listPackages`, `getPackage`, `create`/`update`, `deactivate`/`activate`, `removePackage`, `listActivePackages`, `listPackagesForService`).
+Persisted informational offers for presenting **multi-session offers** — the kind an independent consultant/coach/instructor runs: a 4-session coaching package, a strategy sprint package. `ServicePackage` (`web/src/types/package.ts`), seeded in `web/src/data/mock/packages.json`, served by `web/src/services/packages.service.ts` (`listPackages`, `getPackage`, `create`/`update`, `deactivate`/`activate`, `removePackage`, `listActivePackages`, `listPackagesForService`).
 
 - **Use "Packages" only — there is no separate "Programs" concept.** No `kind` enum, no package/program distinction, no `durationLabel`/`validityDays`/`includedSessionCount` fields. Don't reintroduce them.
 - **A package is an ordered bundle of existing services.** Shape: `ServicePackage { id, name, description, status, priceCents, currency, items: PackageItem[], notes?, featured?, createdAtISO, updatedAtISO }`. `PackageItem { id, serviceId, title?, description?, order }`. Each item points to an existing `Service`; multiple items may share a `serviceId`; the operator arranges them in a custom order (the editor manages `items` as an array and recomputes `order` from position).
@@ -440,8 +443,31 @@ Lightweight Phase 1 demo entities for selling/presenting **multi-session offers*
 - **Operator surface only:** the **Packages** nav item + `/admin/packages` are operator-admin only (never superadmin). Create/edit uses the global `DrawersProvider` (`openPackageDrawer` → `PackageDrawer` → `PackageForm`). Cards/list show name, price, number of included sessions (`items.length`), status, and a featured indicator.
 - **Public booking is informational only.** When a selected service is included in active packages, the Service step shows a `PackageOptionsHint` (a hint + a modal listing the offers), resolved via `listPackagesForService` (active packages whose `items[].serviceId` matches). **No package checkout, no required choice, no payment changes, no step-sequence changes.** Copy: "Available in packages" / "View package options" — never "programs", "memberships", "credits", "subscriptions", or "available with services".
 - **`/booking/manage/demo`** shows a **display-only** Package tab ("Session N of M" + included services in order) when the booking is part of a package. No credit ledger, balance, or consumption.
-- **This is a product/demo model only.** It does **not** implement real checkout, credit/balance ledgers, session consumption, entitlement rules, recurring billing, memberships, coupons, gift cards, or Stripe product/price objects. Future iterations may add package purchase, remaining credits, enrollment, reminders, and customer package management.
-- **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Free / Pro). Packages = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
+- **This is an informational offer model.** It does **not** implement real checkout, credit/balance ledgers, session consumption, entitlement rules, recurring billing, memberships, coupons, gift cards, or Stripe product/price objects. Future iterations may add package purchase, remaining credits, enrollment, reminders, and customer package management.
+- **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Essentials / Professional). Packages = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
+
+### Branding
+
+Both plans may choose a client-page accent colour and serif/sans display font. Colour
+inputs are six-digit hex values with at least 4.5:1 contrast against white button text.
+The theme is scoped to booking, confirmation and manage pages and their dialogs. Email
+styling and the operator workspace keep their own theme. Professional alone removes the
+Slotera attribution. No arbitrary CSS, uploaded fonts or logo uploads are included.
+
+### Languages
+
+Interface copy and transactional emails support English, Turkish and German. Signed-in
+users save their language preference; public bookings capture the client-selected language.
+Outbox rows snapshot their language at creation. Existing records and older messages use
+English. Consultant-authored descriptions, forms, terms and notes are never auto-translated;
+legal document translation stays with professional legal review.
+
+### Manual billing
+
+Staff record the plan, interval, trial end and paid-through date. Operators may request a
+plan/interval through the authenticated billing endpoint, including a new interval for the
+same plan. Requests enter the existing inquiries inbox with verified workspace context;
+no request mutates billing and no additional request-status workflow exists.
 
 ### Emails
 
@@ -489,11 +515,14 @@ It is deliberately **not** a full client portal, CRM, project-management app, co
 
 All tab content is mocked English provider/service copy; only the surrounding chrome/labels are translated (EN/TR/DE under the `bookingManage.*` i18n namespace).
 
-A production version would use **secure magic links/tokens sent by email + backend persistence**, and could additionally show address/meeting details. Keep copy non-clinical/non-legal; **no medical-record or compliance claims**. **Internal session notes and action items are never exposed here.** Don't promote this page in the public Demo Guide modal unless it stays uncrowded.
+The separate API implementation uses **secure booking links sent by email and backend persistence**, including address/meeting details and assigned forms. Keep copy non-clinical/non-legal; **no medical-record or compliance claims**. **Internal session notes and action items are never exposed here.** Don't promote this demo page in the public Demo Guide modal unless it stays uncrowded.
 
 **Deliberately simplified — do not re-add to this surface:** "Shared resources" / resource links and a client-facing "Your next steps" / shared action-items list were **removed**. The resources feature (type/service/mock data) was deleted as unused. `clientVisible` remains on `SessionActionItem` for a possible future client surface, but action items are **admin-only today** and must not be surfaced on the booking workspace in this pass.
 
-**Future backend-heavy ideas are represented, not built.** Email reminders/follow-ups (the reminder line), real customer magic-link access (the disclaimer copy), and package checkout/credits (package context stays display-only) are documented as future work. Service-level approval now exists in the real API flow but does **not** change this demo workspace or the public booking step sequence.
+**The demo remains illustrative.** The API implements booking links, scheduled reminders,
+self-service changes, forms and service-level approval. Follow-ups and package
+checkout/credits remain deferred; these do **not** change this demo workspace or the public
+booking step sequence.
 
 ### Calendar
 

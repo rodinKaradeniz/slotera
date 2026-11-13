@@ -92,9 +92,9 @@ adds 4. Planning adds 5.
    Never add the reverse field, and never dual-write. Reverse lookups are filters
    (`listFormsForService`, `listPackagesForService`).
 
-7. **Test what you build, at the boundaries — not just the happy path.** The frontend has
-   no runner yet (see TODO.md §2), so frontend work still exercises failure, empty, and
-   permission/role paths by hand. Backend work uses pytest and must prove the negative —
+7. **Test what you build, at the boundaries — not just the happy path.** The frontend uses
+   Vitest for logic and focused component tests, plus browser checks for failure, empty,
+   and permission/role paths. Backend work uses pytest and must prove the negative —
    unavailable dependencies fail closed, unauthorised operations are rejected, and
    unknown resources use the error contract. A test that only asserts success is close to
    no test.

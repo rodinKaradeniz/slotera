@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -12,6 +13,7 @@ import { resetPassword } from "@/services/auth.service";
 import { dataSource } from "@/lib/env";
 
 export default function ResetPasswordPage() {
+  const { t: uiText } = useI18n();
   const [pwd, setPwd] = React.useState("");
   const [confirm, setConfirm] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -26,15 +28,15 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
     if (pwd.length < 10) {
-      setError("Password must be at least 10 characters.");
+      setError(uiText("ui.your.new.password.needs.at.least.10.characters"));
       return;
     }
     if (pwd !== confirm) {
-      setError("Passwords don't match.");
+      setError(uiText("ui.passwords.don.t.match"));
       return;
     }
     if (dataSource === "api" && !token) {
-      setError("This reset link is missing or invalid. Request a new one.");
+      setError(uiText("auth.resetLinkInvalid"));
       return;
     }
     setLoading(true);
@@ -45,7 +47,7 @@ export default function ResetPasswordPage() {
       setError(
         resetError instanceof Error
           ? resetError.message
-          : "The password could not be updated.",
+          : uiText("ui.the.password.could.not.be.updated"),
       );
     } finally {
       setLoading(false);
@@ -54,12 +56,11 @@ export default function ResetPasswordPage() {
 
   if (done) {
     return (
-      <AuthCard title="Password updated." subtitle="You can now sign in with your new password.">
+      <AuthCard title={uiText("ui.password.updated")} subtitle="You can now sign in with your new password.">
         <div className="flex items-center gap-2 text-small p-3 rounded-md bg-accent-soft text-accent-ink mb-4">
-          <Icon name="check" size={14} /> Reset complete.
-        </div>
+          <Icon name="check" size={14} /> {uiText("ui.reset.complete")}</div>
         <Link href="/login">
-          <Button size="lg" full iconRight="arrow-right">Back to sign in</Button>
+          <Button size="lg" full iconRight="arrow-right">{uiText("ui.back.to.sign.in")}</Button>
         </Link>
       </AuthCard>
     );
@@ -67,11 +68,11 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthCard
-      title="Set a new password."
+      title={uiText("ui.set.a.new.password")}
       subtitle="Choose something at least 10 characters long."
     >
       <form className="flex flex-col gap-4" onSubmit={submit}>
-        <Field label="New password" required>
+        <Field label={uiText("ui.new.password")} required>
           <Input
             type="password"
             icon="lock"
@@ -80,7 +81,7 @@ export default function ResetPasswordPage() {
             required
           />
         </Field>
-        <Field label="Confirm new password" required>
+        <Field label={uiText("ui.confirm.new.password")} required>
           <Input
             type="password"
             icon="lock"
@@ -91,8 +92,7 @@ export default function ResetPasswordPage() {
         </Field>
         {error && <div className="text-small text-danger">{error}</div>}
         <Button type="submit" loading={loading} size="lg" iconRight="arrow-right">
-          Update password
-        </Button>
+          {uiText("ui.update.password")}</Button>
       </form>
     </AuthCard>
   );

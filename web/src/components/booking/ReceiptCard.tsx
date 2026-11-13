@@ -29,6 +29,7 @@ export function ReceiptCard({
   reference,
   className,
 }: Props) {
+  const { t: uiText } = useI18n();
   const { t, lang } = useI18n();
   const locale = localeForLang(lang);
   const methodLabel: Record<BookingDraft["payment"]["method"], string> = {
@@ -67,7 +68,7 @@ export function ReceiptCard({
     draft.billing.street,
     draft.billing.address2,
     [draft.billing.zip, draft.billing.city].filter(Boolean).join(" "),
-    [draft.billing.state, country.name].filter(Boolean).join(", "),
+    [draft.billing.state, t(`booking.country.${country.code}`)].filter(Boolean).join(", "),
   ].filter((line) => line && line.trim().length > 0);
 
   const ref =
@@ -121,8 +122,7 @@ export function ReceiptCard({
             </span>
             {draft.service && (
               <span className="text-micro flex-shrink-0">
-                {draft.service.durationMin} min
-              </span>
+                {draft.service.durationMin} {uiText("ui.min")}</span>
             )}
           </div>
           <div className="text-small text-ink-3 mt-0.5">{dateLabel}</div>
@@ -189,7 +189,7 @@ export function ReceiptCard({
       <div className="px-6 py-5 flex flex-col gap-3">
         <ReceiptSection title={t("booking.receipt.paymentMethod")}>
           {isFree ? (
-            <div className="text-[14px] text-ink">No payment required</div>
+            <div className="text-[14px] text-ink">{uiText("ui.no.payment.required")}</div>
           ) : (
             <div className="flex items-center gap-2 text-[14px] text-ink">
               <Icon name={METHOD_ICON[draft.payment.method]} size={14} />
@@ -198,7 +198,7 @@ export function ReceiptCard({
           )}
         </ReceiptSection>
 
-        {draft.payment.method === "manual" && manualInstructions && (
+        {!isFree && draft.payment.method === "manual" && manualInstructions && (
           <div className="rounded-md bg-paper-2 border border-line-soft px-3 py-3">
             <div className="eyebrow mb-1.5">{t("booking.receipt.manualInstructions")}</div>
             <p className="text-small whitespace-pre-line text-ink">
@@ -211,7 +211,9 @@ export function ReceiptCard({
       <div className="mt-auto px-6 pt-3 pb-6 text-micro flex items-start gap-2">
         <Icon name="shield" size={12} className="mt-0.5 flex-shrink-0" />
         <span>
-          {variant === "pay"
+          {isFree
+            ? uiText("ui.no.payment.required")
+            : variant === "pay"
             ? draft.payment.method === "manual"
               ? t("booking.receipt.footerManual")
               : t("booking.receipt.footerCard")

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export function CommandPalette({ open, onClose }: Props) {
+  const { t: uiText } = useI18n();
   const router = useRouter();
   const mounted = useHydrated();
   const [query, setQuery] = React.useState("");
@@ -78,7 +80,7 @@ export function CommandPalette({ open, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8 fade-in"
       role="dialog"
       aria-modal="true"
-      aria-label="Command palette"
+      aria-label={uiText("ui.command.palette")}
     >
       <div
         className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
@@ -96,7 +98,7 @@ export function CommandPalette({ open, onClose }: Props) {
             value={query}
             onChange={(e) => changeQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Search bookings, clients, services, sessions…"
+            placeholder={uiText("ui.search.bookings.clients.services.sessions")}
             className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-3 text-ink"
             autoComplete="off"
           />
@@ -104,7 +106,7 @@ export function CommandPalette({ open, onClose }: Props) {
             type="button"
             onClick={onClose}
             className="text-ink-3 hover:text-ink"
-            aria-label="Close"
+            aria-label={uiText("ui.close")}
           >
             <kbd className="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line-soft">
               esc
@@ -127,15 +129,12 @@ export function CommandPalette({ open, onClose }: Props) {
           <span className="inline-flex items-center gap-3">
             <span className="inline-flex items-center gap-1">
               <kbd className="font-mono">↑</kbd>
-              <kbd className="font-mono">↓</kbd> navigate
-            </span>
+              <kbd className="font-mono">↓</kbd> {uiText("ui.navigate")}</span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="font-mono">↵</kbd> open
-            </span>
+              <kbd className="font-mono">↵</kbd> {uiText("ui.open")}</span>
           </span>
           <span className="inline-flex items-center gap-1">
-            <kbd className="font-mono">esc</kbd> close
-          </span>
+            <kbd className="font-mono">esc</kbd> {uiText("ui.close")}</span>
         </div>
       </div>
     </div>,

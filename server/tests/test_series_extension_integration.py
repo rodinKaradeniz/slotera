@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -113,7 +114,9 @@ async def test_maintenance_tops_up_recurring_series() -> None:
             )
 
         assert isinstance(latest_start, datetime)
-        clash_at = latest_start + timedelta(weeks=2)
+        clash_at = (
+            latest_start.astimezone(ZoneInfo("Europe/Berlin")) + timedelta(weeks=2)
+        ).astimezone(UTC)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await client.post(
                 "/auth/login",

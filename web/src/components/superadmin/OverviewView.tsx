@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import Link from "next/link";
@@ -13,6 +14,7 @@ import { getPlatformOverview } from "@/services/platform.service";
 import type { PlatformOverview } from "@/types/platform";
 
 export function OverviewView() {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [data, setData] = React.useState<PlatformOverview | null>(null);
 
@@ -20,18 +22,18 @@ export function OverviewView() {
     getPlatformOverview()
       .then(setData)
       .catch((error: unknown) =>
-        toast.error("Couldn't load the overview", {
+        toast.error(uiText("ui.couldn.t.load.the.overview"), {
           description: error instanceof Error ? error.message : undefined,
         }),
       );
-  }, [toast]);
+  }, [toast, uiText]);
 
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Platform"
-        title="Platform overview"
-        description="Workspaces, plans, and activity across Slotera."
+        eyebrow={uiText("ui.platform")}
+        title={uiText("ui.platform.overview")}
+        description={uiText("ui.workspaces.plans.and.activity.across.slotera")}
       />
       {!data ? (
         <LoadingRows count={3} />
@@ -39,43 +41,39 @@ export function OverviewView() {
         <div className="flex flex-col gap-6">
           <Card padded={false}>
             <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-line-soft">
-              <PadStat label="Workspaces" value={data.workspacesTotal} />
-              <PadStat label="Active" value={data.workspacesActive} />
-              <PadStat label="Suspended" value={data.workspacesSuspended} />
-              <PadStat label="Sign-ups · 30 days" value={data.signups30d} />
+              <PadStat label={uiText("ui.workspaces")} value={data.workspacesTotal} />
+              <PadStat label={uiText("ui.active")} value={data.workspacesActive} />
+              <PadStat label={uiText("ui.suspended")} value={data.workspacesSuspended} />
+              <PadStat label={uiText("ui.sign.ups.30.days")} value={data.signups30d} />
             </div>
           </Card>
           <Card padded={false}>
             <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-line-soft">
               <PadStat label="Essentials" value={data.workspacesEssentials} />
               <PadStat label="Professional" value={data.workspacesProfessional} />
-              <PadStat label="On trial" value={data.workspacesOnTrial} />
-              <PadStat label="Bookings · 30 days" value={data.bookings30d} />
-              <PadStat label="Unread inquiries" value={data.inquiriesUnread} />
+              <PadStat label={uiText("ui.on.trial")} value={data.workspacesOnTrial} />
+              <PadStat label={uiText("ui.bookings.30.days")} value={data.bookings30d} />
+              <PadStat label={uiText("ui.unread.inquiries")} value={data.inquiriesUnread} />
             </div>
           </Card>
           <Card padded={false}>
             <div className="grid grid-cols-2 divide-x divide-line-soft">
-              <PadStat label="Emails waiting to send" value={data.emailsPending} />
-              <PadStat label="Emails failing" value={data.emailsFailing} />
+              <PadStat label={uiText("ui.emails.waiting.to.send")} value={data.emailsPending} />
+              <PadStat label={uiText("ui.emails.failing")} value={data.emailsFailing} />
             </div>
             {data.emailsFailing > 0 && data.emailLastError && (
               <p className="px-5 pb-5 text-small text-danger">
-                Latest error: <code>{data.emailLastError}</code>. A 401 means a bad Resend
-                key, 403 an unverified sending domain, 422 a rejected address or field.
-              </p>
+                {uiText("ui.latest.error")}<code>{data.emailLastError}</code>{uiText("ui.a.401.means.a.bad.resend.key.403.an.unverified.sending.domain.422.a.rejected.address.or.fi")}</p>
             )}
           </Card>
           <div className="flex flex-wrap gap-2">
             <Link href="/superadmin/workspaces">
               <Button variant="secondary" icon="building">
-                Workspaces
-              </Button>
+                {uiText("ui.workspaces")}</Button>
             </Link>
             <Link href="/superadmin/inquiries">
               <Button variant="secondary" icon="mail">
-                Inquiries
-              </Button>
+                {uiText("ui.inquiries")}</Button>
             </Link>
           </div>
         </div>

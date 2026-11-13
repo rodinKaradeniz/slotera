@@ -1,7 +1,11 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { useHydrated } from "@/lib/use-hydrated";
+import { readSession } from "@/lib/session";
+import { dataSource } from "@/lib/env";
+import { getLanguagePreference, saveLanguagePreference } from "@/services/preferences.service";
 import type { Messages } from "@/i18n/messages/en";
 import {
   readLang,
@@ -32,14 +36,42 @@ export function useI18n(): Ctx {
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   // "en" on the server and during hydration, then the persisted choice, so the first
   // client render matches the server's.
+  const pathname = usePathname();
+  const operatorSurface = pathname?.startsWith("/admin") || pathname?.startsWith("/superadmin") || false;
   const hydrated = useHydrated();
   const [chosen, setChosen] = React.useState<Lang | null>(null);
   const lang = chosen ?? (hydrated ? readLang() : "en");
 
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const userId = React.useSyncExternalStore(
+    React.useCallback((notify) => {
+      window.addEventListener("slotera-session-change", notify);
+      window.addEventListener("storage", notify);
+      return () => { window.removeEventListener("slotera-session-change", notify); window.removeEventListener("storage", notify); };
+    }, []), () => readSession()?.operator.id ?? null, () => null);
+  const sequence = React.useRef(0);
+  React.useEffect(() => {
+    if (dataSource !== "api" || !userId || !operatorSurface) return;
+    let active = true;
+    const requested = sequence.current;
+    getLanguagePreference().then((language) => {
+      if (active && requested === sequence.current) { setChosen(language); writeLang(language); }
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [userId, operatorSurface]);
   const setLang = React.useCallback((next: Lang) => {
-    setChosen(next);
-    writeLang(next);
-  }, []);
+    const previous = readLang();
+    const request = ++sequence.current;
+    setChosen(next); writeLang(next); setSaveError(null);
+    if (dataSource === "api" && operatorSurface && readSession()) {
+      saveLanguagePreference(next).catch(() => {
+        if (request === sequence.current) {
+          setChosen(previous); writeLang(previous);
+          setSaveError(translate(previous, "language.saveFailed"));
+        }
+      });
+    }
+  }, [operatorSurface]);
 
   // The root layout renders lang="en"; keep the attribute in step with the chosen language.
   React.useEffect(() => {
@@ -56,6 +88,6 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+    <I18nContext.Provider value={value}>{operatorSurface && saveError && <p role="alert" className="p-3 text-danger">{saveError}</p>}{children}</I18nContext.Provider>
   );
 }

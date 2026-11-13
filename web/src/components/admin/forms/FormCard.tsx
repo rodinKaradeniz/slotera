@@ -1,4 +1,6 @@
 "use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -11,6 +13,7 @@ import type { FormTemplate } from "@/types/form";
 type Props = { form: FormTemplate; onClick: () => void };
 
 export function FormCard({ form, onClick }: Props) {
+  const { t: uiText, lang: labelLang } = useI18n();
   const status = FORM_STATUS[form.status];
   return (
     <Card
@@ -21,7 +24,7 @@ export function FormCard({ form, onClick }: Props) {
     >
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-center justify-end gap-2">
-          <Pill tone={status.tone}>{status.label}</Pill>
+          <Pill tone={status.tone}>{translateInterfaceLabel(labelLang, status.label)}</Pill>
         </div>
         <h3
           className="font-serif text-ink mt-3"
@@ -33,12 +36,12 @@ export function FormCard({ form, onClick }: Props) {
         <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-line-soft">
           <Stat
             icon="clipboard"
-            label="Fields"
+            label={uiText("ui.fields")}
             value={String(form.fields.length)}
           />
           <Stat
             icon="layers"
-            label="Attached"
+            label={uiText("ui.attached")}
             value={plural(form.attachedServiceIds.length, "service")}
           />
         </div>

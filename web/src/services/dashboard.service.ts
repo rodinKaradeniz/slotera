@@ -1,3 +1,4 @@
+import { readLang, translate, type Lang , localeForLang} from "@/lib/i18n";
 import dashboardJson from "@/data/mock/dashboard.json";
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
@@ -24,7 +25,7 @@ type DashboardSummaryDto = components["schemas"]["DashboardSummaryResponse"];
 type DashboardSessionDto = components["schemas"]["DashboardSessionSummary"];
 
 function timeInTimezone(value: string, timezone: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(localeForLang(readLang()), {
     timeZone: timezone,
     hour: "2-digit",
     minute: "2-digit",
@@ -53,7 +54,7 @@ function mapSession(
     bookingId: session.bookingId ?? undefined,
     time: timeInTimezone(session.startAt, timezone),
     end: timeInTimezone(session.endAt, timezone),
-    client: session.clientName ?? "No booking yet",
+    client: session.clientName ?? translate(readLang(), "dashboard.noBooking"),
     company: session.clientCompany ?? undefined,
     clientEmail: session.clientEmail ?? undefined,
     service: session.serviceName,
@@ -68,12 +69,12 @@ function percentageChange(current: number, previous: number): {
 } {
   if (previous === 0) {
     return current === 0
-      ? { delta: "No change", trend: "flat" }
-      : { delta: "New this month", trend: "up" };
+      ? { delta: translate(readLang(), "dashboard.noChange"), trend: "flat" }
+      : { delta: translate(readLang(), "dashboard.newMonth"), trend: "up" };
   }
   const percent = Math.round(((current - previous) / previous) * 100);
   return percent === 0
-    ? { delta: "No change", trend: "flat" }
+    ? { delta: translate(readLang(), "dashboard.noChange"), trend: "flat" }
     : { delta: `${percent > 0 ? "+" : ""}${percent}%`, trend: percent > 0 ? "up" : "down" };
 }
 
@@ -123,21 +124,21 @@ function mapSummary(summary: DashboardSummaryDto): DashboardData {
     kpis: [
       {
         id: "revenue",
-        label: "Revenue this month",
+        label: translate(readLang(), "dashboard.revenue"),
         value: formatMoney(summary.revenueThisMonthCents, currency),
         ...revenueDelta,
         spark: trend30d.map((point) => point.revenue),
       },
       {
         id: "bookings",
-        label: "Bookings this month",
+        label: translate(readLang(), "dashboard.bookings"),
         value: String(summary.bookingsThisMonth),
         ...bookingsDelta,
         spark: trend30d.map((point) => point.bookings),
       },
       {
         id: "average-value",
-        label: "Average booking value",
+        label: translate(readLang(), "dashboard.average"),
         value: formatMoney(summary.averageBookingValueThisMonthCents, currency),
         ...averageDelta,
         spark: trend30d.map((point) =>
@@ -152,9 +153,9 @@ function mapSummary(summary: DashboardSummaryDto): DashboardData {
             id: "action-items-pending",
             tone: "info" as const,
             icon: "clipboard",
-            label: `Review ${summary.openActionItemsCount} open session action item${summary.openActionItemsCount === 1 ? "" : "s"}`,
-            detail: "Open a session and use the Notes & Actions tab to work through them.",
-            age: "now",
+            label: translate(readLang(), "dashboard.tasks", { count: summary.openActionItemsCount }),
+            detail: translate(readLang(), "dashboard.taskHint"),
+            age: translate(readLang(), "dashboard.now"),
           }]
         : []),
       ...(summary.unreadNotificationsCount > 0
@@ -162,9 +163,9 @@ function mapSummary(summary: DashboardSummaryDto): DashboardData {
             id: "unread-notifications",
             tone: "info" as const,
             icon: "bell",
-            label: `${summary.unreadNotificationsCount} unread notification${summary.unreadNotificationsCount === 1 ? "" : "s"}`,
-            detail: "Review notifications for the latest workspace updates.",
-            age: "now",
+            label: translate(readLang(), "dashboard.unread", { count: summary.unreadNotificationsCount }),
+            detail: translate(readLang(), "dashboard.notificationHint"),
+            age: translate(readLang(), "dashboard.now"),
           }]
         : []),
     ],
@@ -186,14 +187,14 @@ export function billingAction(
     icon: "card",
     label:
       state.kind === "trial"
-        ? `Your free trial ends in ${state.daysLeft} day${state.daysLeft === 1 ? "" : "s"}`
-        : "Your free trial has ended",
-    detail: "Choose a plan in Settings → Billing & Subscription and we'll send an invoice.",
-    age: "now",
+        ? translate(readLang(), "dashboard.trialEnds", { count: state.daysLeft })
+        : translate(readLang(), "dashboard.trialEnded"),
+    detail: translate(readLang(), "dashboard.billingHint"),
+    age: translate(readLang(), "dashboard.now"),
   };
 }
 
-export async function getDashboard(): Promise<DashboardData> {
+export async function getDashboard(_lang: Lang = readLang()): Promise<DashboardData> {
   if (dataSource === "api") {
     const [summary, billing] = await Promise.all([
       apiRequest<DashboardSummaryDto>("/dashboard/summary"),
@@ -219,7 +220,11 @@ export async function getDashboard(): Promise<DashboardData> {
   ].filter((a): a is PendingAction => a !== null);
   return {
     ...base,
-    pendingActions: [...derived, ...base.pendingActions],
+    kpis: base.kpis.map((item) => ({ ...item, label: translate(readLang(),
+      item.id === "revenue" ? "dashboard.revenue" : item.id === "bookings" ? "dashboard.bookings"
+        : item.id === "conversion" ? "dashboard.conversion" : "dashboard.average") })),
+    pendingActions: [...derived, ...base.pendingActions.map((item) => ({ ...item,
+      label: translate(readLang(), item.id === "pa-1" ? "dashboard.bankPending" : item.id === "pa-2" ? "dashboard.rescheduleRequested" : "dashboard.invoiceOverdue") }))],
   };
 }
 
@@ -242,9 +247,9 @@ function computeActionItemsPending(
     id: "action-items-pending",
     tone: "info",
     icon: "clipboard",
-    label: `Review ${n} open session action item${n === 1 ? "" : "s"}`,
-    detail: "Open a session and use the Notes & Actions tab to work through them.",
-    age: "now",
+    label: translate(readLang(), "dashboard.tasks", { count: n }),
+    detail: translate(readLang(), "dashboard.taskHint"),
+    age: translate(readLang(), "dashboard.now"),
   };
 }
 
@@ -281,8 +286,8 @@ function computeAttendancePending(
     id: "attendance-pending",
     tone: "info",
     icon: "users",
-    label: `Record attendance for ${n} ${n === 1 ? "session" : "sessions"}`,
-    detail: "Open the session and switch to the Attendance tab to mark attendees.",
-    age: "now",
+    label: translate(readLang(), "dashboard.attendance", { count: n }),
+    detail: translate(readLang(), "dashboard.attendanceHint"),
+    age: translate(readLang(), "dashboard.now"),
   };
 }

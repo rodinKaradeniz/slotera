@@ -185,6 +185,10 @@ During a maintenance window the web hosts return 503, so pause the web checks fi
 
 ## Live-release gate
 
+Current owner checklist and supplied evidence: [PILOT_READINESS.md](PILOT_READINESS.md).
+The env-check command reporting zero problems does not override empty deployment
+passwords or an unset off-box backup destination.
+
 Complete and record each item before telling real operators about `app.`:
 
 1. **Restore drill:** a backup has been restored from the Storage Box (not only from the

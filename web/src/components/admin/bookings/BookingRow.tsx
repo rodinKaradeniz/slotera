@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -19,6 +20,7 @@ export type BookingRowData = {
 type Props = { row: BookingRowData; onClick: () => void };
 
 export function BookingRow({ row, onClick }: Props) {
+  const { t: uiText } = useI18n();
   return (
     <button
       type="button"
@@ -37,7 +39,7 @@ export function BookingRow({ row, onClick }: Props) {
       <StatusBadge kind="payment" status={row.booking.paymentStatus} />
       <div className="text-[14px] font-medium text-ink whitespace-nowrap">
         {row.booking.amountCents === 0
-          ? "Free"
+          ? uiText("ui.free")
           : formatMoney(row.booking.amountCents, row.booking.currency)}
       </div>
     </button>

@@ -1,6 +1,8 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
+import { BookingThemeContext } from "@/components/booking/BookingTheme";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
@@ -28,6 +30,8 @@ export function DrawerShell({
   footer,
   className,
 }: DrawerProps) {
+  const { t: uiText } = useI18n();
+  const theme = React.useContext(BookingThemeContext);
   const mounted = useHydrated();
   const dialogRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
@@ -36,7 +40,7 @@ export function DrawerShell({
   const [rendered, setRendered] = React.useState(open);
   const [entered, setEntered] = React.useState(false);
   if (open && !rendered) setRendered(true);
-  const state = open && entered ? "open" : "closed";
+  const state = open && entered ? uiText("ui.open") : "closed";
 
   React.useEffect(() => {
     if (open) {
@@ -76,9 +80,10 @@ export function DrawerShell({
 
   return createPortal(
     <div
+      style={theme}
       ref={dialogRef}
       tabIndex={-1}
-      className="fixed inset-0 z-40 outline-none"
+      className="booking-theme fixed inset-0 z-40 outline-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -110,7 +115,7 @@ export function DrawerShell({
             type="button"
             onClick={onClose}
             className="text-ink-3 hover:text-ink p-1 rounded-md flex-shrink-0"
-            aria-label="Close"
+            aria-label={uiText("ui.close")}
           >
             <Icon name="x" size={18} />
           </button>

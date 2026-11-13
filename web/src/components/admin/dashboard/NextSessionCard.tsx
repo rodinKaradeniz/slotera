@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -53,6 +54,7 @@ function ScheduleRail({
   items: DashboardScheduleItem[];
   onHover: (info: HoverInfo | null) => void;
 }) {
+  const { t: uiText } = useI18n();
   const startMin = DAY_START * 60;
   const endMin = DAY_END * 60;
   const ticks: number[] = [];
@@ -112,7 +114,7 @@ function ScheduleRail({
                 setActiveId(null);
                 onHover(null);
               }}
-              aria-label={`${it.service} at ${it.time} with ${it.client}`}
+              aria-label={uiText("ui.session.accessible", { service: it.service, time: it.time, client: it.client })}
               className={cn(
                 "absolute rounded-sm transition-all",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
@@ -173,6 +175,7 @@ function HoverBadge({ info }: { info: HoverInfo }) {
 }
 
 export function NextSessionCard({ item, schedule, onChanged }: Props) {
+  const { t: uiText } = useI18n();
   const [hover, setHover] = React.useState<HoverInfo | null>(null);
   const { openBookingDrawer } = useDrawers();
   const [loaded, setLoaded] = React.useState<Booking | null>(null);
@@ -192,7 +195,7 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
 
   if (!item) {
     return (
-      <Card padded className="text-small text-ink-3">No upcoming sessions today.</Card>
+      <Card padded className="text-small text-ink-3">{uiText("ui.no.upcoming.sessions.today")}</Card>
     );
   }
 
@@ -232,8 +235,8 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
       </div>
 
       <CardHead
-        title="Next session"
-        right={<Pill tone="accent" icon="clock">in 2h 14m</Pill>}
+        title={uiText("ui.next.session")}
+        right={dataSource === "mock" ? <Pill tone="accent" icon="clock">{uiText("dashboard.demoCountdown")}</Pill> : undefined}
       />
       <div className="relative flex-1 flex flex-col">
         <div className="relative px-6 pt-5 pb-5">
@@ -282,8 +285,8 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
           </div>
 
           <div className="flex flex-wrap gap-2 mt-5">
-            <Button variant="primary" size="sm" icon="video">Join Meet</Button>
-            <Button variant="secondary" size="sm" icon="copy">Copy link</Button>
+            <Button variant="primary" size="sm" icon="video">{uiText("ui.join.meet")}</Button>
+            <Button variant="secondary" size="sm" icon="copy">{uiText("ui.copy.link")}</Button>
             <Button
               variant="secondary"
               size="sm"
@@ -291,8 +294,7 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
               onClick={openView}
               disabled={!booking}
             >
-              View details
-            </Button>
+              {uiText("ui.view.details")}</Button>
             <Button
               variant="ghost"
               size="sm"
@@ -300,17 +302,15 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
               onClick={reschedule}
               disabled={!booking}
             >
-              Reschedule
-            </Button>
+              {uiText("ui.reschedule")}</Button>
           </div>
         </div>
 
         <div className="relative mt-auto border-t border-line-soft px-6 pt-4 pb-4 bg-surface-warm/60">
           <div className="flex items-baseline justify-between mb-3">
-            <div className="text-small text-ink-2 font-medium">Today&apos;s schedule</div>
+            <div className="text-small text-ink-2 font-medium">{uiText("ui.today.s.schedule")}</div>
             <div className="text-micro font-mono text-ink-3 uppercase tracking-widest">
-              {schedule.length} sessions · {hours}h booked
-            </div>
+              {schedule.length} {" "}{uiText("ui.sessions")} · {hours} {uiText("ui.h.booked")}</div>
           </div>
           <div className="relative">
             <ScheduleRail items={schedule} onHover={setHover} />

@@ -14,6 +14,13 @@ import type { ServicePackageStatus } from "@/types/package";
 
 type Meta<L extends string = string> = { tone: Tone; label: L; icon?: string };
 
+export const SESSION_STATUS_TEXT = {
+  scheduled: "session.scheduled", live: "session.live", done: "ui.done", cancelled: "ui.cancelled",
+} as const;
+export const SESSION_RECURRENCE_TEXT = {
+  "one-off": "ui.one.off", weekly: "ui.weekly", custom: "ui.custom",
+} as const;
+
 export const BOOKING_STATUS: Record<BookingStatus, Meta> = {
   pending:   { tone: "warning", label: "Pending",   icon: "clock" },
   confirmed: { tone: "accent",  label: "Confirmed", icon: "check" },

@@ -1,3 +1,5 @@
+"use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import * as React from "react";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
@@ -21,6 +23,7 @@ export function Field({
   children,
   className,
 }: FieldProps) {
+  const { t: uiText } = useI18n();
   return (
     <label className={cn("flex flex-col gap-1.5", className)}>
       {label && (
@@ -31,8 +34,7 @@ export function Field({
           </span>
           {optional && (
             <span className="text-[11px] text-ink-3 font-mono uppercase tracking-wider">
-              Optional
-            </span>
+              {uiText("ui.optional")}</span>
           )}
         </div>
       )}

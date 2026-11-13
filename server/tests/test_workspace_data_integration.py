@@ -108,6 +108,31 @@ async def test_closing_a_workspace_suspends_it_and_the_purge_deletes_it() -> Non
                 json={"name": "Carla Client", "email": f"carla-{suffix}@example.com"},
             )
             assert client.status_code == 201, client.text
+            service = await operator.post(
+                "/services",
+                headers=_csrf(operator),
+                json={
+                    "name": "Closing consultation",
+                    "durationMin": 30,
+                    "priceCents": 1000,
+                    "capacity": 1,
+                    "locationType": "online",
+                    "location": "Online",
+                    "bookingMode": "open",
+                },
+            )
+            assert service.status_code == 201, service.text
+            package = await operator.post(
+                "/packages",
+                headers=_csrf(operator),
+                json={
+                    "name": "Closing offer",
+                    "status": "active",
+                    "priceCents": 2000,
+                    "items": [{"serviceId": service.json()["id"]}],
+                },
+            )
+            assert package.status_code == 201, package.text
             mismatch = await operator.post(
                 "/settings/close-workspace",
                 headers=_csrf(operator),
@@ -147,6 +172,8 @@ async def test_closing_a_workspace_suspends_it_and_the_purge_deletes_it() -> Non
                 text(
                     "SELECT (SELECT count(*) FROM workspaces WHERE id = :id)"
                     " + (SELECT count(*) FROM clients WHERE workspace_id = :id)"
+                    " + (SELECT count(*) FROM service_packages WHERE workspace_id = :id)"
+                    " + (SELECT count(*) FROM service_package_items WHERE workspace_id = :id)"
                     " + (SELECT count(*) FROM users WHERE email = :email)"
                 ),
                 {"id": workspace_id, "email": owner_email},

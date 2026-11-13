@@ -1,4 +1,5 @@
 "use client";
+import { readLang } from "@/lib/i18n";
 
 import authJson from "@/data/mock/auth.json";
 import { apiRequest } from "@/api/client";
@@ -96,7 +97,7 @@ export async function login(
   await sleep(220);
   const normalized = email.trim().toLowerCase();
   if (normalized === "wrong@example.com") {
-    throw new Error("No account matches those credentials.");
+    throw new ApiRequestError(401, "invalid_credentials", "No account matches those credentials.");
   }
   const { operator, role } = resolveSeedForEmail(normalized || SEED_OPERATOR.email);
   const session: Session = { token: makeToken(), operator, role };
@@ -129,7 +130,8 @@ export async function register(input: {
       firstNames: input.firstNames.trim(),
       lastName: input.lastName.trim(),
       email: input.email.trim().toLowerCase(),
-      workspaceName: input.workspaceName.trim(),
+      language: readLang(),
+    workspaceName: input.workspaceName.trim(),
       slug: input.slug,
       currency: input.currency,
       termsAccepted: input.termsAccepted,
@@ -183,7 +185,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
   if (dataSource === "api") {
     await apiRequest<PasswordResetAcceptedDto, PasswordResetRequestDto>(
       "/auth/password-reset/request",
-      { method: "POST", body: { email: email.trim().toLowerCase() } },
+      { method: "POST", body: { email: email.trim().toLowerCase(), language: readLang() } },
     );
     return;
   }

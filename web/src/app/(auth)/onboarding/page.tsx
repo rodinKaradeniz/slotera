@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -77,6 +78,7 @@ const DEFAULT_SERVICE: ServiceFormValue = {
 };
 
 export default function OnboardingPage() {
+  const { t: uiText } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -136,7 +138,7 @@ export default function OnboardingPage() {
         );
         setReady(true);
       } catch (err) {
-        toast.error("Couldn't load your workspace", {
+        toast.error(uiText("ui.couldn.t.load.your.workspace"), {
           description: err instanceof Error ? err.message : undefined,
         });
       }
@@ -145,7 +147,7 @@ export default function OnboardingPage() {
     return () => {
       cancelled = true;
     };
-  }, [toast]);
+  }, [toast, uiText]);
 
   // Done and Skip both close onboarding for good; settings stay editable later.
   const finish = async () => {
@@ -158,16 +160,16 @@ export default function OnboardingPage() {
 
   const saveService = async () => {
     if (!serviceForm.name.trim()) {
-      toast.error("Give your service a name first.");
+      toast.error(uiText("ui.give.your.service.a.name.first"));
       return;
     }
     setBusy(true);
     try {
       await createService(serviceForm);
-      toast.success("Service created");
+      toast.success(uiText("ui.service.created"));
       setStep(2);
     } catch (err) {
-      toast.error("Couldn't create service", {
+      toast.error(uiText("ui.couldn.t.create.service"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -179,16 +181,16 @@ export default function OnboardingPage() {
     if (!availability) return;
     const weeklyHours = workingDaysToWeeklyHours(hours);
     if (weeklyHours.length === 0) {
-      toast.error("Enable at least one day so clients can book.");
+      toast.error(uiText("ui.enable.at.least.one.day.so.clients.can.book"));
       return;
     }
     setBusy(true);
     try {
       setAvailability(await updateAvailabilitySettings({ ...availability, weeklyHours }));
-      toast.success("Availability saved");
+      toast.success(uiText("ui.availability.saved"));
       setStep(3);
     } catch (err) {
-      toast.error("Couldn't save availability", {
+      toast.error(uiText("ui.couldn.t.save.availability"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -207,10 +209,10 @@ export default function OnboardingPage() {
           manualPaymentInstructions: manualPayment.instructions,
         }),
       );
-      toast.success("Payment setup saved");
+      toast.success(uiText("ui.payment.setup.saved"));
       setStep(4);
     } catch (err) {
-      toast.error("Couldn't save payment setup", {
+      toast.error(uiText("ui.couldn.t.save.payment.setup"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -227,8 +229,7 @@ export default function OnboardingPage() {
           onClick={finish}
           className="text-small text-ink-3 hover:text-ink"
         >
-          Skip for now
-        </button>
+          {uiText("ui.skip.for.now")}</button>
       </div>
 
       <Card padded className="overflow-hidden">
@@ -298,10 +299,11 @@ function StepHeader({
   step: number;
   operatorName: string;
 }) {
+  const { t: uiText } = useI18n();
   const meta = STEP_COPY[step];
   return (
     <div className="flex flex-col gap-1">
-      <div className="eyebrow">Welcome, {operatorName}</div>
+      <div className="eyebrow">{uiText("ui.welcome")}{" "}{operatorName}</div>
       <h1 className="text-h2 text-ink">{meta.title}</h1>
       <p className="text-body text-ink-3 mt-1">{meta.subtitle}</p>
     </div>
@@ -384,29 +386,28 @@ function StepIndicator({ step }: { step: number }) {
 /* ── individual panes ────────────────────────────────────────────────────── */
 
 function IntroPane({ operatorName }: { operatorName: string }) {
+  const { t: uiText } = useI18n();
   const items: { icon: IconName; title: string; body: string }[] = [
     {
       icon: "layers",
-      title: "Create your first service",
+      title: uiText("ui.create.your.first.service"),
       body: "Set its duration, price, capacity, and where it happens.",
     },
     {
       icon: "calendar",
-      title: "Set your availability",
+      title: uiText("ui.set.your.availability"),
       body: "Pick which days and hours clients can book.",
     },
     {
       icon: "card",
-      title: "Set up payments",
+      title: uiText("ui.set.up.payments"),
       body: "Manual bank-transfer instructions, or skip it if your services are free.",
     },
   ];
   return (
     <div className="flex flex-col gap-5">
       <p className="text-body text-ink-2 max-w-xl">
-        Hi {operatorName} — here&apos;s what we&apos;ll do together. You can
-        skip at any time and come back later from the dashboard.
-      </p>
+        Hi {operatorName} {uiText("ui.here.s.what.we.ll.do.together.you.can.skip.at.any.time.and.come.back.later.from.the.dashbo")}</p>
       <ol className="flex flex-col gap-3">
         {items.map((it, i) => (
           <li
@@ -439,6 +440,7 @@ function PaymentsPane({
   onChange: (next: ManualPaymentValue) => void;
   disabled?: boolean;
 }) {
+  const { t: uiText } = useI18n();
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-lg border border-line bg-surface p-5">
@@ -446,27 +448,23 @@ function PaymentsPane({
           <span className="w-8 h-8 rounded-md bg-paper-2 text-ink-2 flex items-center justify-center">
             <Icon name="wallet" size={16} />
           </span>
-          <span className="text-[15px] font-medium text-ink">Manual payment</span>
+          <span className="text-[15px] font-medium text-ink">{uiText("ui.manual.payment")}</span>
         </div>
         <p className="text-small mb-4">
-          Show clients custom instructions (bank transfer, Interac, etc.) at
-          checkout. Bookings stay pending until you confirm receipt. Free
-          services need no payment setup.
-        </p>
+          {uiText("ui.show.clients.custom.instructions.bank.transfer.interac.etc.at.checkout.bookings.stay.pendi")}</p>
         <ManualPaymentForm value={value} onChange={onChange} disabled={disabled} />
       </div>
       <div className="flex items-start gap-2 rounded-md border border-line-soft bg-paper-2 px-3 py-2 text-small text-ink-2">
         <Icon name="info" size={14} className="mt-0.5 shrink-0 text-ink-3" />
         <span>
-          Card payments are coming soon. You&apos;ll be able to connect them from
-          Settings → Client Payments.
-        </span>
+          {uiText("ui.card.payments.are.coming.soon.you.ll.be.able.to.connect.them.from.settings.client.payments")}</span>
       </div>
     </div>
   );
 }
 
 function DonePane({ bookingSlug }: { bookingSlug: string }) {
+  const { t: uiText } = useI18n();
   return (
     <div className="flex flex-col items-center text-center gap-5 py-6">
       <span className="w-14 h-14 rounded-full bg-accent-soft text-accent flex items-center justify-center">
@@ -477,17 +475,13 @@ function DonePane({ bookingSlug }: { bookingSlug: string }) {
           className="font-serif text-ink"
           style={{ fontSize: 26, fontWeight: 400, letterSpacing: "-0.01em" }}
         >
-          Your workspace is ready
-        </h2>
+          {uiText("ui.your.workspace.is.ready")}</h2>
         <p className="text-body text-ink-3">
-          You can share your booking page now or come back to refine your
-          services, hours, and payment instructions any time.
-        </p>
+          {uiText("ui.you.can.share.your.booking.page.now.or.come.back.to.refine.your.services.hours.and.payment")}</p>
       </div>
       <Link href={`/book/${bookingSlug}`} target="_blank" rel="noreferrer">
         <Button variant="secondary" size="md" icon="eye">
-          Preview your booking page
-        </Button>
+          {uiText("ui.preview.your.booking.page")}</Button>
       </Link>
     </div>
   );
@@ -514,20 +508,19 @@ function StepFooter({
   onSavePayments: () => void;
   onFinish: () => void;
 }) {
+  const { t: uiText } = useI18n();
   const showBack = step > 0 && step < 4;
   return (
     <div className="flex items-center justify-between gap-3 pt-4 border-t border-line-soft">
       {showBack ? (
         <Button variant="ghost" icon="arrow-left" onClick={onBack} disabled={busy}>
-          Back
-        </Button>
+          {uiText("ui.back")}</Button>
       ) : (
         <span />
       )}
       {step === 0 && (
         <Button variant="primary" iconRight="arrow-right" onClick={onNextFromIntro}>
-          Get started
-        </Button>
+          {uiText("ui.get.started")}</Button>
       )}
       {step === 1 && (
         <Button
@@ -536,8 +529,7 @@ function StepFooter({
           loading={busy}
           onClick={onSaveService}
         >
-          Add and continue
-        </Button>
+          {uiText("ui.add.and.continue")}</Button>
       )}
       {step === 2 && (
         <Button
@@ -546,8 +538,7 @@ function StepFooter({
           loading={busy}
           onClick={onSaveAvailability}
         >
-          Save availability & continue
-        </Button>
+          {uiText("ui.save.availability.continue")}</Button>
       )}
       {step === 3 && (
         <Button
@@ -556,13 +547,11 @@ function StepFooter({
           loading={busy}
           onClick={onSavePayments}
         >
-          Save & continue
-        </Button>
+          {uiText("ui.save.continue")}</Button>
       )}
       {step === 4 && (
         <Button variant="primary" iconRight="arrow-right" onClick={onFinish}>
-          Go to dashboard
-        </Button>
+          {uiText("ui.go.to.dashboard")}</Button>
       )}
     </div>
   );

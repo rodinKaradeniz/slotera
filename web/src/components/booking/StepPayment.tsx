@@ -31,6 +31,7 @@ const METHOD_ICON: Record<PaymentMethod, IconName> = {
 };
 
 export function StepPayment({ draft, payment, onChange }: Props) {
+  const { t: uiText } = useI18n();
   const { t } = useI18n();
   const methodLabel: Record<PaymentMethod, string> = {
     card: t("booking.payment.card"),
@@ -68,10 +69,9 @@ export function StepPayment({ draft, payment, onChange }: Props) {
             <span className="w-11 h-11 rounded-full bg-accent-soft text-accent mx-auto mb-4 flex items-center justify-center">
               <Icon name="check" size={20} />
             </span>
-            <h2 className="text-h3 text-ink">No payment required</h2>
+            <h2 className="text-h3 text-ink">{uiText("ui.no.payment.required")}</h2>
             <p className="text-small mt-2">
-              Confirm the booking to reserve this free session.
-            </p>
+              {uiText("ui.confirm.the.booking.to.reserve.this.free.session")}</p>
           </div>
         </Card>
         <ReceiptCard draft={draft} variant="pay" manualInstructions={null} />

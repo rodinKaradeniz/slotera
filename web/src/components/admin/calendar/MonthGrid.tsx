@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { buildMonthGrid, clockIn, sameDay } from "@/lib/calendar";
@@ -17,6 +18,7 @@ type Props = {
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function MonthGrid({ anchor, events, onSelect }: Props) {
+  const { t: uiText } = useI18n();
   const timezone = useWorkspaceTimezone();
   const cells = buildMonthGrid(anchor);
   const eventsByDay = new Map<string, CalEvent[]>();
@@ -78,14 +80,13 @@ export function MonthGrid({ anchor, events, onSelect }: Props) {
                     <span className="font-mono opacity-70 mr-1">
                       {clockIn(e.session.startISO, timezone)}
                     </span>
-                    {e.service?.name ?? "Session"}
+                    {e.service?.name ?? uiText("ui.session")}
                   </button>
                 );
               })}
               {day.length > 3 && (
                 <div className="text-[10px] text-ink-3 pl-1">
-                  +{day.length - 3} more
-                </div>
+                  +{day.length - 3} {uiText("ui.more")}</div>
               )}
             </div>
           );

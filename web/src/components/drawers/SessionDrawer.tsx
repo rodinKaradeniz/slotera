@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
@@ -108,6 +109,7 @@ export function SessionDrawer({
   onSaved,
   onCancelled,
 }: SessionDrawerProps) {
+  const { t: uiText } = useI18n();
   const isEdit = !!initial;
   const { toast } = useToast();
   const timezone = useWorkspaceTimezone();
@@ -222,7 +224,7 @@ export function SessionDrawer({
           notes: form.notes,
         });
         onSaved?.(next);
-        toast.success("Session updated");
+        toast.success(uiText("ui.session.updated"));
       } else {
         const next = await createSession({
           serviceId: form.serviceId,
@@ -238,11 +240,11 @@ export function SessionDrawer({
           notes: form.notes,
         });
         onSaved?.(next);
-        toast.success("Session scheduled");
+        toast.success(uiText("ui.session.scheduled"));
       }
       onClose();
     } catch (err) {
-      toast.error("Couldn't save session", {
+      toast.error(uiText("ui.couldn.t.save.session"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -258,9 +260,9 @@ export function SessionDrawer({
     try {
       const next = await updateSession(initial.id, { notes: form.notes });
       onSaved?.(next);
-      toast.success("Note saved");
+      toast.success(uiText("ui.note.saved"));
     } catch (err) {
-      toast.error("Couldn't save note", {
+      toast.error(uiText("ui.couldn.t.save.note"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -274,11 +276,11 @@ export function SessionDrawer({
     try {
       const next = await cancelSession(initial.id);
       onCancelled?.(next);
-      toast.success("Session cancelled");
+      toast.success(uiText("ui.session.cancelled"));
       setConfirmCancel(false);
       onClose();
     } catch (err) {
-      toast.error("Couldn't cancel session", {
+      toast.error(uiText("ui.couldn.t.cancel.session"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -287,11 +289,11 @@ export function SessionDrawer({
   };
 
   const eyebrow = isView
-    ? "Session details"
+    ? uiText("ui.session.details")
     : isEdit
-      ? "Edit session"
-      : "New session";
-  const title = isEdit ? `Session · ${initial?.id}` : "Schedule a session";
+      ? uiText("ui.edit.session")
+      : uiText("ui.new.session");
+  const title = isEdit ? `Session · ${initial?.id}` : uiText("ui.schedule.a.session");
 
   return (
     <DrawerShell
@@ -302,33 +304,28 @@ export function SessionDrawer({
       footer={
         tab === "attendance" || tab === "notes" ? (
           <Button variant="ghost" onClick={onClose}>
-            Close
-          </Button>
+            {uiText("ui.close")}</Button>
         ) : isView ? (
           <>
             <Button variant="ghost" onClick={onClose}>
-              Close
-            </Button>
+              {uiText("ui.close")}</Button>
             {initial?.status === "scheduled" && (
               <Button
                 variant="secondary"
                 icon="plus"
                 onClick={() => openBookingDrawer({ defaultSessionId: initial.id })}
               >
-                Add attendee
-              </Button>
+                {uiText("ui.add.attendee")}</Button>
             )}
             <Button icon="edit" onClick={() => setMode("edit")}>
-              Edit session
-            </Button>
+              {uiText("ui.edit.session")}</Button>
           </>
         ) : (
           <>
             <Button variant="ghost" onClick={onClose} disabled={busy}>
-              Cancel
-            </Button>
+              {uiText("ui.cancel")}</Button>
             <Button onClick={save} loading={busy} disabled={!form.serviceId}>
-              {isEdit ? "Save changes" : "Create session"}
+              {isEdit ? uiText("ui.save.changes") : uiText("ui.create.session")}
             </Button>
           </>
         )
@@ -340,18 +337,18 @@ export function SessionDrawer({
             value={tab}
             onChange={(v) => setTab(v as "details" | "notes" | "attendance")}
             tabs={[
-              { value: "details", label: "Details" },
+              { value: "details", label: uiText("ui.details") },
               {
                 value: "notes",
                 label:
                   canShowActionItems && openActionCount > 0
-                    ? `Notes & Actions (${openActionCount})`
+                    ? uiText("ui.notes.actions.count", { count: openActionCount })
                     : canShowActionItems
-                      ? "Notes & Actions"
-                      : "Internal notes",
+                      ? uiText("ui.notes.actions")
+                      : uiText("ui.internal.notes"),
               },
               ...(canShowAttendance
-                ? [{ value: "attendance", label: "Attendance" }]
+                ? [{ value: "attendance", label: uiText("ui.attendance") }]
                 : []),
             ]}
           />
@@ -361,10 +358,9 @@ export function SessionDrawer({
       {tab === "notes" && initial ? (
         <div className="flex flex-col gap-6">
           <div>
-            <h4 className="text-[13px] font-semibold text-ink">Internal note</h4>
+            <h4 className="text-[13px] font-semibold text-ink">{uiText("ui.internal.note")}</h4>
             <p className="text-micro text-ink-3 mt-0.5 mb-2">
-              Only visible to you. Session-specific reminders or attendee context.
-            </p>
+              {uiText("ui.only.visible.to.you.session.specific.reminders.or.attendee.context")}</p>
             <Textarea
               value={form.notes}
               rows={3}
@@ -378,8 +374,7 @@ export function SessionDrawer({
                 onClick={saveNote}
                 loading={savingNote}
               >
-                Save note
-              </Button>
+                {uiText("ui.save.note")}</Button>
             </div>
           </div>
 
@@ -398,7 +393,7 @@ export function SessionDrawer({
         <AttendanceTab sessionId={initial.id} />
       ) : (
       <fieldset disabled={isView} className="flex flex-col gap-5 disabled:opacity-90">
-        <Field label="Service" required>
+        <Field label={uiText("ui.service")} required>
           <Select
             value={form.serviceId}
             onChange={(e) => {
@@ -421,14 +416,14 @@ export function SessionDrawer({
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Date" required>
+          <Field label={uiText("ui.date")} required>
             <Input
               type="date"
               value={form.date}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
             />
           </Field>
-          <Field label="Start time" required>
+          <Field label={uiText("ui.start.time")} required>
             <Input
               type="time"
               value={form.time}
@@ -438,7 +433,7 @@ export function SessionDrawer({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Duration (min)">
+          <Field label={uiText("ui.duration.min")}>
             <Input
               type="number"
               value={String(form.durationMin)}
@@ -448,7 +443,7 @@ export function SessionDrawer({
               min={5}
             />
           </Field>
-          <Field label="Capacity">
+          <Field label={uiText("ui.capacity")}>
             <Input
               type="number"
               value={String(form.capacity)}
@@ -463,37 +458,37 @@ export function SessionDrawer({
         {conflict && <ConflictWarning />}
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Location type">
+          <Field label={uiText("ui.location.type")}>
             <Select
               value={form.locationType}
               onChange={(e) =>
                 setForm({ ...form, locationType: e.target.value as LocationType })
               }
               options={[
-                { value: "online", label: "Online" },
-                { value: "physical", label: "In person" },
-                { value: "hybrid", label: "Hybrid" },
+                { value: "online", label: uiText("ui.online") },
+                { value: "physical", label: uiText("ui.in.person") },
+                { value: "hybrid", label: uiText("ui.hybrid") },
               ]}
             />
           </Field>
-          <Field label="Recurrence">
+          <Field label={uiText("ui.recurrence")}>
             <Select
               value={form.recurring}
               onChange={(e) =>
                 setForm({ ...form, recurring: e.target.value as Recurring })
               }
               options={[
-                { value: "one-off", label: "One-off" },
-                { value: "weekly", label: "Weekly" },
+                { value: "one-off", label: uiText("ui.one.off") },
+                { value: "weekly", label: uiText("ui.weekly") },
                 ...(dataSource === "mock" || form.recurring === "custom"
-                  ? [{ value: "custom", label: "Custom" }]
+                  ? [{ value: "custom", label: uiText("ui.custom") }]
                   : []),
               ]}
             />
           </Field>
         </div>
 
-        <Field label="Meeting / location detail">
+        <Field label={uiText("ui.meeting.location.detail")}>
           <Input
             value={form.location}
             onChange={(e) => setForm({ ...form, location: e.target.value })}
@@ -505,8 +500,8 @@ export function SessionDrawer({
             value={form.address}
             onChange={(address) => setForm({ ...form, address })}
             savedLocations={savedLocations}
-            title="Physical address"
-            description="Shown to attendees on the booking confirmation."
+            title={uiText("ui.physical.address")}
+            description={uiText("ui.shown.to.attendees.on.the.booking.confirmation")}
           />
         )}
 
@@ -514,9 +509,9 @@ export function SessionDrawer({
             Actions tab; while creating, keep it inline here. */}
         {!isEdit && (
           <Field
-            label="Internal notes"
+            label={uiText("ui.internal.notes")}
             optional
-            hint="Only visible to you. Use for session-specific reminders or attendee context."
+            hint={uiText("ui.only.visible.to.you.use.for.session.specific.reminders.or.attendee.context")}
           >
             <Textarea
               value={form.notes}
@@ -535,8 +530,7 @@ export function SessionDrawer({
               onClick={() => setConfirmCancel(true)}
               disabled={busy}
             >
-              Cancel session
-            </Button>
+              {uiText("ui.cancel.session")}</Button>
           </div>
         )}
       </fieldset>
@@ -546,10 +540,10 @@ export function SessionDrawer({
         open={confirmCancel}
         onClose={() => !busy && setConfirmCancel(false)}
         onConfirm={cancel}
-        title="Cancel this session?"
-        description="All attendees will be notified and their bookings marked cancelled."
-        confirmLabel="Cancel session"
-        cancelLabel="Keep session"
+        title={uiText("ui.cancel.this.session")}
+        description={uiText("ui.all.attendees.will.be.notified.and.their.bookings.marked.cancelled")}
+        confirmLabel={uiText("ui.cancel.session")}
+        cancelLabel={uiText("ui.keep.session")}
         destructive
         busy={busy}
       />

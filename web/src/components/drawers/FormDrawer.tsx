@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
@@ -44,6 +45,7 @@ export function FormDrawer({
   onSaved,
   onRemoved,
 }: FormDrawerProps) {
+  const { t: uiText } = useI18n();
   const isEdit = !!initial;
   const { toast } = useToast();
   const [form, setForm] = React.useState<FormTemplateFormValue>(
@@ -56,7 +58,7 @@ export function FormDrawer({
 
   const save = async () => {
     if (!form.name.trim()) {
-      toast.error("Add a form name first");
+      toast.error(uiText("ui.add.a.form.name.first"));
       return;
     }
     setBusy(true);
@@ -64,15 +66,15 @@ export function FormDrawer({
       if (isEdit && initial) {
         const next = await updateForm(initial.id, form);
         onSaved?.(next);
-        toast.success("Form updated");
+        toast.success(uiText("ui.form.updated"));
       } else {
         const next = await createForm(form);
         onSaved?.(next);
-        toast.success("Form created");
+        toast.success(uiText("ui.form.created"));
       }
       onClose();
     } catch (err) {
-      toast.error("Couldn't save form", {
+      toast.error(uiText("ui.couldn.t.save.form"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -91,10 +93,10 @@ export function FormDrawer({
       onSaved?.(next);
       setForm((f) => ({ ...f, status: next.status }));
       toast.success(
-        next.status === "active" ? "Form activated" : "Form deactivated",
+        next.status === "active" ? uiText("ui.form.activated") : uiText("ui.form.deactivated"),
       );
     } catch (err) {
-      toast.error("Couldn't update form", {
+      toast.error(uiText("ui.couldn.t.update.form"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -108,11 +110,11 @@ export function FormDrawer({
     try {
       await removeForm(initial.id);
       onRemoved?.(initial.id);
-      toast.success("Form deleted");
+      toast.success(uiText("ui.form.deleted"));
       setConfirmDelete(false);
       onClose();
     } catch (err) {
-      toast.error("Couldn't delete form", {
+      toast.error(uiText("ui.couldn.t.delete.form"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -124,16 +126,14 @@ export function FormDrawer({
     <DrawerShell
       open={open}
       onClose={onClose}
-      eyebrow={isEdit ? "Edit form" : "New form"}
-      title={isEdit ? form.name || "Untitled form" : "Create a form"}
+      eyebrow={isEdit ? uiText("ui.edit.form") : uiText("ui.new.form")}
+      title={isEdit ? form.name || "Untitled form" : uiText("ui.create.a.form")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
+            {uiText("ui.cancel")}</Button>
           <Button onClick={save} loading={busy}>
-            Save
-          </Button>
+            {uiText("ui.save")}</Button>
         </>
       }
     >
@@ -144,12 +144,10 @@ export function FormDrawer({
           <div className="mt-4 pt-5 border-t border-line-soft">
             <div className="flex items-center gap-2 mb-2">
               <Icon name="alert" size={14} className="text-danger" />
-              <span className="font-medium text-ink">Danger zone</span>
+              <span className="font-medium text-ink">{uiText("ui.danger.zone")}</span>
             </div>
             <p className="text-small mb-3">
-              Deactivating hides the form from the booking flow; removing
-              deletes it permanently.
-            </p>
+              {uiText("ui.deactivating.hides.the.form.from.the.booking.flow.removing.deletes.it.permanently")}</p>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
@@ -157,7 +155,7 @@ export function FormDrawer({
                 onClick={toggleActive}
                 disabled={busy}
               >
-                {form.status === "active" ? "Deactivate" : "Activate"}
+                {form.status === "active" ? uiText("ui.deactivate") : uiText("ui.activate")}
               </Button>
               <Button
                 variant="danger"
@@ -166,8 +164,7 @@ export function FormDrawer({
                 onClick={() => setConfirmDelete(true)}
                 disabled={busy}
               >
-                Remove form
-              </Button>
+                {uiText("ui.remove.form")}</Button>
             </div>
           </div>
         )}
@@ -177,9 +174,9 @@ export function FormDrawer({
         open={confirmDelete}
         onClose={() => !busy && setConfirmDelete(false)}
         onConfirm={remove}
-        title={`Delete "${initial?.name ?? "this form"}"?`}
-        description="This permanently removes the form. Services it was attached to will no longer ask clients to complete it."
-        confirmLabel="Delete form"
+        title={uiText("ui.remove.named", { name: initial?.name ?? uiText("ui.form") })}
+        description={uiText("ui.this.permanently.removes.the.form.services.it.was.attached.to.will.no.longer.ask.clients.t")}
+        confirmLabel={uiText("ui.delete.form")}
         destructive
         busy={busy}
       />

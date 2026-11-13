@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -36,6 +37,7 @@ type Tab = "overview" | "notes";
 const NONE: never[] = [];
 
 export default function ClientDetailPage() {
+  const { t: uiText } = useI18n();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { openBookingDrawer, openClientDrawer } = useDrawers();
@@ -60,7 +62,7 @@ export default function ClientDetailPage() {
   const timezone = useWorkspaceTimezone();
 
   useSetCrumbs([
-    { label: "Clients", href: "/admin/clients" },
+    { label: uiText("ui.clients"), href: "/admin/clients" },
     { label: client?.name ?? "Detail" },
   ]);
 
@@ -77,11 +79,10 @@ export default function ClientDetailPage() {
             onClick={() => router.push("/admin/clients")}
             className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1"
           >
-            ← All clients
-          </button>
+            {uiText("ui.all.clients")}</button>
 
           <PageHeader
-            eyebrow="Client"
+            eyebrow={uiText("ui.client")}
             title={
               <span className="inline-flex items-center gap-4">
                 <Avatar name={client.name} size={48} />
@@ -97,7 +98,7 @@ export default function ClientDetailPage() {
               <span className="inline-flex items-center gap-2 flex-wrap">
                 <StatusBadge kind="client" status={client.tag} />
                 <span aria-hidden>·</span>
-                <span>Since {fmtDate(new Date(client.joinedISO))}</span>
+                <span>{uiText("ui.since")}{" "}{fmtDate(new Date(client.joinedISO))}</span>
                 <span aria-hidden>·</span>
                 <span>{plural(client.totalBookings, "booking")}</span>
               </span>
@@ -115,8 +116,7 @@ export default function ClientDetailPage() {
                     })
                   }
                 >
-                  Edit client
-                </Button>
+                  {uiText("ui.edit.client")}</Button>
                 {dataSource === "api" && (
                   <ClientPrivacyActions
                     client={client}
@@ -134,8 +134,7 @@ export default function ClientDetailPage() {
                     })
                   }
                 >
-                  Book a session
-                </Button>
+                  {uiText("ui.book.a.session")}</Button>
               </>
             }
           />
@@ -145,8 +144,8 @@ export default function ClientDetailPage() {
               value={tab}
               onChange={(v) => setTab(v as Tab)}
               tabs={[
-                { value: "overview", label: "Overview" },
-                { value: "notes", label: "Notes" },
+                { value: "overview", label: uiText("ui.overview") },
+                { value: "notes", label: uiText("ui.notes") },
               ]}
             />
           </div>
@@ -155,12 +154,12 @@ export default function ClientDetailPage() {
             <div className="space-y-4">
               <Card padded={false}>
                 <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-line-soft">
-                  <PadStat label="Total bookings" value={String(client.totalBookings)} />
-                  <PadStat label="Completed" value={String(client.completedBookings)} />
-                  <PadStat label="Cancelled" value={String(client.cancelledBookings)} />
-                  <PadStat label="Total spent" value={formatMoney(client.totalSpentCents, currency)} />
+                  <PadStat label={uiText("ui.total.bookings")} value={String(client.totalBookings)} />
+                  <PadStat label={uiText("ui.completed")} value={String(client.completedBookings)} />
+                  <PadStat label={uiText("ui.cancelled")} value={String(client.cancelledBookings)} />
+                  <PadStat label={uiText("ui.total.spent")} value={formatMoney(client.totalSpentCents, currency)} />
                   <PadStat
-                    label="Avg per session"
+                    label={uiText("ui.avg.per.session")}
                     value={
                       client.completedBookings > 0
                         ? formatMoney(
@@ -176,7 +175,7 @@ export default function ClientDetailPage() {
               <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6 items-stretch">
                 <Card padded={false} className="flex flex-col lg:min-h-[22rem]">
                   <CardHead
-                    title="Recent bookings"
+                    title={uiText("ui.recent.bookings")}
                     right={
                       bookings.length > 0 ? (
                         <Button
@@ -186,17 +185,15 @@ export default function ClientDetailPage() {
                             router.push(`/admin/bookings?client=${client.id}`)
                           }
                         >
-                          View all bookings
-                        </Button>
+                          {uiText("ui.view.all.bookings")}</Button>
                       ) : undefined
                     }
                   />
                   {bookings.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center px-5 py-10">
-                      <p className="text-small text-ink-2">No recent bookings yet.</p>
+                      <p className="text-small text-ink-2">{uiText("ui.no.recent.bookings.yet")}</p>
                       <p className="text-micro text-ink-3 mt-1">
-                        New bookings will appear here once scheduled.
-                      </p>
+                        {uiText("ui.new.bookings.will.appear.here.once.scheduled")}</p>
                     </div>
                   ) : (
                     <div className="flex-1 lg:min-h-0 lg:overflow-y-auto">
@@ -211,7 +208,7 @@ export default function ClientDetailPage() {
                             className="w-full grid grid-cols-[2fr_2fr_1fr_auto] items-center gap-4 px-5 py-3.5 border-b border-line-soft last:border-b-0 hover:bg-surface-warm text-left"
                           >
                             <div className="text-[14px] text-ink truncate">
-                              {service?.name ?? "Service"}
+                              {service?.name ?? uiText("ui.service")}
                             </div>
                             <div className="text-small whitespace-nowrap">
                               {session
@@ -219,7 +216,7 @@ export default function ClientDetailPage() {
                                 : "—"}
                             </div>
                             <div className="text-[14px] font-medium text-ink whitespace-nowrap">
-                              {b.amountCents === 0 ? "Free" : formatMoney(b.amountCents, b.currency)}
+                              {b.amountCents === 0 ? uiText("ui.free") : formatMoney(b.amountCents, b.currency)}
                             </div>
                             <StatusBadge kind="booking" status={b.status} />
                           </button>
@@ -230,31 +227,31 @@ export default function ClientDetailPage() {
                 </Card>
 
                 <Card padded={false} className="flex flex-col lg:min-h-[22rem]">
-                  <CardHead title="Contact info" />
+                  <CardHead title={uiText("ui.contact.info")} />
                   <div className="px-4 py-2">
-                    <DetailLine icon="mail" label="Email" value={client.email} />
+                    <DetailLine icon="mail" label={uiText("ui.email")} value={client.email} />
                     {client.phone && (
-                      <DetailLine icon="phone" label="Phone" value={client.phone} />
+                      <DetailLine icon="phone" label={uiText("ui.phone")} value={client.phone} />
                     )}
                     {client.company && (
                       <DetailLine
                         icon="building"
-                        label="Company"
+                        label={uiText("ui.company")}
                         value={client.company}
                       />
                     )}
                     {client.timezone && (
                       <DetailLine
                         icon="globe"
-                        label="Timezone"
+                        label={uiText("ui.timezone")}
                         value={client.timezone}
                       />
                     )}
                     {client.address && (
-                      <DetailLine icon="map-pin" label="Address" value={client.address} />
+                      <DetailLine icon="map-pin" label={uiText("ui.address")} value={client.address} />
                     )}
                     {client.vatId && (
-                      <DetailLine icon="file" label="VAT ID" value={client.vatId} />
+                      <DetailLine icon="file" label={uiText("ui.vat.id")} value={client.vatId} />
                     )}
                   </div>
                 </Card>

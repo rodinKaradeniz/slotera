@@ -41,6 +41,14 @@ async def test_scheduled_group_session_takes_public_bookings_until_full() -> Non
         await import_demo_seed(owner, demo_password="slotera-local-only")
         async with owner.transaction() as session:
             await session.execute(text("DELETE FROM request_rate_limits"))
+            # Other integration tests may leave future seed-workspace sessions. Pick a
+            # free range instead of depending on test ordering or today's calendar date.
+            while await session.scalar(text(
+                "SELECT count(*) FROM sessions WHERE calendar_owner_id = :owner "
+                "AND status <> 'cancelled' AND start_at < :finish AND end_at > :start"
+            ), {"owner": DEMO_SEED.operator.id, "start": starts_at,
+                "finish": starts_at + timedelta(hours=2)}):
+                starts_at += timedelta(hours=3)
             # A capacity-2 workshop the operator scheduled; clients join it publicly.
             await session.execute(
                 text(

@@ -3,12 +3,14 @@ from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Header, Query, Response
+from sqlalchemy import select
 
 from slotera_api.auth.dependencies import (
     CsrfOperatorWorkspaceDependency,
     DatabaseDependency,
     OperatorWorkspaceDependency,
 )
+from slotera_api.booking_forms import BookingFormsResponse, read_forms
 from slotera_api.bookings.repository import (
     BookingApprovalError,
     BookingAttendanceError,
@@ -19,7 +21,7 @@ from slotera_api.bookings.repository import (
     BookingsRepository,
     BookingTransitionError,
 )
-from slotera_api.db.models import Booking, BookingAttendance
+from slotera_api.db.models import Booking, BookingAttendance, Session
 from slotera_api.errors import ApiError
 from slotera_api.schemas.bookings import (
     BookingAttendanceCommand,
@@ -437,3 +439,31 @@ async def record_booking_attendance(
         raise _booking_not_found()
     _private(response)
     return _response(result.booking)
+
+
+@router.get(
+    "/{booking_id}/forms", response_model=BookingFormsResponse, operation_id="getBookingForms"
+)
+async def get_booking_forms(
+    booking_id: UUID,
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> BookingFormsResponse:
+    async with database.tenant_transaction(operator.workspace_id) as session:
+        booking = await session.scalar(
+            select(Booking).where(
+                Booking.workspace_id == operator.workspace_id, Booking.id == booking_id
+            )
+        )
+        if booking is None:
+            raise _booking_not_found()
+        occurrence = await session.scalar(
+            select(Session).where(
+                Session.workspace_id == operator.workspace_id, Session.id == booking.session_id
+            )
+        )
+        if occurrence is None:
+            raise _booking_not_found()
+        _private(response)
+        return await read_forms(session, operator.workspace_id, booking, occurrence.start_at)

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import Link from "next/link";
@@ -25,6 +26,7 @@ import { useDrawers } from "@/components/drawers/DrawersProvider";
 type Layout = "grid" | "rows";
 
 export function ClientsView() {
+  const { t: uiText } = useI18n();
   const { openClientDrawer } = useDrawers();
   const { data: clients, error, reload } = useLoad(listClients);
   const [query, setQuery] = React.useState("");
@@ -43,15 +45,15 @@ export function ClientsView() {
 
   const exportCsv = () => {
     const text = toCsv(filtered, [
-      { header: "Name", value: (c) => c.name },
-      { header: "Email", value: (c) => c.email },
-      { header: "Phone", value: (c) => c.phone ?? "" },
-      { header: "Company", value: (c) => c.company ?? "" },
-      { header: "Status", value: (c) => c.tag },
-      { header: "Bookings", value: (c) => c.totalBookings },
-      { header: "Completed", value: (c) => c.completedBookings },
-      { header: "Cancelled", value: (c) => c.cancelledBookings },
-      { header: `Spent (${currency})`, value: (c) => (c.totalSpentCents / 100).toFixed(2) },
+      { header: uiText("ui.name"), value: (c) => c.name },
+      { header: uiText("ui.email"), value: (c) => c.email },
+      { header: uiText("ui.phone"), value: (c) => c.phone ?? "" },
+      { header: uiText("ui.company"), value: (c) => c.company ?? "" },
+      { header: uiText("ui.status"), value: (c) => c.tag },
+      { header: uiText("ui.bookings"), value: (c) => c.totalBookings },
+      { header: uiText("ui.completed"), value: (c) => c.completedBookings },
+      { header: uiText("ui.cancelled"), value: (c) => c.cancelledBookings },
+      { header: uiText("ui.spent.currency", { currency }), value: (c) => (c.totalSpentCents / 100).toFixed(2) },
       { header: "Client since", value: (c) => c.joinedISO.slice(0, 10) },
     ]);
     downloadText(`slotera-clients-${new Date().toISOString().slice(0, 10)}.csv`, text);
@@ -60,15 +62,15 @@ export function ClientsView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Directory"
-        title="Clients"
-        description="Everyone who has booked with you, with lifetime spend and activity."
+        eyebrow={uiText("ui.directory")}
+        title={uiText("ui.clients")}
+        description={uiText("ui.everyone.who.has.booked.with.you.with.lifetime.spend.and.activity")}
         meta={
           clients
             ? `${plural(clients.length, "client")} · ${
                 clients.filter((c) => c.tag === "active").length
               } active`
-            : "Loading…"
+            : uiText("ui.loading")
         }
         actions={
           <>
@@ -79,8 +81,7 @@ export function ClientsView() {
               onClick={exportCsv}
               disabled={filtered.length === 0}
             >
-              Export CSV
-            </Button>
+              {uiText("ui.export.csv")}</Button>
             <Button
               variant="primary"
               size="md"
@@ -91,8 +92,7 @@ export function ClientsView() {
                 })
               }
             >
-              Add client
-            </Button>
+              {uiText("ui.add.client")}</Button>
           </>
         }
       />
@@ -101,7 +101,7 @@ export function ClientsView() {
         <div className="flex-1 min-w-[220px]">
           <Input
             icon="search"
-            placeholder="Search by name, company, or email"
+            placeholder={uiText("ui.search.by.name.company.or.email")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -137,8 +137,7 @@ export function ClientsView() {
               </div>
               <div className="text-small truncate">{c.email}</div>
               <div className="text-small whitespace-nowrap">
-                {c.totalBookings} bookings
-              </div>
+                {c.totalBookings} {uiText("ui.bookings")}</div>
               <div className="text-[14px] font-medium text-ink whitespace-nowrap">
                 {formatMoney(c.totalSpentCents, currency)}
               </div>

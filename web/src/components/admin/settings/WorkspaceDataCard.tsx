@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -16,6 +17,7 @@ import { closeWorkspace, exportWorkspace } from "@/services/settings.service";
  * 30 days later unless the operator asks Slotera to reopen it.
  */
 export function WorkspaceDataCard() {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const router = useRouter();
   const slug = currentSession()?.operator.workspaceSlug ?? "";
@@ -36,7 +38,7 @@ export function WorkspaceDataCard() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error("Couldn't export your data", {
+      toast.error(uiText("ui.couldn.t.export.your.data"), {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -46,18 +48,18 @@ export function WorkspaceDataCard() {
 
   const close = async () => {
     if (typed.trim().toLowerCase() !== slug) {
-      toast.error("Type your booking page address exactly to confirm.");
+      toast.error(uiText("ui.type.your.booking.page.address.exactly.to.confirm"));
       return;
     }
     setBusy(true);
     try {
       const days = await closeWorkspace(typed);
-      toast.success("Workspace closed", {
-        description: `Your data will be deleted in ${days} days.`,
+      toast.success(uiText("ui.workspace.closed"), {
+        description: uiText("ui.data.deleted.after", { count: days }),
       });
       router.replace("/login");
     } catch (error) {
-      toast.error("Couldn't close the workspace", {
+      toast.error(uiText("ui.couldn.t.close.the.workspace"), {
         description: error instanceof Error ? error.message : undefined,
       });
       setBusy(false);
@@ -67,25 +69,18 @@ export function WorkspaceDataCard() {
   return (
     <Card padded>
       <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>
-        Your data
-      </h2>
+        {uiText("ui.your.data")}</h2>
       <p className="text-small mt-1">
-        Download everything your workspace holds as one JSON file: services, sessions,
-        clients, notes, bookings and form answers.
-      </p>
+        {uiText("ui.download.everything.your.workspace.holds.as.one.json.file.services.sessions.clients.notes.")}</p>
       <div className="mt-4">
         <Button variant="secondary" icon="download" onClick={download} loading={busy && !confirming}>
-          Export all workspace data
-        </Button>
+          {uiText("ui.export.all.workspace.data")}</Button>
       </div>
 
       <div className="mt-6 pt-6 border-t border-line-soft">
-        <h3 className="text-body text-ink font-medium">Close workspace</h3>
+        <h3 className="text-body text-ink font-medium">{uiText("ui.close.workspace")}</h3>
         <p className="text-small mt-1">
-          Your booking page goes offline and you are signed out straight away. All data is
-          deleted permanently after 30 days. Until then, contact us to reopen it. Export
-          your data first if you want a copy.
-        </p>
+          {uiText("ui.your.booking.page.goes.offline.and.you.are.signed.out.straight.away.all.data.is.deleted.pe")}</p>
         <div className="mt-4">
           <Button
             variant="danger"
@@ -96,8 +91,7 @@ export function WorkspaceDataCard() {
             }}
             disabled={busy || !slug}
           >
-            Close workspace
-          </Button>
+            {uiText("ui.close.workspace")}</Button>
         </div>
       </div>
 
@@ -105,23 +99,20 @@ export function WorkspaceDataCard() {
         open={confirming}
         onClose={() => !busy && setConfirming(false)}
         onConfirm={close}
-        title="Close this workspace?"
+        title={uiText("ui.close.this.workspace")}
         description={
           <span className="flex flex-col gap-3">
             <span>
-              Clients can no longer book, and you will be signed out. Everything is deleted
-              after 30 days. Type your booking page address <strong>{slug}</strong> to
-              confirm.
-            </span>
+              {uiText("ui.clients.can.no.longer.book.and.you.will.be.signed.out.everything.is.deleted.after.30.days.")}<strong>{slug}</strong> {uiText("ui.to.confirm")}</span>
             <Input
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
               placeholder={slug}
-              aria-label="Type your booking page address to confirm"
+              aria-label={uiText("ui.type.your.booking.page.address.to.confirm")}
             />
           </span>
         }
-        confirmLabel="Close workspace"
+        confirmLabel={uiText("ui.close.workspace")}
         destructive
         busy={busy}
       />

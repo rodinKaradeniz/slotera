@@ -183,6 +183,7 @@ async def export_client(
         exported_at=datetime.now(UTC),
         client=await _with_stats(repository, operator.workspace_id, exported["client"]),
         bookings=[ClientExportBooking(**item) for item in exported["bookings"]],
+        form_snapshots=exported["form_snapshots"],
         form_responses=[ClientExportFormResponse(**item) for item in exported["form_responses"]],
         notes=[
             ClientExportNote(

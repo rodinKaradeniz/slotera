@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function AttachedFormsField({ serviceId, disabled }: Props) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [forms, setForms] = React.useState<FormTemplate[] | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -28,10 +30,9 @@ export function AttachedFormsField({ serviceId, disabled }: Props) {
 
   if (!serviceId) {
     return (
-      <Field label="Attached forms">
+      <Field label={uiText("ui.attached.forms")}>
         <p className="text-small text-ink-3">
-          Save this service first, then attach intake forms to it.
-        </p>
+          {uiText("ui.save.this.service.first.then.attach.intake.forms.to.it")}</p>
       </Field>
     );
   }
@@ -44,9 +45,9 @@ export function AttachedFormsField({ serviceId, disabled }: Props) {
       setForms((prev) =>
         (prev ?? []).map((f) => (f.id === next.id ? next : f)),
       );
-      toast.success(attached ? "Form attached" : "Form detached");
+      toast.success(attached ? uiText("ui.form.attached") : uiText("ui.form.detached"));
     } catch (err) {
-      toast.error("Couldn't update form", {
+      toast.error(uiText("ui.couldn.t.update.form"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -56,15 +57,14 @@ export function AttachedFormsField({ serviceId, disabled }: Props) {
 
   return (
     <Field
-      label="Attached forms"
-      hint="Clients booking this service complete these forms before payment."
+      label={uiText("ui.attached.forms")}
+      hint={uiText("ui.clients.booking.this.service.complete.these.forms.before.payment")}
     >
       {forms === null ? (
-        <p className="text-small text-ink-3">Loading forms…</p>
+        <p className="text-small text-ink-3">{uiText("ui.loading.forms")}</p>
       ) : forms.length === 0 ? (
         <p className="text-small text-ink-3">
-          No active forms yet. Create one under Forms.
-        </p>
+          {uiText("ui.no.active.forms.yet.create.one.under.forms")}</p>
       ) : (
         <div className="flex flex-col gap-1.5 rounded-md border border-line p-2">
           {forms.map((f) => {

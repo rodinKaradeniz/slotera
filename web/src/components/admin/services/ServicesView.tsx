@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -14,6 +15,7 @@ import { listServices } from "@/services/services.service";
 import type { Service } from "@/types/service";
 
 export function ServicesView() {
+  const { t: uiText } = useI18n();
   const { openServiceDrawer } = useDrawers();
   const [services, setServices] = React.useState<Service[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -23,10 +25,10 @@ export function ServicesView() {
     listServices()
       .then(setServices)
       .catch((cause) => {
-        setError(cause instanceof Error ? cause.message : "Services could not be loaded.");
+        setError(cause instanceof Error ? cause.message : uiText("ui.services.could.not.be.loaded"));
         setServices([]);
       });
-  }, [reload]);
+  }, [reload, uiText]);
 
   const refresh = () => {
     setError(null);
@@ -36,15 +38,15 @@ export function ServicesView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Catalog"
-        title="Services"
-        description="The templates clients can book — duration, pricing and capacity."
+        eyebrow={uiText("ui.catalog")}
+        title={uiText("ui.services")}
+        description={uiText("ui.the.templates.clients.can.book.duration.pricing.and.capacity")}
         meta={
           services
             ? `${plural(services.length, "service")} · ${
                 services.filter((s) => s.active).length
               } active`
-            : "Loading…"
+            : uiText("ui.loading")
         }
         actions={
           <Button
@@ -53,8 +55,7 @@ export function ServicesView() {
             icon="plus"
             onClick={() => openServiceDrawer({ onSaved: refresh })}
           >
-            New service
-          </Button>
+            {uiText("ui.new.service")}</Button>
         }
       />
 
@@ -88,7 +89,7 @@ export function ServicesView() {
               <span className="w-10 h-10 rounded-md bg-paper-2 flex items-center justify-center">
                 <Icon name="plus" size={20} />
               </span>
-              <span className="text-[14px] font-medium">New service</span>
+              <span className="text-[14px] font-medium">{uiText("ui.new.service")}</span>
             </div>
           </Card>
         </div>

@@ -61,6 +61,7 @@ function readDraft(): BookingDraft | null {
 }
 
 export function PublicBookingFlow() {
+  const { t: uiText } = useI18n();
   const router = useRouter();
   const { t } = useI18n();
   const [step, setStep] = React.useState<StepKey>("service");
@@ -98,7 +99,7 @@ export function PublicBookingFlow() {
     if (!serviceId) return;
     let cancelled = false;
     listFormsForService(serviceId).then((f) => {
-      if (!cancelled) setLoadedForms({ serviceId, forms: f });
+      if (!cancelled) setLoadedForms({ serviceId, forms: f.filter((form) => form.requiredBeforePayment) });
     });
     return () => {
       cancelled = true;
@@ -201,6 +202,7 @@ export function PublicBookingFlow() {
             slug: currentPublicWorkspaceSlug(),
             providerName: settings?.business.displayName,
             branded: settings?.business.showPlatformBranding ?? true,
+            branding: settings?.branding,
           }),
         );
         window.sessionStorage.removeItem(DRAFT_KEY);
@@ -209,7 +211,7 @@ export function PublicBookingFlow() {
         setError(
           submitError instanceof Error
             ? submitError.message
-            : "The booking could not be completed.",
+            : uiText("ui.the.booking.could.not.be.completed"),
         );
       } finally {
         setSubmitting(false);
@@ -381,11 +383,11 @@ export function PublicBookingFlow() {
             loading={submitting}
           >
             {step === "pay"
-              ? draft.payment.method === "manual"
-                ? t("booking.reservePay")
-                : draft.service?.priceCents
-                  ? t("booking.payConfirm")
-                  : t("booking.confirm")
+              ? !draft.service?.priceCents
+                ? t("booking.confirm")
+                : draft.payment.method === "manual"
+                  ? t("booking.reservePay")
+                  : t("booking.payConfirm")
               : t("booking.continue")}
           </Button>
         </div>

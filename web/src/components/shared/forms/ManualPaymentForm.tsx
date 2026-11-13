@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
@@ -27,16 +28,15 @@ const PLACEHOLDER =
   "Bank transfer to:\nYour Business\nIBAN: ...\nBIC: ...\n\nOr Interac e-Transfer to: you@example.com";
 
 export function ManualPaymentForm({ value, onChange, disabled }: Props) {
+  const { t: uiText } = useI18n();
   return (
     <fieldset disabled={disabled} className="flex flex-col gap-4 disabled:opacity-90">
       <div className="flex items-center justify-between pb-4 border-b border-line-soft">
         <div>
           <div className="text-[14px] font-medium text-ink">
-            Offer manual payment at checkout
-          </div>
+            {uiText("ui.offer.manual.payment.at.checkout")}</div>
           <div className="text-small">
-            Adds a &ldquo;Manual payment&rdquo; option to the public booking flow.
-          </div>
+            {uiText("ui.adds.a.manual.payment.option.to.the.public.booking.flow")}</div>
         </div>
         <Toggle
           checked={value.enabled}
@@ -45,8 +45,8 @@ export function ManualPaymentForm({ value, onChange, disabled }: Props) {
       </div>
 
       <Field
-        label="Payment instructions"
-        hint="Plain text. Shown to clients on the payment step and in confirmation emails."
+        label={uiText("ui.payment.instructions")}
+        hint={uiText("ui.plain.text.shown.to.clients.on.the.payment.step.and.in.confirmation.emails")}
       >
         <Textarea
           value={value.instructions}

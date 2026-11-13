@@ -1,3 +1,6 @@
+"use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import * as React from "react";
 import { Pill } from "@/components/ui/Pill";
 import {
@@ -17,6 +20,7 @@ type Props =
   | { kind: "client"; status: ClientTag };
 
 export function StatusBadge(props: Props) {
+  const { lang: labelLang } = useI18n();
   const meta =
     props.kind === "booking"
       ? BOOKING_STATUS[props.status]
@@ -25,7 +29,7 @@ export function StatusBadge(props: Props) {
         : CLIENT_TAGS[props.status];
   return (
     <Pill tone={meta.tone} icon={meta.icon}>
-      {meta.label}
+      {translateInterfaceLabel(labelLang, meta.label)}
     </Pill>
   );
 }

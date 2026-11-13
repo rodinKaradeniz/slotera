@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function NavbarSearch({ onOpenPalette }: Props) {
+  const { t: uiText } = useI18n();
   const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [focused, setFocused] = React.useState(false);
@@ -85,9 +87,9 @@ export function NavbarSearch({ onOpenPalette }: Props) {
           onChange={(e) => changeQuery(e.target.value)}
           onFocus={() => setFocused(true)}
           onKeyDown={onKeyDown}
-          placeholder="Search…"
+          placeholder={uiText("ui.search")}
           className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-ink-3 text-ink"
-          aria-label="Search workspace"
+          aria-label={uiText("ui.search.workspace")}
         />
         {query ? (
           <button
@@ -97,7 +99,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
               inputRef.current?.focus();
             }}
             className="text-ink-3 hover:text-ink"
-            aria-label="Clear search"
+            aria-label={uiText("ui.clear.search")}
           >
             <Icon name="x" size={13} />
           </button>
@@ -109,8 +111,8 @@ export function NavbarSearch({ onOpenPalette }: Props) {
               onOpenPalette();
             }}
             className="text-[11px] font-mono text-ink-4 hover:text-ink-2 px-1.5 py-0.5 rounded border border-line-soft"
-            aria-label="Open command palette"
-            title="Open command palette"
+            aria-label={uiText("ui.open.command.palette")}
+            title={uiText("ui.open.command.palette")}
           >
             ⌘K
           </button>
@@ -133,7 +135,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
             variant="dropdown"
           />
           <div className="border-t border-line-soft px-3 py-2 flex items-center justify-between text-micro">
-            <span>↑↓ navigate · ↵ open · esc close</span>
+            <span>{uiText("ui.navigate.open.esc.close")}</span>
             <button
               type="button"
               onMouseDown={(e) => {
@@ -142,7 +144,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
               }}
               className="text-ink-3 hover:text-ink inline-flex items-center gap-1"
             >
-              Open palette <kbd className="font-mono">⌘K</kbd>
+              {uiText("ui.open.palette")}<kbd className="font-mono">⌘K</kbd>
             </button>
           </div>
         </div>

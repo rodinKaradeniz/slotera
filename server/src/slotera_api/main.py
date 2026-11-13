@@ -6,7 +6,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from slotera_api.api.auth import router as auth_router
+from slotera_api.api.billing_requests import router as billing_requests_router
 from slotera_api.api.bookings import router as bookings_router
+from slotera_api.api.branding import router as branding_router
 from slotera_api.api.calendar_feed import public_router as calendar_feed_public_router
 from slotera_api.api.calendar_feed import settings_router as calendar_feed_settings_router
 from slotera_api.api.client_notes import router as client_notes_router
@@ -16,9 +18,11 @@ from slotera_api.api.forms import router as forms_router
 from slotera_api.api.health import router as health_router
 from slotera_api.api.notifications import router as notifications_router
 from slotera_api.api.operator_resources import services_router, settings_router
+from slotera_api.api.packages import router as packages_router
 from slotera_api.api.platform import router as platform_router
 from slotera_api.api.platform_extras import platform_router as platform_extras_router
 from slotera_api.api.platform_extras import public_inquiry_router, public_pilot_router
+from slotera_api.api.preferences import router as preferences_router
 from slotera_api.api.public_booking import router as public_booking_router
 from slotera_api.api.public_booking_manage import router as public_booking_manage_router
 from slotera_api.api.scheduling import availability_router, sessions_router
@@ -78,6 +82,10 @@ def create_app(
     app.middleware("http")(request_context_middleware)
     install_error_handlers(app)
     app.include_router(health_router)
+    app.include_router(preferences_router)
+    app.include_router(billing_requests_router)
+    app.include_router(branding_router)
+    app.include_router(packages_router)
     app.include_router(auth_router)
     app.include_router(clients_router)
     app.include_router(dashboard_router)

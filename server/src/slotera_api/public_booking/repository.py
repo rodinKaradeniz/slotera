@@ -20,6 +20,7 @@ from slotera_api.db.models import (
     Booking,
     BookingApprovalStatus,
     BookingFormResponse,
+    BookingFormSnapshot,
     BookingOrigin,
     BookingStatus,
     Client,
@@ -685,7 +686,9 @@ class PublicBookingRepository:
                 ).all()
             )
             submissions = values.get("form_responses", [])
-            validated = self._validate_form_responses(forms, submissions)
+            validated = self._validate_form_responses(
+                [form for form in forms if form.required_before_payment], submissions
+            )
 
             owner_user_id = await session.scalar(
                 select(WorkspaceMembership.user_id)
@@ -765,6 +768,7 @@ class PublicBookingRepository:
                 else BookingStatus.PENDING
             )
             booking = Booking(
+                language=str(values.get("language", "en")),
                 id=booking_id,
                 workspace_id=workspace_id,
                 session_id=scheduled_session.id,
@@ -808,6 +812,20 @@ class PublicBookingRepository:
             )
             session.add(booking)
             await session.flush()
+            session.add_all(
+                [
+                    BookingFormSnapshot(
+                        workspace_id=workspace_id,
+                        booking_id=booking.id,
+                        form_template_id=form.id,
+                        name=form.name,
+                        description=form.description,
+                        fields=form.fields,
+                        required_before_payment=form.required_before_payment,
+                    )
+                    for form in forms
+                ]
+            )
             session.add_all(
                 [
                     BookingFormResponse(
@@ -893,23 +911,42 @@ class PublicBookingRepository:
                 field = fields[field_id]
                 field_type = str(field.get("type"))
                 options = field.get("options")
-                if not isinstance(value, (str, list, bool)):
-                    raise PublicFormValidationError
-                if isinstance(value, str) and len(value) > 4000:
-                    raise PublicFormValidationError
-                if isinstance(value, list):
-                    if len(value) > 100 or not all(isinstance(item, str) for item in value):
+                options = options if isinstance(options, list) else []
+                if field_type in {"yes_no", "consent_checkbox"}:
+                    if not isinstance(value, bool):
                         raise PublicFormValidationError
-                    if options is not None and (
-                        not isinstance(options, list)
-                        or not all(isinstance(item, str) for item in options)
-                        or not set(value) <= set(options)
+                    if (
+                        field_type == "consent_checkbox"
+                        and field.get("required")
+                        and value is not True
                     ):
                         raise PublicFormValidationError
-                if field_type != "consent_checkbox" and isinstance(value, bool):
-                    raise PublicFormValidationError
-                if field_type == "consent_checkbox" and value is not True:
-                    raise PublicFormValidationError
+                elif field_type == "multi_select":
+                    if (
+                        not isinstance(value, list)
+                        or len(value) > 100
+                        or not all(isinstance(item, str) for item in value)
+                        or len(set(value)) != len(value)
+                        or not set(value) <= set(options or [])
+                    ):
+                        raise PublicFormValidationError
+                else:
+                    if not isinstance(value, str) or len(value) > 4000:
+                        raise PublicFormValidationError
+                    if (
+                        field_type == "single_select"
+                        and value not in (options or [])
+                        and value != ""
+                    ):
+                        raise PublicFormValidationError
+                    if field_type == "date" and value:
+                        from datetime import date
+
+                        try:
+                            if date.fromisoformat(value).isoformat() != value:
+                                raise ValueError
+                        except ValueError as exc:
+                            raise PublicFormValidationError from exc
                 normalized.append({"field_id": field_id, "value": value})
             for field_id, field in fields.items():
                 if not field.get("required"):
@@ -918,7 +955,11 @@ class PublicBookingRepository:
                     (item["value"] for item in normalized if item["field_id"] == field_id),
                     None,
                 )
-                if answer is None or answer == "" or answer == []:
+                if (
+                    answer is None
+                    or (isinstance(answer, str) and not answer.strip())
+                    or answer == []
+                ):
                     raise PublicFormValidationError
             submitted_by_id[form_id] = normalized
         if any(form.required_before_payment and form.id not in submitted_by_id for form in forms):

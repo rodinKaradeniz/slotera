@@ -1,5 +1,7 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { dataSource } from "@/lib/env";
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
@@ -39,6 +41,7 @@ function reindex(items: PackageItem[]): PackageItem[] {
 }
 
 export function PackageForm({ value, onChange, disabled }: Props) {
+  const { t: uiText } = useI18n();
   const [services, setServices] = React.useState<Service[]>([]);
 
   // Focus the most-recently-added item's service select once it renders.
@@ -102,17 +105,17 @@ export function PackageForm({ value, onChange, disabled }: Props) {
       disabled={disabled}
       className="flex flex-col gap-5 disabled:opacity-90"
     >
-      <Field label="Name" required>
+      <Field label={uiText("ui.name")} required>
         <Input
           value={value.name}
           onChange={(e) => patch({ name: e.target.value })}
-          placeholder="e.g. 4-Session Coaching Package"
+          placeholder={uiText("ui.e.g.4.session.coaching.package")}
         />
       </Field>
 
       <Field
-        label="Description"
-        hint="One short line describing what the package includes."
+        label={uiText("ui.description")}
+        hint={uiText("ui.one.short.line.describing.what.the.package.includes")}
       >
         <Textarea
           value={value.description}
@@ -122,7 +125,7 @@ export function PackageForm({ value, onChange, disabled }: Props) {
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Price">
+        <Field label={uiText("ui.price")}>
           <Input
             type="number"
             prefix={value.currency}
@@ -138,9 +141,10 @@ export function PackageForm({ value, onChange, disabled }: Props) {
             min={0}
           />
         </Field>
-        <Field label="Currency">
+        <Field label={uiText("ui.currency")}>
           <Select
             value={value.currency}
+            disabled={dataSource === "api"}
             onChange={(e) => patch({ currency: e.target.value as Currency })}
             options={["EUR", "USD", "GBP"]}
           />
@@ -152,11 +156,9 @@ export function PackageForm({ value, onChange, disabled }: Props) {
         <div className="flex items-center justify-between">
           <div>
             <span className="text-[13px] font-medium text-ink">
-              Included sessions
-            </span>
+              {uiText("ui.included.sessions")}</span>
             <p className="text-small">
-              Add services in the order clients work through them.
-            </p>
+              {uiText("ui.add.services.in.the.order.clients.work.through.them")}</p>
           </div>
           <Button
             variant="secondary"
@@ -165,19 +167,15 @@ export function PackageForm({ value, onChange, disabled }: Props) {
             onClick={addItem}
             disabled={services.length === 0}
           >
-            Add item
-          </Button>
+            {uiText("ui.add.item")}</Button>
         </div>
 
         {services.length === 0 ? (
           <p className="text-small text-ink-3 rounded-md border border-dashed border-line px-4 py-6 text-center">
-            No active services yet. Create a service first, then build a package
-            from it.
-          </p>
+            {uiText("ui.no.active.services.yet.create.a.service.first.then.build.a.package.from.it")}</p>
         ) : value.items.length === 0 ? (
           <p className="text-small text-ink-3 rounded-md border border-dashed border-line px-4 py-6 text-center">
-            No sessions yet. Add the services this package bundles together.
-          </p>
+            {uiText("ui.no.sessions.yet.add.the.services.this.package.bundles.together")}</p>
         ) : (
           value.items.map((item, idx) => (
             <div
@@ -192,7 +190,7 @@ export function PackageForm({ value, onChange, disabled }: Props) {
                   onClick={() => moveItem(idx, -1)}
                   disabled={idx === 0}
                   className="text-ink-3 hover:text-ink disabled:opacity-30"
-                  aria-label="Move item up"
+                  aria-label={uiText("ui.move.item.up")}
                 >
                   <Icon name="chevron-u" size={16} />
                 </button>
@@ -201,7 +199,7 @@ export function PackageForm({ value, onChange, disabled }: Props) {
                   onClick={() => moveItem(idx, 1)}
                   disabled={idx === value.items.length - 1}
                   className="text-ink-3 hover:text-ink disabled:opacity-30"
-                  aria-label="Move item down"
+                  aria-label={uiText("ui.move.item.down")}
                 >
                   <Icon name="chevron-d" size={16} />
                 </button>
@@ -209,13 +207,13 @@ export function PackageForm({ value, onChange, disabled }: Props) {
                   type="button"
                   onClick={() => removeItem(item.id)}
                   className="text-ink-3 hover:text-danger"
-                  aria-label="Remove item"
+                  aria-label={uiText("ui.remove.item")}
                 >
                   <Icon name="trash" size={15} />
                 </button>
               </div>
 
-              <Field label="Service" required>
+              <Field label={uiText("ui.service")} required>
                 <Select
                   ref={(el) => {
                     const m = itemRefs.current;
@@ -231,20 +229,20 @@ export function PackageForm({ value, onChange, disabled }: Props) {
               </Field>
 
               <Field
-                label="Item title"
+                label={uiText("ui.item.title")}
                 optional
-                hint="Shown instead of the service name, e.g. “Kick-off call”."
+                hint={uiText("ui.shown.instead.of.the.service.name.e.g.kick.off.call")}
               >
                 <Input
                   value={item.title ?? ""}
                   onChange={(e) =>
                     updateItem(item.id, { title: e.target.value || undefined })
                   }
-                  placeholder="Optional"
+                  placeholder={uiText("ui.optional")}
                 />
               </Field>
 
-              <Field label="Item note" optional>
+              <Field label={uiText("ui.item.note")} optional>
                 <Input
                   value={item.description ?? ""}
                   onChange={(e) =>
@@ -252,7 +250,7 @@ export function PackageForm({ value, onChange, disabled }: Props) {
                       description: e.target.value || undefined,
                     })
                   }
-                  placeholder="Optional one-line note for this step."
+                  placeholder={uiText("ui.optional.one.line.note.for.this.step")}
                 />
               </Field>
             </div>
@@ -261,24 +259,23 @@ export function PackageForm({ value, onChange, disabled }: Props) {
       </div>
 
       <Field
-        label="Internal notes"
+        label={uiText("ui.internal.notes")}
         optional
-        hint="Only visible to you. Use for delivery notes or context."
+        hint={uiText("ui.only.visible.to.you.use.for.delivery.notes.or.context")}
       >
         <Textarea
           value={value.notes ?? ""}
           rows={2}
           onChange={(e) => patch({ notes: e.target.value })}
-          placeholder="e.g. Space sessions 2–3 weeks apart."
+          placeholder={uiText("ui.e.g.space.sessions.2.3.weeks.apart")}
         />
       </Field>
 
       <div className="flex items-center justify-between rounded-md border border-line bg-surface-warm p-4">
         <div>
-          <div className="text-[14px] font-medium text-ink">Featured</div>
+          <div className="text-[14px] font-medium text-ink">{uiText("ui.featured")}</div>
           <div className="text-small">
-            Highlight this package in the catalog and the booking hint.
-          </div>
+            {uiText("ui.highlight.this.package.in.the.catalog.and.the.booking.hint")}</div>
         </div>
         <Toggle
           checked={!!value.featured}
@@ -289,11 +286,10 @@ export function PackageForm({ value, onChange, disabled }: Props) {
       <div className="flex items-center justify-between rounded-md border border-line bg-surface-warm p-4">
         <div>
           <div className="text-[14px] font-medium text-ink">
-            {value.status === "active" ? "Active" : "Inactive"}
+            {value.status === "active" ? uiText("ui.active") : uiText("ui.inactive")}
           </div>
           <div className="text-small">
-            Inactive packages are hidden from the booking hint.
-          </div>
+            {uiText("ui.inactive.packages.are.hidden.from.the.booking.hint")}</div>
         </div>
         <Toggle
           checked={value.status === "active"}

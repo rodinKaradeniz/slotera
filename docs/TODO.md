@@ -515,20 +515,19 @@ the workspace chooser waits for the Team/member product surface.
 These exist as *demonstrations* of a future capability. The recorded intent is that they
 stay demonstrations until the backend can support them properly.
 
-- **~~Real customer booking access via magic links.~~ DONE (2026-10-09)** as `/booking/manage#<token>` with self-serve cancel and one reschedule; reminders ship from the maintenance job. Post-booking optional forms and client messages are still not built. Original note: `/booking/manage/demo` is a single
+- **~~Real customer booking access via magic links.~~ DONE (2026-10-09)** as `/booking/manage#<token>` with self-serve cancel and one reschedule; reminders ship from the maintenance job. Post-booking optional forms are now persisted; client messages remain deferred. Original note: `/booking/manage/demo` is a single
   fixed booking with no id, token, or persistence. The real version needs guest access,
   signed expiring links, email delivery, and backend persistence. Customers still get no
   accounts — that boundary is deliberate. An all-history dashboard is not a smaller
   version of this feature: it would authorize access across bookings and therefore needs a
   separate customer-identity/product decision.
-- **Post-booking optional forms.** Demonstrated on the booking workspace's Forms tab
-  (save writes to local state only). The real flow is the magic-link one above.
+- **~~Post-booking optional forms.~~ DONE (2026-11-13).** New bookings receive immutable
+  form assignments, with one-time token-protected submissions before the session starts.
 - **~~Approval before booking.~~ DONE for the capacity-one API flow.** It is a
   **service-level** `automatic | operator_approval` policy, snapshotted on bookings and
   separate from payment/lifecycle state. It does not change the public booking steps.
-- **Email reminders and follow-ups.** Represented by the reminder line; transactional
-  receipt/confirmation events are implemented, while magic-link access remains with the
-  booking workspace and scheduled reminders/follow-ups remain Phase 3.
+- **Email follow-ups.** Transactional receipt/confirmation emails and scheduled reminders
+  are implemented; post-session follow-ups remain deferred.
 - **Package purchase and credits.** Packages are display-only by design — no checkout, no
   credit ledger, no consumption, no entitlements, no memberships, no recurring billing, no
   coupons or gift cards. A real version would need purchase, remaining-credit tracking,
@@ -577,3 +576,19 @@ stay demonstrations until the backend can support them properly.
 - **Notes as a multi-author log.** If `notes` needs authorship and history, promote
   Service, Session, and Booking notes to `NoteEntry[]` **together**, in one deliberate
   change. Do not fork the shape per entity.
+
+
+## Completion bundle — 2026-11-13
+
+- **~~Persist package offers.~~ DONE in code:** ordered offers and public projections;
+  purchases, credits, expiry and consumption remain deferred.
+- **~~Persist client-page branding.~~ DONE in code:** colour/font for both plans, scoped
+  to client pages and dialogs; email themes and logos remain outside this bundle.
+- **~~Operator intake review and optional post-booking forms.~~ DONE in code:** immutable
+  questions on new bookings, one submission before session start, and read-only answers.
+  Earlier entries deferring magic-link forms are superseded by this bundle; older
+  bookings deliberately gain no optional assignments.
+- **~~Complete manual billing requests.~~ DONE in code:** authenticated plan/interval
+  requests use the staff inbox. Automated subscriptions remain deferred.
+- Pilot-release operational evidence remains outstanding in `PILOT_READINESS.md`; empty
+  deployment database passwords and `STORAGE_BOX` were reported by the developer.

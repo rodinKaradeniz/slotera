@@ -57,7 +57,7 @@ export function StepBilling({ billing, onChange }: Props) {
           onChange={(e) => update({ country: e.target.value })}
           options={COUNTRIES.map((c) => ({
             value: c.code,
-            label: `${c.flag}  ${c.name}`,
+            label: `${c.flag}  ${t(`booking.country.${c.code}`)}`,
           }))}
         />
       </Field>

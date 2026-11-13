@@ -1,4 +1,6 @@
 "use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
@@ -49,6 +51,7 @@ function hasOptions(type: FormFieldType): boolean {
 }
 
 export function FormTemplateForm({ value, onChange, disabled }: Props) {
+  const { t: uiText, lang: labelLang } = useI18n();
   const [services, setServices] = React.useState<Service[]>([]);
 
   // Refs to each field's label input, keyed by field id, so a freshly added
@@ -128,17 +131,17 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
       disabled={disabled}
       className="flex flex-col gap-5 disabled:opacity-90"
     >
-      <Field label="Form name" required>
+      <Field label={uiText("ui.form.name")} required>
         <Input
           value={value.name}
           onChange={(e) => patch({ name: e.target.value })}
-          placeholder="e.g. Discovery Call prep"
+          placeholder={uiText("ui.e.g.discovery.call.prep")}
         />
       </Field>
 
       <Field
-        label="Description"
-        hint="One short line clients see at the top of the form."
+        label={uiText("ui.description")}
+        hint={uiText("ui.one.short.line.clients.see.at.the.top.of.the.form")}
       >
         <Textarea
           value={value.description}
@@ -150,16 +153,14 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
       {/* Fields editor */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-medium text-ink">Fields</span>
+          <span className="text-[13px] font-medium text-ink">{uiText("ui.fields")}</span>
           <Button variant="secondary" size="sm" icon="plus" onClick={addField}>
-            Add field
-          </Button>
+            {uiText("ui.add.field")}</Button>
         </div>
 
         {value.fields.length === 0 ? (
           <p className="text-small text-ink-3 rounded-md border border-dashed border-line px-4 py-6 text-center">
-            No fields yet. Add a question or an acknowledgement to get started.
-          </p>
+            {uiText("ui.no.fields.yet.add.a.question.or.an.acknowledgement.to.get.started")}</p>
         ) : (
           value.fields.map((f, idx) => (
             <div
@@ -174,7 +175,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                   onClick={() => moveField(idx, -1)}
                   disabled={idx === 0}
                   className="text-ink-3 hover:text-ink disabled:opacity-30"
-                  aria-label="Move field up"
+                  aria-label={uiText("ui.move.field.up")}
                 >
                   <Icon name="chevron-u" size={16} />
                 </button>
@@ -183,7 +184,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                   onClick={() => moveField(idx, 1)}
                   disabled={idx === value.fields.length - 1}
                   className="text-ink-3 hover:text-ink disabled:opacity-30"
-                  aria-label="Move field down"
+                  aria-label={uiText("ui.move.field.down")}
                 >
                   <Icon name="chevron-d" size={16} />
                 </button>
@@ -191,13 +192,13 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                   type="button"
                   onClick={() => removeField(f.id)}
                   className="text-ink-3 hover:text-danger"
-                  aria-label="Remove field"
+                  aria-label={uiText("ui.remove.field")}
                 >
                   <Icon name="trash" size={15} />
                 </button>
               </div>
 
-              <Field label="Label" required>
+              <Field label={uiText("ui.label")} required>
                 <Input
                   ref={(el) => {
                     const m = labelRefs.current;
@@ -206,12 +207,12 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                   }}
                   value={f.label}
                   onChange={(e) => updateField(f.id, { label: e.target.value })}
-                  placeholder="e.g. What would you like us to look at?"
+                  placeholder={uiText("ui.e.g.what.would.you.like.us.to.look.at")}
                 />
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Type">
+                <Field label={uiText("ui.type")}>
                   <Select
                     value={f.type}
                     onChange={(e) => {
@@ -221,7 +222,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                         options: hasOptions(type) ? f.options ?? [] : undefined,
                       });
                     }}
-                    options={FIELD_TYPE_OPTIONS}
+                    options={FIELD_TYPE_OPTIONS.map((option) => ({ ...option, label: translateInterfaceLabel(labelLang, option.label) }))}
                   />
                 </Field>
                 <div className="flex items-end pb-1">
@@ -231,13 +232,13 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                       checked={f.required}
                       onChange={(v) => updateField(f.id, { required: v })}
                     />
-                    <span className="text-[13px] text-ink">Required</span>
+                    <span className="text-[13px] text-ink">{uiText("ui.required")}</span>
                   </label>
                 </div>
               </div>
 
               {hasOptions(f.type) && (
-                <Field label="Options" hint="One per line.">
+                <Field label={uiText("ui.options")} hint={uiText("ui.one.per.line")}>
                   <Textarea
                     value={(f.options ?? []).join("\n")}
                     rows={3}
@@ -257,7 +258,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
               {f.type !== "consent_checkbox" &&
                 f.type !== "yes_no" &&
                 f.type !== "date" && (
-                  <Field label="Placeholder" optional>
+                  <Field label={uiText("ui.placeholder")} optional>
                     <Input
                       value={f.placeholder ?? ""}
                       onChange={(e) =>
@@ -267,13 +268,13 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                   </Field>
                 )}
 
-              <Field label="Help text" optional>
+              <Field label={uiText("ui.help.text")} optional>
                 <Input
                   value={f.helpText ?? ""}
                   onChange={(e) =>
                     updateField(f.id, { helpText: e.target.value })
                   }
-                  placeholder="Shown beneath the field."
+                  placeholder={uiText("ui.shown.beneath.the.field")}
                 />
               </Field>
             </div>
@@ -283,11 +284,11 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
 
       {/* Attach to services */}
       <Field
-        label="Attached services"
-        hint="Clients booking these services will complete this form before payment."
+        label={uiText("ui.attached.services")}
+        hint={uiText("ui.clients.booking.these.services.will.complete.this.form.before.payment")}
       >
         {services.length === 0 ? (
-          <p className="text-small text-ink-3">No active services yet.</p>
+          <p className="text-small text-ink-3">{uiText("ui.no.active.services.yet")}</p>
         ) : (
           <div className="flex flex-col gap-1.5 rounded-md border border-line p-2">
             {services.map((s) => {
@@ -314,11 +315,9 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
       <div className="flex items-center justify-between rounded-md border border-line bg-surface-warm p-4">
         <div>
           <div className="text-[14px] font-medium text-ink">
-            Required before payment
-          </div>
+            {uiText("ui.required.before.payment")}</div>
           <div className="text-small">
-            Clients must complete this form before they can pay.
-          </div>
+            {uiText("ui.clients.must.complete.this.form.before.they.can.pay")}</div>
         </div>
         <Toggle
           checked={value.requiredBeforePayment}
@@ -329,11 +328,10 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
       <div className="flex items-center justify-between rounded-md border border-line bg-surface-warm p-4">
         <div>
           <div className="text-[14px] font-medium text-ink">
-            {value.status === "active" ? "Active" : "Inactive"}
+            {value.status === "active" ? uiText("ui.active") : uiText("ui.inactive")}
           </div>
           <div className="text-small">
-            Inactive forms don&apos;t appear in the booking flow.
-          </div>
+            {uiText("ui.inactive.forms.don.t.appear.in.the.booking.flow")}</div>
         </div>
         <Toggle
           checked={value.status === "active"}

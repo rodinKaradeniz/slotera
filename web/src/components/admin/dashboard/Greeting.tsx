@@ -1,4 +1,6 @@
 "use client";
+import { readLang, localeForLang, translate } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
@@ -28,12 +30,13 @@ export function spell(n: number): string {
 
 function timeGreeting(d: Date): string {
   const h = d.getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return translate(readLang(), "dashboard.morning");
+  if (h < 18) return translate(readLang(), "dashboard.afternoon");
+  return translate(readLang(), "dashboard.evening");
 }
 
 export function Greeting({ firstName, subtitle }: Props) {
+  const { t: uiText } = useI18n();
   const { openBookingDrawer } = useDrawers();
   const { toast } = useToast();
 
@@ -64,17 +67,17 @@ export function Greeting({ firstName, subtitle }: Props) {
       });
       setSettings(next);
       if (confirmTarget) {
-        toast.success("Bookings live", {
-          description: "Your public page is accepting bookings again.",
+        toast.success(uiText("ui.bookings.live"), {
+          description: uiText("ui.your.public.page.is.accepting.bookings.again"),
         });
       } else {
-        toast.info("Bookings paused", {
-          description: "Existing bookings are unaffected.",
+        toast.info(uiText("ui.bookings.paused"), {
+          description: uiText("ui.existing.bookings.are.unaffected"),
         });
       }
       setConfirmTarget(null);
     } catch (err) {
-      toast.error("Couldn't update booking page", {
+      toast.error(uiText("ui.couldn.t.update.booking.page"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -89,7 +92,7 @@ export function Greeting({ firstName, subtitle }: Props) {
 
   const date = new Date();
   const dateStr = date
-    .toLocaleDateString(undefined, {
+    .toLocaleDateString(localeForLang(readLang()), {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -131,8 +134,7 @@ export function Greeting({ firstName, subtitle }: Props) {
                   icon="eye"
                   className="whitespace-nowrap"
                 >
-                  View booking page
-                </Button>
+                  {uiText("ui.view.booking.page")}</Button>
               </a>
               <Button
                 variant="primary"
@@ -141,8 +143,7 @@ export function Greeting({ firstName, subtitle }: Props) {
                 className="whitespace-nowrap"
                 onClick={() => openBookingDrawer()}
               >
-                New booking
-              </Button>
+                {uiText("ui.new.booking")}</Button>
             </div>
           </div>
         )}
@@ -152,21 +153,20 @@ export function Greeting({ firstName, subtitle }: Props) {
         open={confirmTarget !== null}
         onClose={cancelConfirm}
         title={
-          confirmTarget === false ? "Pause bookings?" : "Resume bookings?"
+          confirmTarget === false ? uiText("ui.pause.bookings") : uiText("ui.resume.bookings")
         }
         description={
           confirmTarget === false
-            ? "Your public booking page will show a 'currently paused' notice. Existing bookings stay on your calendar."
-            : "Your public booking page will start accepting new bookings again."
+            ? uiText("ui.your.public.booking.page.will.show.a.currently.paused.notice.existing.bookings.stay.on.you")
+            : uiText("ui.your.public.booking.page.will.start.accepting.new.bookings.again")
         }
         size="sm"
         footer={
           <>
             <Button variant="ghost" onClick={cancelConfirm} disabled={busy}>
-              Cancel
-            </Button>
+              {uiText("ui.cancel")}</Button>
             <Button variant="primary" onClick={confirm} loading={busy}>
-              {confirmTarget === false ? "Pause bookings" : "Resume bookings"}
+              {confirmTarget === false ? uiText("ui.pause.bookings") : uiText("ui.resume.bookings")}
             </Button>
           </>
         }
@@ -184,6 +184,7 @@ function BookingPageToggleRow({
   enabled: boolean;
   onRequestToggle: () => void;
 }) {
+  const { t: uiText } = useI18n();
   return (
     <div className="flex items-center gap-2.5 text-[13px]">
       <Toggle
@@ -191,7 +192,7 @@ function BookingPageToggleRow({
         size="sm"
         disabled={loading}
         onChange={onRequestToggle}
-        aria-label={enabled ? "Pause bookings" : "Resume bookings"}
+        aria-label={enabled ? uiText("ui.pause.bookings") : uiText("ui.resume.bookings")}
       />
       <span
         className={cn(
@@ -205,7 +206,7 @@ function BookingPageToggleRow({
           className="w-1.5 h-1.5 rounded-full"
           style={{ background: enabled ? "var(--accent)" : "var(--ink-4)" }}
         />
-        {loading ? "Loading…" : enabled ? "Booking page live" : "Bookings paused"}
+        {loading ? uiText("ui.loading") : enabled ? uiText("ui.booking.page.live") : uiText("ui.bookings.paused")}
       </span>
     </div>
   );

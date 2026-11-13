@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Icon } from "@/components/ui/Icon";
@@ -8,6 +9,7 @@ import type { Notification } from "@/types/notification";
 import { cn } from "@/lib/cn";
 
 export function NotificationsButton() {
+  const { t: uiText } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState<Notification[]>([]);
   const [error, setError] = React.useState<string | null>(null);
@@ -15,9 +17,9 @@ export function NotificationsButton() {
 
   React.useEffect(() => {
     listNotifications().then(setItems).catch((cause) => {
-      setError(cause instanceof Error ? cause.message : "Notifications could not be loaded.");
+      setError(cause instanceof Error ? cause.message : uiText("ui.notifications.could.not.be.loaded"));
     });
-  }, []);
+  }, [uiText]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -36,7 +38,7 @@ export function NotificationsButton() {
       setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
       setError(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Notifications could not be updated.");
+      setError(cause instanceof Error ? cause.message : uiText("ui.notifications.could.not.be.updated"));
     }
   };
 
@@ -46,7 +48,7 @@ export function NotificationsButton() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="relative w-9 h-9 rounded-md hover:bg-paper-2 text-ink-2 flex items-center justify-center"
-        aria-label="Notifications"
+        aria-label={uiText("ui.notifications")}
       >
         <Icon name="bell" size={18} />
         {unread > 0 && (
@@ -57,23 +59,21 @@ export function NotificationsButton() {
         <div className="absolute right-0 mt-2 w-[340px] bg-surface border border-line rounded-lg shadow-3 overflow-hidden fade-in z-30">
           <div className="px-4 py-3 border-b border-line-soft flex items-center justify-between">
             <div className="font-serif text-ink" style={{ fontSize: 16 }}>
-              Notifications
-            </div>
+              {uiText("ui.notifications")}</div>
             {unread > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAll}
                 className="text-[12px] text-ink-3 hover:text-ink"
               >
-                Mark all read
-              </button>
+                {uiText("ui.mark.all.read")}</button>
             )}
           </div>
           <div className="max-h-96 overflow-y-auto">
             {error ? (
               <div className="p-6 text-small text-center text-danger">{error}</div>
             ) : items.length === 0 ? (
-              <div className="p-6 text-small text-center">No notifications.</div>
+              <div className="p-6 text-small text-center">{uiText("ui.no.notifications")}</div>
             ) : (
               items.map((n) => (
                 <div

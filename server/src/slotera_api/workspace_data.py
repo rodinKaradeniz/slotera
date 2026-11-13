@@ -24,6 +24,8 @@ EXPORTED_TABLES: tuple[str, ...] = (
     "workspace_payment_settings",
     "workspace_slug_history",
     "services",
+    "service_packages",
+    "service_package_items",
     "form_templates",
     "form_template_services",
     "availability_policies",
@@ -36,6 +38,7 @@ EXPORTED_TABLES: tuple[str, ...] = (
     "client_notes",
     "bookings",
     "booking_form_responses",
+    "booking_form_snapshots",
 )
 
 # Credentials, retry bookkeeping and Slotera's own records: not the operator's content.

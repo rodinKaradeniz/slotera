@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import {
@@ -35,13 +36,14 @@ function ChartTooltip({
   metric: Metric;
   currency: Currency;
 }) {
+  const { t: uiText } = useI18n();
   if (!active || !payload?.length) return null;
   const pt = payload[0].payload;
   const v = payload[0].value;
   return (
     <div className="bg-ink text-paper rounded-md shadow-3 px-3 py-2 min-w-[140px]">
       <div className="text-[10px] uppercase tracking-wider text-paper/60 font-mono">
-        Day {pt.d}
+        {uiText("ui.day")}{pt.d}
       </div>
       <div
         className="font-serif"
@@ -54,6 +56,7 @@ function ChartTooltip({
 }
 
 export function TrendChart({ data, currency = "GBP" }: Props) {
+  const { t: uiText } = useI18n();
   const [metric, setMetric] = React.useState<Metric>("revenue");
   // Recharts' ResponsiveContainer falls back to width(-1)/height(-1) when its
   // parent is briefly detached or zero-sized during a Next.js route transition,
@@ -85,20 +88,20 @@ export function TrendChart({ data, currency = "GBP" }: Props) {
     <Card padded className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <div className="eyebrow">Last 30 days</div>
+          <div className="eyebrow">{uiText("ui.last.30.days")}</div>
           <div
             className="font-serif text-ink mt-1"
             style={{ fontSize: 24, fontWeight: 400, letterSpacing: "-0.01em" }}
           >
-            {metric === "revenue" ? "Revenue trend" : "Bookings trend"}
+            {metric === "revenue" ? uiText("ui.revenue.trend") : uiText("ui.bookings.trend")}
           </div>
         </div>
         <SegGroup
           value={metric}
           onChange={(v) => setMetric(v)}
           options={[
-            { value: "revenue", label: "Revenue" },
-            { value: "bookings", label: "Bookings" },
+            { value: "revenue", label: uiText("ui.revenue") },
+            { value: "bookings", label: uiText("ui.bookings") },
           ]}
           size="sm"
         />

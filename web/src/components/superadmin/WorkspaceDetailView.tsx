@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ import { fmtDate } from "@/lib/time";
 import type { PlatformWorkspace } from "@/types/platform";
 
 export function WorkspaceDetailView({ id }: { id: string }) {
+  const { t: uiText } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
   const [workspace, setWorkspace] = React.useState<PlatformWorkspace | null>(null);
@@ -41,10 +43,9 @@ export function WorkspaceDetailView({ id }: { id: string }) {
   if (notFound) {
     return (
       <PageContainer>
-        <PageHeader eyebrow="Platform" title="Workspace not found" />
+        <PageHeader eyebrow={uiText("ui.platform")} title={uiText("ui.workspace.not.found")} />
         <Button variant="secondary" onClick={() => router.push("/superadmin/workspaces")}>
-          ← All workspaces
-        </Button>
+          {uiText("ui.all.workspaces")}</Button>
       </PageContainer>
     );
   }
@@ -68,16 +69,16 @@ export function WorkspaceDetailView({ id }: { id: string }) {
       setWorkspace(await suspendWorkspace(workspace.id, !isSuspended));
       setConfirmStatusChange(false);
       if (isSuspended) {
-        toast.success("Workspace reactivated", {
-          description: "The operator can sign in with a new session.",
+        toast.success(uiText("ui.workspace.reactivated"), {
+          description: uiText("ui.the.operator.can.sign.in.with.a.new.session"),
         });
       } else {
-        toast.info("Workspace suspended", {
-          description: "Existing operator sessions have been revoked.",
+        toast.info(uiText("ui.workspace.suspended"), {
+          description: uiText("ui.existing.operator.sessions.have.been.revoked"),
         });
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not update workspace");
+      toast.error(error instanceof Error ? error.message : uiText("ui.could.not.update.workspace"));
     } finally {
       setBusy(false);
     }
@@ -90,13 +91,12 @@ export function WorkspaceDetailView({ id }: { id: string }) {
         onClick={() => router.push("/superadmin/workspaces")}
         className="text-small text-ink-3 hover:text-ink mb-4 inline-flex items-center gap-1"
       >
-        ← All workspaces
-      </button>
+        {uiText("ui.all.workspaces")}</button>
 
       <PageHeader
-        eyebrow="Workspace"
+        eyebrow={uiText("ui.workspace")}
         title={workspace.name}
-        description={`${workspace.ownerName ?? "No operator assigned"} · ${workspace.ownerEmail ?? "No owner email"}`}
+        description={`${workspace.ownerName ?? uiText("ui.no.operator")} · ${workspace.ownerEmail ?? uiText("ui.no.owner.email")}`}
         meta={
           <span className="inline-flex items-center gap-2 flex-wrap">
             <Pill
@@ -107,10 +107,10 @@ export function WorkspaceDetailView({ id }: { id: string }) {
             </Pill>
             <PlanPills workspace={workspace} />
             <span aria-hidden>·</span>
-            <span>Joined {fmtDate(new Date(workspace.createdAtISO))}</span>
+            <span>{uiText("ui.joined")}{" "}{fmtDate(new Date(workspace.createdAtISO))}</span>
             {closingOn && (
               <Pill tone="danger" icon="trash">
-                Closed by operator · deleted {fmtDate(closingOn)}
+                {uiText("ui.closed.by.operator.deleted")}{fmtDate(closingOn)}
               </Pill>
             )}
           </span>
@@ -124,7 +124,7 @@ export function WorkspaceDetailView({ id }: { id: string }) {
               disabled={busy}
               onClick={() => setConfirmStatusChange(true)}
             >
-              {closingOn ? "Cancel closure" : isSuspended ? "Reactivate" : "Suspend"}
+              {closingOn ? uiText("ui.cancel.closure") : isSuspended ? uiText("ui.reactivate") : uiText("ui.suspend")}
             </Button>
           </>
         }
@@ -132,10 +132,10 @@ export function WorkspaceDetailView({ id }: { id: string }) {
 
       <Card padded={false} className="mb-6">
         <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-line-soft">
-          <PadStat label="Bookings" value={workspace.bookingsCount.toLocaleString()} />
-          <PadStat label="Services" value={String(workspace.servicesCount)} />
-          <PadStat label="Clients" value={String(workspace.clientsCount)} />
-          <PadStat label="Sessions" value={String(workspace.sessionsCount)} />
+          <PadStat label={uiText("ui.bookings")} value={workspace.bookingsCount.toLocaleString()} />
+          <PadStat label={uiText("ui.services")} value={String(workspace.servicesCount)} />
+          <PadStat label={uiText("ui.clients")} value={String(workspace.clientsCount)} />
+          <PadStat label={uiText("ui.sessions")} value={String(workspace.sessionsCount)} />
         </div>
       </Card>
 
@@ -147,19 +147,19 @@ export function WorkspaceDetailView({ id }: { id: string }) {
         onConfirm={handleSuspend}
         title={
           closingOn
-            ? "Cancel the closure?"
+            ? uiText("ui.cancel.the.closure")
             : isSuspended
-              ? "Reactivate workspace?"
-              : "Suspend workspace?"
+              ? uiText("ui.reactivate.workspace")
+              : uiText("ui.suspend.workspace")
         }
         description={
           closingOn
-            ? "The operator closed this workspace. Reactivating it cancels the scheduled deletion and lets them sign in again."
+            ? uiText("ui.the.operator.closed.this.workspace.reactivating.it.cancels.the.scheduled.deletion.and.lets")
             : isSuspended
-            ? "The operator will be able to sign in again. Previously revoked sessions stay revoked."
-            : "The operator will lose access immediately and all existing workspace sessions will be revoked. Workspace data is retained."
+            ? uiText("ui.the.operator.will.be.able.to.sign.in.again.previously.revoked.sessions.stay.revoked")
+            : uiText("ui.the.operator.will.lose.access.immediately.and.all.existing.workspace.sessions.will.be.revo")
         }
-        confirmLabel={isSuspended ? "Reactivate" : "Suspend"}
+        confirmLabel={isSuspended ? uiText("ui.reactivate") : uiText("ui.suspend")}
         destructive={!isSuspended}
         busy={busy}
       />
@@ -174,16 +174,17 @@ function ApiDetail({
   workspace: PlatformWorkspace;
   onBillingSaved: (workspace: PlatformWorkspace) => void;
 }) {
+  const { t: uiText } = useI18n();
   return (
     <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
       <div className="flex flex-col gap-6">
       <Card padded>
-        <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 16 }}>Workspace facts</h3>
+        <h3 className="text-h3 text-ink mb-4" style={{ fontSize: 16 }}>{uiText("ui.workspace.facts")}</h3>
         <div className="grid sm:grid-cols-2 gap-4 text-small">
-          <div><div className="eyebrow mb-1">Slug</div><div className="text-ink">{workspace.slug}</div></div>
-          <div><div className="eyebrow mb-1">Timezone</div><div className="text-ink">{workspace.timezone}</div></div>
-          <div><div className="eyebrow mb-1">Currency</div><div className="text-ink">{workspace.currency}</div></div>
-          <div><div className="eyebrow mb-1">Created</div><div className="text-ink">{fmtDate(new Date(workspace.createdAtISO))}</div></div>
+          <div><div className="eyebrow mb-1">{uiText("ui.slug")}</div><div className="text-ink">{workspace.slug}</div></div>
+          <div><div className="eyebrow mb-1">{uiText("ui.timezone")}</div><div className="text-ink">{workspace.timezone}</div></div>
+          <div><div className="eyebrow mb-1">{uiText("ui.currency")}</div><div className="text-ink">{workspace.currency}</div></div>
+          <div><div className="eyebrow mb-1">{uiText("ui.created")}</div><div className="text-ink">{fmtDate(new Date(workspace.createdAtISO))}</div></div>
         </div>
       </Card>
       <BillingCard workspace={workspace} onSaved={onBillingSaved} />
@@ -194,13 +195,14 @@ function ApiDetail({
 }
 
 function OwnerCard({ workspace }: { workspace: PlatformWorkspace }) {
+  const { t: uiText } = useI18n();
   return (
     <Card padded={false}>
-      <CardHead title="Owner" />
+      <CardHead title={uiText("ui.owner")} />
       <div className="p-2">
-        <DetailLine icon="user" label="Name" value={workspace.ownerName ?? "No operator assigned"} />
-        <DetailLine icon="mail" label="Email" value={workspace.ownerEmail ?? "—"} />
-        <DetailLine icon="calendar" label="Joined" value={fmtDate(new Date(workspace.createdAtISO))} />
+        <DetailLine icon="user" label={uiText("ui.name")} value={workspace.ownerName ?? uiText("ui.no.operator")} />
+        <DetailLine icon="mail" label={uiText("ui.email")} value={workspace.ownerEmail ?? "—"} />
+        <DetailLine icon="calendar" label={uiText("ui.joined")} value={fmtDate(new Date(workspace.createdAtISO))} />
       </div>
     </Card>
   );

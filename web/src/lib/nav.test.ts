@@ -28,9 +28,9 @@ describe.each(["mock", "api"] as const)("navigation in %s mode", (source) => {
 });
 
 describe("API-mode operator navigation", () => {
-  it("hides packages, which have no API yet", async () => {
+  it("exposes persisted packages with the other operator resources", async () => {
     const nav = await loadNav("api");
-    expect(nav.isNavRoute("operator_admin", "/admin/packages")).toBe(false);
+    expect(nav.isNavRoute("operator_admin", "/admin/packages")).toBe(true);
     expect(nav.isNavRoute("operator_admin", "/admin/calendar")).toBe(true);
   });
 });

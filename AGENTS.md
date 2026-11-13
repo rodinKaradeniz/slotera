@@ -118,7 +118,7 @@ npm run build           # production build
 npm run start           # serve the production build
 npm run lint            # eslint
 npx tsc --noEmit        # type-check (tsconfig sets noEmit, so this is the type-check)
-npm test                # Vitest: logic-only tests in Node (web/src/**/*.test.ts)
+npm test                # Vitest: logic in Node; focused component tests opt into jsdom
 ```
 
 Frontend verification is type-check, lint, `npm test`, build, and affected routes
@@ -219,7 +219,7 @@ mock mode.
 | Icons | `lucide-react` | never imported directly — wrapped by `web/src/components/ui/Icon.tsx` as a named `IconName` union |
 | Charts | `recharts` `^3.8` | one usage: `TrendChart` on the dashboard |
 | Rich text | Tiptap `^3.27` (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm`) | one usage: client notes editor |
-| Fonts | `next/font/google` — Fraunces, Inter Tight, JetBrains Mono | exposed as `--font-serif` / `--font-sans` / `--font-mono` |
+| Fonts | self-hosted Fraunces, Inter Tight, JetBrains Mono | exposed as `--font-serif` / `--font-sans` / `--font-mono`; no external font requests |
 | Data | mock JSON by default; generated OpenAPI DTOs + HTTP adapters for the local operator bundle | switchable via `NEXT_PUBLIC_DATA_SOURCE` |
 | Frontend auth | mock token in mock mode; HttpOnly cookie + CSRF in API mode | `localStorage` holds only the UI session snapshot |
 | i18n | hand-rolled flat dictionary, EN / TR / DE | `web/src/lib/i18n.ts` + `web/src/i18n/messages/*.ts` |
@@ -227,7 +227,7 @@ mock mode.
 | Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | auth/session + operator settings/locations/services/notifications |
 | Backend data | PostgreSQL 17 via Docker Compose | owner migrations, restricted application role, forced tenant RLS; host port `55432` |
 | Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; GitHub Actions runs quality and PostgreSQL integration gates |
-| Frontend tests | Vitest `^3` (Node environment) | logic only: helpers, routing rules, DTO mappers, proxy; CI runs it with type-check, lint, and build |
+| Frontend tests | Vitest `^3` (Node; jsdom for component tests) | helpers, routing, DTO mappers, proxy, forms and language preferences; CI runs it with type-check, lint, and build |
 | Error monitoring | Sentry (free plan, EU organisation): `sentry-sdk` in `server/`, `@sentry/nextjs` 10.x in `web/` | off without a DSN; the demo never reports; URLs scrubbed of tokens. See `docs/DEPLOYMENT.md` |
 | Deployment | Docker Compose on one Hetzner server | `deploy/` (Caddy, demo + app images, API, worker, maintenance loop, PostgreSQL, nightly backups); see `docs/DEPLOYMENT.md` |
 
@@ -261,7 +261,7 @@ web/
     api/               shared HTTP/CSRF client + generated OpenAPI document/types
     components/        UI, shared, layout, drawer, admin, booking, and public components
     data/mock/         21 JSON fixtures — the entire frontend data set
-    i18n/messages/     en.ts source keys plus TR/DE partial translations
+    i18n/messages/     complete EN/TR/DE interface dictionaries with English fallback
     lib/               pure helpers and client storage/env owners
     services/          16 service modules — the only frontend path to data
     types/             frontend domain types; index.ts is a partial barrel
@@ -345,6 +345,14 @@ implemented HTTP surface is deliberately limited to:
   no-show/attendance commands — tenant-scoped reads plus idempotent, audited booking gate,
   lifecycle, and group-attendance commands;
 - `GET/POST /forms` plus item `GET/PATCH/DELETE` — operator form-template management;
+- `GET /bookings/{id}/forms` — original questions and submitted answers for operators;
+- booking-token-protected `GET /public/bookings/manage/forms` and item `POST /submit` —
+  assigned forms and one-time optional submissions before the session;
+- `/packages` CRUD and `GET /public/workspaces/{slug}/packages` — persisted ordered
+  informational offers, with private notes excluded from the public projection;
+- `GET/PATCH /settings/branding` — validated client-page accent and heading font;
+- `POST /settings/billing/change-request` — session-attributed manual plan/interval requests;
+- `GET/PATCH /auth/preferences` — the authenticated user's interface language;
 - `GET/POST /clients/{client_id}/notes` plus note `PATCH/DELETE` — private operator
   client context, allow-list sanitised before persistence;
 - `GET /notifications` and `POST /notifications/mark-all-read` — structured, user-
@@ -564,6 +572,20 @@ descriptions, seeded notes) is English-only by design.
 
 Present tense — what exists in the working tree today.
 
+**Completion bundle (2026-11-13)**
+- API-mode Packages now persist ordered service offers, with safe public information only;
+  package purchases, credits and consumption remain deferred.
+- Both plans persist client-page accent/font settings; Professional attribution removal
+  remains separate. Branding does not style emails or the operator application.
+- Booking form snapshots preserve original questions. Required forms appear at checkout;
+  optional forms are assigned to new bookings and submitted once before the session through
+  the manage link. Operators read answers on booking details; legacy labels are approximate.
+- Manual billing requests select plan and interval and enter the existing staff inbox;
+  staff remain responsible for recording actual plan/payment changes.
+- EN/TR/DE interface dictionaries, saved account-language preferences and transactional
+  email-language snapshots use the existing i18n and outbox boundaries.
+- Pilot readiness evidence is tracked in `docs/PILOT_READINESS.md`; no live readiness is implied.
+
 **Public**
 - Landing page with hero + collage, features, how-it-works, demo strip (mock only),
   pricing (Essentials £19 / Professional £39, monthly or yearly), FAQ, final CTA, footer linking `/terms`, `/privacy`
@@ -621,7 +643,7 @@ Present tense — what exists in the working tree today.
   backed by a minimal Tiptap editor. In API mode the detail page also has "Download data"
   (JSON export) and "Erase client" (anonymisation that keeps booking amounts and payment
   state).
-- Services, Packages (ordered bundles of existing services), Forms (reusable templates
+- Services, Packages (persisted informational ordered bundles of existing services), Forms (reusable templates
   attached to services), and Settings (Business Profile incl. saved locations, Branding,
   Client Payments, Billing (API mode only), Calendar, Emails, Account).
 - A scheduled session's drawer has "Add attendee", which opens the booking drawer with

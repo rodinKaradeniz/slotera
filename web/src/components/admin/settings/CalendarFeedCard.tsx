@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -20,6 +21,7 @@ import { fmtDate } from "@/lib/time";
  * revocable, and replaced when regenerated.
  */
 export function CalendarFeedCard() {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [status, setStatus] = React.useState<CalendarFeedStatus | null>(null);
   const [url, setUrl] = React.useState<string | null>(null);
@@ -37,7 +39,7 @@ export function CalendarFeedCard() {
       setStatus(await getCalendarFeed());
       setConfirm(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not create the link");
+      toast.error(error instanceof Error ? error.message : uiText("ui.could.not.create.the.link"));
     } finally {
       setBusy(false);
     }
@@ -50,7 +52,7 @@ export function CalendarFeedCard() {
       setUrl(null);
       setStatus({ active: false, createdAt: null });
       setConfirm(null);
-      toast.success("Calendar link turned off");
+      toast.success(uiText("ui.calendar.link.turned.off"));
     } finally {
       setBusy(false);
     }
@@ -59,19 +61,16 @@ export function CalendarFeedCard() {
   const copy = async () => {
     if (!url) return;
     await navigator.clipboard.writeText(url);
-    toast.success("Link copied");
+    toast.success(uiText("ui.link.copied"));
   };
 
   return (
     <Card padded>
       <div className="mb-4">
         <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>
-          Subscribe in your calendar app
-        </h2>
+          {uiText("ui.subscribe.in.your.calendar.app")}</h2>
         <p className="text-small mt-1">
-          See your Slotera sessions in Google Calendar, Apple Calendar or Outlook. The link
-          shows client names, so keep it private like a password.
-        </p>
+          {uiText("ui.see.your.slotera.sessions.in.google.calendar.apple.calendar.or.outlook.the.link.shows.clie")}</p>
       </div>
 
       {url ? (
@@ -79,40 +78,31 @@ export function CalendarFeedCard() {
           <div className="flex gap-2">
             <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
             <Button variant="primary" icon="copy" onClick={copy}>
-              Copy
-            </Button>
+              {uiText("ui.copy")}</Button>
           </div>
           <p className="text-small text-warning">
-            Copy it now: for your privacy it won&apos;t be shown again.
-          </p>
+            {uiText("ui.copy.it.now.for.your.privacy.it.won.t.be.shown.again")}</p>
           <ul className="text-small text-ink-2 list-disc pl-5 flex flex-col gap-1">
             <li>
-              <strong>Google Calendar:</strong> Other calendars → + → From URL, then paste.
-              Google refreshes subscribed calendars every few hours.
-            </li>
+              <strong>{uiText("ui.google.calendar")}</strong> {uiText("ui.other.calendars.from.url.then.paste.google.refreshes.subscribed.calendars.every.few.hours")}</li>
             <li>
-              <strong>Apple Calendar:</strong> File → New Calendar Subscription, then paste.
-            </li>
+              <strong>{uiText("ui.apple.calendar")}</strong> {uiText("ui.file.new.calendar.subscription.then.paste")}</li>
             <li>
-              <strong>Outlook:</strong> Add calendar → Subscribe from web, then paste.
-            </li>
+              <strong>{uiText("ui.outlook")}</strong> {uiText("ui.add.calendar.subscribe.from.web.then.paste")}</li>
           </ul>
         </div>
       ) : status?.active ? (
         <p className="text-small text-ink-2">
-          A link is active (created{" "}
-          {status.createdAt ? fmtDate(new Date(status.createdAt)) : "earlier"}). For your
-          privacy it can&apos;t be shown again; create a new one if you need it.
-        </p>
+          {uiText("ui.a.link.is.active.created")}{" "}
+          {status.createdAt ? fmtDate(new Date(status.createdAt)) : "earlier"}{uiText("ui.for.your.privacy.it.can.t.be.shown.again.create.a.new.one.if.you.need.it")}</p>
       ) : (
-        <p className="text-small text-ink-2">No link yet.</p>
+        <p className="text-small text-ink-2">{uiText("ui.no.link.yet")}</p>
       )}
 
       <div className="flex flex-wrap justify-end gap-2 mt-5 pt-4 border-t border-line-soft">
         {status?.active && (
           <Button variant="ghost" disabled={busy} onClick={() => setConfirm("revoke")}>
-            Turn off
-          </Button>
+            {uiText("ui.turn.off")}</Button>
         )}
         <Button
           variant={status?.active ? "secondary" : "primary"}
@@ -120,7 +110,7 @@ export function CalendarFeedCard() {
           disabled={busy || status === null}
           onClick={() => (status?.active ? setConfirm("regenerate") : create())}
         >
-          {status?.active ? "Create a new link" : "Create calendar link"}
+          {status?.active ? uiText("ui.create.a.new.link") : uiText("ui.create.calendar.link")}
         </Button>
       </div>
 
@@ -128,9 +118,9 @@ export function CalendarFeedCard() {
         open={confirm !== null}
         onClose={() => setConfirm(null)}
         onConfirm={confirm === "revoke" ? revoke : create}
-        title={confirm === "revoke" ? "Turn off the calendar link?" : "Create a new link?"}
-        description="Calendars subscribed to the current link stop updating. This can't be undone."
-        confirmLabel={confirm === "revoke" ? "Turn off" : "Create new link"}
+        title={confirm === "revoke" ? uiText("ui.turn.off.the.calendar.link") : uiText("ui.create.a.new.link")}
+        description={uiText("ui.calendars.subscribed.to.the.current.link.stop.updating.this.can.t.be.undone")}
+        confirmLabel={confirm === "revoke" ? uiText("ui.turn.off") : uiText("ui.create.new.link")}
         destructive={confirm === "revoke"}
         busy={busy}
       />

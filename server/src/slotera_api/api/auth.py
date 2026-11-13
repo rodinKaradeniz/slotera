@@ -208,6 +208,7 @@ async def request_password_reset(
     require_trusted_origin(request, settings)
     try:
         await service.request_password_reset(
+            **({"language": payload.language} if payload.language != "en" else {}),
             email=str(payload.email).strip().lower(),
             client_key=request.client.host if request.client else "unknown",
         )
@@ -281,6 +282,7 @@ async def signup(
         )
     try:
         await service.signup(
+            **({"language": payload.language} if payload.language != "en" else {}),
             name=payload.workspace_name,
             slug=payload.slug,
             owner_first_names=payload.first_names,

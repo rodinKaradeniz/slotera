@@ -1,3 +1,4 @@
+import { readLang, translate } from "@/lib/i18n";
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import type { BookingDraft } from "@/components/booking/types";
@@ -125,9 +126,12 @@ export async function createPublicBooking(
   slug = resolveSlug(),
 ): Promise<PublicBookingResult> {
   if (!draft.service || !draft.startAt) {
-    throw new Error("Choose an available booking time.");
+    throw new Error(translate(readLang(), "errors.slot"));
   }
+  const requiredForms = new Set((await listPublicServiceForms(draft.service.id, slug))
+    .filter((form) => form.requiredBeforePayment).map((form) => form.id));
   const body: BookingCreateDto = {
+    language: readLang(),
     serviceId: draft.service.id,
     startAt: draft.startAt,
     customer: {
@@ -147,7 +151,7 @@ export async function createPublicBooking(
       country: draft.billing.country,
     },
     paymentMethod: draft.service.priceCents === 0 ? "free" : "manual",
-    formResponses: Object.entries(draft.formResponses).map(
+    formResponses: Object.entries(draft.formResponses).filter(([id]) => requiredForms.has(id)).map(
       ([formTemplateId, answers]) => ({
         formTemplateId,
         answers: answers.map((answer) => ({

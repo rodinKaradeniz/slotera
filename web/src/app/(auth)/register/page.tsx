@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import Link from "next/link";
@@ -35,6 +36,7 @@ const EMPTY: Form = {
 };
 
 function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
+  const { t: uiText } = useI18n();
   const [form, setForm] = React.useState<Form>(EMPTY);
   // The slug follows the workspace name until the operator edits it directly.
   const [slugEdited, setSlugEdited] = React.useState(false);
@@ -55,11 +57,11 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
     e.preventDefault();
     setError(null);
     if (form.slug.length < 3) {
-      setError("Your booking page address needs at least 3 characters.");
+      setError(uiText("auth.slugTooShort"));
       return;
     }
     if (!form.termsAccepted) {
-      setError("Please accept the Terms, Data Processing Agreement and Privacy Policy.");
+      setError(uiText("auth.termsRequired"));
       return;
     }
     setLoading(true);
@@ -70,7 +72,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
       if (err instanceof ApiRequestError && err.code === "workspace_slug_unavailable") {
         setSlugTaken(true);
       } else {
-        setError(err instanceof Error ? err.message : "Sign-up failed. Please try again.");
+        setError(err instanceof Error ? err.message : uiText("ui.sign.up.failed.please.try.again"));
       }
     } finally {
       setLoading(false);
@@ -80,7 +82,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
   return (
     <form className="flex flex-col gap-4" onSubmit={submit}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="First name(s)" required>
+        <Field label={uiText("ui.first.name.s")} required>
           <Input
             value={form.firstNames}
             onChange={(e) => setForm({ ...form, firstNames: e.target.value })}
@@ -88,7 +90,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
             required
           />
         </Field>
-        <Field label="Last name" required>
+        <Field label={uiText("ui.last.name")} required>
           <Input
             value={form.lastName}
             onChange={(e) => setForm({ ...form, lastName: e.target.value })}
@@ -98,7 +100,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         </Field>
       </div>
 
-      <Field label="Email" required hint="We'll send a link here to set your password.">
+      <Field label={uiText("ui.email")} required hint={uiText("ui.we.ll.send.a.link.here.to.set.your.password")}>
         <Input
           type="email"
           icon="mail"
@@ -109,7 +111,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         />
       </Field>
 
-      <Field label="Workspace name" required hint="Usually your name or your practice's name.">
+      <Field label={uiText("ui.workspace.name")} required hint={uiText("ui.usually.your.name.or.your.practice.s.name")}>
         <Input
           value={form.workspaceName}
           onChange={(e) => {
@@ -127,10 +129,10 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
       </Field>
 
       <Field
-        label="Booking page address"
+        label={uiText("ui.booking.page.address")}
         required
-        hint={`Clients book at /book/${form.slug || "your-name"}`}
-        error={slugTaken ? "That address is already taken. Try another." : undefined}
+        hint={uiText("ui.registration.book.at", { slug: form.slug || "your-name" })}
+        error={slugTaken ? uiText("ui.that.address.is.already.taken.try.another") : undefined}
       >
         <Input
           value={form.slug}
@@ -145,7 +147,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         />
       </Field>
 
-      <Field label="Currency" hint="What you charge your clients in. It can't be changed later.">
+      <Field label={uiText("ui.currency")} hint={uiText("ui.what.you.charge.your.clients.in.it.can.t.be.changed.later")}>
         <Select
           value={form.currency}
           onChange={(e) => setForm({ ...form, currency: e.target.value as Currency })}
@@ -162,18 +164,15 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
           required
         />
         <span>
-          I agree to the{" "}
+          {uiText("ui.i.agree.to.the")}{" "}
           <Link href="/terms" target="_blank" className="underline underline-offset-2">
-            Terms
-          </Link>
+            {uiText("ui.terms")}</Link>
           ,{" "}
           <Link href="/dpa" target="_blank" className="underline underline-offset-2">
-            Data Processing Agreement
-          </Link>{" "}
-          and{" "}
+            {uiText("ui.data.processing.agreement")}</Link>{" "}
+          {uiText("ui.and")}{" "}
           <Link href="/privacy" target="_blank" className="underline underline-offset-2">
-            Privacy Policy
-          </Link>
+            {uiText("ui.privacy.policy")}</Link>
           .
         </span>
       </label>
@@ -185,30 +184,26 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         iconRight="arrow-right"
         disabled={slugTaken}
       >
-        Create workspace
-      </Button>
+        {uiText("ui.create.workspace")}</Button>
       <p className="text-micro text-center">
-        30-day free trial, then Essentials (£19/month) or Professional (£39/month).
-      </p>
+        {uiText("ui.30.day.free.trial.then.essentials.19.month.or.professional.39.month")}</p>
     </form>
   );
 }
 
 function CheckInbox({ email }: { email: string }) {
+  const { t: uiText } = useI18n();
   return (
     <div className="flex flex-col items-center text-center gap-3 py-4">
       <div className="w-14 h-14 rounded-full bg-accent-soft text-accent flex items-center justify-center">
         <Icon name="mail" size={24} />
       </div>
       <p className="text-body text-ink-2">
-        We sent a link to <strong className="text-ink">{email}</strong>. Open it to set your
-        password and finish setting up your workspace.
-      </p>
+        {uiText("ui.we.sent.a.link.to")}<strong className="text-ink">{email}</strong>{uiText("ui.open.it.to.set.your.password.and.finish.setting.up.your.workspace")}</p>
       <p className="text-small">
-        Nothing arrived? Check spam, or{" "}
+        {uiText("ui.nothing.arrived.check.spam.or")}{" "}
         <Link href="/forgot-password" className="text-ink underline">
-          send a new link
-        </Link>
+          {uiText("ui.send.a.new.link")}</Link>
         .
       </p>
     </div>
@@ -216,23 +211,23 @@ function CheckInbox({ email }: { email: string }) {
 }
 
 export default function RegisterPage() {
+  const { t: uiText } = useI18n();
   const [sentTo, setSentTo] = React.useState<string | null>(null);
   if (!signupOpen) return <InviteOnly />;
   return (
     <AuthCard
-      eyebrow={sentTo ? "Almost there" : "Get started"}
-      title={sentTo ? "Check your inbox." : "Create your workspace."}
+      eyebrow={sentTo ? uiText("ui.almost.there") : uiText("ui.get.started")}
+      title={sentTo ? uiText("ui.check.your.inbox") : uiText("ui.create.your.workspace")}
       subtitle={
         sentTo
           ? undefined
-          : "30-day free trial, no card needed. Your booking page can be live in under 10 minutes."
+          : uiText("ui.30.day.free.trial.no.card.needed.your.booking.page.can.be.live.in.under.10.minutes")
       }
       footer={
         <span>
-          Already on Slotera?{" "}
+          {uiText("ui.already.on.slotera")}{" "}
           <Link href="/login" className="text-ink underline">
-            Sign in
-          </Link>
+            {uiText("ui.sign.in")}</Link>
         </span>
       }
     >
@@ -243,24 +238,23 @@ export default function RegisterPage() {
 
 /** Sign-up is closed during the invite-only pilot (NEXT_PUBLIC_SIGNUP_OPEN=false). */
 function InviteOnly() {
+  const { t: uiText } = useI18n();
   return (
     <AuthCard
-      eyebrow="Pilot"
-      title="Sign-up is by invitation for now."
+      eyebrow={uiText("ui.pilot")}
+      title={uiText("ui.sign.up.is.by.invitation.for.now")}
       subtitle="Apply for the pilot and we'll set up your workspace, then email you a link to sign in."
       footer={
         <span>
-          Already invited?{" "}
+          {uiText("ui.already.invited")}{" "}
           <Link href="/login" className="text-ink underline">
-            Sign in
-          </Link>
+            {uiText("ui.sign.in")}</Link>
         </span>
       }
     >
       <Link href="/pilot">
         <Button variant="primary" full iconRight="arrow-right">
-          Apply for the pilot
-        </Button>
+          {uiText("ui.apply.for.the.pilot")}</Button>
       </Link>
     </AuthCard>
   );

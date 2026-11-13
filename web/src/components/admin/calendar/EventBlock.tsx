@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { cn } from "@/lib/cn";
@@ -23,6 +24,7 @@ type Props = {
 const EVENT_STYLE = { bg: "#ECE8E0", fg: "#3B3B33" };
 
 export function EventBlock({ event, selected, onSelect, hourPx = 56 }: Props) {
+  const { t: uiText } = useI18n();
   const top = (event.startHour - 8) * hourPx;
   const height = Math.max(36, (event.endHour - event.startHour) * hourPx);
   const session = event.session;
@@ -51,7 +53,7 @@ export function EventBlock({ event, selected, onSelect, hourPx = 56 }: Props) {
       }}
     >
       <div className="text-[13px] font-medium truncate leading-tight">
-        {event.service?.name ?? "Session"}
+        {event.service?.name ?? uiText("ui.session")}
       </div>
       {secondary && (
         <div className="text-[11px] opacity-80 truncate mt-0.5">{secondary}</div>

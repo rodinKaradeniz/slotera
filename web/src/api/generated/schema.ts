@@ -89,6 +89,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Preference */
+        get: operations["getLanguagePreference"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Preference */
+        patch: operations["setLanguagePreference"];
+        trace?: never;
+    };
     "/auth/session": {
         parameters: {
             query?: never;
@@ -289,6 +307,23 @@ export interface paths {
         put?: never;
         /** Decline Booking */
         post: operations["declineBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{booking_id}/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Booking Forms */
+        get: operations["getBookingForms"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -574,6 +609,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Packages */
+        get: operations["listPackages"];
+        put?: never;
+        /** Create Package */
+        post: operations["createPackage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/packages/{package_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Package */
+        get: operations["getPackage"];
+        /** Update Package */
+        put: operations["updatePackage"];
+        post?: never;
+        /** Delete Package */
+        delete: operations["deletePackage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/inquiries": {
         parameters: {
             query?: never;
@@ -748,6 +820,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/bookings/manage/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Managed Forms */
+        get: operations["getManagedBookingForms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/bookings/manage/forms/{form_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Managed Form */
+        post: operations["submitManagedBookingForm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/bookings/manage/reschedule": {
         parameters: {
             query?: never;
@@ -831,6 +937,23 @@ export interface paths {
         put?: never;
         /** Create Public Booking */
         post: operations["createPublicBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/workspaces/{workspace_slug}/packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Public Packages */
+        get: operations["listPublicPackages"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1029,6 +1152,41 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/settings/billing/change-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Billing Change */
+        post: operations["requestBillingChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Branding */
+        get: operations["getBranding"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Branding */
+        patch: operations["updateBranding"];
         trace?: never;
     };
     "/settings/business": {
@@ -1286,6 +1444,19 @@ export interface components {
             /** Startlocal */
             startLocal: string;
         };
+        /** BillingChangeRequest */
+        BillingChangeRequest: {
+            /**
+             * Billinginterval
+             * @enum {string}
+             */
+            billingInterval: "monthly" | "yearly";
+            /**
+             * Plan
+             * @enum {string}
+             */
+            plan: "essentials" | "professional";
+        };
         /** BookingAttendanceCommand */
         BookingAttendanceCommand: {
             /**
@@ -1372,6 +1543,46 @@ export interface components {
             lastName: string;
             /** Phone */
             phone: string | null;
+        };
+        /** BookingFormSubmit */
+        BookingFormSubmit: {
+            /** Answers */
+            answers: components["schemas"]["PublicFormAnswer"][];
+        };
+        /** BookingFormView */
+        BookingFormView: {
+            /** Answers */
+            answers: components["schemas"]["PublicFormAnswer"][] | null;
+            /**
+             * Cansubmit
+             * @default false
+             */
+            canSubmit: boolean;
+            /** Description */
+            description: string;
+            /** Fields */
+            fields: components["schemas"]["FormFieldInput"][];
+            /**
+             * Historicalapproximation
+             * @default false
+             */
+            historicalApproximation: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Requiredbeforepayment */
+            requiredBeforePayment: boolean;
+            /** Submittedat */
+            submittedAt: string | null;
+        };
+        /** BookingFormsResponse */
+        BookingFormsResponse: {
+            /** Items */
+            items: components["schemas"]["BookingFormView"][];
         };
         /** BookingListResponse */
         BookingListResponse: {
@@ -1539,6 +1750,20 @@ export interface components {
              * Format: date-time
              */
             updatedAt: string;
+        };
+        /** Branding */
+        Branding: {
+            /**
+             * Accent
+             * @default #3d5a3d
+             */
+            accent: string;
+            /**
+             * Fontfamily
+             * @default serif
+             * @enum {string}
+             */
+            fontFamily: "serif" | "sans";
         };
         /** BusinessSettingsPatch */
         BusinessSettingsPatch: {
@@ -1744,6 +1969,10 @@ export interface components {
             exportedAt: string;
             /** Formresponses */
             formResponses: components["schemas"]["ClientExportFormResponse"][];
+            /** Formsnapshots */
+            formSnapshots?: {
+                [key: string]: unknown;
+            }[];
             /** Notes */
             notes: components["schemas"]["ClientExportNote"][];
         };
@@ -2072,6 +2301,14 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** LanguagePreference */
+        LanguagePreference: {
+            /**
+             * Language
+             * @enum {string}
+             */
+            language: "en" | "tr" | "de";
+        };
         /**
          * LocationType
          * @enum {string}
@@ -2114,6 +2351,7 @@ export interface components {
              * @enum {string}
              */
             approvalStatus: "not_required" | "pending" | "approved" | "declined";
+            branding?: components["schemas"]["Branding"];
             /** Cancancel */
             canCancel: boolean;
             /** Canreschedule */
@@ -2216,6 +2454,105 @@ export interface components {
              */
             sessionId: string;
         };
+        /** PackageInput */
+        PackageInput: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Featured
+             * @default false
+             */
+            featured: boolean;
+            /** Items */
+            items: components["schemas"]["PackageItemInput"][];
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Pricecents */
+            priceCents: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        /** PackageItemInput */
+        PackageItemInput: {
+            /** Description */
+            description?: string | null;
+            /**
+             * Serviceid
+             * Format: uuid
+             */
+            serviceId: string;
+            /** Title */
+            title?: string | null;
+        };
+        /** PackageItemView */
+        PackageItemView: {
+            /** Description */
+            description?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Order */
+            order: number;
+            /**
+             * Serviceid
+             * Format: uuid
+             */
+            serviceId: string;
+            /** Title */
+            title?: string | null;
+        };
+        /** PackageList */
+        PackageList: {
+            /** Items */
+            items: components["schemas"]["PackageView"][];
+        };
+        /** PackageView */
+        PackageView: {
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Currency */
+            currency: string;
+            /** Description */
+            description: string;
+            /** Featured */
+            featured: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items: components["schemas"]["PackageItemView"][];
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string | null;
+            /** Pricecents */
+            priceCents: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
         /** PasswordChange */
         PasswordChange: {
             /** Currentpassword */
@@ -2245,6 +2582,12 @@ export interface components {
              * Format: email
              */
             email: string;
+            /**
+             * Language
+             * @default en
+             * @enum {string}
+             */
+            language: "en" | "tr" | "de";
         };
         /** PaymentPendingNotification */
         PaymentPendingNotification: {
@@ -2618,6 +2961,12 @@ export interface components {
             /** Formresponses */
             formResponses?: components["schemas"]["PublicFormSubmission"][];
             /**
+             * Language
+             * @default en
+             * @enum {string}
+             */
+            language: "en" | "tr" | "de";
+            /**
              * Paymentmethod
              * @enum {string}
              */
@@ -2782,6 +3131,31 @@ export interface components {
              */
             reason: "business" | "pilot" | "development" | "feature" | "general";
         };
+        /** PublicPackageList */
+        PublicPackageList: {
+            /** Items */
+            items: components["schemas"]["PublicPackageView"][];
+        };
+        /** PublicPackageView */
+        PublicPackageView: {
+            /** Currency */
+            currency: string;
+            /** Description */
+            description: string;
+            /** Featured */
+            featured: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items: components["schemas"]["PackageItemView"][];
+            /** Name */
+            name: string;
+            /** Pricecents */
+            priceCents: number;
+        };
         /**
          * PublicPilotApplication
          * @description The pilot waitlist form. Stored as a `pilot` inquiry for staff to review.
@@ -2897,6 +3271,7 @@ export interface components {
             bookingTermsContent: string;
             /** Bookingtermsenabled */
             bookingTermsEnabled: boolean;
+            branding?: components["schemas"]["Branding"];
             /** Currency */
             currency: string;
             /** Displayname */
@@ -3452,6 +3827,12 @@ export interface components {
             email: string;
             /** Firstnames */
             firstNames: string;
+            /**
+             * Language
+             * @default en
+             * @enum {string}
+             */
+            language: "en" | "tr" | "de";
             /** Lastname */
             lastName: string;
             /** Slug */
@@ -3721,6 +4102,59 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getLanguagePreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguagePreference"];
+                };
+            };
+        };
+    };
+    setLanguagePreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanguagePreference"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguagePreference"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -4159,6 +4593,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getBookingForms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingFormsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4867,6 +5332,154 @@ export interface operations {
             };
         };
     };
+    listPackages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageList"];
+                };
+            };
+        };
+    };
+    createPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackageInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                package_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updatePackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                package_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackageInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deletePackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                package_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listPlatformInquiries: {
         parameters: {
             query?: never;
@@ -5195,6 +5808,74 @@ export interface operations {
             };
         };
     };
+    getManagedBookingForms: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Booking-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingFormsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submitManagedBookingForm: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Booking-Token": string;
+            };
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingFormSubmit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingFormsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     rescheduleManagedBooking: {
         parameters: {
             query?: never;
@@ -5351,6 +6032,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicBookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listPublicPackages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPackageList"];
                 };
             };
             /** @description Validation Error */
@@ -5941,6 +6653,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceBillingResponse"];
+                };
+            };
+        };
+    };
+    requestBillingChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getBranding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Branding"];
+                };
+            };
+        };
+    };
+    updateBranding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Branding"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Branding"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -22,6 +23,7 @@ export function PanelCard({
   children: React.ReactNode;
   onSave?: () => void;
 }) {
+  const { t: uiText } = useI18n();
   return (
     <Card padded>
       <div className="mb-4">
@@ -31,7 +33,7 @@ export function PanelCard({
       {children}
       {onSave && (
         <div className="flex justify-end mt-5 pt-4 border-t border-line-soft">
-          <Button variant="primary" onClick={onSave}>Save changes</Button>
+          <Button variant="primary" onClick={onSave}>{uiText("ui.save.changes")}</Button>
         </div>
       )}
     </Card>

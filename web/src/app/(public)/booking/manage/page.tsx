@@ -1,4 +1,6 @@
 "use client";
+import { BookingTheme } from "@/components/booking/BookingTheme";
+import { BookingForms } from "@/components/booking/BookingForms";
 
 import * as React from "react";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -14,6 +16,8 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { DetailLine } from "@/components/shared/DetailLine";
 import { StatusScreen } from "@/components/layout/StatusScreen";
+import { LoadError } from "@/components/shared/LoadError";
+import { ApiRequestError } from "@/services/_errors";
 import { formatAddressSummary } from "@/components/shared/forms/AddressForm";
 import { StepDateTime } from "@/components/booking/StepDateTime";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -52,6 +56,8 @@ export default function ManageBookingPage() {
   const token = hydrated ? window.location.hash.slice(1) || null : null;
   const [booking, setBooking] = React.useState<ManagedBooking | null>(null);
   const [notFound, setNotFound] = React.useState(false);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [attempt, setAttempt] = React.useState(0);
   const invalid = notFound || (hydrated && dataSource !== "mock" && !token);
   const [busy, setBusy] = React.useState(false);
   const [confirmCancel, setConfirmCancel] = React.useState(false);
@@ -68,15 +74,22 @@ export default function ManageBookingPage() {
       return;
     }
     if (!token) return;
+    let active = true;
     getManagedBooking(token)
       .then((result) => {
+        if (!active) return;
         // Rescheduling reads availability for this booking's workspace.
         setPublicWorkspaceSlug(result.workspaceSlug);
         setBooking(result);
+        setLoadError(null);
       })
-      .catch(() => setNotFound(true));
-    return () => setPublicWorkspaceSlug(null);
-  }, [router, token]);
+      .catch((error: unknown) => {
+        if (!active) return;
+        if (error instanceof ApiRequestError && error.status === 404) setNotFound(true);
+        else setLoadError(error instanceof Error ? error.message : t("forms.failed"));
+      });
+    return () => { active = false; setPublicWorkspaceSlug(null); };
+  }, [router, token, attempt, t]);
 
   if (invalid) {
     return (
@@ -115,10 +128,10 @@ export default function ManageBookingPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <BookingTheme branding={booking?.branding}><div className="min-h-screen flex flex-col">
       <BookingTopBar consultantName={booking?.providerName} />
       <main className="flex-1 max-w-[720px] mx-auto w-full px-6 pt-12 pb-16 flex flex-col gap-4">
-        {!booking || !token ? (
+        {loadError ? <LoadError message={loadError} onRetry={() => { setLoadError(null); setAttempt(attempt + 1); }} /> : !booking || !token ? (
           <Card padded>
             <div className="flex flex-col gap-3" aria-label={t("manage.loading")}>
               <Skeleton h={28} w="50%" />
@@ -287,6 +300,7 @@ export default function ManageBookingPage() {
               </Card>
             )}
 
+            <BookingForms token={token} />
             <ConfirmDialog
               open={confirmCancel}
               onClose={() => !busy && setConfirmCancel(false)}
@@ -302,6 +316,6 @@ export default function ManageBookingPage() {
         )}
       </main>
       <BookingFooter branded={booking?.showPlatformBranding ?? false} />
-    </div>
+    </div></BookingTheme>
   );
 }

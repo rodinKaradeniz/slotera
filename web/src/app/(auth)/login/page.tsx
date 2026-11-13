@@ -16,6 +16,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { dataSource, signupOpen } from "@/lib/env";
 
 function LoginForm() {
+  const { t: uiText } = useI18n();
   const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
@@ -47,7 +48,7 @@ function LoginForm() {
       }
       router.push(next ?? homePathForRole(session.role));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed.");
+      setError(err instanceof Error ? err.message : uiText("ui.login.failed"));
     } finally {
       setLoading(false);
     }
@@ -55,7 +56,7 @@ function LoginForm() {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={submit}>
-      <Field label="Email" required>
+      <Field label={uiText("ui.email")} required>
         <Input
           type="email"
           icon="mail"
@@ -65,7 +66,7 @@ function LoginForm() {
           required
         />
       </Field>
-      <Field label="Password" required>
+      <Field label={uiText("ui.password")} required>
         <Input
           type="password"
           icon="lock"
@@ -83,15 +84,13 @@ function LoginForm() {
             checked={remember}
             onChange={(e) => setRemember(e.target.checked)}
           />
-          Remember me
-        </label>
+          {uiText("ui.remember.me")}</label>
         {dataSource === "api" && (
           <Link
             href="/forgot-password"
             className="text-small text-ink-2 hover:text-ink underline"
           >
-            Forgot password?
-          </Link>
+            {uiText("ui.forgot.password")}</Link>
         )}
       </div>
       {error && (
@@ -108,12 +107,11 @@ function LoginForm() {
       </Button>
       {dataSource === "mock" ? (
         <p className="text-micro text-center">
-          Demo: any email and password work, or use <code>wrong@example.com</code>{" "}
-          to see an error.
-        </p>
+          {uiText("ui.demo.any.email.and.password.work.or.use")}<code>wrong@example.com</code>{" "}
+          {uiText("ui.to.see.an.error")}</p>
       ) : PREFILL ? (
         <p className="text-micro text-center">
-          Local seed: <code>hello@slotera.io</code> / <code>slotera-local-only</code>
+          {uiText("ui.local.seed")}<code>hello@slotera.io</code> / <code>slotera-local-only</code>
         </p>
       ) : null}
     </form>
@@ -133,17 +131,18 @@ async function needsOnboarding(role: UserRole): Promise<boolean> {
 }
 
 export default function LoginPage() {
+  const { t: uiText } = useI18n();
   return (
     <AuthCard
-      eyebrow="Operator workspace"
-      title="Welcome back."
+      eyebrow={uiText("ui.operator.workspace")}
+      title={uiText("ui.welcome.back")}
       subtitle="Sign in to manage bookings, sessions, and clients."
       footer={
         dataSource === "api" ? (
           <span>
-            No account yet?{" "}
+            {uiText("ui.no.account.yet")}{" "}
             <Link href={signupOpen ? "/register" : "/pilot"} className="text-ink underline">
-              {signupOpen ? "Start your free trial" : "Join the pilot"}
+              {signupOpen ? uiText("ui.start.your.free.trial") : uiText("ui.join.the.pilot")}
             </Link>
           </span>
         ) : undefined

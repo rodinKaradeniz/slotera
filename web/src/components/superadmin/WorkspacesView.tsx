@@ -1,4 +1,6 @@
 "use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import Link from "next/link";
@@ -21,6 +23,7 @@ import { fmtDate } from "@/lib/time";
 import type { PlatformWorkspace } from "@/types/platform";
 
 export function WorkspacesView() {
+  const { t: uiText } = useI18n();
   const router = useRouter();
   const { data: items, error, reload } = useLoad(listWorkspaces);
   const [query, setQuery] = React.useState("");
@@ -42,9 +45,9 @@ export function WorkspacesView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Platform"
-        title="Workspaces"
-        description="Provision and browse workspaces, their plan and operating facts."
+        eyebrow={uiText("ui.platform")}
+        title={uiText("ui.workspaces")}
+        description={uiText("ui.provision.and.browse.workspaces.their.plan.and.operating.facts")}
         meta={items ? `${items.length} workspaces` : undefined}
         actions={
           <Button
@@ -53,15 +56,14 @@ export function WorkspacesView() {
             icon="plus"
             onClick={() => setDrawerOpen(true)}
           >
-            New workspace
-          </Button>
+            {uiText("ui.new.workspace")}</Button>
         }
       />
 
       <div className="mb-4">
         <Input
           icon="search"
-          placeholder="Search by name, owner, email…"
+          placeholder={uiText("ui.search.by.name.owner.email")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -74,7 +76,7 @@ export function WorkspacesView() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon="building"
-          title="No workspaces match"
+          title={uiText("ui.no.workspaces.match")}
           body="Try clearing the search."
         />
       ) : (
@@ -96,15 +98,16 @@ export function WorkspacesView() {
 }
 
 function Directory({ items }: { items: PlatformWorkspace[] }) {
+  const { t: uiText, lang } = useI18n();
   return (
     <>
       <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-line-soft text-micro uppercase tracking-wide text-ink-3 bg-surface-warm rounded-t-lg">
-        <span>Workspace / status · plan</span>
-        <span>Owner</span>
-        <span>Created</span>
-        <span>Services</span>
-        <span>Clients</span>
-        <span>Activity</span>
+        <span>{uiText("ui.workspace.status.plan")}</span>
+        <span>{uiText("ui.owner")}</span>
+        <span>{uiText("ui.created")}</span>
+        <span>{uiText("ui.services")}</span>
+        <span>{uiText("ui.clients")}</span>
+        <span>{uiText("ui.activity")}</span>
       </div>
       {items.map((workspace) => (
         <Link
@@ -119,17 +122,17 @@ function Directory({ items }: { items: PlatformWorkspace[] }) {
                 tone={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].tone}
                 icon={WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].icon}
               >
-                {WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label}
+                {translateInterfaceLabel(lang, WORKSPACE_OPERATIONAL_STATUS[workspace.operationalStatus].label)}
               </Pill>
               <PlanPills workspace={workspace} />
             </div>
             <div className="text-small md:hidden truncate">
-              {workspace.ownerName ?? "No operator assigned"}
+              {workspace.ownerName ?? uiText("ui.no.operator")}
             </div>
           </div>
           <div className="hidden md:block min-w-0">
             <div className="text-[14px] text-ink truncate">
-              {workspace.ownerName ?? "No operator assigned"}
+              {workspace.ownerName ?? uiText("ui.no.operator")}
             </div>
             <div className="text-small truncate">{workspace.ownerEmail ?? "—"}</div>
           </div>
@@ -139,8 +142,7 @@ function Directory({ items }: { items: PlatformWorkspace[] }) {
           <div className="text-small whitespace-nowrap">{workspace.servicesCount}</div>
           <div className="text-small whitespace-nowrap">{workspace.clientsCount}</div>
           <div className="text-small whitespace-nowrap">
-            {workspace.bookingsCount} bookings · {workspace.sessionsCount} sessions
-          </div>
+            {workspace.bookingsCount} {" "}{uiText("ui.bookings")} · {" "}{workspace.sessionsCount} {uiText("ui.sessions")}</div>
         </Link>
       ))}
     </>

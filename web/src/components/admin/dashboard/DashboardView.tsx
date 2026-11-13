@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { readLang, translate } from "@/lib/i18n";
 import * as React from "react";
 import { useHydrated } from "@/lib/use-hydrated";
 import { Greeting, spell } from "./Greeting";
@@ -18,12 +20,15 @@ import type { DashboardData } from "@/types/dashboard";
 function buildSubtitle(data: DashboardData): string {
   const todayCount = data.todaySchedule.length;
   const weekCount = data.weekSessionCount ?? data.weekStrip.reduce((acc, d) => acc + d.bookings.length, 0);
+  if (readLang() !== "en") return translate(readLang(), "dashboard.summary", { today: todayCount, week: weekCount });
   const todayWord = todayCount === 1 ? "session" : "sessions";
   return `${spell(todayCount)} ${todayWord} today, ${spell(weekCount).toLowerCase()} on the books this week.`;
 }
 
 export function DashboardView() {
-  const { data, error, reload } = useLoad(getDashboard);
+  const { lang } = useI18n();
+  const load = React.useCallback(() => getDashboard(lang), [lang]);
+  const { data, error, reload } = useLoad(load);
   const hydrated = useHydrated();
   const op = hydrated ? currentSession()?.operator : undefined;
   const firstName =

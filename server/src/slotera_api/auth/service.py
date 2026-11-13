@@ -79,7 +79,9 @@ class AuthServiceProtocol(Protocol):
 
     async def revoke(self, session_token: str) -> None: ...
 
-    async def request_password_reset(self, *, email: str, client_key: str) -> None: ...
+    async def request_password_reset(
+        self, *, email: str, client_key: str, language: str = "en"
+    ) -> None: ...
 
     async def consume_password_reset(self, *, token: str, new_password: str) -> None: ...
 
@@ -94,6 +96,7 @@ class AuthServiceProtocol(Protocol):
         timezone: str,
         currency: str,
         client_key: str,
+        language: str = "en",
     ) -> None: ...
 
     async def slug_available(self, slug: str) -> bool: ...
@@ -193,7 +196,9 @@ class AuthService:
         if session_token:
             await self._repository.revoke_session(hash_opaque_token(session_token))
 
-    async def request_password_reset(self, *, email: str, client_key: str) -> None:
+    async def request_password_reset(
+        self, *, email: str, client_key: str, language: str = "en"
+    ) -> None:
         normalized_email = normalize_email(email)
         allowed = await self._repository.consume_rate_limit(
             scope="auth.password_reset",
@@ -204,9 +209,8 @@ class AuthService:
         if not allowed:
             raise RateLimitExceeded
         token = issue_opaque_token()
-        reset_url = (
-            f"{self._settings.public_web_base_url}/reset-password?{urlencode({'token': token})}"
-        )
+        query = urlencode({"token": token, "lang": language})
+        reset_url = f"{self._settings.public_web_base_url}/reset-password?{query}"
         await self._repository.request_password_reset(
             token_id=uuid4(),
             outbox_id=uuid4(),
@@ -236,6 +240,7 @@ class AuthService:
         timezone: str,
         currency: str,
         client_key: str,
+        language: str = "en",
     ) -> None:
         """Create a workspace and an activation-pending owner, then email the activation link.
 
@@ -269,7 +274,9 @@ class AuthService:
         # If the link is throttled the workspace still exists; the owner can request
         # another activation link from the forgot-password page later.
         with suppress(RateLimitExceeded):
-            await self.request_password_reset(email=normalized_email, client_key=client_key)
+            await self.request_password_reset(
+                email=normalized_email, client_key=client_key, language=language
+            )
 
     async def slug_available(self, slug: str) -> bool:
         return await self._repository.slug_available(slug)

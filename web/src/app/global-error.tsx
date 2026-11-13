@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import * as Sentry from "@sentry/nextjs";
@@ -11,6 +12,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t: uiText } = useI18n();
   React.useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
@@ -18,11 +20,10 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body style={{ fontFamily: "system-ui, sans-serif", padding: "4rem 1.5rem", textAlign: "center" }}>
-        <h1>Something went wrong.</h1>
-        <p>The problem has been reported. Please try again.</p>
+        <h1>{uiText("ui.something.went.wrong")}</h1>
+        <p>{uiText("ui.the.problem.has.been.reported.please.try.again")}</p>
         <button type="button" onClick={reset}>
-          Try again
-        </button>
+          {uiText("ui.try.again")}</button>
       </body>
     </html>
   );

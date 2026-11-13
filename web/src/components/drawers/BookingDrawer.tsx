@@ -1,4 +1,6 @@
 "use client";
+import { readLang, localeForLang } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { clockIn } from "@/lib/calendar";
@@ -76,6 +78,7 @@ export function BookingDrawer({
   onSaved,
   onCancelled,
 }: BookingDrawerProps) {
+  const { t: uiText } = useI18n();
   const isEdit = !!initial;
   const [mode, setMode] = React.useState<BookingDrawerMode>(modeProp);
   const isView = mode === "view" && isEdit;
@@ -148,7 +151,7 @@ export function BookingDrawer({
           notes: form.notes,
         });
         onSaved?.(next);
-        toast.success("Booking updated");
+        toast.success(uiText("ui.booking.updated"));
       } else if (dataSource === "api") {
         const next = await createOperatorBooking(
           {
@@ -160,7 +163,7 @@ export function BookingDrawer({
           idempotencyKey,
         );
         onSaved?.(next);
-        toast.success("Booking created");
+        toast.success(uiText("ui.booking.created"));
       } else {
         const next = await createBooking({
           clientId: form.clientId,
@@ -172,11 +175,11 @@ export function BookingDrawer({
           notes: form.notes,
         });
         onSaved?.(next);
-        toast.success("Booking created");
+        toast.success(uiText("ui.booking.created"));
       }
       onClose();
     } catch (err) {
-      toast.error("Couldn't save booking", {
+      toast.error(uiText("ui.couldn.t.save.booking"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -190,11 +193,11 @@ export function BookingDrawer({
     try {
       const next = await cancelBooking(initial.id);
       onCancelled?.(next);
-      toast.success("Booking cancelled");
+      toast.success(uiText("ui.booking.cancelled"));
       setConfirmCancel(false);
       onClose();
     } catch (err) {
-      toast.error("Couldn't cancel booking", {
+      toast.error(uiText("ui.couldn.t.cancel.booking"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -219,11 +222,11 @@ export function BookingDrawer({
       : sessions;
 
   const eyebrow = isView
-    ? "Booking details"
+    ? uiText("ui.booking.details")
     : isEdit
-      ? "Edit booking"
-      : "New booking";
-  const title = isEdit ? `Booking ${initial?.id}` : "Create a booking";
+      ? uiText("ui.edit.booking")
+      : uiText("ui.new.booking");
+  const title = isEdit ? `Booking ${initial?.id}` : uiText("ui.create.a.booking");
 
   return (
     <DrawerShell
@@ -235,12 +238,10 @@ export function BookingDrawer({
         isView ? (
           <>
             <Button variant="ghost" onClick={onClose}>
-              Close
-            </Button>
+              {uiText("ui.close")}</Button>
             {dataSource === "mock" && (
               <Button icon="edit" onClick={() => setMode("edit")}>
-                Edit booking
-              </Button>
+                {uiText("ui.edit.booking")}</Button>
             )}
           </>
         ) : (
@@ -254,48 +255,46 @@ export function BookingDrawer({
                 disabled={busy}
                 className="mr-auto"
               >
-                Cancel booking
-              </Button>
+                {uiText("ui.cancel.booking")}</Button>
             )}
             <Button variant="ghost" onClick={onClose} disabled={busy}>
-              Close
-            </Button>
+              {uiText("ui.close")}</Button>
             <Button onClick={save} loading={busy} disabled={!ready}>
-              {isEdit ? "Save changes" : "Create booking"}
+              {isEdit ? uiText("ui.save.changes") : uiText("ui.create.booking")}
             </Button>
           </>
         )
       }
     >
       <fieldset disabled={isView} className="flex flex-col gap-5 disabled:opacity-90">
-        <Field label="Client" required>
+        <Field label={uiText("ui.client")} required>
           <Select
             value={form.clientId}
             onChange={(e) => setForm({ ...form, clientId: e.target.value })}
             options={[
-              { value: "", label: "Select a client…" },
+              { value: "", label: uiText("ui.select.a.client") },
               ...clients.map((c) => ({ value: c.id, label: `${c.name} · ${c.email}` })),
             ]}
           />
         </Field>
 
-        <Field label="Session" required>
+        <Field label={uiText("ui.session")} required>
           <Select
             value={form.sessionId}
             onChange={(e) => setForm({ ...form, sessionId: e.target.value })}
             options={[
-              { value: "", label: "Select a session…" },
+              { value: "", label: uiText("ui.select.a.session") },
               ...bookableSessions.map((s) => {
                 const svc = services.find((x) => x.id === s.serviceId);
                 const start = new Date(s.startISO);
-                const when = `${start.toLocaleDateString(undefined, {
+                const when = `${start.toLocaleDateString(localeForLang(readLang()), {
                   weekday: "short",
                   day: "numeric",
                   month: "short",
                 })} · ${clockIn(s.startISO, timezone)}`;
                 return {
                   value: s.id,
-                  label: `${svc?.name ?? "Service"} · ${when}`,
+                  label: `${svc?.name ?? uiText("ui.service")} · ${when}`,
                 };
               }),
             ]}
@@ -306,37 +305,33 @@ export function BookingDrawer({
           <div className="rounded-md bg-surface-warm border border-line-soft px-4 py-3 text-small">
             {selectedSession.capacity === 1
               ? "1:1 session"
-              : `Up to ${selectedSession.capacity} · ${
-                  selectedSession.capacity - selectedSession.bookedCount
-                } spots left`}
+              : uiText("ui.capacity.remaining", { capacity: selectedSession.capacity, count: selectedSession.capacity - selectedSession.bookedCount })}
           </div>
         )}
 
         {dataSource === "api" && !isEdit && (
           <div className="rounded-md bg-surface-warm border border-line-soft px-4 py-3 text-small">
-            The price and currency come from the service. The booking starts
-            pending until its payment and approval gates pass.
-          </div>
+            {uiText("ui.the.price.and.currency.come.from.the.service.the.booking.starts.pending.until.its.payment.")}</div>
         )}
 
         {dataSource === "mock" && (
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Booking status">
+          <Field label={uiText("ui.booking.status")}>
             <Select
               value={form.status}
               onChange={(e) =>
                 setForm({ ...form, status: e.target.value as BookingStatus })
               }
               options={[
-                { value: "pending", label: "Pending" },
-                { value: "confirmed", label: "Confirmed" },
-                { value: "completed", label: "Completed" },
-                { value: "cancelled", label: "Cancelled" },
-                { value: "noshow", label: "No-show" },
+                { value: "pending", label: uiText("ui.pending") },
+                { value: "confirmed", label: uiText("ui.confirmed") },
+                { value: "completed", label: uiText("ui.completed") },
+                { value: "cancelled", label: uiText("ui.cancelled") },
+                { value: "noshow", label: uiText("ui.no.show") },
               ]}
             />
           </Field>
-          <Field label="Payment status">
+          <Field label={uiText("ui.payment.status")}>
             <Select
               value={form.paymentStatus}
               onChange={(e) =>
@@ -346,11 +341,11 @@ export function BookingDrawer({
                 })
               }
               options={[
-                { value: "pending", label: "Pending" },
-                { value: "paid", label: "Paid" },
-                { value: "refunded", label: "Refunded" },
-                { value: "free", label: "Free" },
-                { value: "overdue", label: "Overdue" },
+                { value: "pending", label: uiText("ui.pending") },
+                { value: "paid", label: uiText("ui.paid") },
+                { value: "refunded", label: uiText("ui.refunded") },
+                { value: "free", label: uiText("ui.free") },
+                { value: "overdue", label: uiText("ui.overdue") },
               ]}
             />
           </Field>
@@ -359,7 +354,7 @@ export function BookingDrawer({
         )}
 
         {dataSource === "mock" && (
-        <Field label="Amount" hint="In the smallest unit (e.g. cents).">
+        <Field label={uiText("ui.amount")} hint={uiText("ui.in.the.smallest.unit.e.g.cents")}>
           <Input
             type="number"
             value={String(form.amountCents)}
@@ -372,7 +367,7 @@ export function BookingDrawer({
         )}
 
         {dataSource === "api" && !isEdit && (
-          <Field label="Reason" required hint="Kept in the audit log with this booking.">
+          <Field label={uiText("ui.reason")} required hint={uiText("ui.kept.in.the.audit.log.with.this.booking")}>
             <Input
               value={form.auditReason}
               onChange={(e) => setForm({ ...form, auditReason: e.target.value })}
@@ -381,9 +376,9 @@ export function BookingDrawer({
         )}
 
         <Field
-          label="Booking note"
+          label={uiText("ui.booking.note")}
           optional
-          hint="Only visible to you. Context for this specific booking."
+          hint={uiText("ui.only.visible.to.you.context.for.this.specific.booking")}
         >
           <Textarea
             value={form.notes}
@@ -401,11 +396,9 @@ export function BookingDrawer({
               className="inline-flex items-center gap-2 text-[13px] text-accent hover:underline"
             >
               <Icon name="eye" size={15} />
-              View booking workspace
-            </Link>
+              {uiText("ui.view.booking.workspace")}</Link>
             <p className="text-micro text-ink-3 mt-1">
-              Preview the post-booking page your client could see (demo).
-            </p>
+              {uiText("ui.preview.the.post.booking.page.your.client.could.see.demo")}</p>
           </div>
         )}
       </fieldset>
@@ -414,10 +407,10 @@ export function BookingDrawer({
         open={confirmCancel}
         onClose={() => !busy && setConfirmCancel(false)}
         onConfirm={cancel}
-        title="Cancel this booking?"
-        description="The client will be marked cancelled and refunded. They keep visibility into the original session."
-        confirmLabel="Cancel booking"
-        cancelLabel="Keep booking"
+        title={uiText("ui.cancel.this.booking")}
+        description={uiText("ui.the.client.will.be.marked.cancelled.and.refunded.they.keep.visibility.into.the.original.se")}
+        confirmLabel={uiText("ui.cancel.booking")}
+        cancelLabel={uiText("ui.keep.booking")}
         destructive
         busy={busy}
       />

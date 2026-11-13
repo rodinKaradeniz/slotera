@@ -25,7 +25,8 @@ WHAT IT HELPS WITH
 - Multi-session packages presented as ordered bundles of existing services.
 - A separate superadmin workspace for platform staff to view safe workspace facts and
   provision new workspaces.
-- English, Turkish, and German interface support for core navigation and labels.
+- English, Turkish, and German interfaces and transactional emails, with saved account
+  preferences and the client's booking language retained for later emails.
 
 PRODUCT APPROACH
 

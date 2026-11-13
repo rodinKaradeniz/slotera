@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
@@ -13,6 +14,7 @@ export function ApiEmailsPanel({
   business: BusinessSettings;
   onChange: (next: BusinessSettings) => void;
 }) {
+  const { t: uiText } = useI18n();
   const [local, setLocal] = React.useState(
     business.notifyOperator ?? { newBooking: true, cancelled: true, rescheduled: true },
   );
@@ -21,28 +23,27 @@ export function ApiEmailsPanel({
   };
   return (
     <PanelCard
-      title="Email Notifications"
-      hint="Emails to your business address when a client acts on their own. Clients always get their booking emails."
+      title={uiText("ui.email.notifications")}
+      hint={uiText("ui.emails.to.your.business.address.when.a.client.acts.on.their.own.clients.always.get.their.b")}
       onSave={save}
     >
       <h3 className="text-[13px] font-medium text-ink-2 uppercase tracking-wide mb-2">
-        Notify me when
-      </h3>
+        {uiText("ui.notify.me.when")}</h3>
       <div className="flex flex-col gap-1">
         <CheckRow
           checked={local.newBooking}
           onChange={(v) => setLocal({ ...local, newBooking: v })}
-          label="A new booking comes in"
+          label={uiText("ui.a.new.booking.comes.in")}
         />
         <CheckRow
           checked={local.cancelled}
           onChange={(v) => setLocal({ ...local, cancelled: v })}
-          label="A client cancels a booking"
+          label={uiText("ui.a.client.cancels.a.booking")}
         />
         <CheckRow
           checked={local.rescheduled}
           onChange={(v) => setLocal({ ...local, rescheduled: v })}
-          label="A client moves a booking"
+          label={uiText("ui.a.client.moves.a.booking")}
         />
       </div>
     </PanelCard>
@@ -50,16 +51,16 @@ export function ApiEmailsPanel({
 }
 
 export function EmailsPanel({ data, onChange }: PanelProps) {
+  const { t: uiText } = useI18n();
   const [local, setLocal] = React.useState(data.emails);
   const save = async () => {
     const next = await updateSettings({ emails: local });
     onChange(next);
   };
   return (
-    <PanelCard title="Email Notifications" onSave={save}>
+    <PanelCard title={uiText("ui.email.notifications")} onSave={save}>
       <h3 className="text-[13px] font-medium text-ink-2 uppercase tracking-wide mb-2">
-        Notify me when
-      </h3>
+        {uiText("ui.notify.me.when")}</h3>
       <div className="flex flex-col gap-1 mb-5">
         <CheckRow
           checked={local.notifyAdmin.newBooking}
@@ -69,7 +70,7 @@ export function EmailsPanel({ data, onChange }: PanelProps) {
               notifyAdmin: { ...local.notifyAdmin, newBooking: v },
             })
           }
-          label="A new booking comes in"
+          label={uiText("ui.a.new.booking.comes.in")}
         />
         <CheckRow
           checked={local.notifyAdmin.cancellation}
@@ -79,7 +80,7 @@ export function EmailsPanel({ data, onChange }: PanelProps) {
               notifyAdmin: { ...local.notifyAdmin, cancellation: v },
             })
           }
-          label="A booking is cancelled"
+          label={uiText("ui.a.booking.is.cancelled")}
         />
         <CheckRow
           checked={local.notifyAdmin.reschedule}
@@ -89,13 +90,12 @@ export function EmailsPanel({ data, onChange }: PanelProps) {
               notifyAdmin: { ...local.notifyAdmin, reschedule: v },
             })
           }
-          label="A client requests a reschedule"
+          label={uiText("ui.a.client.requests.a.reschedule")}
         />
       </div>
 
       <h3 className="text-[13px] font-medium text-ink-2 uppercase tracking-wide mb-2">
-        Send clients
-      </h3>
+        {uiText("ui.send.clients")}</h3>
       <div className="flex flex-col gap-1 mb-5">
         <CheckRow
           checked={local.notifyClients.confirmation}
@@ -105,7 +105,7 @@ export function EmailsPanel({ data, onChange }: PanelProps) {
               notifyClients: { ...local.notifyClients, confirmation: v },
             })
           }
-          label="Confirmation email"
+          label={uiText("ui.confirmation.email")}
         />
         <CheckRow
           checked={local.notifyClients.reminder}
@@ -115,7 +115,7 @@ export function EmailsPanel({ data, onChange }: PanelProps) {
               notifyClients: { ...local.notifyClients, reminder: v },
             })
           }
-          label="Reminder email 24h before"
+          label={uiText("ui.reminder.email.24h.before")}
         />
         <CheckRow
           checked={local.notifyClients.followUp}
@@ -125,11 +125,11 @@ export function EmailsPanel({ data, onChange }: PanelProps) {
               notifyClients: { ...local.notifyClients, followUp: v },
             })
           }
-          label="Follow-up email after session"
+          label={uiText("ui.follow.up.email.after.session")}
         />
       </div>
 
-      <Field label="From address">
+      <Field label={uiText("ui.from.address")}>
         <Input
           value={local.fromAddress}
           onChange={(e) => setLocal({ ...local, fromAddress: e.target.value })}

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import Link from "next/link";
@@ -10,6 +11,7 @@ import { Icon } from "@/components/ui/Icon";
 import { requestPasswordReset } from "@/services/auth.service";
 
 export default function ForgotPasswordPage() {
+  const { t: uiText } = useI18n();
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [sent, setSent] = React.useState(false);
@@ -26,7 +28,7 @@ export default function ForgotPasswordPage() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "The reset request could not be sent.",
+          : uiText("ui.the.reset.request.could.not.be.sent"),
       );
     } finally {
       setLoading(false);
@@ -36,48 +38,44 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <AuthCard
-        title="Check your inbox."
+        title={uiText("ui.check.your.inbox")}
         subtitle={
           <>
-            We sent a reset link to <span className="text-ink">{email}</span>.
+            {uiText("ui.we.sent.a.reset.link.to")}<span className="text-ink">{email}</span>.
           </>
         }
         footer={
           <span>
-            Didn&apos;t get it?{" "}
+            {uiText("ui.didn.t.get.it")}{" "}
             <button
               type="button"
               onClick={() => setSent(false)}
               className="text-ink underline"
             >
-              Resend
-            </button>
+              {uiText("ui.resend")}</button>
             {" · "}
             <Link href="/login" className="text-ink underline">
-              Back to sign in
-            </Link>
+              {uiText("ui.back.to.sign.in")}</Link>
           </span>
         }
       >
         <div className="flex items-center gap-2 text-small p-3 rounded-md bg-accent-soft text-accent-ink">
-          <Icon name="check" size={14} /> Reset link sent.
-        </div>
+          <Icon name="check" size={14} /> {uiText("ui.reset.link.sent")}</div>
       </AuthCard>
     );
   }
 
   return (
     <AuthCard
-      title="Reset your password."
+      title={uiText("ui.reset.your.password")}
       subtitle="Enter your account email and we'll send you a reset link."
       footer={
         <Link href="/login" className="text-ink underline">
-          Back to sign in
-        </Link>
+          {uiText("ui.back.to.sign.in")}</Link>
       }
     >
       <form className="flex flex-col gap-4" onSubmit={submit}>
-        <Field label="Email" required>
+        <Field label={uiText("ui.email")} required>
           <Input
             type="email"
             icon="mail"
@@ -89,8 +87,7 @@ export default function ForgotPasswordPage() {
         </Field>
         {error && <div className="text-small text-danger">{error}</div>}
         <Button type="submit" loading={loading} size="lg" iconRight="arrow-right">
-          Send reset link
-        </Button>
+          {uiText("ui.send.reset.link")}</Button>
       </form>
     </AuthCard>
   );

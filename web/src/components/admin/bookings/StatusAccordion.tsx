@@ -1,4 +1,6 @@
 "use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { AccordionItem } from "@/components/ui/Accordion";
@@ -32,6 +34,7 @@ function firstName(name: string): string {
 }
 
 export function StatusAccordion({ status, rows, defaultOpen, onRowClick }: Props) {
+  const { t: uiText, lang: labelLang } = useI18n();
   const [open, setOpen] = React.useState(!!defaultOpen);
   const [shown, setShown] = React.useState(PAGE);
   const meta = BOOKING_STATUS[status];
@@ -50,7 +53,7 @@ export function StatusAccordion({ status, rows, defaultOpen, onRowClick }: Props
             className="w-2 h-2 rounded-full flex-shrink-0"
             style={{ background: dotColor }}
           />
-          <span className="text-[15px] font-semibold text-ink">{meta.label}</span>
+          <span className="text-[15px] font-semibold text-ink">{translateInterfaceLabel(labelLang, meta.label)}</span>
           <span
             className="font-serif text-ink"
             style={{ fontSize: 20, fontWeight: 400, letterSpacing: "-0.01em" }}
@@ -68,7 +71,7 @@ export function StatusAccordion({ status, rows, defaultOpen, onRowClick }: Props
     >
       <div>
         {rows.length === 0 ? (
-          <div className="px-5 py-6 text-small text-center">No bookings in this status.</div>
+          <div className="px-5 py-6 text-small text-center">{uiText("ui.no.bookings.in.this.status")}</div>
         ) : (
           rows.slice(0, shown).map((r) => (
             <BookingRow key={r.id} row={r} onClick={() => onRowClick(r)} />
@@ -81,8 +84,7 @@ export function StatusAccordion({ status, rows, defaultOpen, onRowClick }: Props
               onClick={() => setShown((n) => n + PAGE)}
               className="text-[13px] text-ink-2 hover:text-ink underline"
             >
-              Show more ({rows.length - shown} hidden)
-            </button>
+              {uiText("ui.show.more")}{rows.length - shown} {uiText("ui.hidden")}</button>
           </div>
         )}
       </div>

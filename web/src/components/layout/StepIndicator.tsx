@@ -1,3 +1,6 @@
+"use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { translateInterfaceLabel } from "@/lib/i18n";
 import * as React from "react";
 import { Icon } from "@/components/ui/Icon";
 
@@ -29,6 +32,7 @@ const DOT = 14;
 type Props = { current: StepKey; steps?: Step[] };
 
 export function StepIndicator({ current, steps = STEPS }: Props) {
+  const { lang: labelLang } = useI18n();
   const idx = steps.findIndex((s) => s.key === current);
   return (
     <div className="w-full">
@@ -91,7 +95,7 @@ export function StepIndicator({ current, steps = STEPS }: Props) {
                   fontWeight: active ? 600 : 500,
                 }}
               >
-                {s.label}
+                {translateInterfaceLabel(labelLang, s.label)}
               </span>
             </div>
           );

@@ -1,3 +1,4 @@
+import { readLang, translate, localeForLang } from "@/lib/i18n";
 import notificationsJson from "@/data/mock/notifications.json";
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
@@ -52,6 +53,13 @@ const PRESENTATION: Record<
 };
 
 function relativeAge(occurredAt: string): string {
+  const lang = readLang();
+  if (lang !== "en") {
+    const elapsed = Math.max(0, Math.floor((Date.now() - new Date(occurredAt).getTime()) / 60000));
+    return new Intl.RelativeTimeFormat(localeForLang(lang), { numeric: "auto", style: "narrow" }).format(
+      -Math.floor(elapsed < 60 ? elapsed : elapsed < 1440 ? elapsed / 60 : elapsed / 1440),
+      elapsed < 60 ? "minute" : elapsed < 1440 ? "hour" : "day");
+  }
   const elapsedMinutes = Math.max(
     0,
     Math.floor((Date.now() - new Date(occurredAt).getTime()) / 60_000),
@@ -64,7 +72,7 @@ function relativeAge(occurredAt: string): string {
 }
 
 function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(localeForLang(readLang()), {
     weekday: "short",
     hour: "2-digit",
     minute: "2-digit",
@@ -72,16 +80,17 @@ function formatDateTime(value: string): string {
 }
 
 function detailFor(notification: NotificationDto): string {
+  const lang = readLang();
   switch (notification.kind) {
     case "booking_pending": {
       const gates = [
-        notification.payload.approvalStatus === "pending" ? "approval" : null,
-        notification.payload.paymentStatus === "pending" ? "payment" : null,
+        notification.payload.approvalStatus === "pending" ? translate(lang, "notification.approval") : null,
+        notification.payload.paymentStatus === "pending" ? translate(lang, "notification.payment") : null,
       ].filter(Boolean);
-      return `${gates.join(" + ")} pending · ${formatMoney(notification.payload.amountCents, apiCurrency(notification.payload.currency))} · ${formatDateTime(notification.payload.startsAt)}`;
+      return translate(lang, "notification.pending", { gates: gates.join(" + "), amount: formatMoney(notification.payload.amountCents, apiCurrency(notification.payload.currency)), time: formatDateTime(notification.payload.startsAt) });
     }
     case "booking_confirmed":
-      return `Confirmed for ${formatDateTime(notification.payload.startsAt)}`;
+      return translate(lang, "notification.confirmed", { time: formatDateTime(notification.payload.startsAt) });
     case "payment_pending":
       return formatMoney(
         notification.payload.amountCents,
@@ -90,9 +99,9 @@ function detailFor(notification: NotificationDto): string {
     case "session_starting":
       return formatDateTime(notification.payload.startsAt);
     case "reschedule_requested":
-      return `Now ${formatDateTime(notification.payload.requestedFor)}`;
+      return translate(lang, "notification.now", { time: formatDateTime(notification.payload.requestedFor) });
     case "booking_cancelled":
-      return `Was ${formatDateTime(notification.payload.startsAt)}`;
+      return translate(lang, "notification.was", { time: formatDateTime(notification.payload.startsAt) });
   }
 }
 
@@ -102,7 +111,7 @@ function mapNotification(notification: NotificationDto): Notification {
     id: notification.id,
     icon: presentation.icon,
     tone: presentation.tone,
-    title: presentation.title,
+    title: translate(readLang(), `notification.${notification.kind}`),
     detail: detailFor(notification),
     age: relativeAge(notification.occurredAt),
     unread: notification.readAt === null,

@@ -1,4 +1,5 @@
 "use client";
+import { readLang, localeForLang } from "@/lib/i18n";
 
 import * as React from "react";
 import { buildWeekDays, sameDay } from "@/lib/calendar";
@@ -46,7 +47,7 @@ export function WeekGrid({ anchor, events, selectedId, onSelect }: Props) {
               )}
             >
               <div className="text-micro">
-                {d.toLocaleDateString(undefined, { weekday: "short" })}
+                {d.toLocaleDateString(localeForLang(readLang()), { weekday: "short" })}
               </div>
               <div className={cn("font-serif text-[20px]", today && "text-accent-ink")}>
                 {d.getDate()}

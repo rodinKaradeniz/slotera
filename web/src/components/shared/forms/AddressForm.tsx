@@ -1,4 +1,6 @@
 "use client";
+import { translateInterfaceLabel } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
@@ -42,34 +44,35 @@ export function AddressForm({
   disabled,
   showNotes = true,
 }: Props) {
+  const { t: uiText, lang: labelLang } = useI18n();
   const update = (patch: Partial<Address>) => onChange({ ...value, ...patch });
   return (
     <fieldset
       disabled={disabled}
       className="flex flex-col gap-4 disabled:opacity-90"
     >
-      <Field label="Address line 1" required>
+      <Field label={uiText("ui.address.line.1")} required>
         <Input
           value={value.street}
           onChange={(e) => update({ street: e.target.value })}
-          placeholder="Street and number"
+          placeholder={uiText("ui.street.and.number")}
         />
       </Field>
-      <Field label="Address line 2" optional>
+      <Field label={uiText("ui.address.line.2")} optional>
         <Input
           value={value.street2 ?? ""}
           onChange={(e) => update({ street2: e.target.value })}
-          placeholder="Unit, suite, apartment, etc."
+          placeholder={uiText("ui.unit.suite.apartment.etc")}
         />
       </Field>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="City" required>
+        <Field label={uiText("ui.city")} required>
           <Input
             value={value.city}
             onChange={(e) => update({ city: e.target.value })}
           />
         </Field>
-        <Field label="State / Region" optional>
+        <Field label={uiText("ui.state.region")} optional>
           <Input
             value={value.region ?? ""}
             onChange={(e) => update({ region: e.target.value })}
@@ -77,14 +80,14 @@ export function AddressForm({
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Country" required>
+        <Field label={uiText("ui.country")} required>
           <Select
             value={value.country}
             onChange={(e) => update({ country: e.target.value })}
-            options={COUNTRY_OPTIONS}
+            options={COUNTRY_OPTIONS.map((option) => ({ ...option, label: translateInterfaceLabel(labelLang, option.label) }))}
           />
         </Field>
-        <Field label="Postal code" required>
+        <Field label={uiText("ui.postal.code")} required>
           <Input
             value={value.postalCode}
             onChange={(e) => update({ postalCode: e.target.value })}
@@ -93,9 +96,9 @@ export function AddressForm({
       </div>
       {showNotes && (
         <Field
-          label="Access notes"
+          label={uiText("ui.access.notes")}
           optional
-          hint="Buzzer, floor, parking — anything attendees need to know to find you."
+          hint={uiText("ui.buzzer.floor.parking.anything.attendees.need.to.know.to.find.you")}
         >
           <Textarea
             value={value.notes ?? ""}

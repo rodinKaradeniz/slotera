@@ -247,3 +247,7 @@ html, body {
 }
 
 body.scroll-locked { overflow: hidden; }
+
+/* Client themes stay within their page and portal roots. */
+.booking-theme .font-serif, .booking-theme .text-h1, .booking-theme .text-h2,
+.booking-theme .text-h3 { font-family: var(--booking-heading-font, var(--font-serif)); }

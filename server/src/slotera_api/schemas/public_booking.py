@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import EmailStr, Field, field_validator
+from pydantic import EmailStr, Field, StrictBool, StrictStr, field_validator
 
 from slotera_api.schemas.base import ApiModel
+from slotera_api.schemas.branding import Branding
 from slotera_api.schemas.forms import FormFieldInput
 from slotera_api.schemas.operator_resources import Address, CountryCode, NonBlank, StrictApiModel
 
@@ -33,6 +34,7 @@ class PublicWorkspaceResponse(ApiModel):
     booking_terms_enabled: bool
     booking_terms_content: str
     # False on Professional: client pages drop "Powered by Slotera".
+    branding: Branding = Field(default_factory=Branding)
     show_platform_branding: bool
 
 
@@ -107,7 +109,7 @@ class PublicBookingBillingAddress(StrictApiModel):
 
 class PublicFormAnswer(StrictApiModel):
     field_id: Annotated[NonBlank, Field(max_length=160)]
-    value: str | list[str] | bool
+    value: StrictStr | list[StrictStr] | StrictBool
 
 
 class PublicFormSubmission(StrictApiModel):
@@ -116,6 +118,7 @@ class PublicFormSubmission(StrictApiModel):
 
 
 class PublicBookingCreate(StrictApiModel):
+    language: Literal["en", "tr", "de"] = "en"
     service_id: UUID
     start_at: datetime
     customer: PublicBookingCustomer
@@ -185,6 +188,7 @@ class ManagedBookingResponse(ApiModel):
     can_reschedule: bool
     meeting_url: str | None
     rescheduled: bool
+    branding: Branding = Field(default_factory=Branding)
     show_platform_branding: bool
 
 

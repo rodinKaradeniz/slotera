@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
@@ -17,6 +18,7 @@ export function BusinessPanel({
   business: BusinessSettings;
   onChange: (next: BusinessSettings) => void;
 }) {
+  const { t: uiText } = useI18n();
   const [local, setLocal] = React.useState(business);
   const save = async () => {
     const next = await updateBusinessSettings({
@@ -33,37 +35,37 @@ export function BusinessPanel({
   };
   return (
     <PanelCard
-      title="Business Profile"
-      hint="Visible on your public booking page."
+      title={uiText("ui.business.profile")}
+      hint={uiText("ui.visible.on.your.public.booking.page")}
       onSave={save}
     >
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Business name">
+        <Field label={uiText("ui.business.name")}>
           <Input
             value={local.name}
             onChange={(e) => setLocal({ ...local, name: e.target.value })}
           />
         </Field>
-        <Field label="Display name">
+        <Field label={uiText("ui.display.name")}>
           <Input
             value={local.displayName}
             onChange={(e) => setLocal({ ...local, displayName: e.target.value })}
           />
         </Field>
-        <Field label="Bio" className="sm:col-span-2">
+        <Field label={uiText("ui.bio")} className="sm:col-span-2">
           <Textarea
             value={local.bio}
             rows={3}
             onChange={(e) => setLocal({ ...local, bio: e.target.value })}
           />
         </Field>
-        <Field label="Email">
+        <Field label={uiText("ui.email")}>
           <Input
             value={local.email}
             onChange={(e) => setLocal({ ...local, email: e.target.value })}
           />
         </Field>
-        <Field label="Phone">
+        <Field label={uiText("ui.phone")}>
           <Input
             value={local.phone}
             onChange={(e) => setLocal({ ...local, phone: e.target.value })}
@@ -73,22 +75,21 @@ export function BusinessPanel({
           <CheckRow
             checked={local.bookingPageEnabled}
             onChange={(v) => setLocal({ ...local, bookingPageEnabled: v })}
-            label="Accept new bookings on my public page"
+            label={uiText("ui.accept.new.bookings.on.my.public.page")}
           />
           <p className="text-micro mt-1.5">
-            Switch off to pause bookings. Existing bookings are unaffected.
-          </p>
+            {uiText("ui.switch.off.to.pause.bookings.existing.bookings.are.unaffected")}</p>
         </div>
         {dataSource === "api" ? (
           <Field
-            label="Booking page link"
-            hint="Share this link with clients. The address is set when the workspace is created."
+            label={uiText("ui.booking.page.link")}
+            hint={uiText("ui.share.this.link.with.clients.the.address.is.set.when.the.workspace.is.created")}
             className="sm:col-span-2"
           >
             <ShareLink path={`/book/${local.bookingPageUrl}`} />
           </Field>
         ) : (
-          <Field label="Booking page URL" className="sm:col-span-2">
+          <Field label={uiText("ui.booking.page.url")} className="sm:col-span-2">
             <Input
               value={local.bookingPageUrl}
               onChange={(e) =>
@@ -103,26 +104,25 @@ export function BusinessPanel({
 }
 
 export function ShareLink({ path }: { path: string }) {
+  const { t: uiText } = useI18n();
   const { toast } = useToast();
   const url = typeof window === "undefined" ? path : `${window.location.origin}${path}`;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
-      toast.success("Link copied");
+      toast.success(uiText("ui.link.copied"));
     } catch {
-      toast.error("Couldn't copy the link");
+      toast.error(uiText("ui.couldn.t.copy.the.link"));
     }
   };
   return (
     <div className="flex gap-2">
       <Input value={url} readOnly className="flex-1" />
       <Button variant="secondary" icon="copy" onClick={copy}>
-        Copy
-      </Button>
+        {uiText("ui.copy")}</Button>
       <a href={path} target="_blank" rel="noreferrer">
         <Button variant="ghost" icon="eye">
-          Open
-        </Button>
+          {uiText("ui.open")}</Button>
       </a>
     </div>
   );

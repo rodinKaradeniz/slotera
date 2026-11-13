@@ -264,6 +264,7 @@ export async function getSettings(): Promise<SettingsData> {
     const workspace = await getPublicBookingWorkspace();
     return {
       ...JSON.parse(JSON.stringify(settingsJson)) as SettingsData,
+      branding: workspace.branding ?? { accent: "#3d5a3d", fontFamily: "serif" },
       business: {
         ...mock.business,
         displayName: workspace.displayName,

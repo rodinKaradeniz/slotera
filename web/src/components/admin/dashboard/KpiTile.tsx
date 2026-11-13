@@ -1,3 +1,5 @@
+"use client";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -5,6 +7,7 @@ import type { Kpi } from "@/types/dashboard";
 import { cn } from "@/lib/cn";
 
 export function KpiTile({ kpi }: { kpi: Kpi }) {
+  const { t: uiText } = useI18n();
   const up = kpi.trend === "up";
   const down = kpi.trend === "down";
   return (
@@ -35,7 +38,7 @@ export function KpiTile({ kpi }: { kpi: Kpi }) {
             size={12}
           />
           {kpi.delta}
-          <span className="text-ink-3"> · vs last month</span>
+          <span className="text-ink-3"> {uiText("ui.vs.last.month")}</span>
         </div>
       </div>
     </Card>
