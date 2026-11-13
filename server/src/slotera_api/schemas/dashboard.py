@@ -34,6 +34,8 @@ class DashboardSummaryResponse(ApiModel):
     revenue_previous_month_cents: int
     bookings_this_month: int
     bookings_previous_month: int
+    clients_this_month: int
+    clients_previous_month: int
     average_booking_value_this_month_cents: int
     average_booking_value_previous_month_cents: int
     trend_30d: list[DashboardTrendPoint] = Field(alias="trend30d")

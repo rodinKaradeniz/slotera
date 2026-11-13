@@ -38,6 +38,7 @@ async def test_operator_manages_session_action_items_without_public_visibility()
             await _login(client)
             sessions = await client.get("/sessions", params={"limit": 1})
             session_id = sessions.json()["items"][0]["id"]
+            baseline = await client.get(f"/sessions/{session_id}/action-items")
             created = await client.post(
                 f"/sessions/{session_id}/action-items",
                 headers=_csrf_headers(client),
@@ -78,9 +79,12 @@ async def test_operator_manages_session_action_items_without_public_visibility()
     assert changed.status_code == 200
     assert changed.json()["status"] == "done"
     assert listed.status_code == 200
-    assert [item["id"] for item in listed.json()["items"]] == [action_id]
+    assert {item["id"] for item in listed.json()["items"]} == {
+        action_id,
+        *[item["id"] for item in baseline.json()["items"]],
+    }
     assert missing_session.status_code == 404
     assert missing_session.json()["error"]["code"] == "session_not_found"
     assert csrf_rejected.status_code == 403
     assert removed.status_code == 204
-    assert remaining.json() == {"items": [], "total": 0}
+    assert remaining.json() == baseline.json()

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Reset only the documented local Compose database; never use environment-file URLs.
+set -Eeuo pipefail
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SERVER_DIR="${ROOT_DIR}/server"
+if [[ ! -x "${SERVER_DIR}/.venv/bin/alembic" ]]; then
+  printf 'Run ./scripts/dev --prepare-only once to prepare dependencies.\n' >&2
+  exit 1
+fi
+printf 'Resetting the local Slotera database; existing local data will be deleted.\n'
+docker compose --project-directory "${SERVER_DIR}" --env-file /dev/null up -d --wait db
+docker compose --project-directory "${SERVER_DIR}" --env-file /dev/null exec -T db \
+  psql -U slotera_owner -d postgres -v ON_ERROR_STOP=1 \
+  -c 'DROP DATABASE IF EXISTS slotera WITH (FORCE)' \
+  -c 'CREATE DATABASE slotera OWNER slotera_owner'
+docker compose --project-directory "${SERVER_DIR}" --env-file /dev/null exec -T db \
+  psql -U slotera_owner -d slotera -v ON_ERROR_STOP=1 \
+  -c 'GRANT CONNECT ON DATABASE slotera TO slotera_app; GRANT USAGE ON SCHEMA public TO slotera_app; REVOKE CREATE ON SCHEMA public FROM PUBLIC;'
+(
+  cd "${SERVER_DIR}"
+  SLOTERA_ENV_FILE='' \
+    SLOTERA_MIGRATION_DATABASE_URL='postgresql+asyncpg://slotera_owner:slotera_owner_local@localhost:55432/slotera' \
+    SLOTERA_ENVIRONMENT=local \
+    .venv/bin/alembic upgrade head
+)
+printf '\nLocal database rebuilt: 6 clients, 3 services, 2 forms, 2 packages, 8 bookings.\n'
+printf 'Start the application with ./scripts/dev --api\n'

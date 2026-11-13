@@ -19,7 +19,7 @@ From the repository root, the recommended path is:
 ```
 
 This synchronizes backend and frontend dependencies, starts and waits for PostgreSQL,
-applies pending migrations, imports the idempotent seed, and runs the API, transactional
+applies the schema and one-time showcase-data migrations, and runs the API, transactional
 email worker, and frontend. Use `./scripts/dev --prepare-only` to stop after preparation.
 Ctrl-C stops the application processes but leaves PostgreSQL and its persistent volume
 running.
@@ -36,7 +36,7 @@ cp env.example .env
 uv sync
 docker compose up -d db
 uv run alembic upgrade head
-uv run slotera-seed
+# Optional fixture repair: uv run slotera-seed
 uv run uvicorn slotera_api.main:app --reload --port 8000
 uv run slotera-email-worker  # local console output includes sensitive one-time links
 ```
@@ -46,17 +46,33 @@ at `/health/live`; readiness, including PostgreSQL connectivity, is at `/health/
 The local PostgreSQL service binds to `127.0.0.1:55432` to avoid colliding with other
 projects that use the default host port.
 
-Alembic creates and owns the `alembic_version` table in the same database. `alembic
-upgrade head` compares that recorded revision with the migration graph and applies only
-newer revisions, providing the same core migration-history mechanism as Flyway's schema
-history table.
+Until the first production release, Alembic has exactly two revisions:
+`0001_initial_schema.py` contains the complete schema, policies, permissions and stored
+functions; `0002_showcase_data.py` calls the shared `seed.py` implementation once.
+Edit these in place and rebuild the local database when the schema or showcase changes.
 
-`slotera-seed` is local/test-only and idempotently imports the Hartmann Strategy operator
-workspace, business profile, saved locations, services, platform superadmin, and reserved
-workspace slugs, plus the workspace's default weekday availability. It uses the
-migration-owner connection because the runtime role is deliberately unable to read or
-write global identity tables directly. Both seeded users receive the local password
-`slotera-local-only` unless `SLOTERA_DEMO_SEED_PASSWORD` overrides it.
+From the repository root, stop the running stack and run:
+
+```bash
+./scripts/reset-db
+./scripts/dev --api
+```
+
+Reset deletes only the documented local Compose `slotera` database and recreates it.
+It never reads environment files or uses a remote database URL. Ordinary startup only
+applies unapplied revisions; it does not reinsert deleted samples or move session dates.
+
+The showcase has six clients, three services, eight sessions/bookings, two forms, two
+package offers and small amounts of private context. Dates are relative to reset time.
+Cancellations, reschedules, pending payments, completion and no-show are booking examples,
+not additional client states. Required intake attaches to Strategy Session; optional
+preparation attaches to Discovery Call and Strategy Session; the workshop has no form.
+
+Sign in as `hello@slotera.io` (operator) or `admin@slotera.io` (staff), with
+`slotera-local-only`. The explicit `slotera-seed` repair/test command remains idempotent;
+it can recreate deleted fixtures and only initializes missing password hashes.
+The showcase migration and seed command reject production. Freeze a production baseline
+without showcase accounts before going live, then resume incremental migrations.
 
 ## Implemented HTTP resources
 

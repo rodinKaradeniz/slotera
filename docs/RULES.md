@@ -229,3 +229,13 @@ adds 4. Planning adds 5.
 
 5. **Be concrete about what's left.** If the task is 90% done, name the 10% — don't report
    completion and let it surface later.
+
+6. **End each applicable pass with a short developer walkthrough.** Give the startup
+   command, say whether a database reset is needed, and list the app actions with their
+   expected results. Name the pages, navigation items and buttons to click. Keep each
+   verification brief and recommend the next priority.
+
+7. **Until production, keep exactly two migrations.** Update the consolidated schema
+   baseline and the showcase-data revision/shared seed in place, then reset the local
+   database with `./scripts/reset-db`. Do not append revisions before the first production
+   release; freeze the baseline and resume incremental migrations when production starts.

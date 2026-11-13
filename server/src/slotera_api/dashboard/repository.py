@@ -55,6 +55,8 @@ class DashboardSummary:
     revenue_previous_month_cents: int
     bookings_this_month: int
     bookings_previous_month: int
+    clients_this_month: int
+    clients_previous_month: int
     average_booking_value_this_month_cents: int
     average_booking_value_previous_month_cents: int
     trend_30d: list[DashboardTrend]
@@ -97,11 +99,13 @@ class DashboardRepository:
                 revenue_this_month,
                 bookings_this_month,
                 average_this_month,
+                clients_this_month,
             ) = await self._booking_metrics(session, workspace_id, month_start, now)
             (
                 revenue_previous_month,
                 bookings_previous_month,
                 average_previous_month,
+                clients_previous_month,
             ) = await self._booking_metrics(
                 session, workspace_id, previous_month_start, month_start
             )
@@ -144,6 +148,8 @@ class DashboardRepository:
                 revenue_previous_month_cents=revenue_previous_month,
                 bookings_this_month=bookings_this_month,
                 bookings_previous_month=bookings_previous_month,
+                clients_this_month=clients_this_month,
+                clients_previous_month=clients_previous_month,
                 average_booking_value_this_month_cents=average_this_month,
                 average_booking_value_previous_month_cents=average_previous_month,
                 trend_30d=trend_30d,
@@ -157,7 +163,7 @@ class DashboardRepository:
         workspace_id: UUID,
         starts_at: datetime,
         ends_at: datetime,
-    ) -> tuple[int, int, int]:
+    ) -> tuple[int, int, int, int]:
         active = and_(
             Booking.workspace_id == workspace_id,
             Booking.status != BookingStatus.CANCELLED,
@@ -181,10 +187,16 @@ class DashboardRepository:
                     ),
                     func.count(Booking.id),
                     func.coalesce(func.avg(Booking.amount_cents), 0),
+                    func.count(func.distinct(Booking.client_id)),
                 ).where(active)
             )
         ).one()
-        return int(result[0] or 0), int(result[1] or 0), int(round(float(result[2] or 0)))
+        return (
+            int(result[0] or 0),
+            int(result[1] or 0),
+            int(round(float(result[2] or 0))),
+            int(result[3] or 0),
+        )
 
     async def _trend(
         self,

@@ -543,9 +543,11 @@ booking step sequence.
 
 Intentionally more editorial than generic SaaS. **Keep:**
 
-- Compact KPI cards (`KpiTile`).
+- Four compact KPI cards (`KpiTile`): monthly revenue, bookings, unique clients booked,
+  and average booking value. The client count uses distinct clients on non-cancelled
+  bookings created during the workspace-local calendar month.
 - Revenue trend with Recharts (`TrendChart`) — its `ResponsiveContainer` is gated on a measured positive size to suppress the `width(-1)/height(-1)` warnings that fire during route transitions.
-- Prominent `NextSessionCard` (also embeds today's schedule timeline — don't add a separate "Today's schedule" card).
+- Prominent `NextSessionCard` (also embeds today's schedule timeline — don't add a separate "Today's schedule" card). With no upcoming session, retain a full card with an icon, preparation message and calendar link.
 - `PendingActions` ("Needs your attention"). Mock mode prepends derived attendance/action-item entries. API mode reports only persisted summary facts: open session action-item and unread-notification counts.
 - API mode also prepends a billing reminder when the trial ends within 7 days or the
   workspace is unpaid (from `GET /settings/billing`).

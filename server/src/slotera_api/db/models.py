@@ -306,6 +306,7 @@ class EmailOutbox(Base):
     __tablename__ = "email_outbox"
     __table_args__ = (
         CheckConstraint("attempt_count >= 0", name="attempt_count_nonnegative"),
+        Index("ix_email_outbox_pending", "available_at", "created_at", postgresql_where=text("sent_at IS NULL")),
         UniqueConstraint(
             "kind", "related_booking_id", "event_key", name="uq_email_outbox_booking_event"
         ),
@@ -499,7 +500,8 @@ class Service(Base):
 class Client(Base):
     __tablename__ = "clients"
     __table_args__ = (
-        UniqueConstraint("workspace_id", "email"),
+        UniqueConstraint("workspace_id", "email", name="uq_clients_workspace_id_email"),
+        Index("ix_clients_workspace_id_name", "workspace_id", "name"),
         UniqueConstraint("workspace_id", "id", name="uq_clients_workspace_id_id"),
         CheckConstraint("email = lower(btrim(email))", name="email_normalized"),
     )
@@ -671,6 +673,7 @@ class Booking(Base):
         CheckConstraint("amount_cents >= 0", name="amount_nonnegative"),
         CheckConstraint("char_length(currency) = 3", name="currency_iso_length"),
         UniqueConstraint("workspace_id", "id", name="uq_bookings_workspace_id_id"),
+        UniqueConstraint("workspace_id", "reference", name="uq_bookings_workspace_reference"),
         ForeignKeyConstraint(
             ["workspace_id", "client_id"],
             ["clients.workspace_id", "clients.id"],
@@ -792,6 +795,7 @@ class BookingAccessToken(Base):
 
     __tablename__ = "booking_access_tokens"
     __table_args__ = (
+        Index("ix_booking_access_tokens_booking", "workspace_id", "booking_id"),
         ForeignKeyConstraint(
             ["workspace_id", "booking_id"],
             ["bookings.workspace_id", "bookings.id"],
@@ -812,6 +816,8 @@ class CalendarFeedToken(Base):
     """An operator's private calendar subscribe link. Only the token's SHA-256 is stored."""
 
     __tablename__ = "calendar_feed_tokens"
+
+    __table_args__ = (Index("ix_calendar_feed_tokens_owner", "workspace_id", "user_id"),)
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"))
@@ -1074,7 +1080,7 @@ class BookingFormSnapshot(Base):
     __table_args__ = (
         ForeignKeyConstraint(["workspace_id", "booking_id"],
             ["bookings.workspace_id", "bookings.id"], ondelete="CASCADE"),
-        UniqueConstraint("workspace_id", "booking_id", "form_template_id"),
+        UniqueConstraint("workspace_id", "booking_id", "form_template_id", name="booking_form_snapshots_workspace_id_booking_id_form_templat_key"),
     )
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
@@ -1089,7 +1095,7 @@ class BookingFormSnapshot(Base):
 
 class ServicePackage(Base):
     __tablename__ = "service_packages"
-    __table_args__ = (UniqueConstraint("workspace_id", "id"),
+    __table_args__ = (UniqueConstraint("workspace_id", "id", name="service_packages_workspace_id_id_key"),
         CheckConstraint("price_cents >= 0", name="package_price"), CheckConstraint("status IN ('active', 'inactive')", name="package_status"))
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
@@ -1108,7 +1114,7 @@ class ServicePackageItem(Base):
     __table_args__ = (
         ForeignKeyConstraint(["workspace_id", "package_id"], ["service_packages.workspace_id", "service_packages.id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["workspace_id", "service_id"], ["services.workspace_id", "services.id"], ondelete="RESTRICT"),
-        UniqueConstraint("workspace_id", "package_id", "position"), CheckConstraint("position >= 0", name="package_position"),
+        UniqueConstraint("workspace_id", "package_id", "position", name="service_package_items_workspace_id_package_id_position_key"), CheckConstraint("position >= 0", name="package_position"),
     )
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
@@ -1117,3 +1123,17 @@ class ServicePackageItem(Base):
     title: Mapped[str | None] = mapped_column(String(160))
     description: Mapped[str | None] = mapped_column(String(1000))
     position: Mapped[int] = mapped_column(Integer)
+
+
+class PlatformInquiry(Base):
+    """Metadata for the staff inbox; runtime access remains through fixed capabilities."""
+
+    __tablename__ = "platform_inquiries"
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(160))
+    email: Mapped[str] = mapped_column(String(320))
+    company: Mapped[str | None] = mapped_column(String(160))
+    reason: Mapped[str] = mapped_column(String(32))
+    message: Mapped[str] = mapped_column(String(4000))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

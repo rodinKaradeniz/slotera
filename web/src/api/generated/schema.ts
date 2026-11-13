@@ -2139,6 +2139,10 @@ export interface components {
             bookingsPreviousMonth: number;
             /** Bookingsthismonth */
             bookingsThisMonth: number;
+            /** Clientspreviousmonth */
+            clientsPreviousMonth: number;
+            /** Clientsthismonth */
+            clientsThisMonth: number;
             /** Currency */
             currency: string;
             nextSession: components["schemas"]["DashboardSessionSummary"] | null;

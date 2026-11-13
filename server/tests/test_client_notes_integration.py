@@ -35,6 +35,7 @@ async def test_operator_can_manage_sanitized_client_notes() -> None:
         app = create_app(database=application)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
+            baseline = await client.get(f"/clients/{CLIENT_ID}/notes")
             created = await client.post(
                 f"/clients/{CLIENT_ID}/notes",
                 headers=_csrf_headers(client),
@@ -63,6 +64,9 @@ async def test_operator_can_manage_sanitized_client_notes() -> None:
     assert changed.status_code == 200
     assert changed.json()["body"] == "<p>Changed</p>"
     assert listed.status_code == 200
-    assert [item["id"] for item in listed.json()["items"]] == [note_id]
+    assert {item["id"] for item in listed.json()["items"]} == {
+        note_id,
+        *[item["id"] for item in baseline.json()["items"]],
+    }
     assert removed.status_code == 204
-    assert remaining.json() == {"items": [], "total": 0}
+    assert remaining.json() == baseline.json()

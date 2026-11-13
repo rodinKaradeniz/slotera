@@ -17,6 +17,9 @@ Prerequisites: Docker, [uv](https://docs.astral.sh/uv/), Node.js, and npm.
 ./scripts/dev --api    # frontend uses the local API bundle
 ```
 
+For a fresh local showcase, stop the stack and run `./scripts/reset-db` before restarting.
+It deletes local Slotera data; normal startup preserves it.
+
 The frontend runs on `http://localhost:3344`; the API runs on `http://localhost:8000`.
 
 For product scope, architecture, local commands, and working conventions, start with

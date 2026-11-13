@@ -9,7 +9,7 @@ from sqlalchemy import text
 from slotera_api.config import get_migration_settings, get_settings
 from slotera_api.database import Database
 from slotera_api.main import create_app
-from slotera_api.seed import DEMO_SEED, import_demo_seed
+from slotera_api.seed import DEMO_SEED, _seed_id, import_demo_seed
 
 DEMO_PASSWORD = "slotera-local-only"
 
@@ -111,7 +111,11 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
                 f"/public/workspaces/lena/services/{service['id']}/forms"
             )
             assert public_forms.status_code == 200
-            assert [item["id"] for item in public_forms.json()["items"]] == [str(form_id)]
+            assert {item["id"] for item in public_forms.json()["items"]} == {
+                str(form_id),
+                str(_seed_id("form:hartmann-strategy:intake")),
+                str(_seed_id("form:hartmann-strategy:preparation")),
+            }
 
             starts_on = date.today() + timedelta(days=7)
             ends_on = starts_on + timedelta(days=14)
@@ -142,7 +146,15 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
                     {
                         "formTemplateId": str(form_id),
                         "answers": [{"fieldId": "goal", "value": "Pricing strategy"}],
-                    }
+                    },
+                    {
+                        "formTemplateId": str(_seed_id("form:hartmann-strategy:intake")),
+                        "answers": [
+                            {"fieldId": "goal", "value": "Pricing strategy"},
+                            {"fieldId": "focus", "value": "Strategy"},
+                            {"fieldId": "agreement", "value": True},
+                        ],
+                    },
                 ],
                 "termsAccepted": True,
             }
@@ -225,7 +237,7 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
         assert stored["manual_payment_instructions_snapshot"]
         assert stored["confirmation_policy_snapshot"] == "operator_approval"
         assert stored["approval_status"] == "pending"
-        assert stored["response_count"] == 1
+        assert stored["response_count"] == 2
 
         async with owner.transaction() as session:
             initial_events = (

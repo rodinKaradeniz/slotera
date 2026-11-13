@@ -137,6 +137,13 @@ function mapSummary(summary: DashboardSummaryDto): DashboardData {
         spark: trend30d.map((point) => point.bookings),
       },
       {
+        id: "clients",
+        label: translate(readLang(), "dashboard.clients"),
+        value: String(summary.clientsThisMonth),
+        ...percentageChange(summary.clientsThisMonth, summary.clientsPreviousMonth),
+        spark: [],
+      },
+      {
         id: "average-value",
         label: translate(readLang(), "dashboard.average"),
         value: formatMoney(summary.averageBookingValueThisMonthCents, currency),
@@ -218,11 +225,25 @@ export async function getDashboard(_lang: Lang = readLang()): Promise<DashboardD
     computeAttendancePending(bookings, sessions),
     computeActionItemsPending(actionItems, sessions),
   ].filter((a): a is PendingAction => a !== null);
+  const month = base.todayISO.slice(0, 7);
+  const anchor = new Date(base.todayISO);
+  const previous = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() - 1, 1))
+    .toISOString().slice(0, 7);
+  const countClients = (period: string) => new Set(bookings
+    .filter((booking) => booking.status !== "cancelled" && booking.createdAtISO.startsWith(period))
+    .map((booking) => booking.clientId)).size;
+  const clientsKpi: Kpi = {
+    id: "clients", label: translate(readLang(), "dashboard.clients"),
+    value: String(countClients(month)),
+    ...percentageChange(countClients(month), countClients(previous)), spark: [],
+  };
   return {
     ...base,
-    kpis: base.kpis.map((item) => ({ ...item, label: translate(readLang(),
-      item.id === "revenue" ? "dashboard.revenue" : item.id === "bookings" ? "dashboard.bookings"
-        : item.id === "conversion" ? "dashboard.conversion" : "dashboard.average") })),
+    kpis: base.kpis.map((item) => item.id === "clients" ? clientsKpi : ({
+      ...item,
+      label: translate(readLang(), item.id === "revenue" ? "dashboard.revenue"
+        : item.id === "bookings" ? "dashboard.bookings" : "dashboard.average"),
+    })),
     pendingActions: [...derived, ...base.pendingActions.map((item) => ({ ...item,
       label: translate(readLang(), item.id === "pa-1" ? "dashboard.bankPending" : item.id === "pa-2" ? "dashboard.rescheduleRequested" : "dashboard.invoiceOverdue") }))],
   };

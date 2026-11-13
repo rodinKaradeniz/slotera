@@ -1500,4 +1500,8 @@ export const de: Partial<Messages> = {
   "auth.resetLinkInvalid": "Dieser Link fehlt oder ist ungültig. Fordern Sie einen neuen an.",
   "session.scheduled": "Geplant",
   "session.live": "Läuft",
+  "dashboard.clients": "Kunden mit Buchungen in diesem Monat",
+  "dashboard.emptyTitle": "Bereit für Ihre nächste Sitzung",
+  "dashboard.emptyBody": "Noch keine anstehenden Sitzungen. Ihre nächste Buchung erscheint hier mit allem, was Sie zur Vorbereitung brauchen.",
+  "dashboard.openCalendar": "Kalender öffnen",
 };

@@ -1667,3 +1667,37 @@ country names are translated in billing and printable summaries.
 Repeated browser journeys also reached the existing rate limit and exposed a misleading
 expired-link screen. Management reads now distinguish an actual 404 from temporary
 failures and offer retry for the latter; the request limits themselves are unchanged.
+
+
+### Entry 062 — Reset the local baseline and keep showcase data small
+
+*2026-11-13.* The developer confirmed that all data is local and explicitly requested
+consolidation: retain two mutable revisions until the first production release. Revision
+0001 snapshots the final old-chain PostgreSQL schema, including forced RLS, security-definer
+capabilities, constraints, triggers and ACLs. It is not generated from ORM tables alone,
+which would lose those database boundaries. The dump comparison differed only by equivalent
+array-cast syntax after PostgreSQL round-tripping. Explicitly revoke inherited default table
+privileges before restoring ACLs, so rebuilding an already-used database cannot widen access.
+ORM metadata now declares the existing inbox table, indexes and constraint names; Alembic's
+model check reports no upgrade operations. No database feature was removed.
+
+Revision 0002 seeds six clients, three services, eight sessions/bookings, two distinct forms,
+two offers and a few notes/tasks/notifications. Dates are relative to the initial reset.
+The existing seed command and migration share one connection-bound implementation, avoiding
+two copies of data. Normal startup no longer invokes the repair seed command, so deleted
+forms and edited examples stay changed until an explicit reset. The fixed local reset command
+only targets the Compose database and ignores real environment files. Production must freeze
+its own baseline without showcase accounts, then resume incremental revisions.
+
+The developer selected unique clients booked this month as the fourth dashboard metric.
+It counts distinct clients in the same non-cancelled, month-created population as the booking
+metric. The demo also replaces its unsupported conversion metric with client counts.
+The empty next-session card keeps visual weight and a calendar action; explicit zero-minimum
+responsive grid tracks prevent mobile overflow.
+
+The broken New form action came from translating the CSS state token `open` into display
+copy during Entry 061. Drawers and toasts now keep literal state tokens; regressions cover
+EN/TR/DE and the form editor was opened and saved in the browser. Separate duplicate database
+rows were removed by the authorized reset rather than hidden by UI deduplication. Integration
+tests now check their own notes, tasks, form responses and reminder idempotency against the
+richer seed; their records stay in a separate disposable test database.

@@ -140,11 +140,8 @@ log "Applying pending Alembic migrations..."
   .venv/bin/alembic current
 )
 
-log "Importing the idempotent local demo seed..."
-(
-  cd "${SERVER_DIR}"
-  .venv/bin/slotera-seed
-)
+# Revision 0002 inserts showcase data once. Ordinary restarts must preserve deletions,
+# edits and dates; ./scripts/reset-db is the explicit way to restore the showcase.
 
 if [[ "${PREPARE_ONLY}" == true ]]; then
   log "Local dependencies, database, migrations, and seed are ready."

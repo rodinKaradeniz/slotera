@@ -23,6 +23,7 @@ names/statuses output.
 
 | Required evidence | Owner | Status |
 |---|---|---|
+| Freeze production schema/system-data baseline without showcase accounts | Developer | Outstanding; local-only showcase migration rejects production |
 | Release operator and rollback owner named | Developer | Awaiting names |
 | Empty deployment entries above configured | Developer | Outstanding |
 | Clean installation on deployment infrastructure | Release owner | Not verified |
@@ -71,3 +72,23 @@ Local evidence recorded on 2026-11-13:
 All browser customers, bookings and inquiries were synthetic and used disposable local
 databases. The email worker was not started for those journeys; queued messages were not
 delivered to real inboxes. These checks provide no external-provider or deployment evidence.
+
+
+## Local baseline reset pass — 2026-11-13
+
+The old development chain is replaced by schema revision `0001` and showcase revision
+`0002`; prior revision ids above are historical evidence. A clean install and a full
+base → head rebuild succeeded. The schema comparison against the old final state matched
+after PostgreSQL's equivalent array-cast normalization, including ACLs and stored functions.
+`alembic check` reports no upgrade operations. Repeat explicit seed inserts zero rows.
+The full PostgreSQL integration suite passes 60 tests; isolated backend tests pass 92;
+frontend tests pass 92. The development database is reset separately from the integration
+database, leaving six clients, three services, two forms, two packages and eight bookings.
+No live checks or deployment were performed.
+
+Browser checks for this pass covered creating exactly one form, reopening its desktop/mobile
+editor, all six shared drawer consumers, and the four real KPI cards. The empty schedule was
+rendered with a temporary browser response fixture on desktop/mobile; its calendar action
+navigated correctly. A deleted seeded form stayed deleted after `dev --prepare-only --no-env`;
+the final explicit reset restored the two clean templates. No synthetic integration rows were
+left in the development database.

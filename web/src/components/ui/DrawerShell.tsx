@@ -40,7 +40,7 @@ export function DrawerShell({
   const [rendered, setRendered] = React.useState(open);
   const [entered, setEntered] = React.useState(false);
   if (open && !rendered) setRendered(true);
-  const state = open && entered ? uiText("ui.open") : "closed";
+  const state = open && entered ? "open" : "closed";
 
   React.useEffect(() => {
     if (open) {

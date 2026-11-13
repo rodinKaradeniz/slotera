@@ -64,3 +64,57 @@ async def test_dashboard_summary_is_private_and_aggregates_open_action_items() -
     assert len(summary.json()["trend30d"]) == 30
     assert summary.json()["openActionItemsCount"] == before.json()["openActionItemsCount"] + 1
     assert "revenueThisMonthCents" in summary.json()
+
+
+@pytest.mark.integration
+async def test_monthly_client_metric_counts_distinct_non_cancelled_clients() -> None:
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from sqlalchemy import delete, select
+
+    from slotera_api.dashboard.repository import DashboardRepository
+    from slotera_api.db.models import Booking, BookingStatus
+    from slotera_api.seed import DEMO_SEED
+
+    owner = Database(get_migration_settings().migration_database_url)
+    ids = [uuid4(), uuid4(), uuid4()]
+    try:
+        await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
+        async with owner.transaction() as session:
+            template = (
+                await session.scalars(
+                    select(Booking).where(
+                        Booking.workspace_id == DEMO_SEED.workspace.id,
+                        Booking.status == BookingStatus.COMPLETED,
+                    )
+                )
+            ).first()
+            assert template is not None
+            values = {
+                column.key: getattr(template, column.key)
+                for column in Booking.__table__.columns
+                if column.key not in {"id", "created_at", "reference", "status"}
+            }
+            for index, booking_id in enumerate(ids):
+                session.add(
+                    Booking(
+                        **values,
+                        id=booking_id,
+                        reference=f"METRIC-{index}",
+                        created_at=datetime(2040, 1, 10, tzinfo=UTC),
+                        status=BookingStatus.CANCELLED if index == 2 else BookingStatus.COMPLETED,
+                    )
+                )
+            await session.flush()
+            metrics = await DashboardRepository(owner)._booking_metrics(
+                session,
+                DEMO_SEED.workspace.id,
+                datetime(2040, 1, 1, tzinfo=UTC),
+                datetime(2040, 2, 1, tzinfo=UTC),
+            )
+            assert metrics[1] == 2
+            assert metrics[3] == 1
+            await session.execute(delete(Booking).where(Booking.id.in_(ids)))
+    finally:
+        await owner.dispose()

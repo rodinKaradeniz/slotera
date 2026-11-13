@@ -1548,6 +1548,10 @@ export const en = {
   "auth.resetLinkInvalid": "This reset link is missing or invalid. Request a new one.",
   "session.scheduled": "Scheduled",
   "session.live": "Live",
+  "dashboard.clients": "Clients booked this month",
+  "dashboard.emptyTitle": "Ready for your next session",
+  "dashboard.emptyBody": "No upcoming sessions yet. Your next booking will appear here, with everything you need to prepare.",
+  "dashboard.openCalendar": "Open calendar",
 } as const;
 
 export type MessageKey = keyof typeof en;

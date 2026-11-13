@@ -2,6 +2,8 @@
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
+import Link from "next/link";
+import { Icon } from "@/components/ui/Icon";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
@@ -195,7 +197,19 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
 
   if (!item) {
     return (
-      <Card padded className="text-small text-ink-3">{uiText("ui.no.upcoming.sessions.today")}</Card>
+      <Card padded={false} className="min-w-0 h-full min-h-[320px] flex flex-col bg-gradient-to-br from-accent-soft via-surface to-paper-2">
+        <CardHead title={uiText("ui.next.session")} />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-10 text-center">
+          <span className="flex items-center justify-center rounded-2xl bg-accent-soft p-4 text-accent border border-accent/15">
+            <Icon name="calendar-days" size={32} />
+          </span>
+          <div className="min-w-0 w-full max-w-sm space-y-2">
+            <h2 className="text-h2">{uiText("dashboard.emptyTitle")}</h2>
+            <p className="text-small text-ink-3">{uiText("dashboard.emptyBody")}</p>
+          </div>
+          <Link href="/admin/calendar"><Button variant="secondary" icon="calendar">{uiText("dashboard.openCalendar")}</Button></Link>
+        </div>
+      </Card>
     );
   }
 

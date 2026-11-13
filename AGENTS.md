@@ -74,11 +74,20 @@ Phase 3 adds Stripe, scheduled email, and calendar integrations).
 The script requires Docker, uv, and npm. It creates missing local env files from their
 examples without overwriting existing ones, synchronizes both dependency sets, regenerates
 TypeScript transport types from FastAPI OpenAPI, starts and waits for PostgreSQL, runs
-`alembic upgrade head`, imports the idempotent demo seed, then
+`alembic upgrade head` (schema plus a one-time showcase-data revision), then
 starts FastAPI on `8000`, the transactional email worker, and Next.js on `3344`. Ctrl-C stops those application processes
 but deliberately leaves PostgreSQL running with its named volume intact. Alembic tracks
 the applied revision in PostgreSQL's `alembic_version` table, so repeated starts apply
-only pending migrations.
+only pending migrations. Startup never reseeds existing rows.
+
+**Local pre-production database policy:** keep exactly two revisions: `0001_initial_schema.py`
+and `0002_showcase_data.py` (using the shared `seed.py` data implementation). Edit these in
+place until production; run `./scripts/reset-db` to delete and rebuild only the local
+Compose `slotera` database. This command never reads environment files or uses their URLs.
+Stop the running stack first, then reset and restart with `./scripts/dev --api`.
+The first production release must freeze a schema/system-data baseline without showcase
+accounts and resume incremental revisions. Historical migration ids below describe
+retired development history.
 
 **Env files and agents** — `server/.env` and `web/.env.local` may hold real keys (Resend,
 Sentry). An agent never reads, edits or prints them, and `.claude/settings.json` denies it.
@@ -131,7 +140,7 @@ cp env.example .env
 uv sync
 docker compose up -d db           # PostgreSQL on 127.0.0.1:55432
 uv run alembic upgrade head
-uv run slotera-seed                # local password: slotera-local-only
+uv run slotera-seed                # optional fixture repair, not normal startup
 uv run uvicorn slotera_api.main:app --reload --port 8000
 
 uv run pytest                     # isolated tests; integration tests excluded by default
@@ -270,7 +279,7 @@ server/
   pyproject.toml       uv project + pytest/Ruff/mypy configuration
   uv.lock              reproducible Python dependency lock
   compose.yaml         local PostgreSQL 17 (`slotera` Compose project)
-  migrations/          async Alembic environment + versioned schema revisions
+  migrations/          async Alembic environment + two mutable pre-production revisions
   docker/postgres/     restricted application-role bootstrap
   src/slotera_api/     FastAPI app, auth, operator resources, models, seed, DB lifecycle
   tests/               isolated contracts + opt-in PostgreSQL/RLS integration tests
@@ -384,7 +393,7 @@ restricted to configured exact origins; wildcard origins are rejected by configu
 
 SQLAlchemy uses an async engine/session factory. Alembic connects separately as
 `slotera_owner`; the API uses `slotera_app`, which has data-operation defaults but cannot
-create tables. The first domain revision adds users, opaque auth sessions, password-reset
+create tables. The consolidated schema includes users, opaque auth sessions, password-reset
 tokens, workspaces, memberships, slug history/reservations, append-only audit events,
 business profiles, saved locations, and services.
 The notification revision adds membership-backed recipients, structured event payloads,
@@ -392,7 +401,7 @@ and a separate principal transaction context for workspace-and-user RLS.
 The scheduling revision adds normalized availability, recurrence series, materialised
 occurrences, composite tenant foreign keys, and a partial GiST exclusion constraint that
 allows adjacent/cancelled time ranges but rejects active overlap per calendar owner.
-Migrations `20260802_0018` and `0019` add shared request throttles, the transactional email
+The schema also includes shared request throttles, the transactional email
 outbox/auth maintenance capabilities, workspace payment settings, immutable booking
 financial snapshots, form responses, public idempotency records, and narrow public slug
 resolution without granting global table access.
@@ -416,8 +425,9 @@ tenant-RLS bypass, generic global-table access, direct identity-table access, or
 to update the workspace root table.
 The local Compose database binds to `127.0.0.1:55432` to avoid the commonly used host
 `5432` port. `uv run slotera-seed` imports the Hartmann workspace, operator, business
-profile, two locations, five GBP-derived services, four notifications, platform
-superadmin, default weekday availability, audit event, and reserved slugs idempotently
+profile, two locations, three services, six clients, eight sessions/bookings, two forms,
+two package offers, private context, three notifications, platform superadmin, default
+weekday availability, audit event, and reserved slugs idempotently
 through the owner connection.
 
 ### Auth and session

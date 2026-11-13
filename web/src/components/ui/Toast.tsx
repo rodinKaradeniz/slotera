@@ -183,7 +183,7 @@ function ToastViewport({
         return (
           <div
             key={item.id}
-            data-state={item.closing ? "closed" : uiText("ui.open")}
+            data-state={item.closing ? "closed" : "open"}
             className={cn(
               "toast-item pointer-events-auto bg-surface border border-line rounded-lg shadow-3 px-3.5 py-3 flex items-center gap-3",
               meta.ring,

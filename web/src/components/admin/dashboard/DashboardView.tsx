@@ -47,20 +47,20 @@ export function DashboardView() {
         <LoadingRows count={3} />
       ) : (
         <div className="flex flex-col gap-6">
-          <div className="grid lg:grid-cols-3 gap-6 items-stretch">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+            <div className="min-w-0 lg:col-span-2">
               <NextSessionCard
                 item={next}
                 schedule={data.todaySchedule}
                 onChanged={reload}
               />
             </div>
-            <div className="lg:col-span-1">
+            <div className="min-w-0 lg:col-span-1">
               <PendingActions items={data.pendingActions} />
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] items-stretch">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] items-stretch">
             <div className="grid grid-cols-2 gap-4">
               {data.kpis.map((k) => (
                 <KpiTile key={k.id} kpi={k} />

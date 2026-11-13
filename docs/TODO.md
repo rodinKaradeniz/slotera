@@ -592,3 +592,17 @@ stay demonstrations until the backend can support them properly.
   requests use the staff inbox. Automated subscriptions remain deferred.
 - Pilot-release operational evidence remains outstanding in `PILOT_READINESS.md`; empty
   deployment database passwords and `STORAGE_BOX` were reported by the developer.
+
+
+## Local reset and dashboard follow-up — 2026-11-13
+
+- **~~Repair New form and translated overlay states.~~ DONE:** literal CSS state tokens
+  restore drawers and toasts, with EN/TR/DE regression tests.
+- **~~Replace the stale local showcase.~~ DONE:** two mutable pre-production revisions,
+  explicit local reset, six clients, three services, two forms, two packages and eight bookings.
+- **~~Complete the dashboard KPI grid and empty schedule card.~~ DONE:** distinct clients
+  booked this month fills the fourth slot; the empty card includes a calendar action.
+- Freeze a production baseline without showcase data before live deployment, then resume
+  immutable incremental migrations.
+- Follow up on the remaining English sign-in description and the next-session card's date
+  context when the next session is on a later day; both were observed during this pass.

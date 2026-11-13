@@ -2305,6 +2305,14 @@
             "title": "Bookingsthismonth",
             "type": "integer"
           },
+          "clientsPreviousMonth": {
+            "title": "Clientspreviousmonth",
+            "type": "integer"
+          },
+          "clientsThisMonth": {
+            "title": "Clientsthismonth",
+            "type": "integer"
+          },
           "currency": {
             "title": "Currency",
             "type": "string"
@@ -2374,6 +2382,8 @@
           "revenuePreviousMonthCents",
           "bookingsThisMonth",
           "bookingsPreviousMonth",
+          "clientsThisMonth",
+          "clientsPreviousMonth",
           "averageBookingValueThisMonthCents",
           "averageBookingValuePreviousMonthCents",
           "trend30d",

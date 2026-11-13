@@ -1500,4 +1500,8 @@ export const tr: Partial<Messages> = {
   "auth.resetLinkInvalid": "Şifre sıfırlama bağlantısı eksik veya geçersiz. Yeni bir bağlantı isteyin.",
   "session.scheduled": "Planlandı",
   "session.live": "Devam ediyor",
+  "dashboard.clients": "Bu ay rezervasyon yapan danışanlar",
+  "dashboard.emptyTitle": "Bir sonraki seansınıza hazırsınız",
+  "dashboard.emptyBody": "Henüz yaklaşan seans yok. Bir sonraki rezervasyonunuz, hazırlanmanız için gereken bilgilerle burada görünecek.",
+  "dashboard.openCalendar": "Takvimi aç",
 };
