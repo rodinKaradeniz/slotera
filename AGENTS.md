@@ -525,15 +525,21 @@ page. Standard page shape:
 
 ### Catalog editing and deletion safeguards
 
-Form choice questions use individual option inputs with add/remove controls; Enter advances
-or appends, and whitespace is normalized only when saving. API form writes allow-list
+Form choice questions use equal-width option inputs with remove controls and an Add more
+options bar below them; Enter advances or appends, and whitespace is normalized only when
+saving. Missing form names, question labels and empty choice lists show inline errors on
+Save, and the first invalid input is focused. API form writes allow-list
 editable fields; service-side attachment editing reads the persisted template.
 Service, form and package deactivation requires confirmation, including edits saved with
 Active switched off. Deletion dialogs describe removed relationships and preserved history.
 Services referenced by sessions or packages return a recoverable 409; unused service deletion
 unlinks form attachments without deleting templates. Existing client-erasure, location,
 note, task, session and workspace confirmations remain in place.
-Root and shared dialog scroll areas reserve a stable scrollbar gutter. Nested confirmations
+Root and shared dialog scroll areas use a shared transparent overlay scrollbar without
+consuming content width; native wheel/touch scrolling, keyboard controls and thumb dragging
+remain available. Positioning and native-scrollbar hiding are applied directly by the control,
+so stale development CSS cannot create a blank block above the page. Without initialization,
+the page retains its native scrollbar. Nested confirmations
 retain the underlying drawer's scroll lock and Escape closes only the focused dialog.
 
 ### Internationalisation

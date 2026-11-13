@@ -9,6 +9,7 @@ type FieldProps = {
   group?: boolean;
   hint?: string;
   error?: string;
+  errorId?: string;
   optional?: boolean;
   required?: boolean;
   children: React.ReactNode;
@@ -20,6 +21,7 @@ export function Field({
   group = false,
   hint,
   error,
+  errorId,
   optional,
   required,
   children,
@@ -44,7 +46,7 @@ export function Field({
       )}
       {children}
       {error && (
-        <span className="text-[12px] text-danger inline-flex items-center gap-1">
+        <span id={errorId} className="text-[12px] text-danger inline-flex items-center gap-1">
           <Icon name="info" size={12} /> {error}
         </span>
       )}

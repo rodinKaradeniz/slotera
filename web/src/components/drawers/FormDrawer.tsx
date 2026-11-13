@@ -19,6 +19,7 @@ import {
   activateForm,
   removeForm,
 } from "@/services/forms.service";
+import { validateFormTemplate } from "@/lib/form-template-validation";
 import type { FormTemplate } from "@/types/form";
 
 export type FormDrawerProps = {
@@ -51,6 +52,7 @@ export function FormDrawer({
   const [form, setForm] = React.useState<FormTemplateFormValue>(
     initial ? { ...initial } : DEFAULTS,
   );
+  const [validationAttempt, setValidationAttempt] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [persistedActive, setPersistedActive] = React.useState(initial?.status === "active");
@@ -59,18 +61,20 @@ export function FormDrawer({
     setPersistedActive(initial?.status === "active");
     setDeactivation(null);
     setConfirmDelete(false);
+    setValidationAttempt(0);
   });
 
   useResetOnOpen(open, [initial], () => setForm(initial ? { ...initial } : DEFAULTS));
 
   const save = async (confirmed = false) => {
     if (busy) return;
-    if (initial && persistedActive && !(form.status === "active") && !confirmed) {
-      setDeactivation("save");
+    const errors = validateFormTemplate(form);
+    if (errors.name || Object.keys(errors.fields).length > 0) {
+      setValidationAttempt((attempt) => attempt + 1);
       return;
     }
-    if (!form.name.trim()) {
-      toast.error(uiText("ui.add.a.form.name.first"));
+    if (initial && persistedActive && !(form.status === "active") && !confirmed) {
+      setDeactivation("save");
       return;
     }
     setBusy(true);
@@ -152,7 +156,7 @@ export function FormDrawer({
       }
     >
       <div className="flex flex-col gap-5">
-        <FormTemplateForm value={form} onChange={setForm} disabled={busy} />
+        <FormTemplateForm value={form} onChange={setForm} disabled={busy} validationAttempt={validationAttempt} />
 
         {isEdit && (
           <div className="mt-4 pt-5 border-t border-line-soft">

@@ -1515,4 +1515,10 @@ export const tr: Partial<Messages> = {
   "catalog.form.delete.effects": "Şablon ve hizmet bağlantıları kaldırılır. Mevcut randevu formları ve gönderilen yanıtlar korunur.",
   "catalog.package.delete.effects": "Paket teklifi ve içindeki hizmet listesi kaldırılır. Hizmetler ve mevcut randevular korunur.",
   "errors.serviceInUse": "Bu hizmetin seans veya randevuları var ve silinemez. Bunun yerine devre dışı bırakın.",
+  "forms.name.required": "Bir form adı girin.",
+  "forms.label.required": "Bir soru başlığı girin.",
+  "forms.options.required": "En az bir seçenek ekleyin.",
+  "forms.add.more.options": "Daha fazla seçenek ekle",
+  "scroll.page": "Sayfayı kaydır",
+  "scroll.content": "İçeriği kaydır",
 };

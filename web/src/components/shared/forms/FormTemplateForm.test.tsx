@@ -27,7 +27,7 @@ it("keeps spaces while editing choices and uses Enter to advance or add an optio
   expect(document.activeElement).toBe(second);
   fireEvent.keyDown(second, { key: "Enter" });
   expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Option 3" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add option" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add more options" }));
   expect(screen.getByRole("textbox", { name: "Option 4" })).toBeDefined();
 });
 it("switches choices to dates and independently changes service attachments", async () => {

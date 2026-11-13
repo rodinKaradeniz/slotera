@@ -436,7 +436,9 @@ Exports, erasure and workspace deletion cover snapshots and responses.
 Catalog deactivation and deletion require confirmation with the affected relationships
 explained. Removing a form template also removes its service attachments, while booking
 snapshots and answers stay intact. Deactivating a form stops new assignments only.
-Choice questions are edited as individual single-line options, starting with two rows.
+Choice questions are edited as equal-width single-line options, starting with two rows,
+with an Add more options bar underneath. Missing form names, question labels and empty
+choice lists show inline warnings on Save and focus the first invalid input.
 
 ### Packages
 

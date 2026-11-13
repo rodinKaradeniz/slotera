@@ -2,6 +2,7 @@
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
+import { ScrollArea } from "@/components/ui/ScrollArea";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { useHydrated } from "@/lib/use-hydrated";
 import { createPortal } from "react-dom";
@@ -113,7 +114,7 @@ export function CommandPalette({ open, onClose }: Props) {
             </kbd>
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+        <ScrollArea>
           <SearchResultsList
             groups={groups}
             query={query}
@@ -124,7 +125,7 @@ export function CommandPalette({ open, onClose }: Props) {
             onHover={setActiveIndex}
             variant="palette"
           />
-        </div>
+        </ScrollArea>
         <div className="border-t border-line-soft px-5 py-2.5 flex items-center justify-between text-micro">
           <span className="inline-flex items-center gap-3">
             <span className="inline-flex items-center gap-1">

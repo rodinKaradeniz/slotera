@@ -1740,3 +1740,63 @@ deletion then protected service deletion. The latter displayed the recoverable c
 readiness remained 200. A 390px drawer has no horizontal overflow; measured main width is
 unchanged between forced scroll/hidden overflow. Developer data and real environment files
 were untouched. No deployment or external email delivery was attempted.
+
+
+### Entry 064 — Overlay scrolling and visible form validation
+
+*2026-11-13.* Developer screenshots showed the preceding gutter approach still shifting
+content in their browser and leaving an opaque native scrollbar track. Replace it on the
+page and shared drawer/modal/search scroll areas with one local overlay control. Native
+wheel, touch and normal page keyboard scrolling remain; the overlay supports track clicks,
+pointer-captured dragging and Arrow/Page/Home/End keys with ARIA range/target metadata.
+It occupies no layout width and uses a transparent track; forced-colour mode retains a
+visible thumb. The page's native scrollbar is hidden only after the replacement initializes.
+The earlier width check did not establish behavior on the developer's browser/OS setup;
+this is a deliberate change from reserved native gutters to overlay controls, with no new
+dependency or database change.
+
+Choice rows now have identical remove controls and an independent full-width Add more
+options action below the list. Form Save validates required template/question names and
+nonempty choice lists before a request, displays translated inline errors and focuses the
+first invalid input. Name/description/placeholder/help-text inputs respect existing server
+length bounds. Server validation stays authoritative and network errors retain their toasts.
+
+Verification: TypeScript, ESLint and all 111 frontend tests pass. Focused tests cover
+inline error/focus/correction without a request, empty choice lists, scrollbar bounds,
+keyboard/wheel input, pointer dragging, changing overflow and dialog page locks. In the
+mock production server, the Forms list-to-empty filter transition preserved main left/width
+and title position exactly at 1512×823; the scrollbar track computed fully transparent and
+no native gutter remained. Three option inputs each measured 323px, with the add bar below;
+at 390px, both option inputs measured 234px and the page/drawer had no horizontal overflow.
+A missing question label displayed its inline warning and received focus; corrected values
+saved. Page End/Home controls, drawer scrolling, command-palette overflow and the public
+Demo Guide modal were exercised. Verification used a separate frontend port and changed no
+developer database records. Backend code and database schema are unchanged in this pass.
+Both mock and API production builds pass with dotenv reads disabled. No backend tests were
+rerun for this frontend-only pass. Temporary mock-server tabs and processes were closed.
+
+
+### Entry 065 — Prevent scrollbar layout gaps under stale development CSS
+
+*2026-11-14.* The running API-mode development app served a stylesheet without the overlay
+rules while its newer JavaScript already rendered the scrollbar. Live inspection found the
+ready class on html but computed native scrollbar width still `auto`, and no overlay rules
+in the loaded CSS. The unpositioned scrollbar thumb could occupy normal flow above the app,
+matching the developer's large blank area; native scrollbar hiding also never applied.
+
+Essential overlay positioning, dimensions, transparent track and thumb geometry now travel
+with the component as inline styles. Initialization applies native scrollbar width/gutter
+styles directly and restores previous values on cleanup; scroll-area viewports likewise hide
+the native track directly. Hover/focus/print and forced-colour decoration remain in CSS.
+A regression reproduces missing CSS and checks out-of-flow positioning, hidden native track
+and cleanup. No application layout padding, form behavior, database schema or data changed.
+
+Live verification on the existing API-backed `/admin/forms` at 1512×500: header and sidebar
+start at y=0, main starts at y=64, document and viewport widths both equal 1512, the overlay
+is fixed with a fully transparent background, and the native scrollbar is hidden.
+The actual development Forms filter transition also preserved main left/width and header
+position exactly; New form's inner track computed transparent with native scrollbar width
+`none`, then Cancel closed it without saving. TypeScript, ESLint and all 112 frontend tests
+pass; the mock production build passes. Database/schema/backend code are unchanged.
+The API production build also passes. The verification tab was closed; the developer's
+running stack was not stopped or restarted. No environment files were read.

@@ -1563,6 +1563,12 @@ export const en = {
   "catalog.form.delete.effects": "This removes the template and its service attachments. Existing booking forms and submitted answers are preserved.",
   "catalog.package.delete.effects": "This removes the package offer and its item list. Services and existing bookings are preserved.",
   "errors.serviceInUse": "This service has sessions or bookings and cannot be deleted. Deactivate it instead.",
+  "forms.name.required": "Enter a form name.",
+  "forms.label.required": "Enter a question label.",
+  "forms.options.required": "Add at least one option.",
+  "forms.add.more.options": "Add more options",
+  "scroll.page": "Scroll page",
+  "scroll.content": "Scroll content",
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -11,6 +11,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
+import { validateFormTemplate } from "@/lib/form-template-validation";
 import { makeId } from "@/lib/id";
 import { listServices } from "@/services/services.service";
 import type {
@@ -34,6 +35,7 @@ type Props = {
   value: FormTemplateFormValue;
   onChange: (next: FormTemplateFormValue) => void;
   disabled?: boolean;
+  validationAttempt?: number;
 };
 
 const FIELD_TYPE_OPTIONS: { value: FormFieldType; label: string }[] = [
@@ -50,9 +52,19 @@ function hasOptions(type: FormFieldType): boolean {
   return type === "single_select" || type === "multi_select";
 }
 
-export function FormTemplateForm({ value, onChange, disabled }: Props) {
+export function FormTemplateForm({ value, onChange, disabled, validationAttempt = 0 }: Props) {
   const { t: uiText, lang: labelLang } = useI18n();
   const [services, setServices] = React.useState<Service[]>([]);
+  const editorRef = React.useRef<HTMLFieldSetElement>(null);
+  const errorPrefix = React.useId();
+  const errors = validationAttempt > 0 ? validateFormTemplate(value) : { fields: {} };
+  React.useEffect(() => {
+    if (validationAttempt === 0) return;
+    const invalid = editorRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    invalid?.focus();
+    invalid?.scrollIntoView({ block: "center", behavior: "auto" });
+  }, [validationAttempt]);
+
 
   // Refs to each field's label input, keyed by field id, so a freshly added
   // field can be scrolled into view + focused once it has rendered.
@@ -128,11 +140,18 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
 
   return (
     <fieldset
+      ref={editorRef}
       disabled={disabled}
       className="flex flex-col gap-5 disabled:opacity-90"
     >
-      <Field label={uiText("ui.form.name")} required>
+      <Field label={uiText("ui.form.name")} required
+        error={errors.name ? uiText(errors.name) : undefined} errorId={`${errorPrefix}-name`}>
         <Input
+          required
+          maxLength={160}
+          error={!!errors.name}
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? `${errorPrefix}-name` : undefined}
           value={value.name}
           onChange={(e) => patch({ name: e.target.value })}
           placeholder={uiText("ui.e.g.discovery.call.prep")}
@@ -144,6 +163,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
         hint={uiText("ui.one.short.line.clients.see.at.the.top.of.the.form")}
       >
         <Textarea
+          maxLength={1000}
           value={value.description}
           rows={2}
           onChange={(e) => patch({ description: e.target.value })}
@@ -198,13 +218,19 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                 </button>
               </div>
 
-              <Field label={uiText("ui.label")} required>
+              <Field label={uiText("ui.label")} required
+                error={errors.fields[f.id]?.label ? uiText(errors.fields[f.id].label!) : undefined}
+                errorId={`${errorPrefix}-${f.id}-label`}>
                 <Input
                   ref={(el) => {
                     const m = labelRefs.current;
                     if (el) m.set(f.id, el);
                     else m.delete(f.id);
                   }}
+                  required
+                  error={!!errors.fields[f.id]?.label}
+                  aria-invalid={!!errors.fields[f.id]?.label}
+                  aria-describedby={errors.fields[f.id]?.label ? `${errorPrefix}-${f.id}-label` : undefined}
                   value={f.label}
                   onChange={(e) => updateField(f.id, { label: e.target.value })}
                   placeholder={uiText("ui.e.g.what.would.you.like.us.to.look.at")}
@@ -241,6 +267,8 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                 <ChoiceOptions
                   options={f.options?.length ? f.options : ["", ""]}
                   onChange={(options) => updateField(f.id, { options })}
+                  error={errors.fields[f.id]?.options ? uiText(errors.fields[f.id].options!) : undefined}
+                  errorId={`${errorPrefix}-${f.id}-options`}
                 />
               )}
 
@@ -249,6 +277,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
                 f.type !== "date" && (
                   <Field label={uiText("ui.placeholder")} optional>
                     <Input
+                      maxLength={300}
                       value={f.placeholder ?? ""}
                       onChange={(e) =>
                         updateField(f.id, { placeholder: e.target.value })
@@ -259,6 +288,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
 
               <Field label={uiText("ui.help.text")} optional>
                 <Input
+                  maxLength={500}
                   value={f.helpText ?? ""}
                   onChange={(e) =>
                     updateField(f.id, { helpText: e.target.value })
@@ -333,7 +363,7 @@ export function FormTemplateForm({ value, onChange, disabled }: Props) {
 }
 
 
-function ChoiceOptions({ options, onChange }: { options: string[]; onChange: (options: string[]) => void }) {
+function ChoiceOptions({ options, onChange, error, errorId }: { options: string[]; onChange: (options: string[]) => void; error?: string; errorId: string }) {
   const { t } = useI18n();
   const refs = React.useRef<(HTMLInputElement | null)[]>([]);
   const pendingFocus = React.useRef<number | null>(null);
@@ -347,13 +377,16 @@ function ChoiceOptions({ options, onChange }: { options: string[]; onChange: (op
     pendingFocus.current = options.length;
     onChange([...options, ""]);
   };
-  return <Field group label={t("ui.options")}>
+  return <Field group label={t("ui.options")} error={error} errorId={errorId}>
     <div className="flex flex-col gap-2">
       {options.map((option, index) => <div key={index} className="flex items-center gap-2">
         <Input
           ref={(node) => { refs.current[index] = node; }}
           className="flex-1"
           aria-label={t("forms.option.number", { number: index + 1 })}
+          error={!!error}
+          aria-invalid={!!error}
+          aria-describedby={error ? errorId : undefined}
           value={option}
           onChange={(event) => onChange(options.map((value, i) => i === index ? event.target.value : value))}
           onKeyDown={(event) => {
@@ -365,9 +398,9 @@ function ChoiceOptions({ options, onChange }: { options: string[]; onChange: (op
         />
         <Button variant="ghost" size="sm" icon="trash" aria-label={t("forms.remove.option", { number: index + 1 })}
           disabled={options.length <= 1} onClick={() => onChange(options.filter((_, i) => i !== index))} />
-        {index === options.length - 1 && <Button variant="secondary" size="sm" icon="plus"
-          aria-label={t("forms.add.option")} disabled={options.length >= 100} onClick={add} />}
       </div>)}
+      <Button variant="secondary" size="sm" icon="plus" full
+        disabled={options.length >= 100} onClick={add}>{t("forms.add.more.options")}</Button>
     </div>
   </Field>;
 }

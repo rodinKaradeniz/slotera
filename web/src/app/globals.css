@@ -88,7 +88,6 @@
 * { box-sizing: border-box; }
 
 html {
-  scrollbar-gutter: stable;
   scroll-behavior: smooth;
   /* Sticky public/admin headers are 64px; offset anchor jumps so the
      section title doesn't slide under the topbar. */
@@ -252,3 +251,23 @@ body.scroll-locked { overflow: hidden; }
 /* Client themes stay within their page and portal roots. */
 .booking-theme .font-serif, .booking-theme .text-h1, .booking-theme .text-h2,
 .booking-theme .text-h3 { font-family: var(--booking-heading-font, var(--font-serif)); }
+
+
+/* Scrollbars overlay the viewport instead of changing content width. */
+html.overlay-scrollbars-ready,
+.overlay-scroll-viewport {
+  scrollbar-width: none;
+  scrollbar-gutter: auto;
+}
+html.overlay-scrollbars-ready::-webkit-scrollbar,
+.overlay-scroll-viewport::-webkit-scrollbar { display: none; }
+.overlay-scrollbar-thumb {
+  opacity: .55;
+}
+.overlay-scrollbar:hover .overlay-scrollbar-thumb,
+.overlay-scrollbar:focus-visible .overlay-scrollbar-thumb { opacity: 1; }
+.overlay-scrollbar:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (forced-colors: active) {
+  .overlay-scrollbar-thumb { background: ButtonText !important; opacity: 1; }
+}
+@media print { .overlay-scrollbar { display: none; } }

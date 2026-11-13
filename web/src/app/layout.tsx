@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageScrollbar } from "@/components/ui/ScrollArea";
 import { ToastProvider } from "@/components/ui/Toast";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { DemoGuideProvider } from "@/components/public/DemoGuideProvider";
@@ -19,9 +20,10 @@ export default function RootLayout({
       lang="en"
       data-scroll-behavior="smooth"
     >
-      <body className="min-h-screen bg-paper text-ink antialiased">
+      <body id="page-content" className="min-h-screen bg-paper text-ink antialiased">
         <I18nProvider>
           <ToastProvider>
+            <PageScrollbar />
             {/* DemoGuide modal is a single shared instance — the public nav and
                 the auth shell both expose triggers, so the provider lives at the
                 root. Auto-open stays landing-only via <DemoGuideAutoOpen />. */}

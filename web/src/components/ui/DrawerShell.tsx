@@ -2,6 +2,7 @@
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
+import { ScrollArea } from "@/components/ui/ScrollArea";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { BookingThemeContext } from "@/components/booking/BookingTheme";
 import { createPortal } from "react-dom";
@@ -120,7 +121,7 @@ export function DrawerShell({
             <Icon name="x" size={18} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable] px-6 py-5">{children}</div>
+        <ScrollArea contentClassName="px-6 py-5">{children}</ScrollArea>
         {footer && (
           <div className="px-6 py-4 border-t border-line-soft flex justify-end gap-2 bg-surface-warm">
             {footer}

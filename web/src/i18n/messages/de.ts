@@ -1515,4 +1515,10 @@ export const de: Partial<Messages> = {
   "catalog.form.delete.effects": "Die Vorlage und ihre Angebotszuordnungen werden entfernt. Bestehende Buchungsformulare und eingereichte Antworten bleiben erhalten.",
   "catalog.package.delete.effects": "Das Paketangebot und seine Positionsliste werden entfernt. Angebote und bestehende Buchungen bleiben erhalten.",
   "errors.serviceInUse": "Dieses Angebot hat Termine oder Buchungen und kann nicht gelöscht werden. Deaktivieren Sie es stattdessen.",
+  "forms.name.required": "Geben Sie einen Formularnamen ein.",
+  "forms.label.required": "Geben Sie eine Frage ein.",
+  "forms.options.required": "Fügen Sie mindestens eine Option hinzu.",
+  "forms.add.more.options": "Weitere Optionen hinzufügen",
+  "scroll.page": "Seite scrollen",
+  "scroll.content": "Inhalt scrollen",
 };
