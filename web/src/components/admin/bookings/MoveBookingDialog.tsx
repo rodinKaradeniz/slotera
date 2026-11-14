@@ -10,9 +10,10 @@ import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { moveBooking } from "@/services/bookings.service";
-import { getSession, listSessions } from "@/services/sessions.service";
+import { getSession, listBookableSessions } from "@/services/sessions.service";
 import { clockIn } from "@/lib/calendar";
 import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
+import { LoadError } from "@/components/shared/LoadError";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import type { Booking } from "@/types/booking";
 import type { SessionItem } from "@/types/session";
@@ -48,6 +49,10 @@ export function MoveBookingDialog({ open, onClose, booking, onMoved }: Props) {
   const { toast } = useToast();
   const [sessionId, setSessionId] = React.useState("");
   const [reason, setReason] = React.useState(DEFAULT_REASON);
+  const [offset, setOffset] = React.useState(0);
+  const [total, setTotal] = React.useState(0);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [attempt, setAttempt] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
   // One key per opened dialog: a double-click or retry replays, never moves twice.
   const [idempotencyKey, setIdempotencyKey] = React.useState(() => crypto.randomUUID());
@@ -58,6 +63,9 @@ export function MoveBookingDialog({ open, onClose, booking, onMoved }: Props) {
 
   useResetOnOpen(open, [booking?.id], () => {
     setSessionId("");
+    setOffset(0);
+    setLoaded(null);
+    setLoadError(null);
     setReason(DEFAULT_REASON);
     setIdempotencyKey(crypto.randomUUID());
   });
@@ -67,29 +75,20 @@ export function MoveBookingDialog({ open, onClose, booking, onMoved }: Props) {
   React.useEffect(() => {
     if (!open || !bookingId || !currentSessionId) return;
     let live = true;
-    Promise.all([getSession(currentSessionId), listSessions()])
-      .then(([current, all]) => {
-        if (!live) return;
-        const now = Date.now();
-        setLoaded({
-          bookingId,
-          sessions: all.filter(
-            (s) =>
-              s.id !== currentSessionId &&
-              s.serviceId === current?.serviceId &&
-              s.status !== "cancelled" &&
-              new Date(s.startISO).getTime() > now &&
-              s.bookedCount < s.capacity,
-          ),
-        });
-      })
-      .catch(() => {
-        if (live) setLoaded({ bookingId, sessions: [] });
-      });
+    getSession(currentSessionId).then(async (current) => {
+      if (!current) throw new Error("Session was not found");
+      const page = await listBookableSessions(offset, current.serviceId);
+      if (!live) return;
+      const eligible = page.items.filter((item) => item.id !== currentSessionId);
+      setLoaded((previous) => ({bookingId, sessions: [...new Map([
+        ...(offset && previous?.bookingId === bookingId ? previous.sessions : []), ...eligible,
+      ].map((item) => [item.id, item])).values()]}));
+      setTotal(page.total); setLoadError(null);
+    }).catch((cause: unknown) => {if (live) setLoadError(cause instanceof Error ? cause.message : String(cause));});
     return () => {
       live = false;
     };
-  }, [open, bookingId, currentSessionId]);
+  }, [open, bookingId, currentSessionId, offset, attempt]);
 
   const candidates = loaded && loaded.bookingId === bookingId ? loaded.sessions : null;
 
@@ -130,13 +129,15 @@ export function MoveBookingDialog({ open, onClose, booking, onMoved }: Props) {
           <Button
             onClick={submit}
             loading={busy}
-            disabled={!sessionId || !reason.trim() || busy}
+            disabled={!sessionId || !reason.trim() || busy || !!loadError}
           >
             {uiText("ui.move.booking")}</Button>
         </>
       }
     >
       <div className="flex flex-col gap-4">
+        {loadError && <LoadError message={loadError} onRetry={() => setAttempt((value) => value + 1)} />}
+        {offset + 50 < total && <Button variant="ghost" onClick={() => setOffset((value) => value + 50)}>{uiText("ui.show.more")}</Button>}
         <Field
           label={uiText("ui.new.session")}
           required

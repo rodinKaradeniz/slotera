@@ -1,7 +1,8 @@
 from http import HTTPStatus
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Query, Response
 
 from slotera_api.auth.dependencies import (
     CsrfOperatorWorkspaceDependency,
@@ -9,6 +10,7 @@ from slotera_api.auth.dependencies import (
     OperatorWorkspaceDependency,
 )
 from slotera_api.db.models import SessionActionItem
+from slotera_api.editing import ExpectedVersionDependency
 from slotera_api.errors import ApiError
 from slotera_api.schemas.session_action_items import (
     SessionActionItemCreate,
@@ -27,6 +29,7 @@ def _private(response: Response) -> None:
 
 def _item_response(item: SessionActionItem) -> SessionActionItemResponse:
     return SessionActionItemResponse(
+        version=item.version,
         id=item.id,
         session_id=item.session_id,
         title=item.title,
@@ -65,16 +68,18 @@ async def list_session_action_items(
     response: Response,
     operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> SessionActionItemListResponse:
     result = await SessionActionItemsRepository(database).list_items(
-        operator.workspace_id, session_id
+        operator.workspace_id, session_id, limit, offset
     )
     if result is None:
         raise _session_not_found()
     items, total = result
     _private(response)
     return SessionActionItemListResponse(
-        items=[_item_response(item) for item in items], total=total
+        items=[_item_response(item) for item in items], total=total, limit=limit, offset=offset
     )
 
 
@@ -103,12 +108,31 @@ async def create_session_action_item(
     return _item_response(item)
 
 
+@router.get(
+    "/session-action-items/{item_id}",
+    response_model=SessionActionItemResponse,
+    operation_id="getSessionActionItem",
+)
+async def get_session_action_item(
+    item_id: UUID,
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> SessionActionItemResponse:
+    item = await SessionActionItemsRepository(database).get_item(operator.workspace_id, item_id)
+    if item is None:
+        raise _item_not_found()
+    _private(response)
+    return _item_response(item)
+
+
 @router.patch(
     "/session-action-items/{item_id}",
     response_model=SessionActionItemResponse,
     operation_id="updateSessionActionItem",
 )
 async def update_session_action_item(
+    expected_version: ExpectedVersionDependency,
     item_id: UUID,
     payload: SessionActionItemPatch,
     response: Response,
@@ -120,6 +144,7 @@ async def update_session_action_item(
         operator.user_id,
         item_id,
         payload.model_dump(exclude_unset=True),
+        expected_version=expected_version,
     )
     if item is None:
         raise _item_not_found()
@@ -133,12 +158,13 @@ async def update_session_action_item(
     operation_id="deleteSessionActionItem",
 )
 async def delete_session_action_item(
+    expected_version: ExpectedVersionDependency,
     item_id: UUID,
     operator: CsrfOperatorWorkspaceDependency,
     database: DatabaseDependency,
 ) -> Response:
     deleted = await SessionActionItemsRepository(database).delete_item(
-        operator.workspace_id, operator.user_id, item_id
+        operator.workspace_id, operator.user_id, item_id, expected_version=expected_version
     )
     if not deleted:
         raise _item_not_found()

@@ -1,4 +1,5 @@
 "use client";
+import { invalidateReads } from "@/api/query-cache";
 import * as React from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Card } from "@/components/ui/Card";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Pill } from "@/components/ui/Pill";
 import { useToast } from "@/components/ui/Toast";
-import { listBookingEmails, sendBookingDetails } from "@/services/bookings.service";
+import { getBooking, listBookingEmails, sendBookingDetails } from "@/services/bookings.service";
 import { BOOKING_EMAIL_STATUS } from "@/lib/status-maps";
 import { validEmail } from "@/lib/client-validation";
 import { localeForLang } from "@/lib/i18n";
@@ -23,6 +24,7 @@ export function BookingEmails({ booking, fallbackEmail = "", onUpdated }: { book
   const [reload, setReload] = React.useState(0);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [reviewedEmail, setReviewedEmail] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [key, setKey] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -43,7 +45,7 @@ export function BookingEmails({ booking, fallbackEmail = "", onUpdated }: { book
     if (!validEmail(email)) { setInvalid(true); emailInput.current?.focus(); return; }
     sending.current = true; setBusy(true); setError(null); setInvalid(false);
     try {
-      const updated = await sendBookingDetails(booking.id, email.trim().toLowerCase(), key);
+      const updated = await sendBookingDetails(booking.id, email.trim().toLowerCase(), key, reviewedEmail);
       onUpdated(updated); setOpen(false); setOffset(0); setReload((n) => n + 1);
       toast.success(t("booking.emails.queuedNotice"));
     } catch (err) { setError(err instanceof Error ? err.message : t("errors.unexpected")); }
@@ -52,8 +54,11 @@ export function BookingEmails({ booking, fallbackEmail = "", onUpdated }: { book
   const stamp = (value: string) => new Intl.DateTimeFormat(localeForLang(lang), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
   return <Card className="p-5 space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-h3">{t("booking.emails.title")}</h2><div className="flex flex-wrap gap-2">
-      <Button variant="ghost" onClick={() => setReload((n) => n + 1)}>{t("ui.refresh")}</Button>
-      <Button variant="secondary" disabled={!current} onClick={() => { setEmail(current); setKey(crypto.randomUUID()); setError(null); setInvalid(false); setOpen(true); }}>{t("booking.emails.send")}</Button>
+      <Button variant="ghost" onClick={async () => {
+        try {await invalidateReads(false, ["bookings"]); const latest = await getBooking(booking.id); if (latest) onUpdated(latest); setReload((n) => n + 1);}
+        catch (cause) {setLoadError(cause instanceof Error ? cause.message : t("errors.unexpected"));}
+      }}>{t("ui.refresh")}</Button>
+      <Button variant="secondary" disabled={!current} onClick={() => { setEmail(current); setReviewedEmail(current); setKey(crypto.randomUUID()); setError(null); setInvalid(false); setOpen(true); }}>{t("booking.emails.send")}</Button>
     </div></div>
     <p className="text-small text-ink-3">{t("booking.emails.accepted")}</p>
     {dataSource === "mock" && <p className="text-small text-ink-3">{t("booking.emails.local")}</p>}

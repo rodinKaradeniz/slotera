@@ -4,22 +4,28 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import * as React from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
-import { listNotifications, markAllRead } from "@/services/notifications.service";
+import { DATA_CHANGED } from "@/api/query-cache";
+import { getNotificationSummary, markAllRead } from "@/services/notifications.service";
 import type { Notification } from "@/types/notification";
 import { cn } from "@/lib/cn";
 
 export function NotificationsButton() {
-  const { t: uiText } = useI18n();
+  const { t: uiText, lang } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState<Notification[]>([]);
+  const [unread, setUnread] = React.useState(0);
   const [error, setError] = React.useState<string | null>(null);
   const ref = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    listNotifications().then(setItems).catch((cause) => {
-      setError(cause instanceof Error ? cause.message : uiText("ui.notifications.could.not.be.loaded"));
-    });
-  }, [uiText]);
+    let live = true;
+    const load = () => getNotificationSummary().then((page) => {
+      if (live) {setItems(page.items); setUnread(page.unreadCount); setError(null);}
+    }).catch((cause: unknown) => {if (live) setError(cause instanceof Error ? cause.message : String(cause));});
+    void load();
+    window.addEventListener(DATA_CHANGED, load);
+    return () => {live = false; window.removeEventListener(DATA_CHANGED, load);};
+  }, [lang]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -30,11 +36,11 @@ export function NotificationsButton() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  const unread = items.filter((n) => n.unread).length;
 
   const handleMarkAll = async () => {
     try {
       await markAllRead();
+      setUnread(0);
       setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
       setError(null);
     } catch (cause) {

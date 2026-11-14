@@ -39,3 +39,17 @@ describe("apiListAll", () => {
     expect(await apiListAll<number>("/services")).toEqual([]);
   });
 });
+
+it("passes cancellation through without converting it to a network error", async () => {
+  const { apiRequest } = await import("./client");
+  const controller = new AbortController();
+  const failure = new DOMException("Cancelled", "AbortError");
+  vi.stubGlobal("fetch", vi.fn(async (_url, options) => {
+    expect(options.signal).toBe(controller.signal);
+    controller.abort();
+    throw failure;
+  }));
+  try {
+    await expect(apiRequest("/bookings/summaries", { signal: controller.signal })).rejects.toBe(failure);
+  } finally { vi.unstubAllGlobals(); }
+});

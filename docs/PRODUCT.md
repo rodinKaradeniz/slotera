@@ -795,3 +795,17 @@ A handful of cross-cutting rules earned their place by burning us at least once:
 - **Drawer/sheet animations** are driven by `data-state` on `DrawerShell`. Check `data-state` classes, the Tailwind v4 animation setup in `globals.css`, and the wrapper before patching an individual drawer.
 - **Buttons with accent backgrounds must render white text.** If they don't, check element-selector resets in `globals.css` (they must be inside `@layer base` — see Styling system above).
 - **Prefer shared fixes over call-site patches whenever an issue repeats.**
+
+
+### Operational data and reviewed editing
+
+Collection screens show bounded server pages and complete matching totals; exports include
+all matches. Catalog summaries exclude editing-only content. API booking rows open full details;
+the mock drawer retains its explicit details link. Calendar dates and overlap follow workspace
+time, independent of browser timezone. Attendance bulk actions apply to the displayed page.
+
+Private query data stays in memory under a verified identity/workspace scope. Refreshes must
+preserve unsaved drafts. A stale edit requires reviewing the current record; there is no force
+save. Settings sections share one revision, while staff billing is independent. Correcting a
+booking email requires the address reviewed when the dialog opened and never edits the client
+profile. Operator language belongs in Settings → Account; staff use the account menu.

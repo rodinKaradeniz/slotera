@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
 import { buildCsp } from "./src/lib/csp";
@@ -9,6 +10,18 @@ const nextConfig: NextConfig = {
   // Turbopack's project boundary on the Next.js application explicitly.
   turbopack: {
     root: process.cwd(),
+    resolveAlias: process.env.NEXT_PUBLIC_DATA_SOURCE === "api" ? {
+      "@/services/adapters/mock-data": "./src/services/adapters/api-data.ts",
+    } : {},
+  },
+  webpack(config, {webpack}) {
+    if (process.env.NEXT_PUBLIC_DATA_SOURCE === "api") {
+      config.plugins.push(new webpack.NormalModuleReplacementPlugin(
+        /services[\\/]adapters[\\/]mock-data(?:\.ts)?$/,
+        path.resolve(process.cwd(), "src/services/adapters/api-data.ts"),
+      ));
+    }
+    return config;
   },
   // Report-only: violations show in the browser console and block nothing yet (docs/TODO.md).
   // Production only, since the dev server needs eval.

@@ -113,6 +113,7 @@ html, body {
    `.text-white` utility (which lives in @layer utilities), so primary buttons
    inherited the dark page ink color regardless of the variant class. */
 @layer base {
+  fieldset { min-inline-size: 0; }
   button { font: inherit; color: inherit; }
   input, textarea, select { font: inherit; color: inherit; }
   a { color: inherit; }

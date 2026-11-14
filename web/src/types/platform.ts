@@ -4,6 +4,7 @@ export type PlatformWorkspaceOperationalStatus = "active" | "suspended";
 
 /** Display-safe, persisted facts exposed to a platform superadmin. */
 export type PlatformWorkspace = {
+  billingVersion?: number;
   id: string;
   name: string;
   slug: string;

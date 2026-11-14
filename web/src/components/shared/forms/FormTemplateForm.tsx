@@ -13,13 +13,13 @@ import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { validateFormTemplate } from "@/lib/form-template-validation";
 import { makeId } from "@/lib/id";
-import { listServices } from "@/services/services.service";
+import { useServiceOptions } from "@/lib/use-service-options";
+import { LoadError } from "@/components/shared/LoadError";
 import type {
   FormField,
   FormFieldType,
   FormTemplateInput,
 } from "@/types/form";
-import type { Service } from "@/types/service";
 
 /**
  * Controlled editor for a form template. The caller owns state, save plumbing,
@@ -54,7 +54,8 @@ function hasOptions(type: FormFieldType): boolean {
 
 export function FormTemplateForm({ value, onChange, disabled, validationAttempt = 0 }: Props) {
   const { t: uiText, lang: labelLang } = useI18n();
-  const [services, setServices] = React.useState<Service[]>([]);
+  const options = useServiceOptions(value.attachedServiceIds);
+  const services = options.data ?? [];
   const editorRef = React.useRef<HTMLFieldSetElement>(null);
   const errorPrefix = React.useId();
   const errors = validationAttempt > 0 ? validateFormTemplate(value) : { fields: {} };
@@ -71,9 +72,6 @@ export function FormTemplateForm({ value, onChange, disabled, validationAttempt 
   const labelRefs = React.useRef<Map<string, HTMLInputElement>>(new Map());
   const pendingFocusId = React.useRef<string | null>(null);
 
-  React.useEffect(() => {
-    listServices().then((s) => setServices(s.filter((x) => x.active)));
-  }, []);
 
   React.useEffect(() => {
     const id = pendingFocusId.current;
@@ -307,6 +305,8 @@ export function FormTemplateForm({ value, onChange, disabled, validationAttempt 
         label={uiText("ui.attached.services")}
         hint={uiText("ui.clients.booking.these.services.will.complete.this.form.before.payment")}
       >
+        <Input value={options.search} placeholder={uiText("common.search")} onChange={(event) => options.setSearch(event.target.value)} />
+        {options.error && <LoadError message={options.error} onRetry={options.reload} />}
         {services.length === 0 ? (
           <p className="text-small text-ink-3">{uiText("ui.no.active.services.yet")}</p>
         ) : (

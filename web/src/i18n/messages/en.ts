@@ -8,6 +8,9 @@
  * every seeded string.
  */
 export const en = {
+  "attendance.markPage": "Mark this page present",
+  "common.pagination": "Pagination",
+  "calendar.bookedCount": "{count} / {capacity} booked",
   // Common actions / labels
   "common.save": "Save",
   "common.cancel": "Cancel",
@@ -1620,6 +1623,12 @@ export const en = {
   "booking.emails.booking_reminder": "Booking reminder",
   "booking.emails.booking_details": "Booking details",
   "booking.requestChanged": "This request has already been submitted with different details. Close and reopen the drawer or dialog to start another request.",
+  "lookup.chooseService": "Choose a service",
+  "errors.reference": "Reference: {id}",
+  "editing.stale": "This item changed elsewhere. Your draft is kept. Review the latest version before saving.",
+  "editing.reload": "Review latest version",
+  "editing.discard": "Load the latest saved version? This replaces your unsaved draft.",
+  "editing.load": "Load latest version",
 } as const;
 
 export type MessageKey = keyof typeof en;

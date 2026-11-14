@@ -8,9 +8,9 @@ import { Pill } from "@/components/ui/Pill";
 import { Icon } from "@/components/ui/Icon";
 import { FORM_STATUS } from "@/lib/status-maps";
 import { plural } from "@/lib/text";
-import type { FormTemplate } from "@/types/form";
+import type { FormTemplate, FormSummary } from "@/types/form";
 
-type Props = { form: FormTemplate; onClick: () => void };
+type Props = { form: FormTemplate | FormSummary; onClick: () => void };
 
 export function FormCard({ form, onClick }: Props) {
   const { t: uiText, lang: labelLang } = useI18n();
@@ -37,12 +37,12 @@ export function FormCard({ form, onClick }: Props) {
           <Stat
             icon="clipboard"
             label={uiText("ui.fields")}
-            value={String(form.fields.length)}
+            value={String("fieldCount" in form ? form.fieldCount : form.fields.length)}
           />
           <Stat
             icon="layers"
             label={uiText("ui.attached")}
-            value={plural(form.attachedServiceIds.length, "service")}
+            value={plural("attachedServiceCount" in form ? form.attachedServiceCount : form.attachedServiceIds.length, "service")}
           />
         </div>
       </div>

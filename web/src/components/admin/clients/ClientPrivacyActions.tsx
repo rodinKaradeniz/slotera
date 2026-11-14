@@ -24,6 +24,7 @@ export function ClientPrivacyActions({
   const { toast } = useToast();
   const [busy, setBusy] = React.useState(false);
   const [confirming, setConfirming] = React.useState(false);
+  const [reviewedVersion, setReviewedVersion] = React.useState(client.version);
   const [typed, setTyped] = React.useState("");
 
   const download = async () => {
@@ -54,7 +55,7 @@ export function ClientPrivacyActions({
     }
     setBusy(true);
     try {
-      await eraseClient(client.id, typed);
+      await eraseClient(client.id, typed, reviewedVersion);
       setConfirming(false);
       toast.success(uiText("ui.client.erased"), {
         description: uiText("ui.personal.details.are.gone.booking.amounts.were.kept"),
@@ -78,6 +79,7 @@ export function ClientPrivacyActions({
         size="md"
         icon="trash"
         onClick={() => {
+          setReviewedVersion(client.version);
           setTyped("");
           setConfirming(true);
         }}

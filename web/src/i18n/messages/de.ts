@@ -2,6 +2,9 @@ import type { Messages } from "./en";
 
 /** German — demo-grade translations. Missing keys fall back to English. */
 export const de: Partial<Messages> = {
+  "attendance.markPage": "Diese Seite als anwesend markieren",
+  "common.pagination": "Seitennavigation",
+  "calendar.bookedCount": "{count} / {capacity} gebucht",
   "common.save": "Speichern",
   "common.cancel": "Abbrechen",
   "common.back": "Zurück",
@@ -1572,4 +1575,10 @@ export const de: Partial<Messages> = {
   "booking.emails.booking_reminder": "Buchungserinnerung",
   "booking.emails.booking_details": "Buchungsdetails",
   "booking.requestChanged": "Diese Anfrage wurde bereits mit anderen Angaben übermittelt. Schließen und öffnen Sie das Fenster, um eine neue Anfrage zu starten.",
+  "lookup.chooseService": "Leistung auswählen",
+  "errors.reference": "Referenz: {id}",
+  "editing.stale": "Dieser Eintrag wurde anderswo geändert. Ihr Entwurf bleibt erhalten. Prüfen Sie vor dem Speichern die aktuelle Version.",
+  "editing.reload": "Aktuelle Version prüfen",
+  "editing.discard": "Aktuelle gespeicherte Version laden? Ihr ungespeicherter Entwurf wird ersetzt.",
+  "editing.load": "Aktuelle Version laden",
 };

@@ -1,6 +1,8 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
+import { getWorkspaceLocation } from "@/services/settings.service";
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -40,6 +42,11 @@ export function LocationsCard({
   const [pendingDelete, setPendingDelete] =
     React.useState<WorkspaceLocation | null>(null);
 
+  const edit = useReviewedEdit(!!editingId && editingId !== "__new__", draft, getWorkspaceLocation, (latest) => {
+    setDraft({...latest, address: {...latest.address}});
+    onChange({...business, locations: locations.map((item) => item.id === latest.id ? latest : item)});
+  });
+
   const startNew = () => {
     setDraft({
       id: "",
@@ -76,7 +83,7 @@ export function LocationsCard({
         ? await updateWorkspaceLocation(draft.id, {
             label: draft.label,
             address: draft.address,
-          })
+          }, edit.version)
         : await createWorkspaceLocation({
             label: draft.label,
             address: draft.address,
@@ -88,6 +95,7 @@ export function LocationsCard({
       toast.success(exists ? uiText("ui.location.updated") : uiText("ui.location.added"));
       cancelEdit();
     } catch (error) {
+      edit.onError(error);
       toast.error(uiText("ui.couldn.t.save.location"), {
         description: error instanceof Error ? error.message : undefined,
       });
@@ -99,7 +107,7 @@ export function LocationsCard({
   const remove = async (loc: WorkspaceLocation) => {
     setBusy(true);
     try {
-      await deleteWorkspaceLocation(loc.id);
+      await deleteWorkspaceLocation(loc.id, loc.version);
       onChange({
         ...business,
         locations: locations.filter((location) => location.id !== loc.id),
@@ -108,6 +116,11 @@ export function LocationsCard({
       if (editingId === loc.id) cancelEdit();
       setPendingDelete(null);
     } catch (error) {
+      if (edit.onError(error)) {
+        setPendingDelete(null);
+        const latest = await getWorkspaceLocation(loc.id);
+        onChange({...business, locations: latest ? locations.map((item) => item.id === latest.id ? latest : item) : locations.filter((item) => item.id !== loc.id)});
+      }
       toast.error(uiText("ui.couldn.t.delete.location"), {
         description: error instanceof Error ? error.message : undefined,
       });
@@ -118,6 +131,7 @@ export function LocationsCard({
 
   return (
     <Card padded>
+      {edit.notice}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>

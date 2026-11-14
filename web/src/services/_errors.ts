@@ -30,6 +30,7 @@ export class ApiRequestError extends Error {
   ) {
     const lang = readLang();
     const keys: Record<string, MessageKey> = {
+      resource_stale: "editing.stale",
       idempotency_key_reused: "booking.requestChanged",
       client_email_conflict: "booking.create.duplicate", booking_email_sending: "booking.emails.sendingConflict", booking_email_erased: "booking.emails.erased",
       network_error: "errors.network", invalid_credentials: "errors.credentials",
@@ -42,6 +43,11 @@ export class ApiRequestError extends Error {
     };
     const key = keys[code] ?? (status === 401 ? "errors.session" : status === 403 ? "errors.permission" : status === 404 ? "errors.notFound" : status === 409 ? "errors.conflict" : status === 422 ? "errors.validation" : "errors.unexpected");
     super(lang === "en" ? message : translate(lang, key));
+    Object.defineProperty(this, "message", {configurable: true, get: () => {
+      const current = readLang();
+      const text = current === "en" ? message : translate(current, key);
+      return requestId ? `${text} · ${translate(current, "errors.reference", {id: requestId})}` : text;
+    }});
     this.name = "ApiRequestError";
   }
 }

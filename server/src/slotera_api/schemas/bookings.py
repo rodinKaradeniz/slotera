@@ -6,7 +6,7 @@ from pydantic import EmailStr, Field, field_validator, model_validator
 
 from slotera_api.schemas.base import ApiModel
 from slotera_api.schemas.clients import ClientIdentityCreate
-from slotera_api.schemas.operator_resources import NonBlank, StrictApiModel
+from slotera_api.schemas.operator_resources import Address, NonBlank, StrictApiModel
 
 
 class OperatorBookingCreate(StrictApiModel):
@@ -27,8 +27,9 @@ class OperatorBookingCreate(StrictApiModel):
 
 class BookingEmailSend(StrictApiModel):
     recipient_email: EmailStr
+    expected_recipient_email: EmailStr
 
-    @field_validator("recipient_email")
+    @field_validator("recipient_email", "expected_recipient_email")
     @classmethod
     def normalize_email(cls, value: EmailStr) -> str:
         return str(value).strip().lower()
@@ -70,7 +71,24 @@ class BookingCustomerSnapshot(ApiModel):
     company: str | None
 
 
+class BookingDisplayContext(ApiModel):
+    client_name: str
+    client_email: str
+    service_id: UUID
+    service_name: str
+    start_at: datetime
+    end_at: datetime
+    capacity: int
+    booked_count: int
+    session_status: Literal["scheduled", "live", "done", "cancelled"]
+    location_type: Literal["online", "physical", "hybrid"]
+    location: str
+    address: Address | None
+    recurring: Literal["one-off", "weekly", "custom"]
+
+
 class BookingResponse(ApiModel):
+    context: BookingDisplayContext | None = None
     email_contact: str
     language: Literal["en", "tr", "de"]
     id: UUID
@@ -112,3 +130,31 @@ class BookingListResponse(ApiModel):
     total: int
     limit: int
     offset: int
+
+
+class BookingSummary(ApiModel):
+    attendance: Literal["present", "late", "absent"] | None = None
+    id: UUID
+    client_id: UUID
+    session_id: UUID
+    service_id: UUID
+    reference: str
+    client_name: str
+    client_company: str | None
+    service_name: str
+    start_at: datetime
+    status: Literal["pending", "confirmed", "completed", "noshow", "cancelled"]
+    payment_status: Literal["pending", "paid", "free", "refunded", "overdue"]
+    amount_cents: int
+    currency: str
+    created_at: datetime
+
+
+class BookingSummaryPage(ApiModel):
+    items: list[BookingSummary]
+    total: int
+    limit: int
+    offset: int
+    status_counts: dict[str, int]
+    status_previews: dict[str, list[BookingSummary]]
+    pending_payment_count: int

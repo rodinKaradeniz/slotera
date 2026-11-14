@@ -225,7 +225,12 @@ async def test_operator_can_switch_off_the_email_about_new_bookings() -> None:
             for index, enabled in enumerate((False, True)):
                 saved = await client.patch(
                     "/settings/business",
-                    headers=_csrf(client),
+                    headers={
+                        **_csrf(client),
+                        "If-Match": '"v'
+                        + str((await client.get("/settings/business")).json().get("version", 1))
+                        + '"',
+                    },
                     json={"notifyOperatorNew": enabled},
                 )
                 assert saved.status_code == 200

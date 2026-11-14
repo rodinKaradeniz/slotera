@@ -17,7 +17,8 @@ import { useLoad } from "@/lib/use-load";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { NewWorkspaceDrawer } from "./NewWorkspaceDrawer";
 import { PlanPills } from "./PlanPills";
-import { listWorkspaces } from "@/services/platform.service";
+import { Pagination } from "@/components/shared/Pagination";
+import { listWorkspacePage } from "@/services/platform.service";
 import { WORKSPACE_OPERATIONAL_STATUS } from "@/lib/status-maps";
 import { fmtDate } from "@/lib/time";
 import type { PlatformWorkspace } from "@/types/platform";
@@ -25,22 +26,14 @@ import type { PlatformWorkspace } from "@/types/platform";
 export function WorkspacesView() {
   const { t: uiText } = useI18n();
   const router = useRouter();
-  const { data: items, error, reload } = useLoad(listWorkspaces);
   const [query, setQuery] = React.useState("");
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
-  const filtered = React.useMemo(() => {
-    if (!items) return [];
-    const q = query.trim().toLowerCase();
-    return items.filter((workspace) => {
-      if (!q) return true;
-      return [workspace.name, workspace.ownerName, workspace.ownerEmail]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q);
-    });
-  }, [items, query]);
+  const [offset, setOffset] = React.useState(0);
+  const load = React.useCallback((signal?: AbortSignal) => listWorkspacePage(query, offset, signal), [query, offset]);
+  const {data: page, error, reload, loading} = useLoad(load);
+  const items = page?.items;
+  const filtered = items ?? [];
 
   return (
     <PageContainer>
@@ -48,7 +41,7 @@ export function WorkspacesView() {
         eyebrow={uiText("ui.platform")}
         title={uiText("ui.workspaces")}
         description={uiText("ui.provision.and.browse.workspaces.their.plan.and.operating.facts")}
-        meta={items ? `${items.length} workspaces` : undefined}
+        meta={items ? `${page?.total ?? 0} workspaces` : undefined}
         actions={
           <Button
             variant="primary"
@@ -65,7 +58,7 @@ export function WorkspacesView() {
           icon="search"
           placeholder={uiText("ui.search.by.name.owner.email")}
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {setQuery(event.target.value); setOffset(0);}}
         />
       </div>
 
@@ -93,6 +86,7 @@ export function WorkspacesView() {
           router.push(`/superadmin/workspaces/${workspace.id}`);
         }}
       />
+      {page && <Pagination total={page.total} offset={offset} onChange={setOffset} loading={loading} />}
     </PageContainer>
   );
 }

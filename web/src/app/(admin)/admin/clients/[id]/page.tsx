@@ -20,7 +20,7 @@ import { ClientPrivacyActions } from "@/components/admin/clients/ClientPrivacyAc
 import { plural } from "@/lib/text";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getClient } from "@/services/clients.service";
-import { listBookingsByClient } from "@/services/bookings.service";
+import { listBookingSummaries, listBookingsByClient } from "@/services/bookings.service";
 import { listSessions } from "@/services/sessions.service";
 import { listServices } from "@/services/services.service";
 import { formatMoney } from "@/lib/money";
@@ -44,17 +44,21 @@ export default function ClientDetailPage() {
   const id = params?.id;
   const loadDetail = React.useCallback(async () => {
     if (!id) return null;
+    if (dataSource === "api") {
+      const [client, page] = await Promise.all([getClient(id), listBookingSummaries({clientId: id})]);
+      return {client, summaries: page.items, bookings: [], sessions: [], services: []};
+    }
     const [client, bookings, sessions, services] = await Promise.all([
       getClient(id),
       listBookingsByClient(id),
       listSessions(),
       listServices(),
     ]);
-    return { client, bookings, sessions, services };
+    return { client, bookings, sessions, services, summaries: null };
   }, [id]);
   const { data, error, reload } = useLoad(loadDetail);
   const client = data?.client ?? null;
-  const bookings = data?.bookings ?? NONE;
+  const bookings = data?.summaries ?? data?.bookings ?? NONE;
   const sessions = data?.sessions ?? NONE;
   const services = data?.services ?? NONE;
   const [tab, setTab] = React.useState<Tab>("overview");
@@ -172,8 +176,8 @@ export default function ClientDetailPage() {
                 </div>
               </Card>
 
-              <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6 items-stretch">
-                <Card padded={false} className="flex flex-col lg:min-h-[22rem]">
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-6 items-stretch">
+                <Card padded={false} className="min-w-0 flex flex-col lg:min-h-[22rem]">
                   <CardHead
                     title={uiText("ui.recent.bookings")}
                     right={
@@ -208,12 +212,11 @@ export default function ClientDetailPage() {
                             className="w-full grid grid-cols-[2fr_2fr_1fr_auto] items-center gap-4 px-5 py-3.5 border-b border-line-soft last:border-b-0 hover:bg-surface-warm text-left"
                           >
                             <div className="text-[14px] text-ink truncate">
-                              {service?.name ?? uiText("ui.service")}
+                              {("serviceName" in b ? b.serviceName : service?.name) ?? uiText("ui.service")}
                             </div>
                             <div className="text-small whitespace-nowrap">
-                              {session
-                                ? `${fmtDate(new Date(session.startISO), "short")} · ${clockIn(session.startISO, timezone)}`
-                                : "—"}
+                              {"startAt" in b ? `${fmtDate(new Date(b.startAt), "short")} · ${clockIn(b.startAt, timezone)}` : session
+                                ? `${fmtDate(new Date(session.startISO), "short")} · ${clockIn(session.startISO, timezone)}` : "—"}
                             </div>
                             <div className="text-[14px] font-medium text-ink whitespace-nowrap">
                               {b.amountCents === 0 ? uiText("ui.free") : formatMoney(b.amountCents, b.currency)}
@@ -226,7 +229,7 @@ export default function ClientDetailPage() {
                   )}
                 </Card>
 
-                <Card padded={false} className="flex flex-col lg:min-h-[22rem]">
+                <Card padded={false} className="min-w-0 flex flex-col lg:min-h-[22rem]">
                   <CardHead title={uiText("ui.contact.info")} />
                   <div className="px-4 py-2">
                     <DetailLine icon="mail" label={uiText("ui.email")} value={client.email} />

@@ -1,9 +1,13 @@
+import csv
+import io
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Response
+from fastapi.responses import StreamingResponse
 
 from slotera_api.auth.dependencies import (
     CsrfOperatorWorkspaceDependency,
@@ -16,6 +20,7 @@ from slotera_api.clients.repository import (
     ClientStats,
 )
 from slotera_api.db.models import Client
+from slotera_api.editing import ExpectedVersionDependency
 from slotera_api.errors import ApiError
 from slotera_api.schemas.clients import (
     ClientCreate,
@@ -39,6 +44,7 @@ def _private(response: Response) -> None:
 def _client_response(client: Client, stats: ClientStats | None = None) -> ClientResponse:
     stats = stats or ClientStats()
     return ClientResponse(
+        version=client.version,
         id=client.id,
         name=client.name,
         email=client.email,
@@ -91,10 +97,13 @@ async def list_clients(
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> ClientListResponse:
     repository = ClientsRepository(database)
-    items, total = await repository.list_clients(
-        operator.workspace_id, search=search, limit=limit, offset=offset
-    )
-    stats = await repository.client_stats(operator.workspace_id, [item.id for item in items])
+    async with database.tenant_transaction(operator.workspace_id, repeatable_read=True) as session:
+        items, total = await repository.list_clients(
+            operator.workspace_id, search=search, limit=limit, offset=offset, dbsession=session
+        )
+        stats = await repository.client_stats(
+            operator.workspace_id, [item.id for item in items], dbsession=session
+        )
     _private(response)
     return ClientListResponse(
         items=[_client_response(item, stats.get(item.id)) for item in items],
@@ -126,6 +135,86 @@ async def create_client(
     return _client_response(client)  # A new client has no bookings yet.
 
 
+@router.get("/export.csv", operation_id="exportClientDirectory")
+async def export_directory(
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    language: Literal["en", "tr", "de"] = "en",
+    search: Annotated[str, Query(max_length=320)] = "",
+) -> StreamingResponse:
+    async def content() -> AsyncIterator[str]:
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        headings = {
+            "en": [
+                "Name",
+                "Email",
+                "Phone",
+                "Company",
+                "Status",
+                "Bookings",
+                "Completed",
+                "Cancelled",
+                "Spent",
+                "Currency",
+                "Client since",
+            ],
+            "tr": [
+                "Ad",
+                "E-posta",
+                "Telefon",
+                "Şirket",
+                "Durum",
+                "Rezervasyonlar",
+                "Tamamlanan",
+                "İptal edilen",
+                "Harcama",
+                "Para birimi",
+                "Kayıt tarihi",
+            ],
+            "de": [
+                "Name",
+                "E-Mail",
+                "Telefon",
+                "Unternehmen",
+                "Status",
+                "Buchungen",
+                "Abgeschlossen",
+                "Storniert",
+                "Ausgaben",
+                "Währung",
+                "Kunde seit",
+            ],
+        }
+        writer.writerow(headings[language])
+        yield "\ufeff" + buffer.getvalue()
+        buffer.seek(0)
+        buffer.truncate(0)
+        async for row in ClientsRepository(database).export_directory(
+            operator.workspace_id, search
+        ):
+            writer.writerow(
+                [
+                    "'" + value
+                    if isinstance(value, str) and value.startswith(("=", "+", "-", "@", "\t", "\r"))
+                    else value
+                    for value in row
+                ]
+            )
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+    return StreamingResponse(
+        content(),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": 'attachment; filename="clients.csv"',
+        },
+    )
+
+
 @router.get("/{client_id}", response_model=ClientResponse, operation_id="getClient")
 async def get_client(
     client_id: UUID,
@@ -143,6 +232,7 @@ async def get_client(
 
 @router.patch("/{client_id}", response_model=ClientResponse, operation_id="updateClient")
 async def update_client(
+    expected_version: ExpectedVersionDependency,
     client_id: UUID,
     payload: ClientPatch,
     response: Response,
@@ -154,7 +244,11 @@ async def update_client(
     try:
         client = (
             await repository.update_client(
-                operator.workspace_id, operator.user_id, client_id, changes
+                operator.workspace_id,
+                operator.user_id,
+                client_id,
+                changes,
+                expected_version=expected_version,
             )
             if changes
             else await repository.get_client(operator.workspace_id, client_id)
@@ -204,13 +298,14 @@ async def export_client(
     operation_id="eraseClient",
 )
 async def erase_client(
+    expected_version: ExpectedVersionDependency,
     client_id: UUID,
     payload: ClientErase,
     operator: CsrfOperatorWorkspaceDependency,
     database: DatabaseDependency,
 ) -> Response:
     result = await ClientsRepository(database).erase_client(
-        operator.workspace_id, operator.user_id, client_id, payload.confirm_email
+        operator.workspace_id, operator.user_id, client_id, payload.confirm_email, expected_version
     )
     if result == "not_found":
         raise _not_found()

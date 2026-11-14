@@ -114,3 +114,23 @@ export function zonedWallToISO(date: string, time: string, timezone: string): st
   }
   return new Date(guess).toISOString();
 }
+
+/** Calendar dates are wall dates in the workspace, independent of the browser zone. */
+export function calendarDayKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+}
+
+export function calendarSegments(startISO: string, endISO: string, timezone: string) {
+  const start = slotParts(startISO, timezone);
+  const end = slotParts(endISO, timezone);
+  const hour = (time: string) => Number(time.slice(0,2)) + Number(time.slice(3,5))/60;
+  const segments: {dateKey: string; startHour: number; endHour: number}[] = [];
+  const day = new Date(`${start.date}T12:00:00Z`);
+  for (let key = start.date; key <= end.date; key = day.toISOString().slice(0,10)) {
+    const startHour = key === start.date ? hour(start.time) : 0;
+    const endHour = key === end.date ? hour(end.time) : 24;
+    if (endHour > startHour) segments.push({dateKey:key, startHour, endHour});
+    day.setUTCDate(day.getUTCDate()+1);
+  }
+  return segments;
+}

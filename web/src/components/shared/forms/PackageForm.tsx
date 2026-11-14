@@ -12,10 +12,10 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { makeId } from "@/lib/id";
-import { listServices } from "@/services/services.service";
+import { useServiceOptions } from "@/lib/use-service-options";
+import { LoadError } from "@/components/shared/LoadError";
 import type { Currency } from "@/types/common";
 import type { PackageItem, ServicePackageInput } from "@/types/package";
-import type { Service } from "@/types/service";
 
 /**
  * Controlled editor for a package. The caller owns state, save plumbing, and
@@ -42,15 +42,13 @@ function reindex(items: PackageItem[]): PackageItem[] {
 
 export function PackageForm({ value, onChange, disabled }: Props) {
   const { t: uiText } = useI18n();
-  const [services, setServices] = React.useState<Service[]>([]);
+  const options = useServiceOptions(value.items.map((item) => item.serviceId).filter(Boolean));
+  const services = options.data ?? [];
 
   // Focus the most-recently-added item's service select once it renders.
   const itemRefs = React.useRef<Map<string, HTMLSelectElement>>(new Map());
   const pendingFocusId = React.useRef<string | null>(null);
 
-  React.useEffect(() => {
-    listServices().then((s) => setServices(s.filter((x) => x.active)));
-  }, []);
 
   React.useEffect(() => {
     const id = pendingFocusId.current;
@@ -105,7 +103,9 @@ export function PackageForm({ value, onChange, disabled }: Props) {
       disabled={disabled}
       className="flex flex-col gap-5 disabled:opacity-90"
     >
-      <Field label={uiText("ui.name")} required>
+      <Input value={options.search} placeholder={uiText("common.search")} onChange={(event) => options.setSearch(event.target.value)} />
+        {options.error && <LoadError message={options.error} onRetry={options.reload} />}
+        <Field label={uiText("ui.name")} required>
         <Input
           value={value.name}
           onChange={(e) => patch({ name: e.target.value })}

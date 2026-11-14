@@ -4,6 +4,8 @@ import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { restoreSession } from "@/services/auth.service";
 import { homePathForRole, isNavRoute } from "@/lib/nav";
+import { readSession } from "@/lib/session";
+import { LoadError } from "@/components/shared/LoadError";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { UserRole } from "@/types/auth";
 import { dataSource } from "@/lib/env";
@@ -18,6 +20,18 @@ export function AuthGuard({ children, requireRole }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [ready, setReady] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [attempt, setAttempt] = React.useState(0);
+  React.useEffect(() => {
+    const changed = () => { if (!readSession()) { setReady(false); router.replace("/login"); } };
+    const identityChanged = () => {setReady(false); setAttempt((value) => value + 1);};
+    window.addEventListener("slotera-session-change", changed);
+    window.addEventListener("slotera-auth-identity-changed", identityChanged);
+    return () => {
+      window.removeEventListener("slotera-session-change", changed);
+      window.removeEventListener("slotera-auth-identity-changed", identityChanged);
+    };
+  }, [router]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -40,15 +54,18 @@ export function AuthGuard({ children, requireRole }: Props) {
           router.replace(homePathForRole(requireRole));
           return;
         }
+        setError(null);
         setReady(true);
       })
-      .catch(() => {
-        if (!cancelled) router.replace("/login");
+      .catch((cause: unknown) => {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : String(cause));
       });
     return () => {
       cancelled = true;
     };
-  }, [router, pathname, requireRole]);
+  }, [router, pathname, requireRole, attempt]);
+
+  if (error) return <LoadError message={error} onRetry={() => setAttempt((value) => value + 1)} />;
 
   if (!ready) {
     return (

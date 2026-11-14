@@ -46,11 +46,23 @@ async def test_meeting_link_and_private_calendar_feed() -> None:
             service_id = service["id"]
             bad_link = await operator.patch(
                 f"/services/{service_id}",
-                headers=_csrf(operator),
+                headers={
+                    **_csrf(operator),
+                    "If-Match": '"v'
+                    + str((await operator.get(f"/services/{service_id}")).json().get("version", 1))
+                    + '"',
+                },
                 json={"meetingUrl": "http://insecure.example.com"},
             )
             patched = await operator.patch(
-                f"/services/{service_id}", headers=_csrf(operator), json={"meetingUrl": MEETING}
+                f"/services/{service_id}",
+                headers={
+                    **_csrf(operator),
+                    "If-Match": '"v'
+                    + str((await operator.get(f"/services/{service_id}")).json().get("version", 1))
+                    + '"',
+                },
+                json={"meetingUrl": MEETING},
             )
 
             starts_on = date.today() + timedelta(days=10)

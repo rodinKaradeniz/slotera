@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, Literal, cast
 
 from fastapi import APIRouter, Query, Request, Response
 
@@ -55,9 +55,12 @@ def _session_response(session: AuthSession) -> SessionResponse:
             id=session.workspace_id,
             name=session.workspace_name,
             slug=session.workspace_slug,
+            currency=str(session.workspace_currency),
+            timezone=str(session.workspace_timezone),
         )
     return SessionResponse(
         user=SessionUser(
+            language=cast(Literal["en", "tr", "de"], session.preferred_language),
             id=session.user_id,
             email=session.email,
             title=session.title,

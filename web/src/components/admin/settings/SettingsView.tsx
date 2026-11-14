@@ -1,9 +1,11 @@
 "use client";
+import { DATA_CHANGED } from "@/api/query-cache";
 import { translateInterfaceLabel } from "@/lib/i18n";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { LoadingRows } from "@/components/shared/LoadingRows";
@@ -50,29 +52,31 @@ export function SettingsView() {
   const [paymentSettings, setPaymentSettings] = React.useState<PaymentSettings | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
+  const [readAttempt, setReadAttempt] = React.useState(0);
+  React.useEffect(() => {
+    const refresh = () => setReadAttempt((value) => value + 1);
+    window.addEventListener(DATA_CHANGED, refresh);
+    return () => window.removeEventListener(DATA_CHANGED, refresh);
+  }, []);
   React.useEffect(() => {
     const load = async () => {
       try {
         if (dataSource === "api") {
-          const [nextBusiness, nextAvailability, nextPayments] = await Promise.all([
-            getBusinessSettings(),
-            getAvailabilitySettings(),
-            getPaymentSettings(),
-          ]);
-          setBusiness(nextBusiness);
-          setAvailability(nextAvailability);
-          setPaymentSettings(nextPayments);
+          if (["business", "emails"].includes(section)) setBusiness(await getBusinessSettings());
+          if (section === "calendar") setAvailability(await getAvailabilitySettings());
+          if (section === "payments") setPaymentSettings(await getPaymentSettings());
+          setLoadError(null);
           return;
         }
         const settings = await getSettings();
         setData(settings);
         setBusiness(settings.business);
       } catch (error) {
-        setLoadError(error instanceof Error ? error.message : uiText("ui.settings.could.not.be.loaded"));
+        setLoadError(error instanceof Error ? error.message : String(error));
       }
     };
     void load();
-  }, [uiText]);
+  }, [section, readAttempt]);
 
   // Platform billing is a real-app concern; the mock demo never shows it.
   const visibleNav = dataSource === "api"
@@ -128,18 +132,20 @@ export function SettingsView() {
               </h2>
             </div>
           )}
-          {loadError ? (
+          {loadError && (
             <Card padded>
               <p className="text-small text-danger">{loadError}</p>
+              <Button variant="secondary" onClick={() => setReadAttempt((value) => value + 1)}>{uiText("forms.retry")}</Button>
             </Card>
-          ) : !business || (dataSource === "mock" && !data) ? (
-            <LoadingRows count={2} />
+          )}
+          {(dataSource === "api" ? (["business", "emails"].includes(section) && !business) || (section === "calendar" && !availability) || (section === "payments" && !paymentSettings) : !business || !data) ? (
+            !loadError && <LoadingRows count={2} />
           ) : (
             <div className="flex flex-col gap-6">
               {section === "business" && (
                 <>
-                  <BusinessPanel business={business} onChange={handleBusinessChange} />
-                  <LocationsCard business={business} onChange={handleBusinessChange} />
+                  <BusinessPanel business={business!} onChange={handleBusinessChange} />
+                  <LocationsCard business={business!} onChange={handleBusinessChange} />
                 </>
               )}
               {section === "branding" && dataSource === "api" && <ApiBrandingPanel />}
@@ -162,7 +168,7 @@ export function SettingsView() {
                 <CalendarPanel data={data} onChange={setData} />
               )}
               {section === "emails" && dataSource === "api" && (
-                <ApiEmailsPanel business={business} onChange={handleBusinessChange} />
+                <ApiEmailsPanel business={business!} onChange={handleBusinessChange} />
               )}
               {section === "emails" && dataSource === "mock" && data && (
                 <EmailsPanel data={data} onChange={setData} />

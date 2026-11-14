@@ -1,5 +1,6 @@
+import { mockData } from "@/services/adapters/mock-data";
 import { readLang, translate, type Lang , localeForLang} from "@/lib/i18n";
-import dashboardJson from "@/data/mock/dashboard.json";
+
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -212,7 +213,7 @@ export async function getDashboard(_lang: Lang = readLang()): Promise<DashboardD
     return reminder ? { ...data, pendingActions: [reminder, ...data.pendingActions] } : data;
   }
   await sleep(80);
-  const base = dashboardJson as unknown as DashboardData;
+  const base = mockData<DashboardData>("dashboard");
   // Live-derived pending actions get merged in front of the seeded ones so
   // recent operator activity (un-marked attendance, open tasks, etc.) doesn't
   // get buried.

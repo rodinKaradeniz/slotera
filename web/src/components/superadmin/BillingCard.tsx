@@ -1,4 +1,5 @@
 "use client";
+import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
@@ -8,7 +9,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
-import { setPlatformWorkspaceBilling } from "@/services/platform.service";
+import { getWorkspace, setPlatformWorkspaceBilling } from "@/services/platform.service";
 import { PLAN_LABEL, type BillingInterval, type PlanId } from "@/lib/plans";
 import type { PlatformWorkspace } from "@/types/platform";
 
@@ -37,12 +38,10 @@ export function BillingCard({
   );
   const [form, setForm] = React.useState(initial);
   const [busy, setBusy] = React.useState(false);
-  // A saved or reloaded workspace replaces the form's values.
-  const [formFor, setFormFor] = React.useState(initial);
-  if (formFor !== initial) {
-    setFormFor(initial);
-    setForm(initial);
-  }
+  const edit = useReviewedEdit(true, {...workspace, version: workspace.billingVersion},
+    async (id) => {const latest = await getWorkspace(id); return latest ? {...latest, version: latest.billingVersion} : null;},
+    (latest) => {setForm({plan: latest.plan, billingInterval: latest.billingInterval,
+      trialEnds: latest.trialEndsAtISO.slice(0,10), paidThrough: latest.paidThrough ?? ""}); onSaved(latest);});
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
 
   const save = async () => {
@@ -54,10 +53,11 @@ export function BillingCard({
         // End of the chosen day in UTC, so "trial ends 12 Nov" includes the 12th.
         trialEndsAt: `${form.trialEnds}T23:59:59Z`,
         paidThrough: form.paidThrough || null,
-      });
-      onSaved(saved);
+      }, edit.version);
+      edit.accept({...saved, version: saved.billingVersion}); onSaved(saved);
       toast.success(uiText("ui.billing.saved"), { description: uiText("ui.recorded.in.the.audit.log") });
     } catch (error) {
+      edit.onError(error);
       toast.error(error instanceof Error ? error.message : uiText("ui.could.not.save.billing"));
     } finally {
       setBusy(false);
@@ -66,6 +66,7 @@ export function BillingCard({
 
   return (
     <Card padded>
+      {edit.notice}
       <h3 className="text-h3 text-ink mb-1" style={{ fontSize: 16 }}>{uiText("ui.billing")}</h3>
       <p className="text-small mb-4">
         {uiText("ui.invoiced.by.hand.until.card.billing.exists.extend.the.trial.for.pilot.members")}</p>

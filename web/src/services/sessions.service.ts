@@ -1,4 +1,5 @@
-import sessionsJson from "@/data/mock/sessions.json";
+import { mockData } from "@/services/adapters/mock-data";
+
 import { apiListAll, apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -16,7 +17,8 @@ type SessionPatchDto = components["schemas"]["SessionPatch"];
 
 export type SessionUpdateScope = "this" | "this_and_following";
 
-let mock: SessionItem[] = JSON.parse(JSON.stringify(sessionsJson)) as SessionItem[];
+let mock: SessionItem[] = dataSource === "mock" ? mockData("sessions") : [] as SessionItem[];
+mock = mock.map((item) => ({...item, version: item.version ?? 1}));
 
 function mapAddress(address: AddressDto) {
   return {
@@ -44,6 +46,8 @@ function toAddressDto(address: NonNullable<SessionItem["address"]>): AddressDto 
 
 function mapSession(session: SessionDto): SessionItem {
   return {
+    version: session.version,
+    seriesVersion: session.seriesVersion ?? undefined,
     id: session.id,
     serviceId: session.serviceId,
     startISO: session.startAt,
@@ -138,7 +142,8 @@ export async function createSession(input: SessionInput): Promise<SessionItem> {
     );
   }
   await sleep(120);
-  const created: SessionItem = { ...input, id: makeId("ses") };
+  const created: SessionItem = {
+    version: 1, ...input, id: makeId("ses") };
   mock = [...mock, created];
   return created;
 }
@@ -147,12 +152,15 @@ export async function updateSession(
   id: string,
   patch: Partial<SessionInput>,
   scope: SessionUpdateScope = "this",
+  expectedVersion?: number,
+  seriesVersion?: number,
 ): Promise<SessionItem> {
   if (dataSource === "api") {
     return mapSession(
       await apiRequest<SessionDto, SessionPatchDto>(
         `/sessions/${encodeURIComponent(id)}?scope=${scope}`,
-        { method: "PATCH", body: patchPayload(patch), csrf: true },
+        { method: "PATCH", body: patchPayload(patch), csrf: true, expectedVersion,
+          headers: seriesVersion ? {"X-Series-Version": String(seriesVersion)} : undefined },
       ),
     );
   }
@@ -164,8 +172,8 @@ export async function updateSession(
   return next;
 }
 
-export async function cancelSession(id: string): Promise<SessionItem> {
-  return updateSession(id, { status: "cancelled" });
+export async function cancelSession(id: string, expectedVersion?: number): Promise<SessionItem> {
+  return updateSession(id, { status: "cancelled" }, "this", expectedVersion);
 }
 
 export async function findConflict(
@@ -187,13 +195,26 @@ export async function findConflict(
   return sessionOverlaps(candidate, mock);
 }
 
-export async function listBookableSessions(offset = 0): Promise<{ items: SessionItem[]; total: number }> {
+export async function listBookableSessions(offset = 0, serviceId?: string): Promise<{ items: SessionItem[]; total: number }> {
   if (dataSource === "api") {
-    const page = await apiRequest<SessionListDto>(`/sessions?bookable=true&limit=50&offset=${offset}`);
+    const page = await apiRequest<SessionListDto>(`/sessions?bookable=true&limit=50&offset=${offset}${serviceId ? `&serviceId=${encodeURIComponent(serviceId)}` : ""}`);
     return { items: page.items.map(mapSession), total: page.total };
   }
   // The showcase uses its fixed demo calendar, independent of the real clock.
   await sleep(60);
-  const items = mock.filter((s) => s.status === "scheduled" && s.bookedCount < s.capacity);
+  const items = mock.filter((s) => s.status === "scheduled" && s.bookedCount < s.capacity && (!serviceId || s.serviceId === serviceId));
   return { items: items.slice(offset, offset + 50), total: items.length };
+}
+
+
+/** Complete only the requested visible interval, never the workspace's history. */
+export async function listSessionsInRange(startsFrom: string, startsBefore: string, signal?: AbortSignal): Promise<SessionItem[]> {
+  if (dataSource === "mock") return mock.filter((item) => item.endISO > startsFrom && item.startISO < startsBefore);
+  const items: SessionItem[] = [];
+  for (let offset = 0; ; offset += 200) {
+    const params = new URLSearchParams({ startsFrom, startsBefore, limit: "200", offset: String(offset) });
+    const page = await apiRequest<SessionListDto>(`/sessions?${params}`, { signal });
+    items.push(...page.items.map(mapSession));
+    if (items.length >= page.total || page.items.length === 0) return items;
+  }
 }

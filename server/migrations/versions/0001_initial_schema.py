@@ -623,7 +623,7 @@ CREATE FUNCTION public.slotera_auth_self_signup(p_workspace_id uuid, p_owner_use
 -- Name: slotera_auth_session(bytea); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.slotera_auth_session(p_token_hash bytea) RETURNS TABLE(session_id uuid, user_id uuid, email text, title text, first_names text, last_name text, role text, workspace_id uuid, workspace_name text, workspace_slug text, csrf_token_hash bytea, expires_at timestamp with time zone)
+CREATE FUNCTION public.slotera_auth_session(p_token_hash bytea) RETURNS TABLE(session_id uuid, user_id uuid, email text, title text, first_names text, last_name text, role text, workspace_id uuid, workspace_name text, workspace_slug text, csrf_token_hash bytea, expires_at timestamp with time zone, preferred_language text, workspace_currency text, workspace_timezone text)
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
@@ -639,7 +639,10 @@ CREATE FUNCTION public.slotera_auth_session(p_token_hash bytea) RETURNS TABLE(se
             w.name::text,
             w.slug::text,
             s.csrf_token_hash,
-            s.expires_at
+            s.expires_at,
+            u.preferred_language::text,
+            w.currency::text,
+            w.timezone::text
           FROM public.auth_sessions AS s
           JOIN public.users AS u ON u.id = s.user_id
           LEFT JOIN public.workspace_memberships AS m
@@ -1198,7 +1201,7 @@ CREATE FUNCTION public.slotera_platform_cancel_workspace_closure(p_workspace_id 
 -- Name: slotera_platform_get_workspace(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.slotera_platform_get_workspace(p_workspace_id uuid) RETURNS TABLE(id uuid, name text, slug text, owner_name text, owner_email text, created_at timestamp with time zone, currency text, timezone text, operational_status text, plan text, billing_interval text, trial_ends_at timestamp with time zone, paid_through date, closure_requested_at timestamp with time zone, services_count integer, clients_count integer, bookings_count integer, sessions_count integer)
+CREATE FUNCTION public.slotera_platform_get_workspace(p_workspace_id uuid) RETURNS TABLE(id uuid, name text, slug text, owner_name text, owner_email text, created_at timestamp with time zone, currency text, timezone text, operational_status text, plan text, billing_interval text, trial_ends_at timestamp with time zone, paid_through date, closure_requested_at timestamp with time zone, services_count integer, clients_count integer, bookings_count integer, sessions_count integer, billing_version bigint)
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public'
     AS $$
@@ -1221,7 +1224,8 @@ CREATE FUNCTION public.slotera_platform_get_workspace(p_workspace_id uuid) RETUR
       service_facts.services_count,
       client_facts.clients_count,
       booking_facts.bookings_count,
-      session_facts.sessions_count
+      session_facts.sessions_count,
+      w.billing_version
     FROM public.workspaces AS w
     LEFT JOIN LATERAL (
       SELECT
@@ -1255,30 +1259,34 @@ CREATE FUNCTION public.slotera_platform_get_workspace(p_workspace_id uuid) RETUR
 
 
 --
--- Name: slotera_platform_list_inquiries(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- Name: slotera_platform_list_inquiries(uuid, integer, integer, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.slotera_platform_list_inquiries(p_actor_user_id uuid) RETURNS TABLE(id uuid, name text, email text, company text, reason text, message text, created_at timestamp with time zone, read_at timestamp with time zone)
+CREATE FUNCTION public.slotera_platform_list_inquiries(p_actor_user_id uuid, p_limit integer DEFAULT 25, p_offset integer DEFAULT 0, p_search text DEFAULT '', p_reason text DEFAULT '', p_read text DEFAULT '', p_id uuid DEFAULT NULL) RETURNS TABLE(id uuid, name text, email text, company text, reason text, message text, created_at timestamp with time zone, read_at timestamp with time zone, total_count bigint)
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public'
     AS $$
           SELECT i.id, i.name::text, i.email::text, i.company::text, i.reason::text,
-                 i.message::text, i.created_at, i.read_at
+                 i.message::text, i.created_at, i.read_at, count(*) OVER ()
           FROM public.platform_inquiries AS i
           WHERE EXISTS (
             SELECT 1 FROM public.users
             WHERE id = p_actor_user_id AND platform_role::text = 'superadmin'
           )
-          ORDER BY i.created_at DESC
-          LIMIT 500
+          AND (p_id IS NULL OR i.id = p_id)
+          AND (p_search = '' OR strpos(lower(concat_ws(' ', i.name, i.email, i.company, i.message)), lower(btrim(p_search))) > 0)
+          AND (p_reason = '' OR i.reason::text = p_reason)
+          AND (p_read = '' OR (p_read = 'read' AND i.read_at IS NOT NULL) OR (p_read = 'unread' AND i.read_at IS NULL))
+          ORDER BY i.created_at DESC, i.id DESC
+          LIMIT LEAST(GREATEST(p_limit, 1), 100) OFFSET GREATEST(p_offset, 0)
         $$;
 
 
 --
--- Name: slotera_platform_list_workspaces(integer, integer); Type: FUNCTION; Schema: public; Owner: -
+-- Name: slotera_platform_list_workspaces(integer, integer, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.slotera_platform_list_workspaces(p_limit integer DEFAULT 100, p_offset integer DEFAULT 0) RETURNS TABLE(id uuid, name text, slug text, owner_name text, owner_email text, created_at timestamp with time zone, currency text, timezone text, operational_status text, plan text, billing_interval text, trial_ends_at timestamp with time zone, paid_through date, closure_requested_at timestamp with time zone, services_count integer, clients_count integer, bookings_count integer, sessions_count integer)
+CREATE FUNCTION public.slotera_platform_list_workspaces(p_limit integer DEFAULT 100, p_offset integer DEFAULT 0, p_search text DEFAULT '') RETURNS TABLE(id uuid, name text, slug text, owner_name text, owner_email text, created_at timestamp with time zone, currency text, timezone text, operational_status text, plan text, billing_interval text, trial_ends_at timestamp with time zone, paid_through date, closure_requested_at timestamp with time zone, services_count integer, clients_count integer, bookings_count integer, sessions_count integer, billing_version bigint, total_count bigint)
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public'
     AS $$
@@ -1301,7 +1309,9 @@ CREATE FUNCTION public.slotera_platform_list_workspaces(p_limit integer DEFAULT 
       service_facts.services_count,
       client_facts.clients_count,
       booking_facts.bookings_count,
-      session_facts.sessions_count
+      session_facts.sessions_count,
+      w.billing_version,
+      count(*) OVER ()
     FROM public.workspaces AS w
     LEFT JOIN LATERAL (
       SELECT
@@ -1330,6 +1340,7 @@ CREATE FUNCTION public.slotera_platform_list_workspaces(p_limit integer DEFAULT 
       FROM public.sessions AS session_item WHERE session_item.workspace_id = w.id
     ) AS session_facts
 
+          WHERE p_search = '' OR strpos(lower(concat_ws(' ', w.name, owner.owner_name, owner.owner_email)), lower(btrim(p_search))) > 0
           ORDER BY w.created_at DESC, w.id DESC
           LIMIT LEAST(GREATEST(p_limit, 1), 200)
           OFFSET GREATEST(p_offset, 0)
@@ -1423,10 +1434,10 @@ CREATE FUNCTION public.slotera_platform_provision_workspace(p_workspace_id uuid,
 
 
 --
--- Name: slotera_platform_set_workspace_billing(uuid, uuid, text, text, timestamp with time zone, date, uuid); Type: FUNCTION; Schema: public; Owner: -
+-- Name: slotera_platform_set_workspace_billing(uuid, uuid, text, text, timestamp with time zone, date, uuid, bigint); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.slotera_platform_set_workspace_billing(p_workspace_id uuid, p_actor_user_id uuid, p_plan text, p_billing_interval text, p_trial_ends_at timestamp with time zone, p_paid_through date, p_audit_event_id uuid) RETURNS text
+CREATE FUNCTION public.slotera_platform_set_workspace_billing(p_workspace_id uuid, p_actor_user_id uuid, p_plan text, p_billing_interval text, p_trial_ends_at timestamp with time zone, p_paid_through date, p_audit_event_id uuid, p_expected_version bigint) RETURNS text
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public'
     AS $$
@@ -1452,6 +1463,9 @@ CREATE FUNCTION public.slotera_platform_set_workspace_billing(p_workspace_id uui
           IF NOT FOUND THEN
             RETURN 'workspace_not_found';
           END IF;
+          IF p_expected_version IS NULL OR current.billing_version <> p_expected_version THEN
+            RETURN 'resource_stale';
+          END IF;
           IF current.plan = p_plan
              AND current.billing_interval = p_billing_interval
              AND current.trial_ends_at = p_trial_ends_at
@@ -1459,7 +1473,8 @@ CREATE FUNCTION public.slotera_platform_set_workspace_billing(p_workspace_id uui
             RETURN 'unchanged';
           END IF;
           UPDATE public.workspaces
-          SET plan = p_plan,
+          SET billing_version = billing_version + 1,
+              plan = p_plan,
               plan_changed_at = CASE WHEN plan <> p_plan
                                      THEN statement_timestamp() ELSE plan_changed_at END,
               billing_interval = p_billing_interval,
@@ -2521,6 +2536,7 @@ ALTER TABLE ONLY public.workspace_slug_history FORCE ROW LEVEL SECURITY;
 --
 
 CREATE TABLE public.workspaces (
+    billing_version bigint DEFAULT 1 NOT NULL,
     id uuid NOT NULL,
     name character varying(160) NOT NULL,
     slug character varying(80) NOT NULL,
@@ -4819,19 +4835,19 @@ GRANT ALL ON FUNCTION public.slotera_platform_get_workspace(p_workspace_id uuid)
 
 
 --
--- Name: FUNCTION slotera_platform_list_inquiries(p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+-- Name: FUNCTION slotera_platform_list_inquiries(p_actor_user_id uuid, p_limit integer, p_offset integer, p_search text, p_reason text, p_read text, p_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
-REVOKE ALL ON FUNCTION public.slotera_platform_list_inquiries(p_actor_user_id uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.slotera_platform_list_inquiries(p_actor_user_id uuid) TO slotera_app;
+REVOKE ALL ON FUNCTION public.slotera_platform_list_inquiries(p_actor_user_id uuid, p_limit integer, p_offset integer, p_search text, p_reason text, p_read text, p_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.slotera_platform_list_inquiries(p_actor_user_id uuid, p_limit integer, p_offset integer, p_search text, p_reason text, p_read text, p_id uuid) TO slotera_app;
 
 
 --
--- Name: FUNCTION slotera_platform_list_workspaces(p_limit integer, p_offset integer); Type: ACL; Schema: public; Owner: -
+-- Name: FUNCTION slotera_platform_list_workspaces(p_limit integer, p_offset integer, p_search text); Type: ACL; Schema: public; Owner: -
 --
 
-REVOKE ALL ON FUNCTION public.slotera_platform_list_workspaces(p_limit integer, p_offset integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.slotera_platform_list_workspaces(p_limit integer, p_offset integer) TO slotera_app;
+REVOKE ALL ON FUNCTION public.slotera_platform_list_workspaces(p_limit integer, p_offset integer, p_search text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.slotera_platform_list_workspaces(p_limit integer, p_offset integer, p_search text) TO slotera_app;
 
 
 --
@@ -4862,8 +4878,8 @@ GRANT ALL ON FUNCTION public.slotera_platform_provision_workspace(p_workspace_id
 -- Name: FUNCTION slotera_platform_set_workspace_billing(p_workspace_id uuid, p_actor_user_id uuid, p_plan text, p_billing_interval text, p_trial_ends_at timestamp with time zone, p_paid_through date, p_audit_event_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
-REVOKE ALL ON FUNCTION public.slotera_platform_set_workspace_billing(p_workspace_id uuid, p_actor_user_id uuid, p_plan text, p_billing_interval text, p_trial_ends_at timestamp with time zone, p_paid_through date, p_audit_event_id uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.slotera_platform_set_workspace_billing(p_workspace_id uuid, p_actor_user_id uuid, p_plan text, p_billing_interval text, p_trial_ends_at timestamp with time zone, p_paid_through date, p_audit_event_id uuid) TO slotera_app;
+REVOKE ALL ON FUNCTION public.slotera_platform_set_workspace_billing(p_workspace_id uuid, p_actor_user_id uuid, p_plan text, p_billing_interval text, p_trial_ends_at timestamp with time zone, p_paid_through date, p_audit_event_id uuid, p_expected_version bigint) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.slotera_platform_set_workspace_billing(p_workspace_id uuid, p_actor_user_id uuid, p_plan text, p_billing_interval text, p_trial_ends_at timestamp with time zone, p_paid_through date, p_audit_event_id uuid, p_expected_version bigint) TO slotera_app;
 
 
 --
@@ -5219,6 +5235,52 @@ AS $$ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.slotera_booking_prepare_email_send(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.slotera_booking_prepare_email_send(uuid) TO slotera_app;
+
+-- Attach safe correlation metadata inside the same transaction as every queued message.
+CREATE FUNCTION public.slotera_email_trace() RETURNS trigger
+LANGUAGE plpgsql SET search_path TO pg_catalog AS $$
+BEGIN
+  IF NULLIF(current_setting('app.request_id', true), '') IS NOT NULL THEN
+    NEW.template_data := NEW.template_data || jsonb_build_object(
+      '_traceRequestId', current_setting('app.request_id', true),
+      '_traceOperationId', current_setting('app.operation_id', true));
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.slotera_email_trace() FROM PUBLIC;
+CREATE TRIGGER email_trace BEFORE INSERT ON public.email_outbox
+FOR EACH ROW EXECUTE FUNCTION public.slotera_email_trace();
+
+-- Cover capability-generated audit events as well as ORM writes.
+CREATE FUNCTION public.slotera_audit_trace() RETURNS trigger
+LANGUAGE plpgsql SET search_path TO pg_catalog AS $$
+BEGIN
+  IF NULLIF(current_setting('app.request_id', true), '') IS NOT NULL THEN
+    NEW.details := COALESCE(NEW.details, '{}'::jsonb) || jsonb_build_object(
+      'requestId', current_setting('app.request_id', true),
+      'operationId', current_setting('app.operation_id', true));
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.slotera_audit_trace() FROM PUBLIC;
+CREATE TRIGGER audit_trace BEFORE INSERT ON public.audit_events
+FOR EACH ROW EXECUTE FUNCTION public.slotera_audit_trace();
+
+-- Bounded status pages and a client's recent bookings use these stable orderings.
+CREATE INDEX ix_bookings_workspace_status_created ON public.bookings(workspace_id, status, created_at DESC, id);
+CREATE INDEX ix_bookings_workspace_client_created ON public.bookings(workspace_id, client_id, created_at DESC, id);
+
+-- Reviewed edit revisions are independent of booking snapshots and command idempotency.
+ALTER TABLE public.clients ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+ALTER TABLE public.services ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+ALTER TABLE public.workspace_locations ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+ALTER TABLE public.form_templates ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+ALTER TABLE public.service_packages ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+ALTER TABLE public.client_notes ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+ALTER TABLE public.session_action_items ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+ALTER TABLE public.sessions ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+ALTER TABLE public.session_series ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+ALTER TABLE public.workspace_business_profiles ADD COLUMN version bigint DEFAULT 1 NOT NULL;
 
 SET search_path = public;
 SET row_security = on;

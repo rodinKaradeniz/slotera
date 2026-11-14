@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clockIn, localDateKey, sessionOverlaps, slotParts, zonedWallToISO } from "./calendar";
+import { calendarSegments, clockIn, localDateKey, sessionOverlaps, slotParts, zonedWallToISO } from "./calendar";
 
 describe("availability date keys", () => {
   it("keys a calendar cell by its local date, not a UTC timestamp", () => {
@@ -86,4 +86,15 @@ describe("zoned wall clock", () => {
     const iso = zonedWallToISO("2026-03-29", "09:30", "Europe/Berlin");
     expect(clockIn(iso, "Europe/Berlin")).toBe("09:30");
   });
+});
+
+
+it("segments midnight sessions by workspace wall date without a zero-length last day", () => {
+  expect(calendarSegments("2026-10-12T20:30:00Z", "2026-10-12T22:30:00Z", "Europe/Istanbul")).toEqual([
+    {dateKey: "2026-10-12", startHour: 23.5, endHour: 24},
+    {dateKey: "2026-10-13", startHour: 0, endHour: 1.5},
+  ]);
+  expect(calendarSegments("2026-10-12T20:30:00Z", "2026-10-12T21:00:00Z", "Europe/Istanbul")).toEqual([
+    {dateKey: "2026-10-12", startHour: 23.5, endHour: 24},
+  ]);
 });

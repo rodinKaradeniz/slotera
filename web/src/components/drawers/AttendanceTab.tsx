@@ -1,4 +1,7 @@
 "use client";
+import { dataSource } from "@/lib/env";
+import { Pagination } from "@/components/shared/Pagination";
+import { LoadError } from "@/components/shared/LoadError";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
@@ -8,7 +11,7 @@ import { SegGroup } from "@/components/ui/SegGroup";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import {
-  listBookingsBySession,
+  listBookingSummaries, listBookingsBySession,
   setBookingAttendance,
 } from "@/services/bookings.service";
 import { listClients } from "@/services/clients.service";
@@ -20,8 +23,8 @@ type Props = {
 };
 
 type Row = {
-  booking: Booking;
-  client: Client | undefined;
+  booking: Pick<Booking, "id" | "attendance">;
+  client: Pick<Client, "name" | "company"> | undefined;
 };
 
 const ATTENDANCE_OPTIONS = [
@@ -43,22 +46,25 @@ export function AttendanceTab({ sessionId }: Props) {
   const [rows, setRows] = React.useState<Row[] | null>(null);
   const [busyIds, setBusyIds] = React.useState<Set<string>>(new Set());
 
+  const [offset, setOffset] = React.useState(0);
+  const [total, setTotal] = React.useState(0);
+  const [error, setError] = React.useState<string | null>(null);
+  const [attempt, setAttempt] = React.useState(0);
   React.useEffect(() => {
-    let live = true;
-    Promise.all([listBookingsBySession(sessionId), listClients()]).then(
-      ([bookings, clients]) => {
-        if (!live) return;
-        const clientById = new Map(clients.map((c) => [c.id, c]));
-        const filtered = bookings
-          .filter((b) => b.status === "confirmed" || b.status === "completed")
-          .map<Row>((b) => ({ booking: b, client: clientById.get(b.clientId) }));
-        setRows(filtered);
-      },
-    );
-    return () => {
-      live = false;
+    const controller = new AbortController();
+    const load = async () => {
+      if (dataSource === "api") {
+        const page = await listBookingSummaries({sessionId, attendanceOnly: true, offset}, controller.signal);
+        if (!controller.signal.aborted) {setRows(page.items.map((item) => ({booking: {id: item.id, attendance: item.attendance ?? undefined}, client: {name: item.clientName, company: item.clientCompany ?? undefined}}))); setTotal(page.total); setError(null);}
+      } else {
+        const [bookings, clients] = await Promise.all([listBookingsBySession(sessionId), listClients()]);
+        const filtered = bookings.filter((booking) => booking.status === "confirmed" || booking.status === "completed");
+        if (!controller.signal.aborted) {setRows(filtered.map((booking) => ({booking, client: clients.find((client) => client.id === booking.clientId)}))); setTotal(filtered.length); setError(null);}
+      }
     };
-  }, [sessionId]);
+    void load().catch((cause: Error) => {if (!controller.signal.aborted) setError(cause.message);});
+    return () => controller.abort();
+  }, [sessionId, offset, attempt]);
 
   const update = async (id: string, attendance: BookingAttendance) => {
     if (!rows) return;
@@ -139,6 +145,7 @@ export function AttendanceTab({ sessionId }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      {error && <LoadError message={error} onRetry={() => setAttempt((value) => value+1)} />}
       <div className="flex items-center justify-between gap-3">
         <div className="text-small">
           <span className="font-medium text-ink">{marked}</span>
@@ -151,7 +158,7 @@ export function AttendanceTab({ sessionId }: Props) {
           onClick={markAllPresent}
           disabled={marked === rows.length || busyIds.size > 0}
         >
-          {uiText("ui.mark.all.present")}</Button>
+          {uiText(dataSource === "api" ? "attendance.markPage" : "ui.mark.all.present")}</Button>
       </div>
 
       <div className="flex flex-col rounded-md border border-line bg-surface overflow-hidden">
@@ -188,6 +195,7 @@ export function AttendanceTab({ sessionId }: Props) {
         })}
       </div>
 
+      {dataSource === "api" && <Pagination total={total} offset={offset} onChange={setOffset} />}
       <p className="text-micro text-ink-3">
         {uiText("ui.attendance.is.recorded.per.attendee.and.saved.as.you.mark.each.row")}</p>
     </div>

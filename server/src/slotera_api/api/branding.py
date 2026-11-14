@@ -9,15 +9,16 @@ from slotera_api.auth.dependencies import (
     OperatorWorkspaceDependency,
 )
 from slotera_api.db.models import AuditEvent, WorkspaceBusinessProfile
-from slotera_api.schemas.branding import Branding
+from slotera_api.editing import ExpectedVersionDependency, lock_settings_revision
+from slotera_api.schemas.branding import Branding, BrandingSettings
 
 router = APIRouter(prefix="/settings/branding", tags=["settings"])
 
 
-@router.get("", response_model=Branding, operation_id="getBranding")
+@router.get("", response_model=BrandingSettings, operation_id="getBranding")
 async def get_branding(
     response: Response, operator: OperatorWorkspaceDependency, database: DatabaseDependency
-) -> Branding:
+) -> BrandingSettings:
     response.headers["Cache-Control"] = "no-store"
     async with database.tenant_transaction(operator.workspace_id) as session:
         profile = (
@@ -27,26 +28,25 @@ async def get_branding(
                 )
             )
         ).one()
-        return Branding.model_validate(
-            {"accent": profile.brand_accent, "fontFamily": profile.brand_font}
+        return BrandingSettings.model_validate(
+            {
+                "accent": profile.brand_accent,
+                "fontFamily": profile.brand_font,
+                "version": profile.version,
+            }
         )
 
 
-@router.patch("", response_model=Branding, operation_id="updateBranding")
+@router.patch("", response_model=BrandingSettings, operation_id="updateBranding")
 async def update_branding(
+    expected_version: ExpectedVersionDependency,
     payload: Branding,
     response: Response,
     operator: CsrfOperatorWorkspaceDependency,
     database: DatabaseDependency,
-) -> Branding:
+) -> BrandingSettings:
     async with database.tenant_transaction(operator.workspace_id) as session:
-        profile = (
-            await session.scalars(
-                select(WorkspaceBusinessProfile)
-                .where(WorkspaceBusinessProfile.workspace_id == operator.workspace_id)
-                .with_for_update()
-            )
-        ).one()
+        profile = await lock_settings_revision(session, operator.workspace_id, expected_version)
         profile.brand_accent = payload.accent
         profile.brand_font = payload.font_family
         session.add(
@@ -60,4 +60,6 @@ async def update_branding(
             )
         )
     response.headers["Cache-Control"] = "no-store"
-    return payload
+    return BrandingSettings(
+        accent=profile.brand_accent, font_family=profile.brand_font, version=profile.version
+    )

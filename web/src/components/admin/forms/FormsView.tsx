@@ -1,10 +1,10 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { useToast } from "@/components/ui/Toast";
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { plural } from "@/lib/text";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -13,34 +13,24 @@ import { SegGroup } from "@/components/ui/SegGroup";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { FormCard } from "./FormCard";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
-import { listForms } from "@/services/forms.service";
-import type { FormTemplate } from "@/types/form";
+import { useLoad } from "@/lib/use-load";
+import { LoadError } from "@/components/shared/LoadError";
+import { Pagination } from "@/components/shared/Pagination";
+import { getForm, listFormPage } from "@/services/forms.service";
 
 type StatusFilter = "all" | "active" | "inactive";
 
 export function FormsView() {
   const { t: uiText } = useI18n();
+  const { toast } = useToast();
   const { openFormDrawer } = useDrawers();
-  const [forms, setForms] = React.useState<FormTemplate[] | null>(null);
-  const [reload, setReload] = React.useState(0);
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<StatusFilter>("all");
-
-  React.useEffect(() => {
-    listForms().then(setForms);
-  }, [reload]);
-
-  const refresh = () => setReload((k) => k + 1);
-
-  const filtered = (forms ?? []).filter((f) => {
-    if (status !== "all" && f.status !== status) return false;
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      f.name.toLowerCase().includes(q) ||
-      f.description.toLowerCase().includes(q)
-    );
-  });
+  const [offset, setOffset] = React.useState(0);
+  const load = React.useCallback((signal?: AbortSignal) => listFormPage({search: query, status, offset}, signal), [query, status, offset]);
+  const {data: page, error, reload: refresh, loading} = useLoad(load);
+  const forms = page?.items;
+  const filtered = forms ?? [];
 
   return (
     <PageContainer>
@@ -48,11 +38,7 @@ export function FormsView() {
         eyebrow={uiText("ui.catalog")}
         title={uiText("ui.forms")}
         description={uiText("ui.reusable.intake.questions.and.acknowledgements.you.attach.to.services")}
-        meta={
-          forms
-            ? `${plural(forms.length, "form")} · ${uiText("ui.active.count", { count: forms.filter((item) => item.status === "active").length })}`
-            : uiText("ui.loading")
-        }
+        meta={page ? String(page.total) : uiText("ui.loading")}
         actions={
           <Button
             variant="primary"
@@ -70,12 +56,12 @@ export function FormsView() {
             icon="search"
             placeholder={uiText("ui.search.forms.by.name")}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {setQuery(e.target.value); setOffset(0);}}
           />
         </div>
         <SegGroup
           value={status}
-          onChange={setStatus}
+          onChange={(value) => {setStatus(value); setOffset(0);}}
           options={[
             { value: "all", label: uiText("ui.all") },
             { value: "active", label: uiText("ui.active") },
@@ -84,6 +70,7 @@ export function FormsView() {
         />
       </div>
 
+      {error && <LoadError message={error} onRetry={refresh} />}
       {!forms ? (
         <LoadingRows count={4} />
       ) : (
@@ -92,13 +79,13 @@ export function FormsView() {
             <FormCard
               key={f.id}
               form={f}
-              onClick={() =>
-                openFormDrawer({
-                  initial: f,
-                  onSaved: refresh,
-                  onRemoved: refresh,
-                })
-              }
+              onClick={async () => {
+                try {
+                  const item = await getForm(f.id);
+                  if (!item) { refresh(); return; }
+                  openFormDrawer({initial: item, onSaved: refresh, onRemoved: refresh});
+                } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+              }}
             />
           ))}
           <Card
@@ -115,6 +102,7 @@ export function FormsView() {
           </Card>
         </div>
       )}
+      {page && <Pagination total={page.total} offset={offset} onChange={setOffset} loading={loading} />}
     </PageContainer>
   );
 }

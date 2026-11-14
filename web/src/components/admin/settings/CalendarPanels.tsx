@@ -1,5 +1,6 @@
 "use client";
 import { readLang, localeForLang } from "@/lib/i18n";
+import { useSettingsEdit } from "@/components/shared/use-settings-edit";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { WorkingHoursForm } from "@/components/shared/forms/WorkingHoursForm";
 import { useToast } from "@/components/ui/Toast";
-import { updateAvailabilitySettings, availabilityToWorkingDays, workingDaysToWeeklyHours, updateSettings, type AvailabilitySettings } from "@/services/settings.service";
+import { getAvailabilitySettings, updateAvailabilitySettings, availabilityToWorkingDays, workingDaysToWeeklyHours, updateSettings, type AvailabilitySettings } from "@/services/settings.service";
 import { CalendarFeedCard } from "./CalendarFeedCard";
 import type { WorkingDay } from "@/types/settings";
 import { PanelProps, PanelCard } from "./PanelCard";
@@ -126,9 +127,11 @@ export function ApiCalendarPanel({
   const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [local, setLocal] = React.useState(availability);
+
   const [hours, setHours] = React.useState<WorkingDay[]>(() =>
     availabilityToWorkingDays(availability),
   );
+  const edit = useSettingsEdit(local, getAvailabilitySettings, (next) => {setLocal(next); onChange(next);setHours(availabilityToWorkingDays(next));});
   const [saving, setSaving] = React.useState(false);
 
   const save = async () => {
@@ -136,11 +139,13 @@ export function ApiCalendarPanel({
     setSaving(true);
     try {
       const next = await updateAvailabilitySettings({ ...local, weeklyHours });
+      edit.accept({...next, id: "settings"});
       setLocal(next);
       setHours(availabilityToWorkingDays(next));
       onChange(next);
       toast.success(uiText("ui.calendar.settings.saved"));
     } catch (error) {
+      edit.onError(error);
       toast.error(uiText("ui.couldn.t.save.calendar.settings"), {
         description: error instanceof Error ? error.message : undefined,
       });
@@ -164,6 +169,7 @@ export function ApiCalendarPanel({
 
   return (
     <>
+      {edit.notice}
       <CalendarFeedCard />
 
       <Card padded>

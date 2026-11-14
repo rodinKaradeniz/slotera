@@ -1,8 +1,13 @@
+import csv
+import io
+from collections.abc import AsyncIterator
 from http import HTTPStatus
 from typing import Annotated, Literal, cast
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Header, Query, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 
 from slotera_api.auth.dependencies import (
@@ -28,13 +33,17 @@ from slotera_api.errors import ApiError
 from slotera_api.schemas.bookings import (
     BookingAttendanceCommand,
     BookingCustomerSnapshot,
+    BookingDisplayContext,
     BookingEmailListResponse,
     BookingEmailSend,
     BookingListResponse,
     BookingMoveCommand,
     BookingResponse,
+    BookingSummary,
+    BookingSummaryPage,
     OperatorBookingCreate,
 )
+from slotera_api.schemas.operator_resources import Address
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -198,8 +207,11 @@ async def create_operator_booking(
             idempotency_key,
         )
     except ClientEmailConflictError as exc:
-        raise ApiError(status_code=409, code="client_email_conflict",
-            message="A client with this email already exists. Select that client instead") from exc
+        raise ApiError(
+            status_code=409,
+            code="client_email_conflict",
+            message="A client with this email already exists. Select that client instead",
+        ) from exc
     except (
         BookingCapacityExceededError,
         BookingIdempotencyConflictError,
@@ -246,6 +258,129 @@ async def move_booking(
     return _response(result.booking)
 
 
+@router.get("/summaries", response_model=BookingSummaryPage, operation_id="listBookingSummaries")
+async def list_booking_summaries(
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    search: Annotated[str, Query(max_length=160)] = "",
+    status: Literal["pending", "confirmed", "completed", "noshow", "cancelled"] | None = None,
+    client_id: Annotated[UUID | None, Query(alias="clientId")] = None,
+    service_id: Annotated[UUID | None, Query(alias="serviceId")] = None,
+    session_id: Annotated[UUID | None, Query(alias="sessionId")] = None,
+    attendance_only: Annotated[bool, Query(alias="attendanceOnly")] = False,
+) -> BookingSummaryPage:
+    items, total, counts, previews, pending = await BookingsRepository(database).list_summaries(
+        operator.workspace_id,
+        limit=limit,
+        offset=offset,
+        search=search,
+        status=status,
+        client_id=client_id,
+        service_id=service_id,
+        session_id=session_id,
+        attendance_only=attendance_only,
+    )
+    _private(response)
+    return BookingSummaryPage(
+        items=[BookingSummary.model_validate(item) for item in items],
+        total=total,
+        limit=limit,
+        offset=offset,
+        status_counts=counts,
+        status_previews={
+            key: [BookingSummary.model_validate(row) for row in rows]
+            for key, rows in previews.items()
+        },
+        pending_payment_count=pending,
+    )
+
+
+@router.get("/export.csv", operation_id="exportBookings")
+async def export_bookings(
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    search: Annotated[str, Query(max_length=160)] = "",
+    language: Literal["en", "tr", "de"] = "en",
+    client_id: Annotated[UUID | None, Query(alias="clientId")] = None,
+    service_id: Annotated[UUID | None, Query(alias="serviceId")] = None,
+) -> StreamingResponse:
+    async def content() -> AsyncIterator[str]:
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        headers = {
+            "en": [
+                "Reference",
+                "Client",
+                "Service",
+                "Starts (UTC)",
+                "Status",
+                "Payment",
+                "Amount",
+                "Currency",
+            ],
+            "tr": [
+                "Referans",
+                "Müşteri",
+                "Hizmet",
+                "Başlangıç (UTC)",
+                "Durum",
+                "Ödeme",
+                "Tutar",
+                "Para birimi",
+            ],
+            "de": [
+                "Referenz",
+                "Kunde",
+                "Leistung",
+                "Beginn (UTC)",
+                "Status",
+                "Zahlung",
+                "Betrag",
+                "Währung",
+            ],
+        }
+        writer.writerow(headers[language])
+        yield "\ufeff" + buffer.getvalue()
+        buffer.seek(0)
+        buffer.truncate(0)
+        async for row in BookingsRepository(database).export_summaries(
+            operator.workspace_id, search, client_id, service_id
+        ):
+            values = [
+                row["reference"],
+                row["name"],
+                row["service_name"],
+                row["start_at"].isoformat(),
+                str(row["status"]),
+                str(row["payment_status"]),
+                f"{row['amount_cents'] / 100:.2f}",
+                row["currency"],
+            ]
+            writer.writerow(
+                [
+                    "'" + value
+                    if isinstance(value, str) and value.startswith(("=", "+", "-", "@", "\t", "\r"))
+                    else value
+                    for value in values
+                ]
+            )
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+    return StreamingResponse(
+        content(),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": 'attachment; filename="bookings.csv"',
+        },
+    )
+
+
 @router.get("/{booking_id}", response_model=BookingResponse, operation_id="getBooking")
 async def get_booking(
     booking_id: UUID,
@@ -253,11 +388,34 @@ async def get_booking(
     operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
 ) -> BookingResponse:
-    booking = await BookingsRepository(database).get_booking(operator.workspace_id, booking_id)
-    if booking is None:
+    detail = await BookingsRepository(database).get_detail(operator.workspace_id, booking_id)
+    if detail is None:
         raise _booking_not_found()
+    booking, client, occurrence, service, series, booked_count = detail
+    recurring: Literal["one-off", "weekly", "custom"] = "one-off"
+    if series:
+        weekday = occurrence.start_at.astimezone(ZoneInfo(series.timezone)).isoweekday()
+        recurring = (
+            "weekly" if series.interval_weeks == 1 and series.weekdays == [weekday] else "custom"
+        )
     _private(response)
-    return _response(booking)
+    result = _response(booking)
+    result.context = BookingDisplayContext(
+        client_name=client.name,
+        client_email=client.email,
+        service_id=service.id,
+        service_name=service.name,
+        start_at=occurrence.start_at,
+        end_at=occurrence.end_at,
+        capacity=occurrence.capacity,
+        booked_count=booked_count,
+        session_status=occurrence.status.value,
+        location_type=occurrence.location_type.value,
+        location=occurrence.location,
+        address=Address.model_validate(occurrence.address) if occurrence.address else None,
+        recurring=recurring,
+    )
+    return result
 
 
 async def _transition(
@@ -478,17 +636,23 @@ async def get_booking_forms(
         return await read_forms(session, operator.workspace_id, booking, occurrence.start_at)
 
 
-@router.get("/{booking_id}/emails", response_model=BookingEmailListResponse,
-            operation_id="getBookingEmails")
+@router.get(
+    "/{booking_id}/emails", response_model=BookingEmailListResponse, operation_id="getBookingEmails"
+)
 async def get_booking_emails(
-    booking_id: UUID, response: Response, operator: OperatorWorkspaceDependency,
+    booking_id: UUID,
+    response: Response,
+    operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> BookingEmailListResponse:
     async with database.tenant_transaction(operator.workspace_id) as session:
-        booking = await session.scalar(select(Booking.id).where(
-            Booking.workspace_id == operator.workspace_id, Booking.id == booking_id))
+        booking = await session.scalar(
+            select(Booking.id).where(
+                Booking.workspace_id == operator.workspace_id, Booking.id == booking_id
+            )
+        )
         if booking is None:
             raise _booking_not_found()
         result = await email_history(session, booking_id=booking_id, limit=limit, offset=offset)
@@ -496,17 +660,29 @@ async def get_booking_emails(
     return BookingEmailListResponse.model_validate(result)
 
 
-@router.post("/{booking_id}/send-details", response_model=BookingResponse, status_code=202,
-             operation_id="sendBookingDetails")
+@router.post(
+    "/{booking_id}/send-details",
+    response_model=BookingResponse,
+    status_code=202,
+    operation_id="sendBookingDetails",
+)
 async def send_booking_details(
-    booking_id: UUID, payload: BookingEmailSend, response: Response,
-    operator: CsrfOperatorWorkspaceDependency, database: DatabaseDependency,
+    booking_id: UUID,
+    payload: BookingEmailSend,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
     idempotency_key: IdempotencyKey,
 ) -> BookingResponse:
     try:
         result = await BookingsRepository(database).send_details(
-            operator.workspace_id, operator.user_id, booking_id,
-            str(payload.recipient_email), idempotency_key)
+            operator.workspace_id,
+            operator.user_id,
+            booking_id,
+            str(payload.recipient_email),
+            idempotency_key,
+            expected_recipient_email=str(payload.expected_recipient_email),
+        )
     except (BookingIdempotencyConflictError, BookingTransitionError) as exc:
         raise _command_error(exc) from exc
     if result is None:

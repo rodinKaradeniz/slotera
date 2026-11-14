@@ -11,6 +11,7 @@ export type SessionActionItemStatus = "todo" | "done";
  * CLAUDE.md → "Session notes / action items".
  */
 export type SessionActionItem = {
+  version?: number;
   id: string;
   sessionId: string;
   title: string;

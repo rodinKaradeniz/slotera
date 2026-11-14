@@ -63,6 +63,7 @@ class FormTemplatePatch(StrictApiModel):
 
 
 class FormTemplateResponse(ApiModel):
+    version: int
     id: UUID
     name: str
     description: str
@@ -74,5 +75,23 @@ class FormTemplateResponse(ApiModel):
 
 
 class FormTemplateListResponse(ApiModel):
+    limit: int
+    offset: int
     items: list[FormTemplateResponse]
     total: int
+
+
+class FormSummary(ApiModel):
+    id: UUID
+    name: str
+    description: str
+    status: Literal["active", "inactive"]
+    field_count: int
+    attached_service_count: int
+
+
+class FormSummaryPage(ApiModel):
+    items: list[FormSummary]
+    total: int
+    limit: int
+    offset: int

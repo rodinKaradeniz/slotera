@@ -7,8 +7,9 @@ import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
 
 export type CalEvent = {
+  dateKey: string;
   session: SessionItem;
-  service?: Service;
+  service?: Pick<Service, "name">;
   clientName?: string;
   startHour: number;
   endHour: number;
@@ -32,7 +33,7 @@ export function EventBlock({ event, selected, onSelect, hourPx = 56 }: Props) {
 
   const secondary =
     session.capacity > 1
-      ? `${session.bookedCount} / ${session.capacity} booked`
+      ? uiText("calendar.bookedCount", {count: session.bookedCount, capacity: session.capacity})
       : event.clientName;
 
   return (

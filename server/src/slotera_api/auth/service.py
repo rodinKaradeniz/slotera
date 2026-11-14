@@ -53,6 +53,9 @@ class AuthSession:
     workspace_slug: str | None
     csrf_token_hash: bytes
     expires_at: datetime
+    preferred_language: str = "en"
+    workspace_currency: str | None = "GBP"
+    workspace_timezone: str | None = "Europe/Berlin"
 
 
 @dataclass(frozen=True)
@@ -356,6 +359,9 @@ class AuthService:
             workspace_id=stored.workspace_id,
             workspace_name=stored.workspace_name,
             workspace_slug=stored.workspace_slug,
+            workspace_currency=stored.workspace_currency,
+            workspace_timezone=stored.workspace_timezone,
+            preferred_language=stored.preferred_language,
             csrf_token_hash=stored.csrf_token_hash,
             expires_at=stored.expires_at,
         )

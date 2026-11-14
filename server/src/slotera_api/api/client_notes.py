@@ -1,7 +1,8 @@
 from http import HTTPStatus
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Query, Response
 
 from slotera_api.auth.dependencies import (
     CsrfOperatorWorkspaceDependency,
@@ -9,6 +10,7 @@ from slotera_api.auth.dependencies import (
     OperatorWorkspaceDependency,
 )
 from slotera_api.db.models import ClientNote
+from slotera_api.editing import ExpectedVersionDependency
 from slotera_api.errors import ApiError
 from slotera_api.notes.repository import ClientNotesRepository
 from slotera_api.notes.sanitization import has_visible_note_content, sanitize_note_html
@@ -28,6 +30,7 @@ def _private(response: Response) -> None:
 
 def _note_response(note: ClientNote) -> ClientNoteResponse:
     return ClientNoteResponse(
+        version=note.version,
         id=note.id,
         client_id=note.client_id,
         title=note.title,
@@ -74,13 +77,19 @@ async def list_client_notes(
     response: Response,
     operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> ClientNoteListResponse:
-    result = await ClientNotesRepository(database).list_notes(operator.workspace_id, client_id)
+    result = await ClientNotesRepository(database).list_notes(
+        operator.workspace_id, client_id, limit, offset
+    )
     if result is None:
         raise _client_not_found()
     notes, total = result
     _private(response)
-    return ClientNoteListResponse(items=[_note_response(note) for note in notes], total=total)
+    return ClientNoteListResponse(
+        items=[_note_response(note) for note in notes], total=total, limit=limit, offset=offset
+    )
 
 
 @router.post(
@@ -108,12 +117,29 @@ async def create_client_note(
     return _note_response(note)
 
 
+@router.get(
+    "/client-notes/{note_id}", response_model=ClientNoteResponse, operation_id="getClientNote"
+)
+async def get_client_note(
+    note_id: UUID,
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> ClientNoteResponse:
+    item = await ClientNotesRepository(database).get_note(operator.workspace_id, note_id)
+    if item is None:
+        raise _note_not_found()
+    _private(response)
+    return _note_response(item)
+
+
 @router.patch(
     "/client-notes/{note_id}",
     response_model=ClientNoteResponse,
     operation_id="updateClientNote",
 )
 async def update_client_note(
+    expected_version: ExpectedVersionDependency,
     note_id: UUID,
     payload: ClientNotePatch,
     response: Response,
@@ -124,7 +150,7 @@ async def update_client_note(
     if "body" in changes:
         changes["body"] = _sanitized_body(payload.body or "")
     note = await ClientNotesRepository(database).update_note(
-        operator.workspace_id, operator.user_id, note_id, changes
+        operator.workspace_id, operator.user_id, note_id, changes, expected_version=expected_version
     )
     if note is None:
         raise _note_not_found()
@@ -138,12 +164,13 @@ async def update_client_note(
     operation_id="deleteClientNote",
 )
 async def delete_client_note(
+    expected_version: ExpectedVersionDependency,
     note_id: UUID,
     operator: CsrfOperatorWorkspaceDependency,
     database: DatabaseDependency,
 ) -> Response:
     deleted = await ClientNotesRepository(database).delete_note(
-        operator.workspace_id, operator.user_id, note_id
+        operator.workspace_id, operator.user_id, note_id, expected_version=expected_version
     )
     if not deleted:
         raise _note_not_found()

@@ -12,7 +12,7 @@ import { ApiRequestError } from "@/services/_errors";
 vi.mock("@/services/bookings.service", () => ({ createOperatorBooking: vi.fn() }));
 vi.mock("@/services/clients.service", () => ({ searchClients: vi.fn(), getClient: vi.fn() }));
 vi.mock("@/services/sessions.service", () => ({ listBookableSessions: vi.fn(), getSession: vi.fn() }));
-vi.mock("@/services/services.service", () => ({ listServices: vi.fn().mockResolvedValue([]) }));
+vi.mock("@/services/services.service", () => ({ serviceOptionsForIds: vi.fn().mockResolvedValue([]) }));
 vi.mock("@/lib/use-workspace-timezone", () => ({ useWorkspaceTimezone: () => "UTC" }));
 vi.mock("@/components/ui/DrawerShell", () => ({ DrawerShell: ({ children, footer, open }: { children: React.ReactNode; footer: React.ReactNode; open: boolean }) => open ? <div>{children}{footer}</div> : null }));
 beforeEach(() => {
@@ -40,7 +40,7 @@ it("validates a new client inline, preserves a rejected draft, and submits langu
   expect((screen.getByRole("textbox", { name: /Full name/ }) as HTMLInputElement).value).toBe("Draft client");
   expect(createOperatorBooking).toHaveBeenCalledWith(expect.objectContaining({ newClient: expect.objectContaining({ name: "Draft client" }), language: "de", sendEmail: false }), expect.any(String));
   fireEvent.click(screen.getByRole("button", { name: "Find existing client" }));
-  await waitFor(() => expect(searchClients).toHaveBeenCalledWith("draft@example.com"));
+  await waitFor(() => expect(searchClients).toHaveBeenCalledWith("draft@example.com", expect.any(AbortSignal)));
 });
 it("retries a session load failure", async () => {
   vi.mocked(listBookableSessions).mockRejectedValueOnce(new Error("Offline"));

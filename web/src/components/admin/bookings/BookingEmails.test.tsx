@@ -25,7 +25,7 @@ it("reviews a correction, preserves it after a conflict, and reuses the request 
   const key = vi.mocked(sendBookingDetails).mock.calls[0][2];
   fireEvent.click(screen.getByRole("button", { name: "Correct address and send" }));
   await screen.findByText("Booking details queued.");
-  expect(sendBookingDetails).toHaveBeenLastCalledWith("b", "fixed@example.com", key);
+  expect(sendBookingDetails).toHaveBeenLastCalledWith("b", "fixed@example.com", key, "original@example.com");
   expect(updated).toHaveBeenCalledWith(expect.objectContaining({ emailContact: "fixed@example.com" }));
 });
 it("does not offer sends after erasure", async () => {

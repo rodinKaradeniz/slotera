@@ -16,6 +16,23 @@ from pydantic.alias_generators import to_camel
 from slotera_api.schemas.base import ApiModel
 
 NonBlank = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+class ServiceOption(ApiModel):
+    id: UUID
+    name: str
+    active: bool
+    price_cents: int
+    currency: str
+
+
+class ServiceOptionPage(ApiModel):
+    items: list[ServiceOption]
+    total: int
+    limit: int
+    offset: int
+
+
 CountryCode = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z]{2}$")]
 
 
@@ -28,6 +45,7 @@ class StrictApiModel(ApiModel):
 
 
 class BusinessSettingsResponse(ApiModel):
+    version: int
     workspace_id: UUID
     name: str
     slug: str
@@ -80,6 +98,7 @@ class BusinessSettingsPatch(StrictApiModel):
 
 
 class PaymentSettingsResponse(ApiModel):
+    version: int
     manual_payment_enabled: bool
     manual_payment_instructions: str
     booking_terms_enabled: bool
@@ -150,6 +169,7 @@ class WorkspaceLocationPatch(StrictApiModel):
 
 
 class WorkspaceLocationResponse(ApiModel):
+    version: int
     id: UUID
     label: str
     address: Address
@@ -207,6 +227,7 @@ class ServicePatch(StrictApiModel):
 
 
 class ServiceResponse(ApiModel):
+    version: int
     id: UUID
     name: str
     description: str
@@ -229,6 +250,25 @@ class ServiceResponse(ApiModel):
 
 class ServiceListResponse(ApiModel):
     items: list[ServiceResponse]
+    total: int
+    limit: int
+    offset: int
+
+
+class ServiceSummary(ApiModel):
+    id: UUID
+    name: str
+    description: str
+    duration_min: int
+    price_cents: int
+    capacity: int
+    location_type: Literal["online", "physical", "hybrid"]
+    active: bool
+    currency: str
+
+
+class ServiceSummaryPage(ApiModel):
+    items: list[ServiceSummary]
     total: int
     limit: int
     offset: int

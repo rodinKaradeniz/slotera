@@ -34,7 +34,7 @@ from slotera_api.config import Settings, get_settings
 from slotera_api.database import Database, DatabaseLifecycle
 from slotera_api.errors import install_error_handlers
 from slotera_api.logging import configure_logging
-from slotera_api.middleware import request_context_middleware
+from slotera_api.middleware import RequestContextMiddleware
 from slotera_api.observability import init_sentry
 
 
@@ -69,17 +69,20 @@ def create_app(
         CORSMiddleware,
         allow_origins=resolved_settings.cors_origins,
         allow_credentials=True,
+        expose_headers=["X-Request-ID"],
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=[
             "Accept",
             "Authorization",
             "Content-Type",
             "Idempotency-Key",
+            "If-Match",
+            "X-Series-Version",
             "X-Booking-Token",
             "X-CSRF-Token",
         ],
     )
-    app.middleware("http")(request_context_middleware)
+    app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
     app.include_router(health_router)
     app.include_router(preferences_router)

@@ -187,6 +187,10 @@
             "title": "Updatedat",
             "type": "string"
           },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
           "weeklyHours": {
             "items": {
               "$ref": "#/components/schemas/AvailabilityWindowInput-Output"
@@ -196,6 +200,7 @@
           }
         },
         "required": [
+          "version",
           "timezone",
           "weeklyHours",
           "slotIntervalMin",
@@ -603,6 +608,104 @@
         "title": "BookingCustomerSnapshot",
         "type": "object"
       },
+      "BookingDisplayContext": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Address"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bookedCount": {
+            "title": "Bookedcount",
+            "type": "integer"
+          },
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "clientEmail": {
+            "title": "Clientemail",
+            "type": "string"
+          },
+          "clientName": {
+            "title": "Clientname",
+            "type": "string"
+          },
+          "endAt": {
+            "format": "date-time",
+            "title": "Endat",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "locationType": {
+            "enum": [
+              "online",
+              "physical",
+              "hybrid"
+            ],
+            "title": "Locationtype",
+            "type": "string"
+          },
+          "recurring": {
+            "enum": [
+              "one-off",
+              "weekly",
+              "custom"
+            ],
+            "title": "Recurring",
+            "type": "string"
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "serviceName": {
+            "title": "Servicename",
+            "type": "string"
+          },
+          "sessionStatus": {
+            "enum": [
+              "scheduled",
+              "live",
+              "done",
+              "cancelled"
+            ],
+            "title": "Sessionstatus",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientName",
+          "clientEmail",
+          "serviceId",
+          "serviceName",
+          "startAt",
+          "endAt",
+          "capacity",
+          "bookedCount",
+          "sessionStatus",
+          "locationType",
+          "location",
+          "address",
+          "recurring"
+        ],
+        "title": "BookingDisplayContext",
+        "type": "object"
+      },
       "BookingEmailListResponse": {
         "properties": {
           "items": {
@@ -709,6 +812,11 @@
       "BookingEmailSend": {
         "additionalProperties": false,
         "properties": {
+          "expectedRecipientEmail": {
+            "format": "email",
+            "title": "Expectedrecipientemail",
+            "type": "string"
+          },
           "recipientEmail": {
             "format": "email",
             "title": "Recipientemail",
@@ -716,7 +824,8 @@
           }
         },
         "required": [
-          "recipientEmail"
+          "recipientEmail",
+          "expectedRecipientEmail"
         ],
         "title": "BookingEmailSend",
         "type": "object"
@@ -1055,6 +1164,16 @@
             "title": "Confirmationpolicy",
             "type": "string"
           },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookingDisplayContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -1304,6 +1423,182 @@
         "title": "BookingResponse",
         "type": "object"
       },
+      "BookingSummary": {
+        "properties": {
+          "amountCents": {
+            "title": "Amountcents",
+            "type": "integer"
+          },
+          "attendance": {
+            "anyOf": [
+              {
+                "enum": [
+                  "present",
+                  "late",
+                  "absent"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attendance"
+          },
+          "clientCompany": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clientcompany"
+          },
+          "clientId": {
+            "format": "uuid",
+            "title": "Clientid",
+            "type": "string"
+          },
+          "clientName": {
+            "title": "Clientname",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "paymentStatus": {
+            "enum": [
+              "pending",
+              "paid",
+              "free",
+              "refunded",
+              "overdue"
+            ],
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "serviceName": {
+            "title": "Servicename",
+            "type": "string"
+          },
+          "sessionId": {
+            "format": "uuid",
+            "title": "Sessionid",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "completed",
+              "noshow",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "sessionId",
+          "serviceId",
+          "reference",
+          "clientName",
+          "clientCompany",
+          "serviceName",
+          "startAt",
+          "status",
+          "paymentStatus",
+          "amountCents",
+          "currency",
+          "createdAt"
+        ],
+        "title": "BookingSummary",
+        "type": "object"
+      },
+      "BookingSummaryPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BookingSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "pendingPaymentCount": {
+            "title": "Pendingpaymentcount",
+            "type": "integer"
+          },
+          "statusCounts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Statuscounts",
+            "type": "object"
+          },
+          "statusPreviews": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/BookingSummary"
+              },
+              "type": "array"
+            },
+            "title": "Statuspreviews",
+            "type": "object"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset",
+          "statusCounts",
+          "statusPreviews",
+          "pendingPaymentCount"
+        ],
+        "title": "BookingSummaryPage",
+        "type": "object"
+      },
       "Branding": {
         "additionalProperties": false,
         "properties": {
@@ -1323,6 +1618,34 @@
           }
         },
         "title": "Branding",
+        "type": "object"
+      },
+      "BrandingSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "default": "#3d5a3d",
+            "title": "Accent",
+            "type": "string"
+          },
+          "fontFamily": {
+            "default": "serif",
+            "enum": [
+              "serif",
+              "sans"
+            ],
+            "title": "Fontfamily",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "BrandingSettings",
         "type": "object"
       },
       "BusinessSettingsPatch": {
@@ -1547,6 +1870,10 @@
             "title": "Updatedat",
             "type": "string"
           },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
           "workspaceId": {
             "format": "uuid",
             "title": "Workspaceid",
@@ -1554,6 +1881,7 @@
           }
         },
         "required": [
+          "version",
           "workspaceId",
           "name",
           "slug",
@@ -2069,12 +2397,22 @@
             "title": "Items",
             "type": "array"
           },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
           }
         },
         "required": [
+          "limit",
+          "offset",
           "items",
           "total"
         ],
@@ -2143,9 +2481,14 @@
             "format": "date-time",
             "title": "Updatedat",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "id",
           "clientId",
           "title",
@@ -2375,9 +2718,14 @@
               }
             ],
             "title": "Vatid"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "id",
           "name",
           "email",
@@ -2770,6 +3118,80 @@
         "title": "FormFieldInput",
         "type": "object"
       },
+      "FormSummary": {
+        "properties": {
+          "attachedServiceCount": {
+            "title": "Attachedservicecount",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "fieldCount": {
+            "title": "Fieldcount",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "inactive"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "status",
+          "fieldCount",
+          "attachedServiceCount"
+        ],
+        "title": "FormSummary",
+        "type": "object"
+      },
+      "FormSummaryPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FormSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "FormSummaryPage",
+        "type": "object"
+      },
       "FormTemplateInput": {
         "additionalProperties": false,
         "properties": {
@@ -2833,12 +3255,22 @@
             "title": "Items",
             "type": "array"
           },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
           }
         },
         "required": [
+          "limit",
+          "offset",
           "items",
           "total"
         ],
@@ -2980,9 +3412,14 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "id",
           "name",
           "description",
@@ -3604,12 +4041,111 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
           }
         },
         "required": [
+          "total",
+          "limit",
+          "offset",
           "items"
         ],
         "title": "PackageList",
+        "type": "object"
+      },
+      "PackageSummary": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "featured": {
+            "title": "Featured",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "itemCount": {
+            "title": "Itemcount",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "inactive"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "priceCents",
+          "currency",
+          "featured",
+          "status",
+          "itemCount"
+        ],
+        "title": "PackageSummary",
+        "type": "object"
+      },
+      "PackageSummaryPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PackageSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "PackageSummaryPage",
         "type": "object"
       },
       "PackageView": {
@@ -3674,6 +4210,10 @@
             "format": "date-time",
             "title": "Updatedat",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
@@ -3684,6 +4224,7 @@
           "currency",
           "items",
           "featured",
+          "version",
           "status",
           "notes",
           "createdAt",
@@ -4035,9 +4576,14 @@
             "format": "date-time",
             "title": "Updatedat",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "manualPaymentEnabled",
           "manualPaymentInstructions",
           "bookingTermsEnabled",
@@ -4147,9 +4693,24 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
           }
         },
         "required": [
+          "total",
+          "limit",
+          "offset",
           "items"
         ],
         "title": "PlatformInquiryListResponse",
@@ -4319,6 +4880,10 @@
             "title": "Billinginterval",
             "type": "string"
           },
+          "billingVersion": {
+            "title": "Billingversion",
+            "type": "integer"
+          },
           "bookingsCount": {
             "title": "Bookingscount",
             "type": "integer"
@@ -4430,6 +4995,7 @@
           }
         },
         "required": [
+          "billingVersion",
           "id",
           "name",
           "slug",
@@ -4468,9 +5034,14 @@
           "offset": {
             "title": "Offset",
             "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
           }
         },
         "required": [
+          "total",
           "items",
           "limit",
           "offset"
@@ -4549,6 +5120,10 @@
             "title": "Billinginterval",
             "type": "string"
           },
+          "billingVersion": {
+            "title": "Billingversion",
+            "type": "integer"
+          },
           "bookingsCount": {
             "title": "Bookingscount",
             "type": "integer"
@@ -4652,6 +5227,7 @@
           }
         },
         "required": [
+          "billingVersion",
           "id",
           "name",
           "slug",
@@ -5833,6 +6409,17 @@
             ],
             "title": "Seriesid"
           },
+          "seriesVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seriesversion"
+          },
           "serviceId": {
             "format": "uuid",
             "title": "Serviceid",
@@ -5857,11 +6444,17 @@
             "format": "date-time",
             "title": "Updatedat",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "id",
           "seriesId",
+          "seriesVersion",
           "serviceId",
           "calendarOwnerId",
           "startAt",
@@ -6112,6 +6705,71 @@
           "offset"
         ],
         "title": "ServiceListResponse",
+        "type": "object"
+      },
+      "ServiceOption": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "active",
+          "priceCents",
+          "currency"
+        ],
+        "title": "ServiceOption",
+        "type": "object"
+      },
+      "ServiceOptionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceOption"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ServiceOptionPage",
         "type": "object"
       },
       "ServicePatch": {
@@ -6410,9 +7068,14 @@
             "format": "date-time",
             "title": "Updatedat",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "id",
           "name",
           "description",
@@ -6433,6 +7096,96 @@
           "updatedAt"
         ],
         "title": "ServiceResponse",
+        "type": "object"
+      },
+      "ServiceSummary": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "durationMin": {
+            "title": "Durationmin",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locationType": {
+            "enum": [
+              "online",
+              "physical",
+              "hybrid"
+            ],
+            "title": "Locationtype",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "durationMin",
+          "priceCents",
+          "capacity",
+          "locationType",
+          "active",
+          "currency"
+        ],
+        "title": "ServiceSummary",
+        "type": "object"
+      },
+      "ServiceSummaryPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ServiceSummaryPage",
         "type": "object"
       },
       "SessionActionItemCreate": {
@@ -6489,12 +7242,22 @@
             "title": "Items",
             "type": "array"
           },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
           }
         },
         "required": [
+          "limit",
+          "offset",
           "items",
           "total"
         ],
@@ -6631,9 +7394,14 @@
             "format": "date-time",
             "title": "Updatedat",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "id",
           "sessionId",
           "title",
@@ -7036,6 +7804,15 @@
             "title": "Id",
             "type": "string"
           },
+          "language": {
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
           "lastName": {
             "title": "Lastname",
             "type": "string"
@@ -7065,6 +7842,7 @@
           }
         },
         "required": [
+          "language",
           "id",
           "email",
           "title",
@@ -7078,6 +7856,10 @@
       },
       "SessionWorkspace": {
         "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -7090,9 +7872,15 @@
           "slug": {
             "title": "Slug",
             "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
           }
         },
         "required": [
+          "currency",
+          "timezone",
           "id",
           "name",
           "slug"
@@ -7456,9 +8244,14 @@
             "format": "date-time",
             "title": "Updatedat",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "id",
           "label",
           "address",
@@ -7829,6 +8622,18 @@
       },
       "put": {
         "operationId": "replaceAvailability",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -8004,6 +8809,248 @@
           }
         },
         "summary": "Create Operator Booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/export.csv": {
+      "get": {
+        "operationId": "exportBookings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 160,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "enum": [
+                "en",
+                "tr",
+                "de"
+              ],
+              "title": "Language",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "clientId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Clientid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "serviceId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Serviceid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Bookings",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/summaries": {
+      "get": {
+        "operationId": "listBookingSummaries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 160,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "confirmed",
+                    "completed",
+                    "noshow",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "clientId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Clientid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "serviceId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Serviceid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sessionId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sessionid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "attendanceOnly",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Attendanceonly",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingSummaryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Booking Summaries",
         "tags": [
           "bookings"
         ]
@@ -8744,6 +9791,16 @@
               "title": "Note Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8766,6 +9823,47 @@
           "client notes"
         ]
       },
+      "get": {
+        "operationId": "getClientNote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientNoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Client Note",
+        "tags": [
+          "client notes"
+        ]
+      },
       "patch": {
         "operationId": "updateClientNote",
         "parameters": [
@@ -8776,6 +9874,16 @@
             "schema": {
               "format": "uuid",
               "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
               "type": "string"
             }
           }
@@ -8930,6 +10038,63 @@
         ]
       }
     },
+    "/clients/export.csv": {
+      "get": {
+        "operationId": "exportClientDirectory",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "enum": [
+                "en",
+                "tr",
+                "de"
+              ],
+              "title": "Language",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 320,
+              "title": "Search",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Directory",
+        "tags": [
+          "clients"
+        ]
+      }
+    },
     "/clients/{client_id}": {
       "get": {
         "operationId": "getClient",
@@ -8984,6 +10149,16 @@
               "title": "Client Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -9035,6 +10210,16 @@
             "schema": {
               "format": "uuid",
               "title": "Client Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
               "type": "string"
             }
           }
@@ -9125,6 +10310,29 @@
               "format": "uuid",
               "title": "Client Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
             }
           }
         ],
@@ -9231,6 +10439,62 @@
     "/forms": {
       "get": {
         "operationId": "listForms",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 160,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "inactive"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -9241,6 +10505,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Forms",
@@ -9288,6 +10562,93 @@
         ]
       }
     },
+    "/forms/summaries": {
+      "get": {
+        "operationId": "listFormSummaries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 160,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "inactive"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormSummaryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Form Summaries",
+        "tags": [
+          "forms"
+        ]
+      }
+    },
     "/forms/{form_id}": {
       "delete": {
         "operationId": "deleteForm",
@@ -9299,6 +10660,16 @@
             "schema": {
               "format": "uuid",
               "title": "Form Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
               "type": "string"
             }
           }
@@ -9374,6 +10745,16 @@
             "schema": {
               "format": "uuid",
               "title": "Form Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
               "type": "string"
             }
           }
@@ -9530,6 +10911,62 @@
     "/packages": {
       "get": {
         "operationId": "listPackages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 160,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "inactive"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -9540,6 +10977,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Packages",
@@ -9587,6 +11034,93 @@
         ]
       }
     },
+    "/packages/summaries": {
+      "get": {
+        "operationId": "listPackageSummaries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 160,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "inactive"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageSummaryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Package Summaries",
+        "tags": [
+          "packages"
+        ]
+      }
+    },
     "/packages/{package_id}": {
       "delete": {
         "operationId": "deletePackage",
@@ -9598,6 +11132,16 @@
             "schema": {
               "format": "uuid",
               "title": "Package Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
               "type": "string"
             }
           }
@@ -9675,6 +11219,16 @@
               "title": "Package Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -9718,6 +11272,75 @@
     "/platform/inquiries": {
       "get": {
         "operationId": "listPlatformInquiries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 320,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "default": "",
+              "enum": [
+                "",
+                "business",
+                "pilot",
+                "development",
+                "feature",
+                "general"
+              ],
+              "title": "Reason",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "read",
+            "required": false,
+            "schema": {
+              "default": "",
+              "enum": [
+                "",
+                "read",
+                "unread"
+              ],
+              "title": "Read",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -9728,9 +11351,62 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Platform Inquiries",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/inquiries/{inquiry_id}": {
+      "get": {
+        "operationId": "getPlatformInquiry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inquiry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Inquiry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformInquiryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Inquiry",
         "tags": [
           "platform"
         ]
@@ -9812,11 +11488,22 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 100,
-              "maximum": 200,
+              "default": 25,
+              "maximum": 100,
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 320,
+              "title": "Search",
+              "type": "string"
             }
           },
           {
@@ -9953,6 +11640,16 @@
             "schema": {
               "format": "uuid",
               "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
               "type": "string"
             }
           }
@@ -10927,6 +12624,174 @@
         ]
       }
     },
+    "/services/options": {
+      "get": {
+        "operationId": "listServiceOptions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 160,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "selectedIds",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Selectedids"
+            }
+          },
+          {
+            "in": "query",
+            "name": "activeOnly",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Activeonly",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "onlySelected",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Onlyselected",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceOptionPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Service Options",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/services/summaries": {
+      "get": {
+        "operationId": "listServiceSummaries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 160,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Active"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceSummaryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Service Summaries",
+        "tags": [
+          "services"
+        ]
+      }
+    },
     "/services/{service_id}": {
       "delete": {
         "operationId": "deleteService",
@@ -10938,6 +12803,16 @@
             "schema": {
               "format": "uuid",
               "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
               "type": "string"
             }
           }
@@ -11015,6 +12890,16 @@
               "title": "Service Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -11068,6 +12953,16 @@
               "title": "Item Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -11090,6 +12985,47 @@
           "session action items"
         ]
       },
+      "get": {
+        "operationId": "getSessionActionItem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionActionItemResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session Action Item",
+        "tags": [
+          "session action items"
+        ]
+      },
       "patch": {
         "operationId": "updateSessionActionItem",
         "parameters": [
@@ -11100,6 +13036,16 @@
             "schema": {
               "format": "uuid",
               "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
               "type": "string"
             }
           }
@@ -11400,6 +13346,33 @@
               "title": "Scope",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Series-Version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Series-Version"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -11452,6 +13425,29 @@
               "format": "uuid",
               "title": "Session Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
             }
           }
         ],
@@ -11608,7 +13604,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Branding"
+                  "$ref": "#/components/schemas/BrandingSettings"
                 }
               }
             },
@@ -11622,6 +13618,18 @@
       },
       "patch": {
         "operationId": "updateBranding",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -11637,7 +13645,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Branding"
+                  "$ref": "#/components/schemas/BrandingSettings"
                 }
               }
             },
@@ -11682,6 +13690,18 @@
       },
       "patch": {
         "operationId": "updateBusinessSettings",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -11887,6 +13907,16 @@
               "title": "Location Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -11909,6 +13939,47 @@
           "settings"
         ]
       },
+      "get": {
+        "operationId": "getWorkspaceLocation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "location_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Location Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceLocationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Workspace Location",
+        "tags": [
+          "settings"
+        ]
+      },
       "patch": {
         "operationId": "updateWorkspaceLocation",
         "parameters": [
@@ -11919,6 +13990,16 @@
             "schema": {
               "format": "uuid",
               "title": "Location Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
               "type": "string"
             }
           }
@@ -11983,6 +14064,18 @@
       },
       "patch": {
         "operationId": "updatePaymentSettings",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

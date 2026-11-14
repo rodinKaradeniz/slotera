@@ -11,18 +11,28 @@ from slotera_api.errors import ApiError
 from slotera_api.schemas.packages import PackageInput, PackageItemView, PackageView
 
 
-async def package_view(session: AsyncSession, item: ServicePackage, currency: str) -> PackageView:
+async def package_view(
+    session: AsyncSession,
+    item: ServicePackage,
+    currency: str,
+    prefetched: list[ServicePackageItem] | None = None,
+) -> PackageView:
     rows = (
-        await session.scalars(
-            select(ServicePackageItem)
-            .where(
-                ServicePackageItem.workspace_id == item.workspace_id,
-                ServicePackageItem.package_id == item.id,
+        prefetched
+        if prefetched is not None
+        else (
+            await session.scalars(
+                select(ServicePackageItem)
+                .where(
+                    ServicePackageItem.workspace_id == item.workspace_id,
+                    ServicePackageItem.package_id == item.id,
+                )
+                .order_by(ServicePackageItem.position)
             )
-            .order_by(ServicePackageItem.position)
-        )
-    ).all()
+        ).all()
+    )
     return PackageView(
+        version=item.version,
         id=item.id,
         name=item.name,
         description=item.description,
@@ -86,6 +96,7 @@ async def save_package(
         session.add(item)
         await session.flush()
     else:
+        item.version += 1
         for key, value in values.items():
             setattr(item, key, value)
         await session.execute(

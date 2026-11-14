@@ -52,7 +52,16 @@ async def test_operator_manages_session_action_items_without_public_visibility()
             action_id = created.json()["id"]
             changed = await client.patch(
                 f"/session-action-items/{action_id}",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str(
+                        (await client.get(f"/session-action-items/{action_id}"))
+                        .json()
+                        .get("version", 1)
+                    )
+                    + '"',
+                },
                 json={"status": "done"},
             )
             listed = await client.get(f"/sessions/{session_id}/action-items")
@@ -66,7 +75,17 @@ async def test_operator_manages_session_action_items_without_public_visibility()
                 json={"title": "No CSRF"},
             )
             removed = await client.delete(
-                f"/session-action-items/{action_id}", headers=_csrf_headers(client)
+                f"/session-action-items/{action_id}",
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str(
+                        (await client.get(f"/session-action-items/{action_id}"))
+                        .json()
+                        .get("version", 1)
+                    )
+                    + '"',
+                },
             )
             remaining = await client.get(f"/sessions/{session_id}/action-items")
     finally:

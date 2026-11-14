@@ -18,14 +18,13 @@ import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import { createOperatorBooking } from "@/services/bookings.service";
 import { getClient, searchClients } from "@/services/clients.service";
 import { getSession, listBookableSessions } from "@/services/sessions.service";
-import { listServices } from "@/services/services.service";
+import { serviceOptionsForIds, type ServiceOption } from "@/services/services.service";
 import { getLanguagePreference } from "@/services/preferences.service";
 import { dataSource } from "@/lib/env";
 import { ApiRequestError } from "@/services/_errors";
 import type { BookingDrawerProps } from "./BookingDrawer";
 import type { Client } from "@/types/client";
 import type { SessionItem } from "@/types/session";
-import type { Service } from "@/types/service";
 import type { MessageKey } from "@/i18n/messages/en";
 
 const emptyClient: ClientIdentity = { name: "", email: "", phone: "", company: "" };
@@ -42,7 +41,7 @@ export function CreateBookingDrawer({ open, onClose, defaultClientId, defaultSes
   const [search, setSearch] = React.useState("");
   const [clients, setClients] = React.useState<Client[]>([]);
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
-  const [services, setServices] = React.useState<Service[]>([]);
+  const [services, setServices] = React.useState<ServiceOption[]>([]);
   const [total, setTotal] = React.useState(0);
   const [offset, setOffset] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
@@ -69,28 +68,30 @@ export function CreateBookingDrawer({ open, onClose, defaultClientId, defaultSes
   React.useEffect(() => {
     if (!open) return;
     let active = true;
-    Promise.all([listBookableSessions(offset), listServices(), defaultSessionId ? getSession(defaultSessionId) : null]).then(([page, catalog, initial]) => {
+    Promise.all([listBookableSessions(offset), defaultSessionId ? getSession(defaultSessionId) : null]).then(async ([page, initial]) => {
+      const catalog = await serviceOptionsForIds([...page.items.map((item) => item.serviceId), ...(initial ? [initial.serviceId] : [])]);
       if (!active) return;
       const eligible = initial && initial.status === "scheduled" && initial.bookedCount < initial.capacity && (page.items.some((s) => s.id === initial.id) || new Date(initial.startISO).getTime() > Date.now());
       setSessions((previous) => {
         const all = [...(offset ? previous : []), ...page.items, ...(eligible ? [initial] : [])];
         return [...new Map(all.map((s) => [s.id, s])).values()];
       });
-      setServices(catalog); setTotal(page.total); setLoading(false); setLoadError(null);
+      setServices((previous) => [...new Map([...previous, ...catalog].map((item) => [item.id, item])).values()]); setTotal(page.total); setLoading(false); setLoadError(null);
     }).catch((error: Error) => { if (active) { setLoadError(error.message); setLoading(false); } });
     return () => { active = false; };
   }, [open, defaultSessionId, offset, retry]);
   React.useEffect(() => {
     if (!open) return;
     let active = true;
+    const controller = new AbortController();
     const timer = setTimeout(() => {
-      Promise.all([searchClients(search), defaultClientId ? getClient(defaultClientId) : null]).then(([found, initial]) => {
+      Promise.all([searchClients(search, controller.signal), defaultClientId ? getClient(defaultClientId) : null]).then(([found, initial]) => {
         if (!active) return;
         setClients([...new Map([...found, ...(initial ? [initial] : [])].map((c) => [c.id, c])).values()]);
         setSearching(false); setSearchError(null);
       }).catch((error: Error) => { if (active) { setSearchError(error.message); setSearching(false); } });
     }, 200);
-    return () => { active = false; clearTimeout(timer); };
+    return () => { active = false; controller.abort(); clearTimeout(timer); };
   }, [open, search, defaultClientId, retry]);
   React.useEffect(() => {
     if (!open || languageTouched || dataSource !== "api") return;

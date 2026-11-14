@@ -1,3 +1,4 @@
+import type { SessionItem } from "./session";
 import type { BookingStatus, Currency, PaymentStatus } from "./common";
 
 /** Per-attendee outcome recorded by the operator after a session runs. */
@@ -10,6 +11,7 @@ export type BookingApprovalStatus =
 export type BookingPendingReason = "approval" | "payment";
 
 export type Booking = {
+  context?: {clientName: string; clientEmail: string; serviceName: string; session: SessionItem};
   id: string;
   sessionId: string;
   clientId: string;
@@ -68,3 +70,18 @@ export type BookingEmail = {
   createdAt: string; sentAt: string | null; availableAt: string; attemptCount: number; simulated: boolean;
 };
 export type BookingEmailPage = { items: BookingEmail[]; total: number; limit: number; offset: number };
+
+
+export type BookingSummaryItem = {
+  attendance?: BookingAttendance | null;
+  id: string; clientId: string; sessionId: string; serviceId: string; reference: string;
+  clientName: string; clientCompany: string | null; serviceName: string; startAt: string;
+  status: BookingStatus; paymentStatus: PaymentStatus; amountCents: number;
+  currency: Currency; createdAt: string;
+};
+export type BookingSummaryPage = {
+  items: BookingSummaryItem[]; total: number; limit: number; offset: number;
+  statusCounts: Record<string, number>;
+  statusPreviews: Record<string, BookingSummaryItem[]>;
+  pendingPaymentCount: number;
+};

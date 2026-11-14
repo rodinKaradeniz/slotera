@@ -68,6 +68,7 @@ def test_http_answer_schema_rejects_coercion_for_boolean_values(value: object) -
     from pydantic import ValidationError
 
     from slotera_api.schemas.public_booking import PublicFormAnswer
+
     # Strings are valid for text fields; validation against yes/no fields still rejects them.
     if isinstance(value, str):
         with pytest.raises(PublicFormValidationError):

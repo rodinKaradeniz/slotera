@@ -49,7 +49,16 @@ async def test_dashboard_summary_is_private_and_aggregates_open_action_items() -
             summary = await client.get("/dashboard/summary")
             await client.delete(
                 f"/session-action-items/{action.json()['id']}",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str(
+                        (await client.get(f"/session-action-items/{action.json()['id']}"))
+                        .json()
+                        .get("version", 1)
+                    )
+                    + '"',
+                },
             )
     finally:
         await application.dispose()

@@ -1,9 +1,10 @@
 """Platform overview and inquiries, plus the public contact form that feeds them."""
 
 from http import HTTPStatus
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Query, Request, Response
 
 from slotera_api.auth.dependencies import (
     CsrfPlatformSuperadminDependency,
@@ -51,13 +52,41 @@ async def get_platform_overview(
     "/inquiries", response_model=PlatformInquiryListResponse, operation_id="listPlatformInquiries"
 )
 async def list_platform_inquiries(
-    response: Response, superadmin: PlatformSuperadminDependency, database: DatabaseDependency
+    response: Response,
+    superadmin: PlatformSuperadminDependency,
+    database: DatabaseDependency,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    search: Annotated[str, Query(max_length=320)] = "",
+    reason: Literal["", "business", "pilot", "development", "feature", "general"] = "",
+    read: Literal["", "read", "unread"] = "",
 ) -> PlatformInquiryListResponse:
-    items = await PlatformRepository(database).list_inquiries(superadmin.user_id)
+    items, total = await PlatformRepository(database).inquiry_page(
+        superadmin.user_id, limit=limit, offset=offset, search=search, reason=reason, read=read
+    )
     response.headers["Cache-Control"] = "no-store"
     return PlatformInquiryListResponse(
-        items=[PlatformInquiryResponse(**item.__dict__) for item in items]
+        items=[PlatformInquiryResponse(**item.__dict__) for item in items],
+        total=total,
+        limit=limit,
+        offset=offset,
     )
+
+
+@platform_router.get(
+    "/inquiries/{inquiry_id}",
+    response_model=PlatformInquiryResponse,
+    operation_id="getPlatformInquiry",
+)
+async def get_inquiry(
+    inquiry_id: UUID, superadmin: PlatformSuperadminDependency, database: DatabaseDependency
+) -> PlatformInquiryResponse:
+    items, _ = await PlatformRepository(database).inquiry_page(
+        superadmin.user_id, limit=1, offset=0, inquiry_id=inquiry_id
+    )
+    if not items:
+        raise ApiError(status_code=404, code="inquiry_not_found", message="Inquiry was not found")
+    return PlatformInquiryResponse(**items[0].__dict__)
 
 
 @platform_router.post(

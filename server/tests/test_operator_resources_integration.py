@@ -41,12 +41,22 @@ async def test_business_patch_does_not_clear_unmentioned_fields() -> None:
             before = await client.get("/settings/business")
             changed = await client.patch(
                 "/settings/business",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get("/settings/business")).json().get("version", 1))
+                    + '"',
+                },
                 json={"bookingPageEnabled": False},
             )
             restored = await client.patch(
                 "/settings/business",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get("/settings/business")).json().get("version", 1))
+                    + '"',
+                },
                 json={"bookingPageEnabled": True},
             )
     finally:
@@ -88,12 +98,30 @@ async def test_saved_location_crud_is_workspace_scoped() -> None:
             location_id = created.json()["id"]
             changed = await client.patch(
                 f"/settings/locations/{location_id}",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str(
+                        (await client.get(f"/settings/locations/{location_id}"))
+                        .json()
+                        .get("version", 1)
+                    )
+                    + '"',
+                },
                 json={"label": "Updated Studio"},
             )
             deleted = await client.delete(
                 f"/settings/locations/{location_id}",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str(
+                        (await client.get(f"/settings/locations/{location_id}"))
+                        .json()
+                        .get("version", 1)
+                    )
+                    + '"',
+                },
             )
             listing = await client.get("/settings/locations")
     finally:
@@ -143,11 +171,24 @@ async def test_service_crud_derives_currency_and_preserves_patch_fields() -> Non
             service_id = created.json()["id"]
             changed = await client.patch(
                 f"/services/{service_id}",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/services/{service_id}")).json().get("version", 1))
+                    + '"',
+                },
                 json={"name": "Architecture Deep Dive"},
             )
             fetched = await client.get(f"/services/{service_id}")
-            deleted = await client.delete(f"/services/{service_id}", headers=_csrf_headers(client))
+            deleted = await client.delete(
+                f"/services/{service_id}",
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/services/{service_id}")).json().get("version", 1))
+                    + '"',
+                },
+            )
             missing = await client.get(f"/services/{service_id}")
         async with owner.transaction() as session:
             audit_actions = list(
@@ -311,7 +352,12 @@ async def test_operator_updates_gross_inclusive_payment_and_tax_settings() -> No
             await _login(client)
             updated = await client.patch(
                 "/settings/payments",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get("/settings/payments")).json().get("version", 1))
+                    + '"',
+                },
                 json={
                     "manualPaymentEnabled": True,
                     "manualPaymentInstructions": "Transfer using the booking reference.",
@@ -378,35 +424,97 @@ async def test_service_deletion_preserves_history_and_unlinks_only_unused_attach
             # Remove package references first, reproducing the reported failure.
             packages = (await client.get("/packages")).json()["items"]
             for package in packages:
-                await client.delete(f"/packages/{package['id']}", headers=_csrf_headers(client))
-            rejected = await client.delete(f"/services/{used['id']}", headers=_csrf_headers(client))
+                await client.delete(
+                    f"/packages/{package['id']}",
+                    headers={
+                        **_csrf_headers(client),
+                        "If-Match": '"v'
+                        + str(
+                            (await client.get(f"/packages/{package['id']}"))
+                            .json()
+                            .get("version", 1)
+                        )
+                        + '"',
+                    },
+                )
+            rejected = await client.delete(
+                f"/services/{used['id']}",
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/services/{used['id']}")).json().get("version", 1))
+                    + '"',
+                },
+            )
             assert rejected.status_code == 409
             assert rejected.json()["error"]["code"] == "service_in_use"
             assert (await client.get(f"/services/{used['id']}")).status_code == 200
             assert (await client.get("/health/ready")).status_code == 200
 
-            payload = {key: used[key] for key in (
-                "name", "description", "durationMin", "priceCents", "capacity", "locationType",
-                "location", "bookingMode", "confirmationPolicy", "cancellationRule", "active",
-            )}
+            payload = {
+                key: used[key]
+                for key in (
+                    "name",
+                    "description",
+                    "durationMin",
+                    "priceCents",
+                    "capacity",
+                    "locationType",
+                    "location",
+                    "bookingMode",
+                    "confirmationPolicy",
+                    "cancellationRule",
+                    "active",
+                )
+            }
             payload["name"] = "Unused service for deletion"
             created = await client.post("/services", headers=_csrf_headers(client), json=payload)
             assert created.status_code == 201
             service_id = created.json()["id"]
-            form = await client.post("/forms", headers=_csrf_headers(client), json={
-                "name": "Retained template", "description": "", "status": "active",
-                "fields": [{
-                    "id": "q", "label": "Question", "type": "short_text", "required": False,
-                }],
-                "attachedServiceIds": [service_id], "requiredBeforePayment": False,
-            })
+            form = await client.post(
+                "/forms",
+                headers=_csrf_headers(client),
+                json={
+                    "name": "Retained template",
+                    "description": "",
+                    "status": "active",
+                    "fields": [
+                        {
+                            "id": "q",
+                            "label": "Question",
+                            "type": "short_text",
+                            "required": False,
+                        }
+                    ],
+                    "attachedServiceIds": [service_id],
+                    "requiredBeforePayment": False,
+                },
+            )
             assert form.status_code == 201
-            deleted = await client.delete(f"/services/{service_id}", headers=_csrf_headers(client))
+            deleted = await client.delete(
+                f"/services/{service_id}",
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/services/{service_id}")).json().get("version", 1))
+                    + '"',
+                },
+            )
             assert deleted.status_code == 204
             retained = await client.get(f"/forms/{form.json()['id']}")
             assert retained.status_code == 200
             assert retained.json()["attachedServiceIds"] == []
-            await client.delete(f"/forms/{form.json()['id']}", headers=_csrf_headers(client))
+            await client.delete(
+                f"/forms/{form.json()['id']}",
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str(
+                        (await client.get(f"/forms/{form.json()['id']}")).json().get("version", 1)
+                    )
+                    + '"',
+                },
+            )
     finally:
         await application.dispose()
         await owner.dispose()

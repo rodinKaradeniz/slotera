@@ -1,39 +1,28 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { useToast } from "@/components/ui/Toast";
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { plural } from "@/lib/text";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { ServiceCard } from "./ServiceCard";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
-import { listServices } from "@/services/services.service";
-import type { Service } from "@/types/service";
+import { useLoad } from "@/lib/use-load";
+import { Pagination } from "@/components/shared/Pagination";
+import { getService, listServiceSummaryPage as listServicePage } from "@/services/services.service";
 
 export function ServicesView() {
   const { t: uiText } = useI18n();
+  const { toast } = useToast();
   const { openServiceDrawer } = useDrawers();
-  const [services, setServices] = React.useState<Service[] | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [reload, setReload] = React.useState(0);
-
-  React.useEffect(() => {
-    listServices()
-      .then(setServices)
-      .catch((cause) => {
-        setError(cause instanceof Error ? cause.message : uiText("ui.services.could.not.be.loaded"));
-        setServices([]);
-      });
-  }, [reload, uiText]);
-
-  const refresh = () => {
-    setError(null);
-    setReload((k) => k + 1);
-  };
+  const [offset, setOffset] = React.useState(0);
+  const load = React.useCallback((signal?: AbortSignal) => listServicePage({offset}, signal), [offset]);
+  const {data: page, error, reload: refresh, loading} = useLoad(load);
+  const services = page?.items;
 
   return (
     <PageContainer>
@@ -41,13 +30,7 @@ export function ServicesView() {
         eyebrow={uiText("ui.catalog")}
         title={uiText("ui.services")}
         description={uiText("ui.the.templates.clients.can.book.duration.pricing.and.capacity")}
-        meta={
-          services
-            ? `${plural(services.length, "service")} · ${
-                services.filter((s) => s.active).length
-              } active`
-            : uiText("ui.loading")
-        }
+        meta={page ? String(page.total) : uiText("ui.loading")}
         actions={
           <Button
             variant="primary"
@@ -71,13 +54,13 @@ export function ServicesView() {
             <ServiceCard
               key={s.id}
               service={s}
-              onClick={() =>
-                openServiceDrawer({
-                  initial: s,
-                  onSaved: refresh,
-                  onRemoved: refresh,
-                })
-              }
+              onClick={async () => {
+                try {
+                  const item = await getService(s.id);
+                  if (!item) { refresh(); return; }
+                  openServiceDrawer({initial: item, onSaved: refresh, onRemoved: refresh});
+                } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+              }}
             />
           ))}
           <Card
@@ -94,6 +77,7 @@ export function ServicesView() {
           </Card>
         </div>
       )}
+      {page && <Pagination total={page.total} offset={offset} onChange={setOffset} loading={loading} />}
     </PageContainer>
   );
 }

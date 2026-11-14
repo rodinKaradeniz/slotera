@@ -3,6 +3,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { buildMonthGrid, clockIn, sameDay } from "@/lib/calendar";
+import { calendarDayKey } from "@/lib/calendar";
 import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import type { CalEvent } from "./EventBlock";
 import { cn } from "@/lib/cn";
@@ -23,7 +24,7 @@ export function MonthGrid({ anchor, events, onSelect }: Props) {
   const cells = buildMonthGrid(anchor);
   const eventsByDay = new Map<string, CalEvent[]>();
   for (const e of events) {
-    const d = new Date(e.session.startISO).toDateString();
+    const d = e.dateKey;
     const list = eventsByDay.get(d) ?? [];
     list.push(e);
     eventsByDay.set(d, list);
@@ -43,7 +44,7 @@ export function MonthGrid({ anchor, events, onSelect }: Props) {
       </div>
       <div className="grid grid-cols-7" style={{ gridAutoRows: "minmax(112px, 1fr)" }}>
         {cells.map((c, i) => {
-          const day = eventsByDay.get(c.date.toDateString()) ?? [];
+          const day = eventsByDay.get(calendarDayKey(c.date)) ?? [];
           const inMonth = c.inMonth;
           const today = sameDay(c.date, new Date());
           return (

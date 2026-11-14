@@ -1,4 +1,5 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import AsyncIterator, Mapping, Sequence
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
@@ -22,7 +23,9 @@ from slotera_api.db.models import (
     PaymentStatus,
     Service,
     Session,
+    Workspace,
 )
+from slotera_api.editing import ensure_version
 
 
 class ClientEmailConflictError(Exception):
@@ -48,24 +51,43 @@ class ClientStats:
     tag: Literal["new", "active", "dormant"] = "new"
 
 
+@asynccontextmanager
+async def _read_session(
+    database: Database, workspace_id: UUID, existing: AsyncSession | None
+) -> AsyncIterator[AsyncSession]:
+    if existing is not None:
+        yield existing
+    else:
+        async with database.tenant_transaction(workspace_id, repeatable_read=True) as session:
+            yield session
+
+
 class ClientsRepository:
     def __init__(self, database: Database) -> None:
         self.database = database
 
     async def list_clients(
-        self, workspace_id: UUID, *, search: str | None, limit: int, offset: int
+        self,
+        workspace_id: UUID,
+        *,
+        search: str | None,
+        limit: int,
+        offset: int,
+        dbsession: AsyncSession | None = None,
     ) -> tuple[list[Client], int]:
         filters: list[Any] = [Client.workspace_id == workspace_id]
         if search:
-            pattern = f"%{search.strip()}%"
+            pattern = (
+                "%" + search.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+            )
             filters.append(
                 or_(
-                    Client.name.ilike(pattern),
-                    Client.email.ilike(pattern),
-                    Client.company.ilike(pattern),
+                    Client.name.ilike(pattern, escape="!"),
+                    Client.email.ilike(pattern, escape="!"),
+                    Client.company.ilike(pattern, escape="!"),
                 )
             )
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with _read_session(self.database, workspace_id, dbsession) as session:
             total = await session.scalar(select(func.count(Client.id)).where(*filters))
             clients = list(
                 (
@@ -81,14 +103,14 @@ class ClientsRepository:
             return clients, int(total or 0)
 
     async def client_stats(
-        self, workspace_id: UUID, client_ids: Sequence[UUID]
+        self, workspace_id: UUID, client_ids: Sequence[UUID], dbsession: AsyncSession | None = None
     ) -> dict[UUID, ClientStats]:
         """Booking totals per client. Clients without bookings are simply absent."""
         if not client_ids:
             return {}
         recent = datetime.now(UTC) - timedelta(days=ACTIVE_WINDOW_DAYS)
         live = Booking.status != BookingStatus.CANCELLED
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with _read_session(self.database, workspace_id, dbsession) as session:
             rows = await session.execute(
                 select(
                     Booking.client_id,
@@ -122,6 +144,96 @@ class ClientsRepository:
                     tag="active" if recent_live else "dormant" if live_total else "new",
                 )
             return stats
+
+    async def export_directory(
+        self, workspace_id: UUID, search: str
+    ) -> AsyncIterator[list[object]]:
+        recent = datetime.now(UTC) - timedelta(days=ACTIVE_WINDOW_DAYS)
+        live = Booking.status != BookingStatus.CANCELLED
+        aggregate = (
+            select(
+                Booking.client_id.label("client_id"),
+                func.count(Booking.id).label("total"),
+                func.count(Booking.id)
+                .filter(Booking.status == BookingStatus.COMPLETED)
+                .label("completed"),
+                func.count(Booking.id)
+                .filter(Booking.status == BookingStatus.CANCELLED)
+                .label("cancelled"),
+                func.coalesce(
+                    func.sum(Booking.amount_cents).filter(
+                        Booking.payment_status == PaymentStatus.PAID
+                    ),
+                    0,
+                ).label("spent"),
+                func.count(Booking.id).filter(live).label("live"),
+                func.count(Booking.id).filter(live & (Session.start_at >= recent)).label("recent"),
+            )
+            .join(
+                Session, (Session.id == Booking.session_id) & (Session.workspace_id == workspace_id)
+            )
+            .where(Booking.workspace_id == workspace_id)
+            .group_by(Booking.client_id)
+            .subquery()
+        )
+        statement = (
+            select(
+                Client,
+                aggregate.c.total,
+                aggregate.c.completed,
+                aggregate.c.cancelled,
+                aggregate.c.spent,
+                aggregate.c.live,
+                aggregate.c.recent,
+                Workspace.currency,
+            )
+            .join(Workspace, Workspace.id == Client.workspace_id)
+            .outerjoin(aggregate, aggregate.c.client_id == Client.id)
+            .where(Client.workspace_id == workspace_id)
+        )
+        if search.strip():
+            pattern = (
+                "%" + search.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+            )
+            statement = statement.where(
+                or_(
+                    Client.name.ilike(pattern, escape="!"),
+                    Client.email.ilike(pattern, escape="!"),
+                    Client.company.ilike(pattern, escape="!"),
+                )
+            )
+        async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
+            result = await session.stream(
+                statement.order_by(Client.created_at.desc(), Client.id).execution_options(
+                    yield_per=500
+                )
+            )
+            try:
+                async for (
+                    client,
+                    total,
+                    completed,
+                    cancelled,
+                    spent,
+                    live_total,
+                    recent_live,
+                    currency,
+                ) in result:
+                    yield [
+                        client.name,
+                        client.email,
+                        client.phone or "",
+                        client.company or "",
+                        "active" if recent_live else "dormant" if live_total else "new",
+                        total or 0,
+                        completed or 0,
+                        cancelled or 0,
+                        f"{(spent or 0) / 100:.2f}",
+                        currency,
+                        client.created_at.date().isoformat(),
+                    ]
+            finally:
+                await result.close()
 
     async def get_client(self, workspace_id: UUID, client_id: UUID) -> Client | None:
         async with self.database.tenant_transaction(workspace_id) as session:
@@ -169,6 +281,7 @@ class ClientsRepository:
         actor_user_id: UUID,
         client_id: UUID,
         changes: Mapping[str, Any],
+        expected_version: int | None = None,
     ) -> Client | None:
         async with self.database.tenant_transaction(workspace_id) as session:
             client = await session.scalar(
@@ -176,6 +289,7 @@ class ClientsRepository:
             )
             if client is None:
                 return None
+            ensure_version(client, expected_version)
             for key, value in changes.items():
                 setattr(client, key, value)
             session.add(
@@ -306,7 +420,12 @@ class ClientsRepository:
             }
 
     async def erase_client(
-        self, workspace_id: UUID, actor_user_id: UUID, client_id: UUID, confirm_email: str
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        client_id: UUID,
+        confirm_email: str,
+        expected_version: int | None = None,
     ) -> Literal["erased", "not_found", "confirmation_mismatch"]:
         """Anonymise a client on request, keeping only the financial facts of their bookings.
 
@@ -322,6 +441,7 @@ class ClientsRepository:
             )
             if client is None:
                 return "not_found"
+            ensure_version(client, expected_version)
             if confirm_email.strip().lower() != client.email:
                 return "confirmation_mismatch"
             booking_ids = list(

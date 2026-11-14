@@ -39,6 +39,9 @@ class StoredAuthSession:
     workspace_slug: str | None
     csrf_token_hash: bytes
     expires_at: datetime
+    preferred_language: str = "en"
+    workspace_currency: str | None = "GBP"
+    workspace_timezone: str | None = "Europe/Berlin"
 
 
 class AuthRepository:

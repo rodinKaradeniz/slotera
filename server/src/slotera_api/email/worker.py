@@ -93,16 +93,41 @@ async def deliver_available(
             if isinstance(exc, EmailProviderError):
                 error = f"{error}: {exc.status_code} {exc.category}"
                 logger.error(
-                    "email_delivery_failed id=%s status=%s category=%s",
-                    message.id,
-                    exc.status_code,
-                    exc.category,
+                    "email_delivery_failed",
+                    extra={
+                        "message_id": str(message.id),
+                        "attempt": message.attempt_count,
+                        "provider_status": exc.status_code,
+                        "error_code": exc.category,
+                        "request_id": message.template_data.get("_traceRequestId"),
+                        "operation_id": message.template_data.get("_traceOperationId")
+                        or str(message.id),
+                    },
                 )
             else:
-                logger.exception("email_delivery_failed", extra={"message_id": str(message.id)})
+                logger.exception(
+                    "email_delivery_failed",
+                    extra={
+                        "message_id": str(message.id),
+                        "attempt": message.attempt_count,
+                        "request_id": message.template_data.get("_traceRequestId"),
+                        "operation_id": message.template_data.get("_traceOperationId")
+                        or str(message.id),
+                    },
+                )
             await repository.mark_failed(message.id, error)
         else:
             await repository.mark_sent(message.id, provider_id)
+            logger.info(
+                "email_provider_accepted",
+                extra={
+                    "message_id": str(message.id),
+                    "attempt": message.attempt_count,
+                    "request_id": message.template_data.get("_traceRequestId"),
+                    "operation_id": message.template_data.get("_traceOperationId")
+                    or str(message.id),
+                },
+            )
             delivered += 1
     return delivered
 

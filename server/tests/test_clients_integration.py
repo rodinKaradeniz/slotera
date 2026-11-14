@@ -43,7 +43,12 @@ async def test_client_crud_normalizes_email_and_rejects_duplicates() -> None:
             client_id = created.json()["id"]
             changed = await client.patch(
                 f"/clients/{client_id}",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/clients/{client_id}")).json().get("version", 1))
+                    + '"',
+                },
                 json={"phone": "+44 20 0000"},
             )
             duplicate = await client.post("/clients", headers=_csrf_headers(client), json=payload)

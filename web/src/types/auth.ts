@@ -16,6 +16,11 @@ export type Operator = {
 };
 
 export type Session = {
+  workspaceId?: string;
+  currency?: import("./common").Currency;
+  timezone?: string;
+  language?: "en" | "tr" | "de";
+  expiresAt?: string;
   /** Present only for the mock data source; API auth is carried by an HttpOnly cookie. */
   token?: string;
   operator: Operator;

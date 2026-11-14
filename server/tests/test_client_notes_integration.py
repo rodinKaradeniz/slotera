@@ -48,11 +48,24 @@ async def test_operator_can_manage_sanitized_client_notes() -> None:
             note_id = created.json()["id"]
             changed = await client.patch(
                 f"/client-notes/{note_id}",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/client-notes/{note_id}")).json().get("version", 1))
+                    + '"',
+                },
                 json={"body": "<img src=x onerror=alert(1)><p>Changed</p>"},
             )
             listed = await client.get(f"/clients/{CLIENT_ID}/notes")
-            removed = await client.delete(f"/client-notes/{note_id}", headers=_csrf_headers(client))
+            removed = await client.delete(
+                f"/client-notes/{note_id}",
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/client-notes/{note_id}")).json().get("version", 1))
+                    + '"',
+                },
+            )
             remaining = await client.get(f"/clients/{CLIENT_ID}/notes")
     finally:
         await application.dispose()

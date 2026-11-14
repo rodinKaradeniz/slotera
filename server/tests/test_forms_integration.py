@@ -46,10 +46,23 @@ async def test_operator_can_create_and_read_form_template() -> None:
             form_id = created.json()["id"]
             updated = await client.patch(
                 f"/forms/{form_id}",
-                headers=_csrf(client),
+                headers={
+                    **_csrf(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/forms/{form_id}")).json().get("version", 1))
+                    + '"',
+                },
                 json={"status": "inactive"},
             )
-            removed = await client.delete(f"/forms/{form_id}", headers=_csrf(client))
+            removed = await client.delete(
+                f"/forms/{form_id}",
+                headers={
+                    **_csrf(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/forms/{form_id}")).json().get("version", 1))
+                    + '"',
+                },
+            )
             listed = await client.get("/forms")
     finally:
         await application.dispose()

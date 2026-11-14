@@ -124,7 +124,7 @@ const PREFILL = dataSource === "mock" || process.env.NODE_ENV !== "production";
 async function needsOnboarding(role: UserRole): Promise<boolean> {
   if (dataSource !== "api" || role !== "operator_admin") return false;
   try {
-    return !(await getBusinessSettings()).onboardingCompletedAt;
+    return !(await getBusinessSettings(false)).onboardingCompletedAt;
   } catch {
     return false;
   }

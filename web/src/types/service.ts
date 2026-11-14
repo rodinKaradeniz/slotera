@@ -13,6 +13,7 @@ export type ServiceBookingMode = "open" | "scheduled";
 export type ServiceConfirmationPolicy = "automatic" | "operator_approval";
 
 export type Service = {
+  version?: number;
   id: string;
   name: string;
   description: string;
@@ -54,3 +55,5 @@ export type Service = {
 };
 
 export type ServiceInput = Omit<Service, "id" | "createdAtISO" | "publicQuote">;
+
+export type ServiceSummary = Pick<Service, "id" | "name" | "description" | "durationMin" | "priceCents" | "capacity" | "locationType" | "active" | "currency">;

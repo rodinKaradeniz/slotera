@@ -40,6 +40,7 @@ class PublicPackageView(ApiModel):
 
 
 class PackageView(PublicPackageView):
+    version: int
     status: Literal["active", "inactive"]
     notes: str | None
     created_at: datetime
@@ -47,8 +48,29 @@ class PackageView(PublicPackageView):
 
 
 class PackageList(ApiModel):
+    total: int
+    limit: int
+    offset: int
     items: list[PackageView]
 
 
 class PublicPackageList(ApiModel):
     items: list[PublicPackageView]
+
+
+class PackageSummary(ApiModel):
+    id: UUID
+    name: str
+    description: str
+    price_cents: int
+    currency: str
+    featured: bool
+    status: Literal["active", "inactive"]
+    item_count: int
+
+
+class PackageSummaryPage(ApiModel):
+    items: list[PackageSummary]
+    total: int
+    limit: int
+    offset: int

@@ -2,7 +2,7 @@
 import { readLang, localeForLang } from "@/lib/i18n";
 
 import * as React from "react";
-import { buildWeekDays, sameDay } from "@/lib/calendar";
+import { buildWeekDays, sameDay, calendarDayKey } from "@/lib/calendar";
 import { EventBlock, type CalEvent } from "./EventBlock";
 import { cn } from "@/lib/cn";
 
@@ -21,9 +21,8 @@ export function WeekGrid({ anchor, events, selectedId, onSelect }: Props) {
   const eventsByDayIndex = React.useMemo(() => {
     const map: CalEvent[][] = Array.from({ length: 7 }, () => []);
     for (const e of events) {
-      const start = new Date(e.session.startISO);
       for (let i = 0; i < 7; i++) {
-        if (sameDay(start, days[i])) {
+        if (e.dateKey === calendarDayKey(days[i])) {
           map[i].push(e);
           break;
         }

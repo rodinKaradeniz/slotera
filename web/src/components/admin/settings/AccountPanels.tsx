@@ -1,6 +1,7 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -53,6 +54,7 @@ export function ApiAccountPanel() {
   return (
     <PanelCard title={uiText("ui.account")}>
       <div className="flex flex-col gap-4">
+        <LanguageSwitcher />
         <Field label={uiText("ui.account.email")} hint={uiText("ui.contact.us.to.change.the.email.you.sign.in.with")}>
           <Input value={email} readOnly />
         </Field>
@@ -107,6 +109,7 @@ export function AccountPanel({ data, onChange }: PanelProps) {
   return (
     <>
       <PanelCard title={uiText("ui.account")} onSave={save}>
+        <LanguageSwitcher />
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label={uiText("ui.account.email")}>
             <Input

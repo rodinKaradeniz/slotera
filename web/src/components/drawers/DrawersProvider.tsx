@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { dataSource } from "@/lib/env";
 import * as React from "react";
 import { BookingDrawer, type BookingDrawerProps } from "./BookingDrawer";
 import { SessionDrawer, type SessionDrawerProps } from "./SessionDrawer";
@@ -41,12 +43,15 @@ export function useDrawers() {
 }
 
 export function DrawersProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [state, setState] = React.useState<State>({ type: "none" });
 
   const value = React.useMemo<Ctx>(
     () => ({
-      openBookingDrawer: (props = {}) =>
-        setState({ type: "booking", props }),
+      openBookingDrawer: (props = {}) => {
+        if (dataSource === "api" && props.initial) {setState({type: "none"}); router.push(`/admin/bookings/${props.initial.id}`); return;}
+        setState({ type: "booking", props });
+      },
       openSessionDrawer: (props = {}) =>
         setState({ type: "session", props }),
       openServiceDrawer: (props = {}) =>
@@ -59,7 +64,7 @@ export function DrawersProvider({ children }: { children: React.ReactNode }) {
         setState({ type: "package", props }),
       close: () => setState({ type: "none" }),
     }),
-    [],
+    [router],
   );
 
   return (

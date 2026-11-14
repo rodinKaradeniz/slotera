@@ -611,3 +611,18 @@ stay demonstrations until the backend can support them properly.
 - **Calendar translation polish (observed 2026-11-14):** `EventBlock` still appends the
   literal English “booked” to group capacity under TR/DE; move that existing label into
   the dictionaries in the next Calendar copy pass. New booking/email controls are translated.
+
+
+## Completed architecture bundle — 2026-11-15
+
+- **~~Bound screen reads and remove browser-wide joins.~~ DONE:** server pages, summary/detail
+  projections, visible Calendar intervals, bounded contextual lists and streamed CSV exports.
+- **~~Share cache/session ownership and recoverable loading.~~ DONE:** local TanStack wrapper,
+  cancellation, verified private scope, targeted invalidation, tab sign-out and preserved drafts.
+- **~~Protect reviewed edits and isolate demo data.~~ DONE:** atomic resource/settings/billing
+  revisions, series guards, reviewed recipients, note/erasure locking and build-selected fixtures.
+- **~~Correlate diagnostics and measure large reads.~~ DONE:** request/audit/outbox/worker IDs,
+  safe timing/query metrics and repeatable isolated performance artifacts; no monitoring service added.
+
+Live integration delivery, deployment and pilot operational evidence remain in the previously
+agreed final integration-verification stage; no new architecture work is deferred here.

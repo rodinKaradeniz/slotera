@@ -1,4 +1,5 @@
 "use client";
+import { useSettingsEdit } from "@/components/shared/use-settings-edit";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
@@ -21,7 +22,7 @@ import {
   type ManualPaymentValue,
 } from "@/components/shared/forms/ManualPaymentForm";
 import { currentSession } from "@/services/auth.service";
-import { createService, listServices } from "@/services/services.service";
+import { createService, listServicePage } from "@/services/services.service";
 import {
   availabilityToWorkingDays,
   completeOnboarding,
@@ -99,6 +100,13 @@ export default function OnboardingPage() {
     instructions: "",
   });
   const [busy, setBusy] = React.useState(false);
+  const availabilityEdit = useSettingsEdit(availability, getAvailabilitySettings, (next) => {
+    setAvailability(next); setHours(availabilityToWorkingDays(next));
+  });
+  const paymentEdit = useSettingsEdit(payments, getPaymentSettings, (next) => {
+    setPayments(next); setManualPayment({enabled: next.manualPaymentEnabled, instructions: next.manualPaymentInstructions});
+  });
+
 
   React.useEffect(() => {
     let cancelled = false;
@@ -106,7 +114,7 @@ export default function OnboardingPage() {
       try {
         const [business, services, nextAvailability, nextPayments, currency] = await Promise.all([
           getBusinessSettings(),
-          listServices(),
+          listServicePage({}),
           getAvailabilitySettings(),
           getPaymentSettings(),
           getWorkspaceCurrency(),
@@ -131,7 +139,7 @@ export default function OnboardingPage() {
         // Resume from server state so a half-finished setup picks up where it stopped.
         setStep(
           resumeStep(
-            services.length > 0,
+            services.total > 0,
             nextAvailability.weeklyHours.length > 0,
             nextPayments.manualPaymentEnabled,
           ),
@@ -153,8 +161,9 @@ export default function OnboardingPage() {
   const finish = async () => {
     try {
       await completeOnboarding();
-    } finally {
       router.push("/admin/dashboard");
+    } catch (error) {
+      toast.error(uiText("errors.unexpected"), {description: error instanceof Error ? error.message : undefined});
     }
   };
 
@@ -186,10 +195,16 @@ export default function OnboardingPage() {
     }
     setBusy(true);
     try {
-      setAvailability(await updateAvailabilitySettings({ ...availability, weeklyHours }));
+      const next = await updateAvailabilitySettings({ ...availability, weeklyHours });
+      setAvailability(next); availabilityEdit.accept({...next, id: "settings"});
+      if (payments && payments.version === availability.version) {
+        const currentPayments = {...payments, version: next.version};
+        setPayments(currentPayments); paymentEdit.accept({...currentPayments, id: "settings"});
+      }
       toast.success(uiText("ui.availability.saved"));
       setStep(3);
     } catch (err) {
+      availabilityEdit.onError(err);
       toast.error(uiText("ui.couldn.t.save.availability"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -212,6 +227,7 @@ export default function OnboardingPage() {
       toast.success(uiText("ui.payment.setup.saved"));
       setStep(4);
     } catch (err) {
+      paymentEdit.onError(err);
       toast.error(uiText("ui.couldn.t.save.payment.setup"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -222,6 +238,8 @@ export default function OnboardingPage() {
 
   return (
     <div className="w-full">
+      {step === 2 && availabilityEdit.notice}
+      {step === 3 && paymentEdit.notice}
       <div className="flex items-center justify-between mb-6">
         <Logo />
         <button

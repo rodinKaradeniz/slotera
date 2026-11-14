@@ -2,6 +2,8 @@
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import { useWorkspaceCurrency } from "@/lib/use-workspace-currency";
+import { getPackage } from "@/services/packages.service";
+import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
@@ -66,13 +68,15 @@ export function PackageDrawer({
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [persistedActive, setPersistedActive] = React.useState(initial?.status === "active");
   const [deactivation, setDeactivation] = React.useState<"save" | "toggle" | null>(null);
-  useResetOnOpen(open, [initial], () => {
+  const edit = useReviewedEdit(open, initial, getPackage, (latest) => {setForm(toFormValue(latest)); setPersistedActive(latest.status === "active");});
+
+  useResetOnOpen(open, [initial?.id], () => {
     setPersistedActive(initial?.status === "active");
     setDeactivation(null);
     setConfirmDelete(false);
   });
 
-  useResetOnOpen(open, [initial, workspaceCurrency], () =>
+  useResetOnOpen(open, [initial?.id], () =>
     setForm(initial ? toFormValue(initial) : defaults),
   );
 
@@ -93,7 +97,7 @@ export function PackageDrawer({
     setBusy(true);
     try {
       if (isEdit && initial) {
-        const next = await updatePackage(initial.id, form);
+        const next = await updatePackage(initial.id, form, edit.version);
         onSaved?.(next);
         toast.success(uiText("ui.package.updated"));
       } else {
@@ -103,6 +107,7 @@ export function PackageDrawer({
       }
       onClose();
     } catch (err) {
+      if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.save.package"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -117,8 +122,9 @@ export function PackageDrawer({
     try {
       const next =
         persistedActive
-          ? await deactivatePackage(initial.id)
-          : await activatePackage(initial.id);
+          ? await deactivatePackage(initial.id, edit.version)
+          : await activatePackage(initial.id, edit.version);
+      edit.accept(next);
       setPersistedActive(next.status === "active");
       setDeactivation(null);
       onSaved?.(next);
@@ -127,6 +133,7 @@ export function PackageDrawer({
         next.status === "active" ? uiText("ui.package.activated") : uiText("ui.package.deactivated"),
       );
     } catch (err) {
+      if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.update.package"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -139,12 +146,13 @@ export function PackageDrawer({
     if (!initial) return;
     setBusy(true);
     try {
-      await removePackage(initial.id);
+      await removePackage(initial.id, edit.version);
       onRemoved?.(initial.id);
       toast.success(uiText("ui.package.deleted"));
       setConfirmDelete(false);
       onClose();
     } catch (err) {
+      if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.delete.package"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -169,7 +177,8 @@ export function PackageDrawer({
       }
     >
       <div className="flex flex-col gap-5">
-        <PackageForm value={form} onChange={setForm} disabled={busy} />
+        {edit.notice}
+      <PackageForm value={form} onChange={setForm} disabled={busy} />
 
         {isEdit && (
           <div className="mt-4 pt-5 border-t border-line-soft">

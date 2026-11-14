@@ -14,12 +14,14 @@ import { LoadError } from "@/components/shared/LoadError";
 import { WeekGrid } from "./WeekGrid";
 import { DayGrid } from "./DayGrid";
 import { MonthGrid } from "./MonthGrid";
-import { listSessions } from "@/services/sessions.service";
-import { listServices } from "@/services/services.service";
+import { listSessionsInRange, listSessions } from "@/services/sessions.service";
+import { serviceOptionsForIds, listServices } from "@/services/services.service";
 import { listBookings } from "@/services/bookings.service";
 import { listClients } from "@/services/clients.service";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
-import { buildWeekDays, sameDay } from "@/lib/calendar";
+import { calendarSegments, calendarDayKey } from "@/lib/calendar";
+import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
+import { buildMonthGrid, zonedWallToISO, buildWeekDays } from "@/lib/calendar";
 import { dataSource } from "@/lib/env";
 import type { Booking } from "@/types/booking";
 import type { Client } from "@/types/client";
@@ -77,9 +79,10 @@ function shift(view: CalView, anchor: Date, delta: number): Date {
 const NONE: never[] = [];
 
 /** The real app's calendar only needs sessions and services; the demo also shows client names. */
-async function loadCalendar() {
+async function loadCalendar(startsFrom: string, startsBefore: string, signal?: AbortSignal) {
   if (dataSource === "api") {
-    const [sessions, services] = await Promise.all([listSessions(), listServices()]);
+    const sessions = await listSessionsInRange(startsFrom, startsBefore, signal);
+    const services = await serviceOptionsForIds(sessions.map((item) => item.serviceId));
     return { sessions, services, bookings: [] as Booking[], clients: [] as Client[] };
   }
   const [sessions, services, bookings, clients] = await Promise.all([
@@ -99,7 +102,16 @@ export function CalendarView() {
   );
   const [view, setView] = React.useState<CalView>("week");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const { data, error, reload } = useLoad(loadCalendar);
+  const timezone = useWorkspaceTimezone();
+  const dates = view === "month" ? buildMonthGrid(anchor).map((cell) => cell.date) : view === "week" ? buildWeekDays(anchor) : [anchor];
+  const first = dates[0];
+  const last = new Date(dates[dates.length - 1]);
+  last.setDate(last.getDate() + 1);
+  const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const startsFrom = zonedWallToISO(dateKey(first), "00:00", timezone);
+  const startsBefore = zonedWallToISO(dateKey(last), "00:00", timezone);
+  const load = React.useCallback((signal?: AbortSignal) => loadCalendar(startsFrom, startsBefore, signal), [startsFrom, startsBefore]);
+  const { data, error, reload } = useLoad(load);
   const sessions = data?.sessions ?? NONE;
   const services = data?.services ?? NONE;
   const bookings = data?.bookings ?? NONE;
@@ -121,29 +133,14 @@ export function CalendarView() {
     return m;
   }, [bookings, clientById]);
 
-  const events: CalEvent[] = sessions.map((s) => {
-    const start = new Date(s.startISO);
-    const end = new Date(s.endISO);
-    return {
-      session: s,
-      service: services.find((sv) => sv.id === s.serviceId),
-      clientName: clientNameBySession.get(s.id),
-      startHour: start.getUTCHours() + start.getUTCMinutes() / 60,
-      endHour: end.getUTCHours() + end.getUTCMinutes() / 60,
-    };
-  });
-
-  const todayEvents = events.filter((e) =>
-    sameDay(new Date(e.session.startISO), anchor),
-  );
+  const events: CalEvent[] = sessions.flatMap((s) => calendarSegments(s.startISO, s.endISO, timezone).map((segment) => ({
+    session: s, service: services.find((service) => service.id === s.serviceId),
+    clientName: clientNameBySession.get(s.id), ...segment,
+  })));
+  const todayEvents = events.filter((event) => event.dateKey === calendarDayKey(anchor));
   const weekDays = buildWeekDays(anchor);
-  const visibleWeekEvents = events.filter((e) =>
-    weekDays.some((d) => sameDay(d, new Date(e.session.startISO))),
-  );
-  const monthEvents = events.filter((e) => {
-    const d = new Date(e.session.startISO);
-    return d.getMonth() === anchor.getMonth() && d.getFullYear() === anchor.getFullYear();
-  });
+  const visibleWeekEvents = events.filter((event) => weekDays.some((date) => calendarDayKey(date) === event.dateKey));
+  const monthEvents = events;
 
   const summaryCount =
     view === "day"

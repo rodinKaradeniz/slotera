@@ -49,6 +49,7 @@ class PlatformWorkspace:
     clients_count: int
     bookings_count: int
     sessions_count: int
+    billing_version: int = 1
 
 
 def _workspace(row: Any) -> PlatformWorkspace:
@@ -71,6 +72,7 @@ def _workspace(row: Any) -> PlatformWorkspace:
         clients_count=int(row["clients_count"]),
         bookings_count=int(row["bookings_count"]),
         sessions_count=int(row["sessions_count"]),
+        billing_version=int(row["billing_version"]),
     )
 
 
@@ -115,6 +117,82 @@ class PlatformRepository:
                 )
             ).mappings()
             return [_workspace(row) for row in rows]
+
+    async def workspace_page(
+        self, *, limit: int, offset: int, search: str
+    ) -> tuple[list[PlatformWorkspace], int]:
+        async with self.database.transaction() as session:
+            rows = (
+                (
+                    await session.execute(
+                        text(
+                            "SELECT * FROM public.slotera_platform_list_workspaces"
+                            "(:limit, :offset, :search)"
+                        ),
+                        {"limit": limit, "offset": offset, "search": search},
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            total = int(rows[0]["total_count"]) if rows else 0
+            if not rows and offset:
+                first = (
+                    (
+                        await session.execute(
+                            text(
+                                "SELECT * FROM public.slotera_platform_list_workspaces"
+                                "(1, 0, :search)"
+                            ),
+                            {"search": search},
+                        )
+                    )
+                    .mappings()
+                    .first()
+                )
+                total = int(first["total_count"]) if first else 0
+            return [_workspace(row) for row in rows], total
+
+    async def inquiry_page(
+        self,
+        actor: UUID,
+        *,
+        limit: int,
+        offset: int,
+        search: str = "",
+        reason: str = "",
+        read: str = "",
+        inquiry_id: UUID | None = None,
+    ) -> tuple[list[PlatformInquiry], int]:
+        async with self.database.transaction() as session:
+            statement = text(
+                "SELECT * FROM public.slotera_platform_list_inquiries"
+                "(:actor, :limit, :offset, :search, :reason, :read, :id)"
+            )
+            values = {
+                "actor": actor,
+                "limit": limit,
+                "offset": offset,
+                "search": search,
+                "reason": reason,
+                "read": read,
+                "id": inquiry_id,
+            }
+            rows = (await session.execute(statement, values)).mappings().all()
+            total = int(rows[0]["total_count"]) if rows else 0
+            if not rows and offset:
+                first = (
+                    (await session.execute(statement, {**values, "limit": 1, "offset": 0}))
+                    .mappings()
+                    .first()
+                )
+                total = int(first["total_count"]) if first else 0
+            return [
+                PlatformInquiry(
+                    **{key: value for key, value in row.items() if key != "total_count"}
+                )
+                for row in rows
+            ], total
 
     async def get_workspace(self, workspace_id: UUID) -> PlatformWorkspace | None:
         async with self.database.transaction() as session:
@@ -234,13 +312,14 @@ class PlatformRepository:
         billing_interval: BillingInterval,
         trial_ends_at: datetime,
         paid_through: date | None,
+        expected_version: int,
     ) -> str:
         async with self.database.transaction() as session:
             result_code = await session.scalar(
                 text(
                     "SELECT public.slotera_platform_set_workspace_billing("
                     ":workspace_id, :actor_user_id, :plan, :billing_interval, "
-                    ":trial_ends_at, :paid_through, :audit_event_id)"
+                    ":trial_ends_at, :paid_through, :audit_event_id, :expected_version)"
                 ),
                 {
                     "workspace_id": workspace_id,
@@ -250,6 +329,7 @@ class PlatformRepository:
                     "trial_ends_at": trial_ends_at,
                     "paid_through": paid_through,
                     "audit_event_id": uuid4(),
+                    "expected_version": expected_version,
                 },
             )
         return str(result_code)
@@ -281,7 +361,12 @@ class PlatformRepository:
                     {"actor": actor_user_id},
                 )
             ).mappings()
-            return [PlatformInquiry(**row) for row in rows]
+            return [
+                PlatformInquiry(
+                    **{key: value for key, value in row.items() if key != "total_count"}
+                )
+                for row in rows
+            ]
 
     async def set_inquiry_read(self, *, actor_user_id: UUID, inquiry_id: UUID, read: bool) -> str:
         async with self.database.transaction() as session:

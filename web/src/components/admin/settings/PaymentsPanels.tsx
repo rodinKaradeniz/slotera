@@ -1,4 +1,5 @@
 "use client";
+import { useSettingsEdit } from "@/components/shared/use-settings-edit";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { ManualPaymentForm } from "@/components/shared/forms/ManualPaymentForm";
 import { useToast } from "@/components/ui/Toast";
-import { updateSettings, updatePaymentSettings, type PaymentSettings } from "@/services/settings.service";
+import { updateSettings, getPaymentSettings, updatePaymentSettings, type PaymentSettings } from "@/services/settings.service";
 import { PanelProps, PanelCard } from "./PanelCard";
 import { BookingTermsPanel } from "./CalendarPanels";
 
@@ -84,15 +85,18 @@ export function ApiPaymentsPanel({
   const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [local, setLocal] = React.useState(payments);
+  const edit = useSettingsEdit(local, getPaymentSettings, (next) => {setLocal(next); onChange(next);});
   const [saving, setSaving] = React.useState(false);
   const save = async () => {
     setSaving(true);
     try {
       const next = await updatePaymentSettings(local);
+      edit.accept({...next, id: "settings"});
       setLocal(next);
       onChange(next);
       toast.success(uiText("ui.client.payment.settings.saved"));
     } catch (error) {
+      edit.onError(error);
       toast.error(uiText("ui.couldn.t.save.client.payment.settings"), {
         description: error instanceof Error ? error.message : undefined,
       });
@@ -102,6 +106,7 @@ export function ApiPaymentsPanel({
   };
   return (
     <div className="flex flex-col gap-6">
+      {edit.notice}
       <Card padded>
         <h3 className="text-h3 text-ink mb-1" style={{ fontSize: 18 }}>
           {uiText("ui.offline.client.payments")}</h3>

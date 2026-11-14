@@ -44,6 +44,7 @@ describe("platform DTO mappers", () => {
 
   it("keeps workspace plan and currency from the detail DTO", () => {
     const workspace = mapPlatformWorkspace({
+      billingVersion: 1,
       id: "w1",
       name: "North Star",
       slug: "north-star",

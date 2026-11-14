@@ -1,4 +1,7 @@
-import clientsJson from "@/data/mock/clients.json";
+import { mockData } from "@/services/adapters/mock-data";
+import { readLang } from "@/lib/i18n";
+import { nextEditVersion } from "./_editing";
+
 import { apiListAll, apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -12,10 +15,12 @@ type ClientListDto = components["schemas"]["ClientListResponse"];
 type ClientCreateDto = components["schemas"]["ClientCreate"];
 type ClientPatchDto = components["schemas"]["ClientPatch"];
 
-let mock: Client[] = JSON.parse(JSON.stringify(clientsJson)) as Client[];
+let mock: Client[] = dataSource === "mock" ? mockData("clients") : [] as Client[];
+mock = mock.map((item) => ({...item, version: item.version ?? 1}));
 
 function mapClient(client: ClientDto): Client {
   return {
+    version: client.version,
     id: client.id,
     name: client.name,
     email: client.email,
@@ -75,6 +80,7 @@ export async function createClient(input: ClientInput): Promise<Client> {
   }
   await sleep(120);
   const created: Client = {
+    version: 1,
     ...input,
     id: makeId("cli"),
     joinedISO: new Date().toISOString(),
@@ -91,11 +97,12 @@ export async function createClient(input: ClientInput): Promise<Client> {
 export async function updateClient(
   id: string,
   patch: Partial<ClientInput>,
+  expectedVersion?: number,
 ): Promise<Client> {
   if (dataSource === "api") {
     return mapClient(
       await apiRequest<ClientDto, ClientPatchDto>(`/clients/${encodeURIComponent(id)}`, {
-        method: "PATCH",
+        method: "PATCH", expectedVersion,
         body: patchPayload(patch),
         csrf: true,
       }),
@@ -104,7 +111,7 @@ export async function updateClient(
   await sleep(100);
   const idx = mock.findIndex((c) => c.id === id);
   if (idx === -1) throw new NotFoundError("client", id);
-  const next: Client = { ...mock[idx], ...patch };
+  const next: Client = { ...mock[idx], ...patch, version: nextEditVersion(mock[idx], expectedVersion) };
   mock = [...mock.slice(0, idx), next, ...mock.slice(idx + 1)];
   return next;
 }
@@ -121,20 +128,34 @@ export async function exportClient(id: string): Promise<ClientExport> {
  * Anonymise a client on request. Bookings keep their amounts and payment state;
  * names, contact details, notes and form answers are removed for good.
  */
-export async function eraseClient(id: string, confirmEmail: string): Promise<void> {
+export async function eraseClient(id: string, confirmEmail: string, expectedVersion?: number): Promise<void> {
   if (dataSource !== "api") throw new NotImplementedError("eraseClient");
   await apiRequest<void, components["schemas"]["ClientErase"]>(
     `/clients/${encodeURIComponent(id)}/erase`,
-    { method: "POST", body: { confirmEmail }, csrf: true },
+    { method: "POST", expectedVersion, body: { confirmEmail }, csrf: true },
   );
 }
 
 /** Bounded picker search; full-directory loading remains confined to directory pages. */
-export async function searchClients(search: string): Promise<Client[]> {
+export async function searchClients(search: string, signal?: AbortSignal): Promise<Client[]> {
   if (dataSource === "api") {
-    return (await apiRequest<ClientListDto>(`/clients?search=${encodeURIComponent(search.trim())}&limit=20&offset=0`)).items.map(mapClient);
+    return (await apiRequest<ClientListDto>(`/clients?search=${encodeURIComponent(search.trim())}&limit=20&offset=0`, {signal})).items.map(mapClient);
   }
   await sleep(60);
   const query = search.trim().toLowerCase();
   return mock.filter((c) => `${c.name} ${c.email}`.toLowerCase().includes(query)).slice(0, 20);
+}
+
+export async function listClientPage(search: string, offset = 0, signal?: AbortSignal): Promise<import("@/types/page").Page<Client>> {
+  if (dataSource === "mock") {
+    const items = mock.filter((item) => [item.name, item.email, item.company].some((value) => value?.toLowerCase().includes(search.toLowerCase())));
+    return {items: items.slice(offset, offset + 25), total: items.length, offset, limit: 25};
+  }
+  const params = new URLSearchParams({search, offset: String(offset), limit: "25"});
+  const page = await apiRequest<ClientListDto>(`/clients?${params}`, {signal});
+  return {...page, items: page.items.map(mapClient)};
+}
+
+export async function exportClientDirectory(search: string): Promise<string> {
+  return apiRequest<string>(`/clients/export.csv?${new URLSearchParams({search, language: readLang()})}`, {responseType: "text"});
 }

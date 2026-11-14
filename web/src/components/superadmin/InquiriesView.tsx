@@ -1,4 +1,5 @@
 "use client";
+import { DATA_CHANGED } from "@/api/query-cache";
 import { translateInterfaceLabel } from "@/lib/i18n";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -15,7 +16,9 @@ import { Modal } from "@/components/ui/Modal";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { NewWorkspaceDrawer } from "./NewWorkspaceDrawer";
-import { listInquiries, setInquiryRead } from "@/services/platform.service";
+import { Pagination } from "@/components/shared/Pagination";
+import { LoadError } from "@/components/shared/LoadError";
+import { listInquiryPage, setInquiryRead } from "@/services/platform.service";
 import { INQUIRY_TYPE } from "@/lib/status-maps";
 import { fmtDate } from "@/lib/time";
 import { cn } from "@/lib/cn";
@@ -59,23 +62,25 @@ export function InquiriesView() {
     null,
   );
 
+  const [offset, setOffset] = React.useState(0);
+  const [total, setTotal] = React.useState(0);
+  const [error, setError] = React.useState<string | null>(null);
+  const [attempt, setAttempt] = React.useState(0);
   React.useEffect(() => {
-    listInquiries().then(setItems);
+    const refresh = () => setAttempt((value) => value + 1);
+    window.addEventListener(DATA_CHANGED, refresh);
+    return () => window.removeEventListener(DATA_CHANGED, refresh);
   }, []);
+  React.useEffect(() => {
+    let live = true;
+    const controller = new AbortController();
+    listInquiryPage({search: query, reason: type, read: readFilter, offset}, controller.signal).then((page) => {
+      if (live) { setItems(page.items); setTotal(page.total); setError(null); }
+    }).catch((error: unknown) => { if (live) setError(error instanceof Error ? error.message : String(error)); });
+    return () => {live = false; controller.abort();};
+  }, [query, type, readFilter, offset, attempt]);
+  const filtered = items ?? [];
 
-  const filtered = React.useMemo(() => {
-    if (!items) return [];
-    const q = query.trim().toLowerCase();
-    return items.filter((i) => {
-      if (type && i.type !== type) return false;
-      if (readFilter === "unread" && i.read) return false;
-      if (readFilter === "read" && !i.read) return false;
-      if (!q) return true;
-      return [i.name, i.email, i.message].join(" ").toLowerCase().includes(q);
-    });
-  }, [items, query, type, readFilter]);
-
-  const unreadCount = items?.filter((i) => !i.read).length ?? 0;
   const openInquiry = items?.find((i) => i.id === openId) ?? null;
 
   const handleOpen = async (i: PlatformInquiry) => {
@@ -104,7 +109,7 @@ export function InquiriesView() {
         title={uiText("ui.inquiries")}
         description={uiText("ui.incoming.contact.support.and.business.messages.pro.upgrade.requests.from.operators.land.he")}
         meta={
-          items ? uiText("ui.inquiry.count", { count: items.length, unread: unreadCount }) : undefined
+          items ? String(total) : undefined
         }
       />
 
@@ -113,7 +118,7 @@ export function InquiriesView() {
           icon="search"
           placeholder={uiText("ui.search.by.name.email.message")}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {setQuery(e.target.value); setOffset(0);}}
         />
         <Select
           value={type}
@@ -169,11 +174,12 @@ export function InquiriesView() {
             : undefined
         }
         onCreated={async (ws) => {
-          const next = await listInquiries();
-          setItems(next);
+          setAttempt((value) => value + 1);
           router.push(`/superadmin/workspaces/${ws.id}`);
         }}
       />
+      {error && <LoadError message={error} onRetry={() => setAttempt((value) => value + 1)} />}
+      <Pagination total={total} offset={offset} onChange={setOffset} />
     </PageContainer>
   );
 }

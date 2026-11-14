@@ -5,6 +5,7 @@
  * clients and never surfaced on the customer booking workspace.
  */
 export type ClientNote = {
+  version?: number;
   id: string;
   clientId: string;
   title: string;

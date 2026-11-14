@@ -36,6 +36,7 @@ export type FormField = {
 export type FormStatus = "active" | "inactive";
 
 export type FormTemplate = {
+  version?: number;
   id: string;
   name: string;
   description: string;
@@ -63,3 +64,5 @@ export type FormResponse = {
 };
 
 export type FormResponseInput = Omit<FormResponse, "id" | "submittedAt">;
+
+export type FormSummary = Pick<FormTemplate, "id" | "name" | "description" | "status"> & {fieldCount: number; attachedServiceCount: number};

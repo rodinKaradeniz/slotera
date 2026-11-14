@@ -22,6 +22,7 @@ export type Connection = {
 
 export type SettingsData = {
   business: {
+    version?: number;
     name: string;
     displayName: string;
     bio: string;

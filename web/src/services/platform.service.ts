@@ -14,7 +14,7 @@ import type {
   PlatformOverview,
   PlatformWorkspace,
 } from "@/types/platform";
-import { NotFoundError, NotImplementedError } from "./_errors";
+import { NotImplementedError } from "./_errors";
 
 type PlatformWorkspaceSummaryDto =
   components["schemas"]["PlatformWorkspaceSummary"];
@@ -60,6 +60,7 @@ export function mapPlatformWorkspace(
 ): PlatformWorkspace {
   return {
     id: workspace.id,
+    billingVersion: workspace.billingVersion,
     name: workspace.name,
     slug: workspace.slug,
     ownerName: workspace.ownerName,
@@ -120,11 +121,12 @@ export type WorkspaceBillingChange = components["schemas"]["PlatformBillingChang
 export async function setPlatformWorkspaceBilling(
   id: string,
   change: WorkspaceBillingChange,
+  expectedVersion?: number,
 ): Promise<PlatformWorkspace> {
   requireApi("setPlatformWorkspaceBilling");
   const response = await apiRequest<PlatformWorkspaceDetailDto, WorkspaceBillingChange>(
     `/platform/workspaces/${id}/billing`,
-    { method: "POST", body: change, csrf: true },
+    { method: "POST", body: change, csrf: true, expectedVersion },
   );
   return mapPlatformWorkspace(response);
 }
@@ -208,9 +210,7 @@ export async function setInquiryRead(id: string, read: boolean): Promise<Platfor
     `/platform/inquiries/${encodeURIComponent(id)}/read`,
     { method: "POST", body: { read }, csrf: true },
   );
-  const updated = (await listInquiries()).find((item) => item.id === id);
-  if (!updated) throw new NotFoundError("inquiry", id);
-  return updated;
+  return mapInquiry(await apiRequest<components["schemas"]["PlatformInquiryResponse"]>(`/platform/inquiries/${encodeURIComponent(id)}`));
 }
 
 export type PilotApplication = components["schemas"]["PublicPilotApplication"];
@@ -222,4 +222,17 @@ export async function submitPilotApplication(input: PilotApplication): Promise<v
     method: "POST",
     body: input,
   });
+}
+
+export async function listWorkspacePage(search: string, offset = 0, signal?: AbortSignal): Promise<import("@/types/page").Page<PlatformWorkspace>> {
+  requireApi("listWorkspacePage");
+  const params = new URLSearchParams({search, limit: "25", offset: String(offset)});
+  const page = await apiRequest<PlatformWorkspaceListDto>(`/platform/workspaces?${params}`, {signal});
+  return {...page, items: page.items.map(mapPlatformWorkspace)};
+}
+export async function listInquiryPage(filters: {search: string; reason: string; read: string; offset: number}, signal?: AbortSignal): Promise<import("@/types/page").Page<PlatformInquiry>> {
+  requireApi("listInquiryPage");
+  const params = new URLSearchParams({...filters, offset: String(filters.offset), limit: "25"});
+  const page = await apiRequest<PlatformInquiryListDto>(`/platform/inquiries?${params}`, {signal});
+  return {...page, items: page.items.map(mapInquiry)};
 }

@@ -1,10 +1,11 @@
 "use client";
+import { useSettingsEdit } from "@/components/shared/use-settings-edit";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
-import { updateBusinessSettings, updateSettings, type BusinessSettings } from "@/services/settings.service";
+import { getBusinessSettings, updateBusinessSettings, updateSettings, type BusinessSettings } from "@/services/settings.service";
 import { PanelProps, PanelCard, CheckRow } from "./PanelCard";
 
 export function ApiEmailsPanel({
@@ -18,8 +19,14 @@ export function ApiEmailsPanel({
   const [local, setLocal] = React.useState(
     business.notifyOperator ?? { newBooking: true, cancelled: true, rescheduled: true },
   );
+  const edit = useSettingsEdit(business, getBusinessSettings, (next) => {
+    setLocal(next.notifyOperator ?? {newBooking: true, cancelled: true, rescheduled: true}); onChange(next);
+  });
   const save = async () => {
-    onChange(await updateBusinessSettings({ notifyOperator: local }));
+    try {
+      const next = await updateBusinessSettings({ notifyOperator: local, version: edit.version });
+      edit.accept({...next, id: "settings"}); onChange(next);
+    } catch (error) {edit.onError(error); throw error;}
   };
   return (
     <PanelCard
@@ -27,6 +34,7 @@ export function ApiEmailsPanel({
       hint={uiText("ui.emails.to.your.business.address.when.a.client.acts.on.their.own.clients.always.get.their.b")}
       onSave={save}
     >
+      {edit.notice}
       <h3 className="text-[13px] font-medium text-ink-2 uppercase tracking-wide mb-2">
         {uiText("ui.notify.me.when")}</h3>
       <div className="flex flex-col gap-1">

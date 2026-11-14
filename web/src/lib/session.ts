@@ -29,3 +29,8 @@ export function clearSession(): void {
   window.localStorage.removeItem(SESSION_KEY);
   window.dispatchEvent(new Event("slotera-session-change"));
 }
+
+if (typeof window !== "undefined") window.addEventListener("storage", (event) => {
+  if (event.key !== SESSION_KEY || event.oldValue === event.newValue) return;
+  window.dispatchEvent(new Event(event.newValue ? "slotera-auth-identity-changed" : "slotera-auth-expired"));
+});

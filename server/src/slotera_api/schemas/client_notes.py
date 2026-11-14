@@ -29,6 +29,7 @@ class ClientNotePatch(StrictApiModel):
 
 
 class ClientNoteResponse(ApiModel):
+    version: int
     id: UUID
     client_id: UUID
     title: str
@@ -38,5 +39,7 @@ class ClientNoteResponse(ApiModel):
 
 
 class ClientNoteListResponse(ApiModel):
+    limit: int
+    offset: int
     items: list[ClientNoteResponse]
     total: int

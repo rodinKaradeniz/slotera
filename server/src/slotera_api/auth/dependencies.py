@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from hashlib import sha256
 from hmac import compare_digest
 from http import HTTPStatus
 from typing import Annotated, cast
@@ -10,6 +11,7 @@ from slotera_api.auth.service import AuthServiceProtocol, AuthSession
 from slotera_api.config import Settings
 from slotera_api.database import Database
 from slotera_api.errors import ApiError
+from slotera_api.request_context import operation_context
 
 
 @dataclass(frozen=True)
@@ -82,6 +84,15 @@ async def require_authenticated_request(
     session = await service.authenticate(session_token)
     if session is None:
         raise authentication_required()
+    context = operation_context.get()
+    if context:
+        key = request.headers.get("idempotency-key", "")
+        if key:
+            context.operation_id = sha256(
+                f"{session.user_id}:{session.workspace_id}:{key}".encode()
+            ).hexdigest()
+        context.actor_id = str(session.user_id)
+        context.workspace_id = str(session.workspace_id) if session.workspace_id else None
     return AuthenticatedRequest(session_token=session_token, session=session)
 
 

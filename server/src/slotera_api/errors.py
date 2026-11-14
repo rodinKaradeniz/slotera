@@ -4,6 +4,7 @@ from http import HTTPStatus
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm.exc import StaleDataError
 from starlette.exceptions import HTTPException
 
 from slotera_api.schemas.base import ErrorBody, ErrorDetail, ErrorEnvelope
@@ -31,6 +32,7 @@ def _error_response(
     message: str,
     details: list[ErrorDetail] | None = None,
 ) -> JSONResponse:
+    request.state.error_code = code
     request_id = _request_id(request)
     envelope = ErrorEnvelope(
         error=ErrorBody(
@@ -92,7 +94,18 @@ async def validation_error_handler(request: Request, exc: Exception) -> JSONResp
 
 
 async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.exception("unhandled_request_error", exc_info=exc)
+    context = getattr(request.state, "operation_context", None)
+    logger.exception(
+        "unhandled_request_error",
+        exc_info=exc,
+        extra={
+            "request_id": _request_id(request),
+            "error_code": "internal_error",
+            "operation_id": context.operation_id if context else None,
+            "actor_id": context.actor_id if context else None,
+            "workspace_id": context.workspace_id if context else None,
+        },
+    )
     return _error_response(
         request,
         status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -101,7 +114,20 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
     )
 
 
+async def stale_edit_handler(request: Request, exc: Exception) -> JSONResponse:
+    return _error_response(
+        request,
+        status_code=409,
+        code="resource_stale",
+        message=(
+            "This item changed elsewhere. Your draft is kept; "
+            "review the latest version before saving."
+        ),
+    )
+
+
 def install_error_handlers(app: FastAPI) -> None:
+    app.add_exception_handler(StaleDataError, stale_edit_handler)
     app.add_exception_handler(ApiError, api_error_handler)
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)

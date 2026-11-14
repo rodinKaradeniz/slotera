@@ -58,11 +58,11 @@ export default function BookingDetailPage() {
   const { openBookingDrawer } = useDrawers();
   const { toast } = useToast();
   const [booking, setBooking] = React.useState<Booking | null>(null);
-  const [client, setClient] = React.useState<Client | null>(null);
+  const [client, setClient] = React.useState<Pick<Client, "id" | "name" | "email"> | null>(null);
   const [session, setSession] = React.useState<SessionItem | null>(null);
   // Attendance can be recorded once the session has started; checked when it loads.
   const [sessionStarted, setSessionStarted] = React.useState(false);
-  const [service, setService] = React.useState<Service | null>(null);
+  const [service, setService] = React.useState<Pick<Service, "id" | "name"> | null>(null);
   const [settings, setSettings] = React.useState<SettingsData | null>(null);
   const [reload, setReload] = React.useState(0);
   const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -72,6 +72,7 @@ export default function BookingDetailPage() {
 
   React.useEffect(() => {
     let live = true;
+    if (dataSource === "api") return;
     getSettings().then((s) => {
       if (live) setSettings(s);
     });
@@ -89,6 +90,13 @@ export default function BookingDetailPage() {
         setLoadError(null);
         setBooking(b);
         if (!b) return;
+        if (b.context) {
+          setClient({id: b.clientId, name: b.context.clientName, email: b.context.clientEmail});
+          setSession(b.context.session);
+          setSessionStarted(new Date(b.context.session.startISO).getTime() <= Date.now());
+          setService({id: b.context.session.serviceId, name: b.context.serviceName});
+          return;
+        }
         const [cl, ss] = await Promise.all([
           getClient(b.clientId),
           getSession(b.sessionId),
@@ -104,13 +112,13 @@ export default function BookingDetailPage() {
       })
       .catch((cause: unknown) => {
         if (live) {
-          setLoadError(cause instanceof Error ? cause.message : uiText("ui.couldn.t.load.this.booking"));
+          setLoadError(cause instanceof Error ? cause.message : String(cause));
         }
       });
     return () => {
       live = false;
     };
-  }, [params?.id, reload, uiText]);
+  }, [params?.id, reload]);
 
   useSetCrumbs([
     { label: uiText("ui.bookings"), href: "/admin/bookings" },

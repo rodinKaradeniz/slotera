@@ -35,6 +35,7 @@ export type PackageItem = {
 };
 
 export type ServicePackage = {
+  version?: number;
   id: string;
   name: string;
   description: string;
@@ -55,3 +56,5 @@ export type ServicePackageInput = Omit<
   ServicePackage,
   "id" | "createdAtISO" | "updatedAtISO"
 >;
+
+export type PackageSummary = Pick<ServicePackage, "id" | "name" | "description" | "status" | "priceCents" | "currency" | "featured"> & {itemCount: number};

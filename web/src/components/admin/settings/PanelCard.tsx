@@ -21,9 +21,17 @@ export function PanelCard({
   title: string;
   hint?: string;
   children: React.ReactNode;
-  onSave?: () => void;
+  onSave?: () => void | Promise<void>;
 }) {
   const { t: uiText } = useI18n();
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<Error | null>(null);
+  const save = async () => {
+    if (!onSave || saving) return;
+    setSaving(true); setError(null);
+    try {await onSave();} catch (cause) {setError(cause instanceof Error ? cause : new Error(uiText("errors.unexpected")));}
+    finally {setSaving(false);}
+  };
   return (
     <Card padded>
       <div className="mb-4">
@@ -31,9 +39,10 @@ export function PanelCard({
         {hint && <p className="text-small mt-1">{hint}</p>}
       </div>
       {children}
+      {error && <p role="alert" className="text-small text-danger mt-3">{error.message}</p>}
       {onSave && (
         <div className="flex justify-end mt-5 pt-4 border-t border-line-soft">
-          <Button variant="primary" onClick={onSave}>{uiText("ui.save.changes")}</Button>
+          <Button variant="primary" loading={saving} onClick={save}>{uiText("ui.save.changes")}</Button>
         </div>
       )}
     </Card>

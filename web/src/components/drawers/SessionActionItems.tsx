@@ -1,6 +1,8 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
+import { getActionItem } from "@/services/session-action-items.service";
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -28,6 +30,7 @@ type Props = {
 };
 
 type DraftFields = {
+  version?: number;
   title: string;
   description: string;
   dueDate: string;
@@ -59,6 +62,12 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
     null,
   );
 
+  const editingItem = items.find((item) => item.id === editingId);
+  const edit = useReviewedEdit(editingId !== null, editingItem ? {...editingItem, version: editDraft.version} : null, getActionItem, (latest) => {
+    setEditDraft({version: latest.version, title: latest.title, description: latest.description ?? "", dueDate: latest.dueDate ?? "", clientVisible: latest.clientVisible ?? false});
+    onChange(items.map((item) => item.id === latest.id ? latest : item));
+  });
+
   const sorted = React.useMemo(
     () =>
       [...items].sort((a, b) => {
@@ -85,6 +94,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       setDraft(EMPTY_DRAFT);
       toast.success(uiText("ui.action.item.added"));
     } catch (err) {
+      edit.onError(err);
       toast.error(uiText("ui.couldn.t.add.action.item"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -94,46 +104,33 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
   };
 
   const toggle = async (item: SessionActionItem) => {
-    // Optimistic flip — feels instant, rolls back on failure.
-    const snapshot = items;
-    onChange(
-      items.map((i) =>
-        i.id === item.id
-          ? { ...i, status: i.status === "done" ? "todo" : "done" }
-          : i,
-      ),
-    );
+    if (busy) return;
+    setBusy(true);
     try {
-      await toggleActionItemStatus(item.id, item.status);
-    } catch (err) {
-      onChange(snapshot);
-      toast.error(uiText("ui.couldn.t.update.item"), {
-        description: err instanceof Error ? err.message : undefined,
-      });
-    }
+      const next = await toggleActionItemStatus(item.id, item.status, item.version);
+      onChange(items.map((current) => current.id === next.id ? next : current));
+    } catch (error) {
+      edit.onError(error);
+      toast.error(uiText("ui.couldn.t.update.item"), {description: error instanceof Error ? error.message : undefined});
+    } finally {setBusy(false);}
   };
 
   const toggleVisibility = async (item: SessionActionItem) => {
-    const snapshot = items;
-    const nextVisible = !item.clientVisible;
-    onChange(
-      items.map((i) =>
-        i.id === item.id ? { ...i, clientVisible: nextVisible } : i,
-      ),
-    );
+    if (busy) return;
+    setBusy(true);
     try {
-      await updateActionItem(item.id, { clientVisible: nextVisible });
-    } catch (err) {
-      onChange(snapshot);
-      toast.error(uiText("ui.couldn.t.update.item"), {
-        description: err instanceof Error ? err.message : undefined,
-      });
-    }
+      const next = await updateActionItem(item.id, {clientVisible: !item.clientVisible}, item.version);
+      onChange(items.map((current) => current.id === next.id ? next : current));
+    } catch (error) {
+      edit.onError(error);
+      toast.error(uiText("ui.couldn.t.update.item"), {description: error instanceof Error ? error.message : undefined});
+    } finally {setBusy(false);}
   };
 
   const startEdit = (item: SessionActionItem) => {
     setEditingId(item.id);
     setEditDraft({
+      version: item.version,
       title: item.title,
       description: item.description ?? "",
       dueDate: item.dueDate ?? "",
@@ -151,11 +148,12 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
         description: editDraft.description.trim() || undefined,
         dueDate: editDraft.dueDate || undefined,
         clientVisible: editDraft.clientVisible,
-      });
+      }, edit.version);
       onChange(items.map((i) => (i.id === item.id ? next : i)));
       setEditingId(null);
       toast.success(uiText("ui.action.item.updated"));
     } catch (err) {
+      edit.onError(err);
       toast.error(uiText("ui.couldn.t.update.action.item"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -168,11 +166,16 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
     if (!pendingDelete) return;
     setBusy(true);
     try {
-      await deleteActionItem(pendingDelete.id);
+      await deleteActionItem(pendingDelete.id, pendingDelete.version);
       onChange(items.filter((i) => i.id !== pendingDelete.id));
       setPendingDelete(null);
       toast.success(uiText("ui.action.item.removed"));
     } catch (err) {
+      if (edit.onError(err)) {
+        setPendingDelete(null);
+        const latest = await getActionItem(pendingDelete.id);
+        onChange(latest ? items.map((item) => item.id === latest.id ? latest : item) : items.filter((item) => item.id !== pendingDelete.id));
+      }
       toast.error(uiText("ui.couldn.t.remove.action.item"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -183,6 +186,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
 
   return (
     <div className="flex flex-col gap-4">
+      {edit.notice}
       <div>
         <h4 className="text-[13px] font-semibold text-ink">{uiText("ui.action.items")}</h4>
         <p className="text-micro text-ink-3 mt-0.5">

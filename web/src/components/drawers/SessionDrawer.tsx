@@ -1,4 +1,8 @@
 "use client";
+import { DATA_CHANGED } from "@/api/query-cache";
+import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
+import { Pagination } from "@/components/shared/Pagination";
+import { LoadError } from "@/components/shared/LoadError";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import { getSession } from "@/services/sessions.service";
@@ -24,9 +28,9 @@ import {
   cancelSession,
   findConflict,
 } from "@/services/sessions.service";
-import { listServices } from "@/services/services.service";
+import { listServicePage, getService } from "@/services/services.service";
 import { listWorkspaceLocations } from "@/services/settings.service";
-import { listActionItemsForSession } from "@/services/session-action-items.service";
+import { listActionItemPage } from "@/services/session-action-items.service";
 import { slotParts, zonedWallToISO } from "@/lib/calendar";
 import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import { dataSource } from "@/lib/env";
@@ -117,11 +121,17 @@ export function SessionDrawer({
   const [mode, setMode] = React.useState<SessionDrawerMode>(modeProp);
   const { openBookingDrawer } = useDrawers();
   const isView = mode === "view" && isEdit;
+  const [serviceSearch, setServiceSearch] = React.useState("");
+  const [lookupError, setLookupError] = React.useState<string | null>(null);
+  const [lookupAttempt, setLookupAttempt] = React.useState(0);
   const [services, setServices] = React.useState<Service[]>([]);
   const [savedLocations, setSavedLocations] = React.useState<WorkspaceLocation[]>(
     [],
   );
   const [form, setForm] = React.useState<FormState>(() => emptyForm([]));
+  const edit = useReviewedEdit(open, initial, getSession, (item) => {
+    setForm(toForm(item, services, timezone)); onSaved?.(item);
+  });
   const [conflict, setConflict] = React.useState<SessionItem | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [confirmCancel, setConfirmCancel] = React.useState(false);
@@ -140,13 +150,23 @@ export function SessionDrawer({
   const [loadedActionItems, setLoadedActionItems] = React.useState<{
     sessionId: string;
     items: SessionActionItem[];
+    total: number;
   } | null>(null);
+  const [actionOffset, setActionOffset] = React.useState(0);
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const [actionAttempt, setActionAttempt] = React.useState(0);
+  React.useEffect(() => {
+    if (!open) return;
+    const refresh = () => setActionAttempt((value) => value + 1);
+    window.addEventListener(DATA_CHANGED, refresh);
+    return () => window.removeEventListener(DATA_CHANGED, refresh);
+  }, [open]);
   const actionItemsReady =
     !!initial && loadedActionItems?.sessionId === initial.id;
   const actionItems = actionItemsReady ? loadedActionItems.items : [];
   const actionItemsLoading = open && !!initial && !actionItemsReady;
   const setActionItems = (items: SessionActionItem[]) => {
-    if (initial) setLoadedActionItems({ sessionId: initial.id, items });
+    if (initial) setLoadedActionItems({ sessionId: initial.id, items, total: (loadedActionItems?.total ?? 0) + items.length - actionItems.length });
   };
   const openActionCount = actionItems.filter((a) => a.status === "todo").length;
 
@@ -154,32 +174,36 @@ export function SessionDrawer({
     setMode(modeProp);
     setTab("details");
     // Reopening refetches the action items instead of showing the last copy.
-    setLoadedActionItems(null);
+    setLoadedActionItems(null); setActionOffset(0);
   });
 
   React.useEffect(() => {
-    listServices().then(setServices);
-    listWorkspaceLocations().then(setSavedLocations);
-  }, []);
-
-  // Load action items for the open session so the tab badge + panel stay in sync.
-  React.useEffect(() => {
-    if (!open || !initial) return;
-    const sessionId = initial.id;
+    if (!open) return;
     let live = true;
-    listActionItemsForSession(sessionId)
-      .then((items) => {
-        if (live) setLoadedActionItems({ sessionId, items });
-      })
-      .catch(() => {
-        if (live) setLoadedActionItems({ sessionId, items: [] });
-      });
-    return () => {
-      live = false;
-    };
-  }, [open, initial]);
+    const controller = new AbortController();
+    Promise.all([listServicePage({search: serviceSearch, status: "active"}, controller.signal), listWorkspaceLocations(), form.serviceId ? getService(form.serviceId) : null]).then(([page, locations, selected]) => {
+      if (live) {
+        const catalog = [...new Map([...page.items, ...(selected ? [selected] : [])].map((item) => [item.id, item])).values()];
+        setServices(catalog); setSavedLocations(locations); setLookupError(null);
 
-  useResetOnOpen(open, [initial, services, timezone], () => {
+      }
+    }).catch((cause: unknown) => { if (live) setLookupError(cause instanceof Error ? cause.message : String(cause)); });
+    return () => { live = false; controller.abort(); };
+  }, [open, serviceSearch, form.serviceId, initial, lookupAttempt]);
+
+  const actionSessionId = initial?.id;
+  React.useEffect(() => {
+    if (!open || !actionSessionId) return;
+    const sessionId = actionSessionId;
+    const controller = new AbortController();
+    listActionItemPage(sessionId, actionOffset, controller.signal).then((page) => {
+      if (!controller.signal.aborted) {setLoadedActionItems({sessionId, items: page.items, total: page.total}); setActionError(null);}
+    }).catch((error: Error) => {if (!controller.signal.aborted) setActionError(error.message);});
+    return () => controller.abort();
+  }, [open, actionSessionId, actionOffset, actionAttempt]);
+
+  useResetOnOpen(open, [initial?.id], () => {
+    setServiceSearch("");
     setForm(initial ? toForm(initial, services, timezone) : emptyForm(services));
     setConflict(null);
   });
@@ -223,7 +247,7 @@ export function SessionDrawer({
           location: form.location,
           address: addressOnSave,
           notes: form.notes,
-        });
+        }, "this", edit.version);
         onSaved?.(next);
         toast.success(uiText("ui.session.updated"));
       } else {
@@ -245,6 +269,7 @@ export function SessionDrawer({
       }
       onClose();
     } catch (err) {
+      edit.onError(err);
       toast.error(uiText("ui.couldn.t.save.session"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -259,10 +284,12 @@ export function SessionDrawer({
     if (!initial) return;
     setSavingNote(true);
     try {
-      const next = await updateSession(initial.id, { notes: form.notes });
+      const next = await updateSession(initial.id, { notes: form.notes }, "this", edit.version);
+      edit.accept(next);
       onSaved?.(next);
       toast.success(uiText("ui.note.saved"));
     } catch (err) {
+      edit.onError(err);
       toast.error(uiText("ui.couldn.t.save.note"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -275,12 +302,13 @@ export function SessionDrawer({
     if (!initial) return;
     setBusy(true);
     try {
-      const next = await cancelSession(initial.id);
+      const next = await cancelSession(initial.id, edit.version);
       onCancelled?.(next);
       toast.success(uiText("ui.session.cancelled"));
       setConfirmCancel(false);
       onClose();
     } catch (err) {
+      edit.onError(err);
       toast.error(uiText("ui.couldn.t.cancel.session"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -334,7 +362,8 @@ export function SessionDrawer({
     >
       {showTabs && (
         <div className="mb-5">
-          <Tabs
+          {edit.notice}
+      <Tabs
             value={tab}
             onChange={(v) => setTab(v as "details" | "notes" | "attendance")}
             tabs={[
@@ -381,12 +410,14 @@ export function SessionDrawer({
 
           {canShowActionItems && (
             <div className="border-t border-line-soft pt-5">
+              {actionError && <LoadError message={actionError} onRetry={() => setActionAttempt((n) => n + 1)} />}
               <SessionActionItems
                 sessionId={initial.id}
                 items={actionItems}
                 onChange={setActionItems}
                 loading={actionItemsLoading}
               />
+              <Pagination total={loadedActionItems?.total ?? 0} offset={actionOffset} onChange={setActionOffset} />
             </div>
           )}
         </div>
@@ -394,6 +425,8 @@ export function SessionDrawer({
         <AttendanceTab sessionId={initial.id} />
       ) : (
       <fieldset disabled={isView} className="flex flex-col gap-5 disabled:opacity-90">
+        <Input value={serviceSearch} placeholder={uiText("common.search")} onChange={(event) => setServiceSearch(event.target.value)} />
+        {lookupError && <LoadError message={lookupError} onRetry={() => setLookupAttempt((value) => value + 1)} />}
         <Field label={uiText("ui.service")} required>
           <Select
             value={form.serviceId}
@@ -412,7 +445,7 @@ export function SessionDrawer({
                 address: svc?.address ? { ...svc.address } : undefined,
               });
             }}
-            options={services.map((s) => ({ value: s.id, label: s.name }))}
+            options={[{value: "", label: uiText("lookup.chooseService")}, ...services.map((s) => ({ value: s.id, label: s.name }))]}
           />
         </Field>
 

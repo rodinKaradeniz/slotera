@@ -17,6 +17,7 @@ class LoginRequest(ApiModel):
 
 
 class SessionUser(ApiModel):
+    language: Literal["en", "tr", "de"]
     id: UUID
     email: EmailStr
     title: str | None
@@ -27,6 +28,8 @@ class SessionUser(ApiModel):
 
 
 class SessionWorkspace(ApiModel):
+    currency: str
+    timezone: str
     id: UUID
     name: str
     slug: str

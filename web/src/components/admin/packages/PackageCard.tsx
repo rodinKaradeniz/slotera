@@ -9,9 +9,9 @@ import { Icon } from "@/components/ui/Icon";
 import { PACKAGE_STATUS } from "@/lib/status-maps";
 import { formatMoney } from "@/lib/money";
 import { plural } from "@/lib/text";
-import type { ServicePackage } from "@/types/package";
+import type { ServicePackage, PackageSummary } from "@/types/package";
 
-type Props = { item: ServicePackage; onClick: () => void };
+type Props = { item: ServicePackage | PackageSummary; onClick: () => void };
 
 export function PackageCard({ item, onClick }: Props) {
   const { t: uiText, lang: labelLang } = useI18n();
@@ -50,7 +50,7 @@ export function PackageCard({ item, onClick }: Props) {
           <Stat
             icon="layers"
             label={uiText("ui.includes")}
-            value={plural(item.items.length, "session")}
+            value={plural("itemCount" in item ? item.itemCount : item.items.length, "session")}
           />
         </div>
       </div>

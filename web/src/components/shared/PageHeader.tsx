@@ -44,7 +44,7 @@ export function PageHeader({
         {eyebrow && <div className="eyebrow mb-3">{eyebrow}</div>}
         <h1 className="text-h1 text-ink">{title}</h1>
         {description && (
-          <p className="text-body text-ink-2 mt-3 max-w-[60ch]">{description}</p>
+          <p className="text-body text-ink-2 mt-3 max-w-[60ch] [overflow-wrap:anywhere]">{description}</p>
         )}
         {metaNode && (
           <p className="text-small text-ink-3 mt-2">{metaNode}</p>

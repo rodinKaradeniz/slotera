@@ -1,6 +1,11 @@
 "use client";
+import { DATA_CHANGED } from "@/api/query-cache";
+import { Pagination } from "@/components/shared/Pagination";
+import { LoadError } from "@/components/shared/LoadError";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
+import { getClientNote } from "@/services/client-notes.service";
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,7 +19,7 @@ import { fmtDate } from "@/lib/time";
 import { NoteContent } from "./NoteContent";
 import { NoteEditor } from "./NoteEditor";
 import {
-  listClientNotes,
+  listClientNotePage,
   createClientNote,
   updateClientNote,
   deleteClientNote,
@@ -40,15 +45,21 @@ export function ClientNotes({ clientId }: { clientId: string }) {
   );
   const [deleting, setDeleting] = React.useState(false);
 
+  const [offset, setOffset] = React.useState(0);
+  const [total, setTotal] = React.useState(0);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   React.useEffect(() => {
-    let live = true;
-    listClientNotes(clientId).then((n) => {
-      if (live) setNotes(n);
-    });
-    return () => {
-      live = false;
-    };
-  }, [clientId, reload]);
+    const refresh = () => setReload((value) => value + 1);
+    window.addEventListener(DATA_CHANGED, refresh);
+    return () => window.removeEventListener(DATA_CHANGED, refresh);
+  }, []);
+  React.useEffect(() => {
+    const controller = new AbortController();
+    listClientNotePage(clientId, offset, controller.signal).then((page) => {
+      if (!controller.signal.aborted) {setNotes(page.items); setTotal(page.total); setLoadError(null);}
+    }).catch((error: Error) => {if (!controller.signal.aborted) setLoadError(error.message);});
+    return () => controller.abort();
+  }, [clientId, reload, offset]);
 
   const openNew = () => {
     setEditing("new");
@@ -63,6 +74,10 @@ export function ClientNotes({ clientId }: { clientId: string }) {
     setBody(note.body);
     setTouched(false);
   };
+
+  const edit = useReviewedEdit(editing !== null && editing !== "new", typeof editing === "object" ? editing : null, getClientNote, (latest) => {
+    setEditing(latest); setTitle(latest.title); setBody(latest.body);
+  });
 
   const closeModal = () => {
     setEditing(null);
@@ -89,12 +104,13 @@ export function ClientNotes({ clientId }: { clientId: string }) {
         await updateClientNote(editing.id, {
           title: title.trim(),
           body,
-        });
+        }, edit.version);
         toast.success(uiText("ui.note.saved"));
       }
       setReload((k) => k + 1);
       closeModal();
     } catch (err) {
+      edit.onError(err);
       setSaving(false);
       toast.error(uiText("ui.couldn.t.save.note"), {
         description: err instanceof Error ? err.message : undefined,
@@ -106,11 +122,12 @@ export function ClientNotes({ clientId }: { clientId: string }) {
     if (!pendingDelete) return;
     setDeleting(true);
     try {
-      await deleteClientNote(pendingDelete.id);
+      await deleteClientNote(pendingDelete.id, pendingDelete.version);
       setReload((k) => k + 1);
       toast.success(uiText("ui.note.deleted"));
       setPendingDelete(null);
     } catch (err) {
+      if (edit.onError(err)) {setPendingDelete(null); setReload((value) => value + 1);}
       toast.error(uiText("ui.couldn.t.delete.note"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -121,6 +138,7 @@ export function ClientNotes({ clientId }: { clientId: string }) {
 
   return (
     <>
+      {loadError && <LoadError message={loadError} onRetry={() => setReload((n) => n + 1)} />}
       <Card padded>
         <div className="flex items-center justify-between gap-3 mb-4">
           <h3 className="text-h3 text-ink" style={{ fontSize: 16 }}>
@@ -176,6 +194,7 @@ export function ClientNotes({ clientId }: { clientId: string }) {
         )}
       </Card>
 
+      <Pagination total={total} offset={offset} onChange={setOffset} />
       <Modal
         open={editing !== null}
         onClose={closeModal}
@@ -197,7 +216,8 @@ export function ClientNotes({ clientId }: { clientId: string }) {
         }
       >
         <div className="flex flex-col gap-4">
-          <Field label={uiText("ui.title")} required error={titleError}>
+          {edit.notice}
+        <Field label={uiText("ui.title")} required error={titleError}>
             <Input
               value={title}
               placeholder={uiText("ui.e.g.prefers.morning.sessions")}

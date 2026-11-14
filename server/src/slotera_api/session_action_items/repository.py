@@ -2,10 +2,11 @@ from collections.abc import Mapping
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import case, select
+from sqlalchemy import case, func, select
 
 from slotera_api.database import Database
 from slotera_api.db.models import AuditEvent, Session, SessionActionItem, SessionActionItemStatus
+from slotera_api.editing import ensure_version
 
 
 class SessionActionItemsRepository:
@@ -13,9 +14,9 @@ class SessionActionItemsRepository:
         self.database = database
 
     async def list_items(
-        self, workspace_id: UUID, session_id: UUID
+        self, workspace_id: UUID, session_id: UUID, limit: int = 25, offset: int = 0
     ) -> tuple[list[SessionActionItem], int] | None:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
             exists = await session.scalar(
                 select(Session.id).where(
                     Session.workspace_id == workspace_id,
@@ -28,6 +29,8 @@ class SessionActionItemsRepository:
                 (
                     await session.scalars(
                         select(SessionActionItem)
+                        .limit(limit)
+                        .offset(offset)
                         .where(
                             SessionActionItem.workspace_id == workspace_id,
                             SessionActionItem.session_id == session_id,
@@ -46,7 +49,13 @@ class SessionActionItemsRepository:
                     )
                 ).all()
             )
-            return items, len(items)
+            total = await session.scalar(
+                select(func.count(SessionActionItem.id)).where(
+                    SessionActionItem.workspace_id == workspace_id,
+                    SessionActionItem.session_id == session_id,
+                )
+            )
+            return items, int(total or 0)
 
     async def create_item(
         self,
@@ -85,12 +94,22 @@ class SessionActionItemsRepository:
             await session.refresh(item)
             return item
 
+    async def get_item(self, workspace_id: UUID, item_id: UUID) -> SessionActionItem | None:
+        async with self.database.tenant_transaction(workspace_id) as session:
+            item = await session.scalar(
+                select(SessionActionItem).where(
+                    SessionActionItem.workspace_id == workspace_id, SessionActionItem.id == item_id
+                )
+            )
+            return item if isinstance(item, SessionActionItem) else None
+
     async def update_item(
         self,
         workspace_id: UUID,
         actor_user_id: UUID,
         item_id: UUID,
         changes: Mapping[str, Any],
+        expected_version: int | None = None,
     ) -> SessionActionItem | None:
         async with self.database.tenant_transaction(workspace_id) as session:
             item = await session.scalar(
@@ -101,6 +120,7 @@ class SessionActionItemsRepository:
             )
             if item is None:
                 return None
+            ensure_version(item, expected_version)
             for field, value in changes.items():
                 setattr(item, field, value)
             session.add(
@@ -117,7 +137,13 @@ class SessionActionItemsRepository:
             await session.refresh(item)
             return item
 
-    async def delete_item(self, workspace_id: UUID, actor_user_id: UUID, item_id: UUID) -> bool:
+    async def delete_item(
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        item_id: UUID,
+        expected_version: int | None = None,
+    ) -> bool:
         async with self.database.tenant_transaction(workspace_id) as session:
             item = await session.scalar(
                 select(SessionActionItem).where(
@@ -127,6 +153,7 @@ class SessionActionItemsRepository:
             )
             if item is None:
                 return False
+            ensure_version(item, expected_version)
             await session.delete(item)
             session.add(
                 AuditEvent(

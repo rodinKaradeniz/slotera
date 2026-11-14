@@ -6,9 +6,9 @@ import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { browserStorage } from "@/test/browser-storage";
 const { update, deactivate, activate } = vi.hoisted(() => ({ update: vi.fn(), deactivate: vi.fn(), activate: vi.fn() }));
-vi.mock("@/services/services.service", () => ({ updateService: update, deactivateService: deactivate, activateService: activate, createService: vi.fn(), removeService: vi.fn() }));
-vi.mock("@/services/forms.service", () => ({ updateForm: update, deactivateForm: deactivate, activateForm: activate, createForm: vi.fn(), removeForm: vi.fn() }));
-vi.mock("@/services/packages.service", () => ({ updatePackage: update, deactivatePackage: deactivate, activatePackage: activate, createPackage: vi.fn(), removePackage: vi.fn() }));
+vi.mock("@/services/services.service", () => ({ getService: vi.fn(), updateService: update, deactivateService: deactivate, activateService: activate, createService: vi.fn(), removeService: vi.fn() }));
+vi.mock("@/services/forms.service", () => ({ getForm: vi.fn(), updateForm: update, deactivateForm: deactivate, activateForm: activate, createForm: vi.fn(), removeForm: vi.fn() }));
+vi.mock("@/services/packages.service", () => ({ getPackage: vi.fn(), updatePackage: update, deactivatePackage: deactivate, activatePackage: activate, createPackage: vi.fn(), removePackage: vi.fn() }));
 vi.mock("@/lib/use-workspace-currency", () => ({ useWorkspaceCurrency: () => "GBP" }));
 function Draft({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
   return <button onClick={() => onChange({ ...value, active: false, status: "inactive" })}>Set draft inactive</button>;

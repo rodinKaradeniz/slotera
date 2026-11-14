@@ -14,7 +14,10 @@ import { Icon } from "@/components/ui/Icon";
 import { ClientCard } from "./ClientCard";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { listClients } from "@/services/clients.service";
+import { dataSource } from "@/lib/env";
+import { Pagination } from "@/components/shared/Pagination";
+import { useToast } from "@/components/ui/Toast";
+import { exportClientDirectory, listClientPage, listClients } from "@/services/clients.service";
 import { formatMoney } from "@/lib/money";
 import { toCsv, downloadText } from "@/lib/csv";
 import { useLoad } from "@/lib/use-load";
@@ -27,9 +30,14 @@ type Layout = "grid" | "rows";
 
 export function ClientsView() {
   const { t: uiText } = useI18n();
+  const { toast } = useToast();
+  const [exporting, setExporting] = React.useState(false);
   const { openClientDrawer } = useDrawers();
-  const { data: clients, error, reload } = useLoad(listClients);
   const [query, setQuery] = React.useState("");
+  const [offset, setOffset] = React.useState(0);
+  const load = React.useCallback(async (signal?: AbortSignal) => dataSource === "api" ? listClientPage(query, offset, signal) : {items: await listClients(), total: 0, offset: 0, limit: 25}, [query, offset]);
+  const { data: page, error, reload, loading } = useLoad(load);
+  const clients = page?.items;
   const [layout, setLayout] = React.useState<Layout>("grid");
   const currency = useWorkspaceCurrency();
 
@@ -37,13 +45,20 @@ export function ClientsView() {
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return (
-      c.name.toLowerCase().includes(q) ||
+      dataSource === "api" || c.name.toLowerCase().includes(q) ||
       c.email.toLowerCase().includes(q) ||
       (c.company ?? "").toLowerCase().includes(q)
     );
   });
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
+    if (dataSource === "api") {
+      setExporting(true);
+      try { downloadText("slotera-clients.csv", await exportClientDirectory(query)); }
+      catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+      finally { setExporting(false); }
+      return;
+    }
     const text = toCsv(filtered, [
       { header: uiText("ui.name"), value: (c) => c.name },
       { header: uiText("ui.email"), value: (c) => c.email },
@@ -65,13 +80,7 @@ export function ClientsView() {
         eyebrow={uiText("ui.directory")}
         title={uiText("ui.clients")}
         description={uiText("ui.everyone.who.has.booked.with.you.with.lifetime.spend.and.activity")}
-        meta={
-          clients
-            ? `${plural(clients.length, "client")} · ${
-                clients.filter((c) => c.tag === "active").length
-              } active`
-            : uiText("ui.loading")
-        }
+        meta={clients ? plural(dataSource === "api" ? (page?.total ?? 0) : clients.length, "client") : uiText("ui.loading")}
         actions={
           <>
             <Button
@@ -79,6 +88,7 @@ export function ClientsView() {
               size="md"
               icon="download"
               onClick={exportCsv}
+              loading={exporting}
               disabled={filtered.length === 0}
             >
               {uiText("ui.export.csv")}</Button>
@@ -103,7 +113,7 @@ export function ClientsView() {
             icon="search"
             placeholder={uiText("ui.search.by.name.company.or.email")}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setOffset(0); }}
           />
         </div>
         <div className="flex items-center bg-surface border border-line rounded-md p-0.5">
@@ -146,6 +156,7 @@ export function ClientsView() {
           ))}
         </Card>
       )}
+      {dataSource === "api" && page && <Pagination total={page.total} offset={offset} onChange={setOffset} loading={loading} />}
     </PageContainer>
   );
 }

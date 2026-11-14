@@ -13,6 +13,7 @@ BillingIntervalLiteral = Literal["monthly", "yearly"]
 
 
 class PlatformWorkspaceSummary(ApiModel):
+    billing_version: int
     id: UUID
     name: str
     slug: str
@@ -38,6 +39,7 @@ class PlatformWorkspaceDetail(PlatformWorkspaceSummary):
 
 
 class PlatformWorkspaceListResponse(ApiModel):
+    total: int
     items: list[PlatformWorkspaceSummary]
     limit: int
     offset: int
@@ -96,6 +98,9 @@ class PlatformInquiryResponse(ApiModel):
 
 
 class PlatformInquiryListResponse(ApiModel):
+    total: int
+    limit: int
+    offset: int
     items: list[PlatformInquiryResponse]
 
 

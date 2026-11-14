@@ -73,7 +73,16 @@ async def test_availability_round_trip_preserves_split_working_days() -> None:
         app = create_app(database=application)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
-            changed = await client.put("/availability", headers=_csrf_headers(client), json=payload)
+            changed = await client.put(
+                "/availability",
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get("/availability")).json().get("version", 1))
+                    + '"',
+                },
+                json=payload,
+            )
             fetched = await client.get("/availability")
     finally:
         await application.dispose()
@@ -120,7 +129,22 @@ async def test_database_rejects_overlap_but_allows_adjacent_sessions() -> None:
             )
             cancelled = await client.patch(
                 f"/sessions/{first.json()['id']}",
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str(
+                        (await client.get(f"/sessions/{first.json()['id']}"))
+                        .json()
+                        .get("version", 1)
+                    )
+                    + '"',
+                    "X-Series-Version": str(
+                        (await client.get(f"/sessions/{first.json()['id']}"))
+                        .json()
+                        .get("seriesVersion")
+                        or 1
+                    ),
+                },
                 json={"status": "cancelled"},
             )
             replacement = await client.post(
@@ -171,7 +195,16 @@ async def test_recurring_session_materialises_the_six_month_horizon() -> None:
             changed = await client.patch(
                 f"/sessions/{second_id}",
                 params={"scope": "this_and_following"},
-                headers=_csrf_headers(client),
+                headers={
+                    **_csrf_headers(client),
+                    "If-Match": '"v'
+                    + str((await client.get(f"/sessions/{second_id}")).json().get("version", 1))
+                    + '"',
+                    "X-Series-Version": str(
+                        (await client.get(f"/sessions/{second_id}")).json().get("seriesVersion")
+                        or 1
+                    ),
+                },
                 json={"location": "Google Meet"},
             )
             changed_listing = await client.get("/sessions", params={"seriesId": series_id})

@@ -7,10 +7,10 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Icon } from "@/components/ui/Icon";
 import { LOC_TYPE_META } from "@/lib/status-maps";
-import { gbp } from "@/lib/money";
-import type { Service } from "@/types/service";
+import { formatMoney } from "@/lib/money";
+import type { ServiceSummary } from "@/types/service";
 
-type Props = { service: Service; onClick: () => void };
+type Props = { service: ServiceSummary; onClick: () => void };
 
 export function ServiceCard({ service, onClick }: Props) {
   const { t: uiText, lang: labelLang } = useI18n();
@@ -40,7 +40,7 @@ export function ServiceCard({ service, onClick }: Props) {
           <Stat
             icon="card"
             label={uiText("ui.price")}
-            value={service.priceCents === 0 ? uiText("ui.free") : gbp(service.priceCents)}
+            value={service.priceCents === 0 ? uiText("ui.free") : formatMoney(service.priceCents, service.currency, labelLang)}
           />
           <Stat
             icon="users"

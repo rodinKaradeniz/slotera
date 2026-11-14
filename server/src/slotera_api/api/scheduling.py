@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Header, Query, Response
 
 from slotera_api.auth.dependencies import (
     CsrfOperatorWorkspaceDependency,
@@ -19,6 +19,7 @@ from slotera_api.db.models import (
     SessionSeries,
     Workspace,
 )
+from slotera_api.editing import ExpectedVersionDependency
 from slotera_api.errors import ApiError
 from slotera_api.scheduling.repository import (
     PastSessionImmutableError,
@@ -54,8 +55,10 @@ def _availability_response(
     policy: AvailabilityPolicy,
     windows: list[AvailabilityWindow],
     blackouts: list[AvailabilityBlackout],
+    version: int,
 ) -> AvailabilityResponse:
     return AvailabilityResponse(
+        version=version,
         timezone=workspace.timezone,
         weekly_hours=[
             AvailabilityWindowInput(
@@ -96,8 +99,10 @@ def _session_response(
             else "custom"
         )
     return SchedulingSessionResponse(
+        version=item.version,
         id=item.id,
         series_id=item.series_id,
+        series_version=series.version if series else None,
         service_id=item.service_id,
         calendar_owner_id=item.calendar_owner_id,
         start_at=item.start_at,
@@ -145,6 +150,7 @@ async def get_availability(
     "", response_model=AvailabilityResponse, operation_id="replaceAvailability"
 )
 async def replace_availability(
+    expected_version: ExpectedVersionDependency,
     payload: AvailabilityUpdate,
     response: Response,
     operator: CsrfOperatorWorkspaceDependency,
@@ -160,6 +166,7 @@ async def replace_availability(
     result = await SchedulingRepository(database).replace_availability(
         operator.workspace_id,
         operator.user_id,
+        expected_version=expected_version,
         timezone=payload.timezone,
         policy_values={
             **{name: getattr(payload, name) for name in policy_fields},
@@ -273,19 +280,27 @@ async def get_session(
     operation_id="updateSession",
 )
 async def update_session(
+    expected_version: ExpectedVersionDependency,
     session_id: UUID,
     payload: SessionPatch,
     response: Response,
     operator: CsrfOperatorWorkspaceDependency,
     database: DatabaseDependency,
     scope: Annotated[Literal["this", "this_and_following"], Query()] = "this",
+    series_version: Annotated[int | None, Header(alias="X-Series-Version", ge=1)] = None,
 ) -> SchedulingSessionResponse:
     repository = SchedulingRepository(database)
     changes = _session_values(payload)
     try:
         result = (
             await repository.update_session(
-                operator.workspace_id, operator.user_id, session_id, changes, scope
+                operator.workspace_id,
+                operator.user_id,
+                session_id,
+                changes,
+                scope,
+                expected_version,
+                series_version,
             )
             if changes
             else await repository.get_session(operator.workspace_id, session_id)

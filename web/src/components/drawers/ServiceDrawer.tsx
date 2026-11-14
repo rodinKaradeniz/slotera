@@ -1,6 +1,8 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { getService } from "@/services/services.service";
+import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
@@ -62,13 +64,15 @@ export function ServiceDrawer({
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [persistedActive, setPersistedActive] = React.useState(initial?.active ?? true);
   const [deactivation, setDeactivation] = React.useState<"save" | "toggle" | null>(null);
-  useResetOnOpen(open, [initial], () => {
+  const edit = useReviewedEdit(open, initial, getService, (latest) => {setForm({...latest}); setPersistedActive(latest.active);});
+
+  useResetOnOpen(open, [initial?.id], () => {
     setPersistedActive(initial?.active ?? true);
     setDeactivation(null);
     setConfirmDelete(false);
   });
 
-  useResetOnOpen(open, [initial], () => setForm(initial ? { ...initial } : DEFAULTS));
+  useResetOnOpen(open, [initial?.id], () => setForm(initial ? { ...initial } : DEFAULTS));
 
   React.useEffect(() => {
     // New services inherit the workspace's currency; the API derives it anyway.
@@ -87,7 +91,7 @@ export function ServiceDrawer({
     setBusy(true);
     try {
       if (isEdit && initial) {
-        const next = await updateService(initial.id, form);
+        const next = await updateService(initial.id, form, edit.version);
         onSaved?.(next);
         toast.success(uiText("ui.service.updated"));
       } else {
@@ -97,6 +101,7 @@ export function ServiceDrawer({
       }
       onClose();
     } catch (err) {
+      if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.save.service"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -110,8 +115,9 @@ export function ServiceDrawer({
     setBusy(true);
     try {
       const next = persistedActive
-        ? await deactivateService(initial.id)
-        : await activateService(initial.id);
+        ? await deactivateService(initial.id, edit.version)
+        : await activateService(initial.id, edit.version);
+      edit.accept(next);
       setPersistedActive(next.active);
       setDeactivation(null);
       onSaved?.(next);
@@ -120,6 +126,7 @@ export function ServiceDrawer({
         next.active ? uiText("ui.service.activated") : uiText("ui.service.deactivated"),
       );
     } catch (err) {
+      if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.update.service"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -132,12 +139,13 @@ export function ServiceDrawer({
     if (!initial) return;
     setBusy(true);
     try {
-      await removeService(initial.id);
+      await removeService(initial.id, edit.version);
       onRemoved?.(initial.id);
       toast.success(uiText("ui.service.deleted"));
       setConfirmDelete(false);
       onClose();
     } catch (err) {
+      if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.delete.service"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -162,7 +170,8 @@ export function ServiceDrawer({
       }
     >
       <div className="flex flex-col gap-5">
-        <ServiceForm
+        {edit.notice}
+      <ServiceForm
           value={form}
           onChange={setForm}
           serviceId={initial?.id}

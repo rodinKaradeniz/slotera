@@ -1,5 +1,6 @@
 "use client";
 
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -134,6 +135,7 @@ export function Sidebar({
               collapsed && "left-2 right-auto w-44",
             )}
           >
+            {homeHref.startsWith("/superadmin") && <div className="px-3 py-2"><LanguageSwitcher /></div>}
             {/* Operator shells only: platform staff have no booking page. */}
             {homeHref.startsWith("/admin") && (
               <Link

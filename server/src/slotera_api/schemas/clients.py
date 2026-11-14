@@ -44,6 +44,7 @@ class ClientPatch(StrictApiModel):
 
 
 class ClientResponse(ApiModel):
+    version: int
     id: UUID
     name: str
     email: str

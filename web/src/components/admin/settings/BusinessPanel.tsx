@@ -1,4 +1,5 @@
 "use client";
+import { useSettingsEdit } from "@/components/shared/use-settings-edit";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { updateBusinessSettings, type BusinessSettings } from "@/services/settings.service";
+import { getBusinessSettings, updateBusinessSettings, type BusinessSettings } from "@/services/settings.service";
 import { dataSource } from "@/lib/env";
 import { PanelCard, CheckRow } from "./PanelCard";
 
@@ -20,8 +21,11 @@ export function BusinessPanel({
 }) {
   const { t: uiText } = useI18n();
   const [local, setLocal] = React.useState(business);
+  const edit = useSettingsEdit(local, getBusinessSettings, (next) => {setLocal(next); onChange(next);});
   const save = async () => {
+    try {
     const next = await updateBusinessSettings({
+      version: edit.version,
       name: local.name,
       displayName: local.displayName,
       bio: local.bio,
@@ -31,7 +35,8 @@ export function BusinessPanel({
       bookingPageUrl: local.bookingPageUrl,
       bookingPageEnabled: local.bookingPageEnabled,
     });
-    onChange(next);
+    setLocal(next); edit.accept({...next, id: "settings"}); onChange(next);
+    } catch (error) {edit.onError(error); throw error;}
   };
   return (
     <PanelCard
@@ -39,6 +44,7 @@ export function BusinessPanel({
       hint={uiText("ui.visible.on.your.public.booking.page")}
       onSave={save}
     >
+      {edit.notice}
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label={uiText("ui.business.name")}>
           <Input

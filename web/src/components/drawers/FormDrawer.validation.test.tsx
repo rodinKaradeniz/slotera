@@ -7,8 +7,8 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { browserStorage } from "@/test/browser-storage";
 import { FormDrawer } from "./FormDrawer";
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
-vi.mock("@/services/forms.service", () => ({ createForm: create }));
-vi.mock("@/services/services.service", () => ({ listServices: async () => [] }));
+vi.mock("@/services/forms.service", () => ({ getForm: vi.fn(), createForm: create }));
+vi.mock("@/services/services.service", () => ({ searchServiceOptions: async () => [] }));
 beforeEach(() => {
   vi.stubGlobal("localStorage", browserStorage());
   vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => window.setTimeout(() => cb(0), 0));

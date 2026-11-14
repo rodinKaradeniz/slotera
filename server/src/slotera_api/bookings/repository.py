@@ -1,12 +1,12 @@
 import json
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select, text, update
+from sqlalchemy import Select, String, cast, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +28,7 @@ from slotera_api.db.models import (
     PaymentStatus,
     Service,
     Session,
+    SessionSeries,
     SessionStatus,
     Workspace,
     WorkspacePaymentSettings,
@@ -122,6 +123,38 @@ def _confirmation_ready(booking: Booking) -> bool:
     )
 
 
+def _summary_base(
+    workspace_id: UUID, search: str, client_id: UUID | None, service_id: UUID | None
+) -> Select[Any]:
+    predicate = Booking.workspace_id == workspace_id
+    if client_id is not None:
+        predicate &= Booking.client_id == client_id
+    if service_id is not None:
+        predicate &= Session.service_id == service_id
+    if search.strip():
+        escaped = search.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_")
+        pattern = f"%{escaped}%"
+        predicate &= or_(
+            Client.name.ilike(pattern, escape="!"),
+            Service.name.ilike(pattern, escape="!"),
+            cast(Booking.id, String).ilike(pattern, escape="!"),
+        )
+    base = (
+        select(Booking.id)
+        .join(
+            Session,
+            (Session.id == Booking.session_id) & (Session.workspace_id == workspace_id),
+        )
+        .join(
+            Service,
+            (Service.id == Session.service_id) & (Service.workspace_id == workspace_id),
+        )
+        .join(Client, (Client.id == Booking.client_id) & (Client.workspace_id == workspace_id))
+        .where(predicate)
+    )
+    return base
+
+
 class BookingsRepository:
     def __init__(self, database: Database) -> None:
         self.database = database
@@ -155,6 +188,163 @@ class BookingsRepository:
             )
             return items, int(total or 0)
 
+    async def list_summaries(
+        self,
+        workspace_id: UUID,
+        *,
+        limit: int,
+        offset: int,
+        search: str = "",
+        status: str | None = None,
+        client_id: UUID | None = None,
+        service_id: UUID | None = None,
+        session_id: UUID | None = None,
+        attendance_only: bool = False,
+    ) -> tuple[list[dict[str, Any]], int, dict[str, int], dict[str, list[dict[str, Any]]], int]:
+        async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
+            base = _summary_base(workspace_id, search, client_id, service_id)
+            if session_id is not None:
+                base = base.where(Booking.session_id == session_id)
+            if attendance_only:
+                base = base.where(
+                    Booking.status.in_([BookingStatus.CONFIRMED, BookingStatus.COMPLETED])
+                )
+            count_rows = (
+                await session.execute(
+                    base.with_only_columns(
+                        Booking.status,
+                        func.count(Booking.id),
+                        func.count(Booking.id).filter(
+                            Booking.payment_status == PaymentStatus.PENDING
+                        ),
+                    ).group_by(Booking.status)
+                )
+            ).all()
+            counts = {key: int(value) for key, value, _ in count_rows}
+            pending_payment_count = sum(int(pending) for _, _, pending in count_rows)
+            statement = base.with_only_columns(
+                Booking.id,
+                Booking.client_id,
+                Booking.session_id,
+                Session.service_id,
+                Booking.reference,
+                Booking.attendance,
+                Client.name.label("client_name"),
+                Client.company.label("client_company"),
+                Service.name.label("service_name"),
+                Session.start_at,
+                Booking.status,
+                Booking.payment_status,
+                Booking.amount_cents,
+                Booking.currency,
+                Booking.created_at,
+            )
+            ranked = statement.add_columns(
+                func.row_number()
+                .over(partition_by=Booking.status, order_by=(Booking.created_at.desc(), Booking.id))
+                .label("preview_rank")
+            ).subquery()
+            previews: dict[str, list[dict[str, Any]]] = {}
+            for row in (
+                await session.execute(
+                    select(ranked)
+                    .where(ranked.c.preview_rank <= 2)
+                    .order_by(ranked.c.status, ranked.c.preview_rank)
+                )
+            ).mappings():
+                previews.setdefault(str(row["status"]), []).append(
+                    {key: value for key, value in row.items() if key != "preview_rank"}
+                )
+            if status is not None:
+                statement = statement.where(Booking.status == status)
+            rows = (
+                (
+                    await session.execute(
+                        statement.order_by(Booking.created_at.desc(), Booking.id)
+                        .limit(limit)
+                        .offset(offset)
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            normalized = {str(key): int(value) for key, value in counts.items()}
+            return (
+                [dict(row) for row in rows],
+                (normalized.get(status, 0) if status else sum(normalized.values())),
+                normalized,
+                previews,
+                pending_payment_count,
+            )
+
+    async def export_summaries(
+        self,
+        workspace_id: UUID,
+        search: str,
+        client_id: UUID | None,
+        service_id: UUID | None,
+    ) -> AsyncIterator[Mapping[str, Any]]:
+        async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
+            statement = (
+                _summary_base(workspace_id, search, client_id, service_id)
+                .with_only_columns(
+                    Booking.reference,
+                    Client.name,
+                    Service.name.label("service_name"),
+                    Session.start_at,
+                    Booking.status,
+                    Booking.payment_status,
+                    Booking.amount_cents,
+                    Booking.currency,
+                )
+                .order_by(Booking.created_at.desc(), Booking.id)
+            )
+            result = await session.stream(statement.execution_options(yield_per=500))
+            try:
+                async for row in result.mappings():
+                    yield dict(row)
+            finally:
+                await result.close()
+
+    async def get_detail(
+        self, workspace_id: UUID, booking_id: UUID
+    ) -> tuple[Booking, Client, Session, Service, SessionSeries | None, int] | None:
+        async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
+            count = (
+                select(func.count(Booking.id))
+                .where(
+                    Booking.workspace_id == workspace_id,
+                    Booking.session_id == Session.id,
+                    Booking.status.in_(CAPACITY_CONSUMING_STATUSES),
+                )
+                .correlate(Session)
+                .scalar_subquery()
+            )
+            row = (
+                await session.execute(
+                    select(Booking, Client, Session, Service, SessionSeries, count)
+                    .join(
+                        Client,
+                        (Client.id == Booking.client_id) & (Client.workspace_id == workspace_id),
+                    )
+                    .join(
+                        Session,
+                        (Session.id == Booking.session_id) & (Session.workspace_id == workspace_id),
+                    )
+                    .join(
+                        Service,
+                        (Service.id == Session.service_id) & (Service.workspace_id == workspace_id),
+                    )
+                    .outerjoin(
+                        SessionSeries,
+                        (SessionSeries.id == Session.series_id)
+                        & (SessionSeries.workspace_id == workspace_id),
+                    )
+                    .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
+                )
+            ).one_or_none()
+            return (row[0], row[1], row[2], row[3], row[4], int(row[5])) if row else None
+
     async def get_booking(self, workspace_id: UUID, booking_id: UUID) -> Booking | None:
         async with self.database.tenant_transaction(workspace_id) as session:
             result = await session.scalar(
@@ -171,13 +361,18 @@ class BookingsRepository:
         booking_id: UUID,
         recipient_email: str,
         idempotency_key: str,
+        expected_recipient_email: str | None = None,
     ) -> BookingCommandResult | None:
         cmd = _command(
             workspace_id,
             actor_user_id,
             idempotency_key,
             "send_details",
-            {"booking_id": str(booking_id), "recipient_email": recipient_email},
+            {
+                "booking_id": str(booking_id),
+                "recipient_email": recipient_email,
+                "expected_recipient_email": expected_recipient_email,
+            },
         )
         async with self.database.tenant_transaction(workspace_id) as session:
             booking = await session.scalar(
@@ -195,6 +390,14 @@ class BookingsRepository:
                     status_code=409,
                     code="booking_email_erased",
                     message="Client data has been erased; email cannot be sent",
+                )
+            if expected_recipient_email is not None and expected_recipient_email != (
+                booking.delivery_email_override or booking.customer_email
+            ):
+                raise ApiError(
+                    status_code=409,
+                    code="resource_stale",
+                    message="The delivery address changed. Review it before sending.",
                 )
             prepared = await session.scalar(
                 text("SELECT public.slotera_booking_prepare_email_send(:booking_id)"),

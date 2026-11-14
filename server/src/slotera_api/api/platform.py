@@ -10,6 +10,7 @@ from slotera_api.auth.dependencies import (
     DatabaseDependency,
     PlatformSuperadminDependency,
 )
+from slotera_api.editing import ExpectedVersionDependency
 from slotera_api.errors import ApiError
 from slotera_api.platform.repository import PlatformRepository, PlatformWorkspace
 from slotera_api.schemas.platform import (
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/platform/workspaces", tags=["platform"])
 
 def _summary(workspace: PlatformWorkspace) -> PlatformWorkspaceSummary:
     return PlatformWorkspaceSummary(
+        billing_version=workspace.billing_version,
         id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
@@ -57,13 +59,16 @@ async def list_platform_workspaces(
     response: Response,
     _superadmin: PlatformSuperadminDependency,
     database: DatabaseDependency,
-    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    search: Annotated[str, Query(max_length=320)] = "",
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> PlatformWorkspaceListResponse:
-    items = await PlatformRepository(database).list_workspaces(limit=limit, offset=offset)
+    items, total = await PlatformRepository(database).workspace_page(
+        limit=limit, offset=offset, search=search
+    )
     response.headers["Cache-Control"] = "no-store"
     return PlatformWorkspaceListResponse(
-        items=[_summary(item) for item in items], limit=limit, offset=offset
+        items=[_summary(item) for item in items], total=total, limit=limit, offset=offset
     )
 
 
@@ -232,6 +237,7 @@ async def reactivate_platform_workspace(
     operation_id="setPlatformWorkspaceBilling",
 )
 async def set_platform_workspace_billing(
+    expected_version: ExpectedVersionDependency,
     workspace_id: UUID,
     payload: PlatformBillingChange,
     response: Response,
@@ -242,12 +248,19 @@ async def set_platform_workspace_billing(
     repository = PlatformRepository(database)
     result_code = await repository.set_billing(
         workspace_id=workspace_id,
+        expected_version=expected_version,
         actor_user_id=superadmin.user_id,
         plan=payload.plan,
         billing_interval=payload.billing_interval,
         trial_ends_at=payload.trial_ends_at,
         paid_through=payload.paid_through,
     )
+    if result_code == "resource_stale":
+        raise ApiError(
+            status_code=409,
+            code="resource_stale",
+            message="Billing changed elsewhere. Review it before saving.",
+        )
     if result_code == "workspace_not_found":
         raise ApiError(
             status_code=HTTPStatus.NOT_FOUND,

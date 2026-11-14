@@ -1,4 +1,5 @@
-import personasJson from "@/data/mock/demo-personas.json";
+import { mockData } from "@/services/adapters/mock-data";
+
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { listServices } from "./services.service";
@@ -7,7 +8,7 @@ import type { Service } from "@/types/service";
 import { NotImplementedError } from "./_errors";
 import { listPublicBookingServices } from "./public-booking.service";
 
-const personas = JSON.parse(JSON.stringify(personasJson)) as DemoPersona[];
+const personas: DemoPersona[] = dataSource === "mock" ? mockData("demo-personas") : [] as DemoPersona[];
 
 /**
  * The standard (no-persona) booking page is the default consultant/coach/

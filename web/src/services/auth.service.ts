@@ -1,7 +1,10 @@
 "use client";
+import { mockData } from "@/services/adapters/mock-data";
+import { apiCurrency } from "./_currency";
+import { clearQueryScope, setQueryScope, setSessionVerifier } from "@/api/query-cache";
 import { readLang } from "@/lib/i18n";
 
-import authJson from "@/data/mock/auth.json";
+
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -22,7 +25,7 @@ type SignupAcceptedDto = components["schemas"]["SignupAccepted"];
 type SlugAvailabilityDto = components["schemas"]["SlugAvailability"];
 type PasswordChangeDto = components["schemas"]["PasswordChange"];
 
-const SEED_OPERATOR = authJson.operator as Operator;
+function seedOperator(): Operator {return mockData<{operator: Operator}>("auth").operator;}
 
 function makeToken(): string {
   return `mock.${Math.random().toString(36).slice(2)}.${Date.now().toString(36)}`;
@@ -48,7 +51,8 @@ function mapApiSession(response: SessionResponseDto): Session {
     avatarInitials: initialsFor(user.firstNames, user.lastName),
     role: user.role,
   };
-  return { operator, role: user.role };
+  setQueryScope(JSON.stringify([user.id, user.role, workspace?.id]), response.expiresAt, {currency: workspace ? apiCurrency(workspace.currency) : undefined, timezone: workspace?.timezone, language: user.language});
+  return { operator, role: user.role, workspaceId: workspace?.id, expiresAt: response.expiresAt, language: user.language, timezone: workspace?.timezone, currency: workspace ? apiCurrency(workspace.currency) : undefined };
 }
 
 // Mock mode is the prospect-facing demo: every sign-in lands in the operator
@@ -57,15 +61,15 @@ function resolveSeedForEmail(email: string): {
   operator: Operator;
   role: UserRole;
 } {
-  if (email === SEED_OPERATOR.email) {
+  if (email === seedOperator().email) {
     return {
-      operator: { ...SEED_OPERATOR, role: "operator_admin" },
+      operator: { ...seedOperator(), role: "operator_admin" },
       role: "operator_admin",
     };
   }
   return {
     operator: {
-      ...SEED_OPERATOR,
+      ...seedOperator(),
       id: `op-${Math.random().toString(36).slice(2, 8)}`,
       email,
       role: "operator_admin",
@@ -80,6 +84,8 @@ export async function login(
   rememberMe = false,
 ): Promise<Session> {
   if (dataSource === "api") {
+    restored = null;
+    clearQueryScope();
     const payload: LoginRequestDto = {
       email: email.trim().toLowerCase(),
       password,
@@ -90,7 +96,7 @@ export async function login(
       { method: "POST", body: payload },
     );
     const session = mapApiSession(response);
-    clearWorkspaceCache();
+    restored = { session, at: Date.now() };
     writeSession(session);
     return session;
   }
@@ -99,7 +105,7 @@ export async function login(
   if (normalized === "wrong@example.com") {
     throw new ApiRequestError(401, "invalid_credentials", "No account matches those credentials.");
   }
-  const { operator, role } = resolveSeedForEmail(normalized || SEED_OPERATOR.email);
+  const { operator, role } = resolveSeedForEmail(normalized || seedOperator().email);
   const session: Session = { token: makeToken(), operator, role };
   clearWorkspaceCache();
   writeSession(session);
@@ -149,10 +155,14 @@ export async function isSlugAvailable(slug: string): Promise<boolean> {
 }
 
 export async function logout(): Promise<void> {
+  restored = null;
+  clearQueryScope();
   if (dataSource === "api") {
     try {
       await apiRequest<void>("/auth/logout", { method: "POST", csrf: true });
     } finally {
+      restored = null;
+      clearQueryScope();
       clearWorkspaceCache();
       clearSession();
     }
@@ -163,16 +173,26 @@ export async function logout(): Promise<void> {
   clearSession();
 }
 
-export async function restoreSession(): Promise<Session | null> {
+let restored: { session: Session; at: number } | null = null;
+let restoring: Promise<Session | null> | null = null;
+export async function restoreSession(force = false): Promise<Session | null> {
+  if (dataSource === "mock") return currentSession();
+  if (!force && restored && Date.now() - restored.at < 60_000 && Date.parse(restored.session.expiresAt ?? "") > Date.now()) return restored.session;
+  return restoring ??= restoreVerifiedSession().finally(() => { restoring = null; });
+}
+setSessionVerifier(() => restoreSession(true));
+async function restoreVerifiedSession(): Promise<Session | null> {
   if (dataSource === "mock") return currentSession();
   try {
     const response = await apiRequest<SessionResponseDto>("/auth/session");
     const session = mapApiSession(response);
-    clearWorkspaceCache();
+    restored = { session, at: Date.now() };
     writeSession(session);
     return session;
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) {
+      restored = null;
+      clearQueryScope();
       clearWorkspaceCache();
       clearSession();
       return null;
@@ -237,3 +257,16 @@ export async function changePassword(
     csrf: true,
   });
 }
+
+if (typeof window !== "undefined") window.addEventListener("slotera-auth-expired", () => {
+  restored = null;
+  clearQueryScope();
+  clearWorkspaceCache();
+  clearSession();
+});
+
+if (typeof window !== "undefined") window.addEventListener("slotera-auth-identity-changed", () => {
+  restored = null;
+  clearQueryScope();
+  clearWorkspaceCache();
+});

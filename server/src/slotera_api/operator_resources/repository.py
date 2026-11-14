@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
+    FormTemplate,
     FormTemplateService,
     LocationType,
     Service,
@@ -18,6 +19,7 @@ from slotera_api.db.models import (
     WorkspaceLocation,
     WorkspacePaymentSettings,
 )
+from slotera_api.editing import ensure_version, lock_settings_revision
 from slotera_api.errors import ApiError
 
 
@@ -47,10 +49,11 @@ class OperatorResourcesRepository:
         actor_user_id: UUID,
         workspace_changes: Mapping[str, Any],
         profile_changes: Mapping[str, Any],
+        expected_version: int | None = None,
     ) -> tuple[Workspace, WorkspaceBusinessProfile] | None:
         async with self.database.tenant_transaction(workspace_id) as session:
             workspace = await session.get(Workspace, workspace_id)
-            profile = await session.get(WorkspaceBusinessProfile, workspace_id)
+            profile = await lock_settings_revision(session, workspace_id, expected_version)
             if workspace is None or profile is None:
                 return None
             for key, value in workspace_changes.items():
@@ -72,17 +75,30 @@ class OperatorResourcesRepository:
             await session.refresh(profile)
             return workspace, profile
 
-    async def get_payment_settings(self, workspace_id: UUID) -> WorkspacePaymentSettings | None:
+    async def get_payment_settings(
+        self, workspace_id: UUID
+    ) -> tuple[WorkspacePaymentSettings, int] | None:
         async with self.database.tenant_transaction(workspace_id) as session:
-            result = await session.get(WorkspacePaymentSettings, workspace_id)
-            return result if isinstance(result, WorkspacePaymentSettings) else None
+            row = (
+                await session.execute(
+                    select(WorkspacePaymentSettings, WorkspaceBusinessProfile.version)
+                    .join(
+                        WorkspaceBusinessProfile,
+                        WorkspaceBusinessProfile.workspace_id
+                        == WorkspacePaymentSettings.workspace_id,
+                    )
+                    .where(WorkspacePaymentSettings.workspace_id == workspace_id)
+                )
+            ).one_or_none()
+            return (row[0], row[1]) if row else None
 
     async def update_payment_settings(
         self,
         workspace_id: UUID,
         actor_user_id: UUID,
         changes: Mapping[str, Any],
-    ) -> WorkspacePaymentSettings | None:
+        expected_version: int | None = None,
+    ) -> tuple[WorkspacePaymentSettings, int] | None:
         async with self.database.tenant_transaction(workspace_id) as session:
             item = await session.get(WorkspacePaymentSettings, workspace_id)
             if item is None:
@@ -93,6 +109,7 @@ class OperatorResourcesRepository:
                 changes = {**changes, "tax_rate_bps": 0}
             elif int(rate) == 0:
                 return None
+            profile = await lock_settings_revision(session, workspace_id, expected_version)
             for key, value in changes.items():
                 setattr(item, key, value)
             session.add(
@@ -107,7 +124,7 @@ class OperatorResourcesRepository:
             )
             await session.flush()
             await session.refresh(item)
-            return item
+            return item, profile.version
 
     async def list_locations(self, workspace_id: UUID) -> list[WorkspaceLocation]:
         async with self.database.tenant_transaction(workspace_id) as session:
@@ -144,12 +161,23 @@ class OperatorResourcesRepository:
             await session.refresh(location)
             return location
 
+    async def get_location(self, workspace_id: UUID, location_id: UUID) -> WorkspaceLocation | None:
+        async with self.database.tenant_transaction(workspace_id) as session:
+            item = await session.scalar(
+                select(WorkspaceLocation).where(
+                    WorkspaceLocation.workspace_id == workspace_id,
+                    WorkspaceLocation.id == location_id,
+                )
+            )
+            return item if isinstance(item, WorkspaceLocation) else None
+
     async def update_location(
         self,
         workspace_id: UUID,
         actor_user_id: UUID,
         location_id: UUID,
         changes: Mapping[str, Any],
+        expected_version: int | None = None,
     ) -> WorkspaceLocation | None:
         async with self.database.tenant_transaction(workspace_id) as session:
             location = await session.scalar(
@@ -160,6 +188,7 @@ class OperatorResourcesRepository:
             )
             if location is None:
                 return None
+            ensure_version(location, expected_version)
             for key, value in changes.items():
                 setattr(location, key, value)
             session.add(
@@ -177,7 +206,11 @@ class OperatorResourcesRepository:
             return location
 
     async def delete_location(
-        self, workspace_id: UUID, actor_user_id: UUID, location_id: UUID
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        location_id: UUID,
+        expected_version: int | None = None,
     ) -> bool:
         async with self.database.tenant_transaction(workspace_id) as session:
             location = await session.scalar(
@@ -188,6 +221,7 @@ class OperatorResourcesRepository:
             )
             if location is None:
                 return False
+            ensure_version(location, expected_version)
             await session.delete(location)
             session.add(
                 AuditEvent(
@@ -287,6 +321,7 @@ class OperatorResourcesRepository:
         actor_user_id: UUID,
         service_id: UUID,
         changes: Mapping[str, Any],
+        expected_version: int | None = None,
     ) -> tuple[Service, str] | None:
         async with self.database.tenant_transaction(workspace_id) as session:
             service = await session.scalar(
@@ -300,6 +335,7 @@ class OperatorResourcesRepository:
             )
             if service is None or currency is None:
                 return None
+            ensure_version(service, expected_version)
             for key, value in changes.items():
                 setattr(service, key, value)
             session.add(
@@ -317,42 +353,91 @@ class OperatorResourcesRepository:
             return service, currency
 
     async def delete_service(
-        self, workspace_id: UUID, actor_user_id: UUID, service_id: UUID
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        service_id: UUID,
+        expected_version: int | None = None,
     ) -> bool:
         try:
             async with self.database.tenant_transaction(workspace_id) as session:
                 service = await session.scalar(
-                    select(Service).where(
-                        Service.id == service_id, Service.workspace_id == workspace_id,
-                    ).with_for_update()
+                    select(Service)
+                    .where(
+                        Service.id == service_id,
+                        Service.workspace_id == workspace_id,
+                    )
+                    .with_for_update()
                 )
                 if service is None:
                     return False
-                if await session.scalar(select(ServicePackageItem.id).where(
-                    ServicePackageItem.workspace_id == workspace_id,
-                    ServicePackageItem.service_id == service_id).limit(1)):
-                    raise ApiError(status_code=409, code="service_in_package",
-                        message="Remove this service from its packages before deleting it")
-                if await session.scalar(select(Session.id).where(
-                    Session.workspace_id == workspace_id,
-                    Session.service_id == service_id).limit(1)):
-                    raise ApiError(status_code=409, code="service_in_use",
-                        message="This service has sessions or bookings. Deactivate it instead")
-                await session.execute(delete(FormTemplateService).where(
-                    FormTemplateService.workspace_id == workspace_id,
-                    FormTemplateService.service_id == service_id,
-                ))
+                ensure_version(service, expected_version)
+                if await session.scalar(
+                    select(ServicePackageItem.id)
+                    .where(
+                        ServicePackageItem.workspace_id == workspace_id,
+                        ServicePackageItem.service_id == service_id,
+                    )
+                    .limit(1)
+                ):
+                    raise ApiError(
+                        status_code=409,
+                        code="service_in_package",
+                        message="Remove this service from its packages before deleting it",
+                    )
+                if await session.scalar(
+                    select(Session.id)
+                    .where(Session.workspace_id == workspace_id, Session.service_id == service_id)
+                    .limit(1)
+                ):
+                    raise ApiError(
+                        status_code=409,
+                        code="service_in_use",
+                        message="This service has sessions or bookings. Deactivate it instead",
+                    )
+                attached_forms = (
+                    await session.scalars(
+                        select(FormTemplate)
+                        .where(
+                            FormTemplate.workspace_id == workspace_id,
+                            FormTemplate.id.in_(
+                                select(FormTemplateService.form_template_id).where(
+                                    FormTemplateService.workspace_id == workspace_id,
+                                    FormTemplateService.service_id == service_id,
+                                )
+                            ),
+                        )
+                        .order_by(FormTemplate.id)
+                        .with_for_update()
+                    )
+                ).all()
+                for form in attached_forms:
+                    form.version += 1
+                await session.execute(
+                    delete(FormTemplateService).where(
+                        FormTemplateService.workspace_id == workspace_id,
+                        FormTemplateService.service_id == service_id,
+                    )
+                )
                 await session.delete(service)
-                session.add(AuditEvent(
-                    workspace_id=workspace_id, actor_user_id=actor_user_id,
-                    action="service.deleted", resource_type="service", resource_id=service_id,
-                    details={},
-                ))
+                session.add(
+                    AuditEvent(
+                        workspace_id=workspace_id,
+                        actor_user_id=actor_user_id,
+                        action="service.deleted",
+                        resource_type="service",
+                        resource_id=service_id,
+                        details={},
+                    )
+                )
                 await session.flush()
                 return True
         except IntegrityError as exc:
             # Foreign keys remain the final guard against concurrent references.
             if getattr(exc.orig, "sqlstate", None) == "23503":
-                raise ApiError(status_code=409, code="service_in_use",
-                    message="This service is still referenced. Deactivate it instead") from exc
+                raise ApiError(
+                    status_code=409,
+                    code="service_in_use",
+                    message="This service is still referenced. Deactivate it instead",
+                ) from exc
             raise

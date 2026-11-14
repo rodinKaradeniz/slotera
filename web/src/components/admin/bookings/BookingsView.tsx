@@ -1,4 +1,5 @@
 "use client";
+import { ApiBookingsView } from "./ApiBookingsView";
 import { readLang, localeForLang } from "@/lib/i18n";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -58,6 +59,10 @@ function whenFromSession(s: SessionItem, timezone: string): string {
 }
 
 export function BookingsView() {
+  return dataSource === "api" ? <ApiBookingsView /> : <MockBookingsView />;
+}
+
+function MockBookingsView() {
   const { t: uiText } = useI18n();
   const timezone = useWorkspaceTimezone();
   const { openBookingDrawer } = useDrawers();

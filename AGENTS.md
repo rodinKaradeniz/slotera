@@ -1032,3 +1032,39 @@ gates. The database reached `20260806_0021 (head)` and the repeat seed inserted 
 Backend verification reports 34 isolated and 43 PostgreSQL integration passes, with Ruff
 and strict mypy clean. Generated OpenAPI transport, TypeScript, ESLint, and both mock/API
 production builds pass. External email provider/domain setup was deliberately not run.
+
+
+### Architecture bundle (2026-11-15)
+
+Operator and platform collection screens use bounded server pages (25 rows), stable ordering,
+search/filter projections and full totals. Catalog cards load summaries; editing loads full
+records on demand. Booking rows open the joined detail resource directly; the mock drawer
+keeps View details. Client/booking CSV exports stream complete filtered results. Calendar
+reads only its visible workspace-time interval, including overlapping sessions; notes, tasks
+and attendance have bounded pages too.
+
+The local query owner (`web/src/api/query-cache.ts`) wraps TanStack Query behind the HTTP/
+service boundary: operational reads 30 seconds, catalog/settings five minutes, inactive reads
+five minutes. It deduplicates reads, propagates cancellation and invalidates affected resources
+on writes/focus/reconnection, without polling or persistence. One verified session bootstrap
+owns identity, workspace, currency, timezone, language and expiry. Logout/expiry/identity changes
+clear private cache; sign-out propagates between tabs. Settings drafts survive refresh failures.
+
+Mutable resources expose `version`; HTTP updates/deletes require `If-Match: "vN"`.
+Recurring following-scope edits also review `X-Series-Version`. Stale writes return
+`409 resource_stale`; editors keep drafts and offer explicit review/reload. Business,
+payments, branding and availability share the business-profile revision; staff billing has a
+separate narrow, revision-checked capability. Email corrections review the prior recipient.
+Client-note writes lock the parent client before personal context, preventing erasure races.
+
+Operator language selection lives in Settings → Account; superadmin selection is in its account
+menu. Public/authentication controls remain. Services own transport/domain mapping; the
+build-selected mock-data adapter is replaced by an explicit rejecting adapter in API builds,
+so API bundles carry no JSON demo fixtures or mock-derived settings.
+
+Structured diagnostics carry request/operation, verified actor/workspace, safe errors, database
+acquisition/execution time and query counts through complete streamed responses. Audit/outbox
+triggers preserve correlation for capability and ORM writes; workers log safe attempt results.
+No SQL parameters, raw provider exceptions, tokens or message bodies are added to diagnostics.
+`scripts/benchmark_reads.py` runs an isolated two-workspace scale check; see
+`docs/performance/architecture-2026-11-15.json` and `docs/VERIFY_ARCHITECTURE.md`.

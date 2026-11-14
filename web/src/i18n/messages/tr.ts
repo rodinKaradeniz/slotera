@@ -2,6 +2,9 @@ import type { Messages } from "./en";
 
 /** Turkish — demo-grade translations. Missing keys fall back to English. */
 export const tr: Partial<Messages> = {
+  "attendance.markPage": "Bu sayfadakileri katıldı işaretle",
+  "common.pagination": "Sayfalama",
+  "calendar.bookedCount": "{count} / {capacity} kişi kayıtlı",
   "common.save": "Kaydet",
   "common.cancel": "İptal",
   "common.back": "Geri",
@@ -1572,4 +1575,10 @@ export const tr: Partial<Messages> = {
   "booking.emails.booking_reminder": "Randevu hatırlatması",
   "booking.emails.booking_details": "Randevu bilgileri",
   "booking.requestChanged": "Bu istek daha önce farklı bilgilerle gönderilmiş. Yeni bir istek için paneli veya iletişim kutusunu kapatıp yeniden açın.",
+  "lookup.chooseService": "Hizmet seçin",
+  "errors.reference": "Referans: {id}",
+  "editing.stale": "Bu kayıt başka bir yerde değişti. Taslağınız korundu. Kaydetmeden önce son sürümü inceleyin.",
+  "editing.reload": "Son sürümü incele",
+  "editing.discard": "Son kaydedilen sürüm yüklensin mi? Kaydedilmemiş taslağınız değiştirilecek.",
+  "editing.load": "Son sürümü yükle",
 };

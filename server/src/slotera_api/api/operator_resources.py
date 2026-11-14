@@ -4,6 +4,8 @@ from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Response
+from sqlalchemy import case, func, or_, select
+from sqlalchemy.sql.elements import ColumnElement
 
 from slotera_api.auth.dependencies import (
     CsrfOperatorWorkspaceDependency,
@@ -18,6 +20,7 @@ from slotera_api.db.models import (
     WorkspaceLocation,
     WorkspacePaymentSettings,
 )
+from slotera_api.editing import ExpectedVersionDependency
 from slotera_api.errors import ApiError
 from slotera_api.operator_resources.repository import OperatorResourcesRepository
 from slotera_api.plans import PLANS, BillingInterval, PlanId
@@ -29,8 +32,12 @@ from slotera_api.schemas.operator_resources import (
     PaymentSettingsResponse,
     ServiceCreate,
     ServiceListResponse,
+    ServiceOption,
+    ServiceOptionPage,
     ServicePatch,
     ServiceResponse,
+    ServiceSummary,
+    ServiceSummaryPage,
     WorkspaceLocationCreate,
     WorkspaceLocationListResponse,
     WorkspaceLocationPatch,
@@ -54,6 +61,7 @@ def _business_response(
     workspace: Workspace, profile: WorkspaceBusinessProfile
 ) -> BusinessSettingsResponse:
     return BusinessSettingsResponse(
+        version=profile.version,
         workspace_id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
@@ -73,8 +81,9 @@ def _business_response(
     )
 
 
-def _payment_response(item: WorkspacePaymentSettings) -> PaymentSettingsResponse:
+def _payment_response(item: WorkspacePaymentSettings, version: int) -> PaymentSettingsResponse:
     return PaymentSettingsResponse(
+        version=version,
         manual_payment_enabled=item.manual_payment_enabled,
         manual_payment_instructions=item.manual_payment_instructions,
         booking_terms_enabled=item.booking_terms_enabled,
@@ -102,6 +111,7 @@ def _address_from_location(location: WorkspaceLocation) -> Address:
 
 def _location_response(location: WorkspaceLocation) -> WorkspaceLocationResponse:
     return WorkspaceLocationResponse(
+        version=location.version,
         id=location.id,
         label=location.label,
         address=_address_from_location(location),
@@ -112,6 +122,7 @@ def _location_response(location: WorkspaceLocation) -> WorkspaceLocationResponse
 
 def _service_response(service: Service, currency: str) -> ServiceResponse:
     return ServiceResponse(
+        version=service.version,
         id=service.id,
         name=service.name,
         description=service.description,
@@ -172,6 +183,7 @@ async def get_business_settings(
     "/business", response_model=BusinessSettingsResponse, operation_id="updateBusinessSettings"
 )
 async def update_business_settings(
+    expected_version: ExpectedVersionDependency,
     payload: BusinessSettingsPatch,
     response: Response,
     operator: CsrfOperatorWorkspaceDependency,
@@ -185,7 +197,11 @@ async def update_business_settings(
     repository = OperatorResourcesRepository(database)
     result = (
         await repository.update_business(
-            operator.workspace_id, operator.user_id, workspace_changes, profile_changes
+            operator.workspace_id,
+            operator.user_id,
+            workspace_changes,
+            profile_changes,
+            expected_version,
         )
         if changes
         else await repository.get_business(operator.workspace_id)
@@ -210,7 +226,7 @@ async def get_payment_settings(
     if item is None:
         raise _not_found("payment_settings_not_found", "Payment settings were not found")
     _private(response)
-    return _payment_response(item)
+    return _payment_response(*item)
 
 
 @settings_router.patch(
@@ -219,6 +235,7 @@ async def get_payment_settings(
     operation_id="updatePaymentSettings",
 )
 async def update_payment_settings(
+    expected_version: ExpectedVersionDependency,
     payload: PaymentSettingsPatch,
     response: Response,
     operator: CsrfOperatorWorkspaceDependency,
@@ -227,7 +244,9 @@ async def update_payment_settings(
     repository = OperatorResourcesRepository(database)
     changes = payload.model_dump(exclude_unset=True)
     item = (
-        await repository.update_payment_settings(operator.workspace_id, operator.user_id, changes)
+        await repository.update_payment_settings(
+            operator.workspace_id, operator.user_id, changes, expected_version
+        )
         if changes
         else await repository.get_payment_settings(operator.workspace_id)
     )
@@ -238,7 +257,7 @@ async def update_payment_settings(
             message="Payment settings are invalid",
         )
     _private(response)
-    return _payment_response(item)
+    return _payment_response(*item)
 
 
 @settings_router.get(
@@ -275,12 +294,33 @@ async def create_workspace_location(
     return _location_response(location)
 
 
+@settings_router.get(
+    "/locations/{location_id}",
+    response_model=WorkspaceLocationResponse,
+    operation_id="getWorkspaceLocation",
+)
+async def get_workspace_location(
+    location_id: UUID,
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> WorkspaceLocationResponse:
+    item = await OperatorResourcesRepository(database).get_location(
+        operator.workspace_id, location_id
+    )
+    if item is None:
+        raise _not_found("location_not_found", "Saved location was not found")
+    _private(response)
+    return _location_response(item)
+
+
 @settings_router.patch(
     "/locations/{location_id}",
     response_model=WorkspaceLocationResponse,
     operation_id="updateWorkspaceLocation",
 )
 async def update_workspace_location(
+    expected_version: ExpectedVersionDependency,
     location_id: UUID,
     payload: WorkspaceLocationPatch,
     response: Response,
@@ -291,7 +331,11 @@ async def update_workspace_location(
     changes = _location_values(payload)
     location = (
         await repository.update_location(
-            operator.workspace_id, operator.user_id, location_id, changes
+            operator.workspace_id,
+            operator.user_id,
+            location_id,
+            changes,
+            expected_version=expected_version,
         )
         if changes
         else next(
@@ -315,12 +359,13 @@ async def update_workspace_location(
     operation_id="deleteWorkspaceLocation",
 )
 async def delete_workspace_location(
+    expected_version: ExpectedVersionDependency,
     location_id: UUID,
     operator: CsrfOperatorWorkspaceDependency,
     database: DatabaseDependency,
 ) -> Response:
     deleted = await OperatorResourcesRepository(database).delete_location(
-        operator.workspace_id, operator.user_id, location_id
+        operator.workspace_id, operator.user_id, location_id, expected_version=expected_version
     )
     if not deleted:
         raise _not_found("location_not_found", "Saved location was not found")
@@ -371,6 +416,123 @@ async def create_service(
     return _service_response(service, currency)
 
 
+@services_router.get(
+    "/options", response_model=ServiceOptionPage, operation_id="listServiceOptions"
+)
+async def list_service_options(
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    search: Annotated[str, Query(max_length=160)] = "",
+    selected_ids: Annotated[list[UUID] | None, Query(alias="selectedIds", max_length=100)] = None,
+    active_only: Annotated[bool, Query(alias="activeOnly")] = False,
+    only_selected: Annotated[bool, Query(alias="onlySelected")] = False,
+) -> ServiceOptionPage:
+    selected = list(set(selected_ids or []))
+    escaped = search.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_")
+    matches: ColumnElement[bool] = Service.name.ilike(f"%{escaped}%", escape="!")
+    if active_only:
+        matches &= Service.active.is_(True)
+    predicate = (
+        Service.id.in_(selected) if only_selected else or_(Service.id.in_(selected), matches)
+    )
+    predicate &= Service.workspace_id == operator.workspace_id
+    limit = len(selected) + (0 if only_selected else 20)
+    matching_ids = (
+        select(Service.id)
+        .where(Service.workspace_id == operator.workspace_id, matches, Service.id.not_in(selected))
+        .order_by(Service.name, Service.id)
+        .limit(20)
+    )
+    shown = (
+        Service.id.in_(selected)
+        if only_selected
+        else or_(Service.id.in_(selected), Service.id.in_(matching_ids))
+    )
+    async with database.tenant_transaction(operator.workspace_id, repeatable_read=True) as session:
+        total = int(await session.scalar(select(func.count(Service.id)).where(predicate)) or 0)
+        rows = (
+            await session.execute(
+                select(
+                    Service.id,
+                    Service.name,
+                    Service.active,
+                    Service.price_cents,
+                    Workspace.currency,
+                )
+                .join(Workspace, Workspace.id == Service.workspace_id)
+                .where(Service.workspace_id == operator.workspace_id, shown)
+                .order_by(case((Service.id.in_(selected), 0), else_=1), Service.name, Service.id)
+                .limit(limit)
+            )
+        ).all()
+    _private(response)
+    return ServiceOptionPage(
+        items=[
+            ServiceOption(
+                id=row.id,
+                name=row.name,
+                active=row.active,
+                price_cents=row.price_cents,
+                currency=row.currency,
+            )
+            for row in rows
+        ],
+        total=total,
+        limit=limit,
+        offset=0,
+    )
+
+
+@services_router.get(
+    "/summaries", response_model=ServiceSummaryPage, operation_id="listServiceSummaries"
+)
+async def list_service_summaries(
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    search: Annotated[str, Query(max_length=160)] = "",
+    active: bool | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> ServiceSummaryPage:
+    predicate = Service.workspace_id == operator.workspace_id
+    if search.strip():
+        escaped = search.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_")
+        predicate &= Service.name.ilike(f"%{escaped}%", escape="!")
+    if active is not None:
+        predicate &= Service.active == active
+    async with database.tenant_transaction(operator.workspace_id, repeatable_read=True) as session:
+        total = int(await session.scalar(select(func.count(Service.id)).where(predicate)) or 0)
+        rows = (
+            (
+                await session.execute(
+                    select(
+                        Service.id,
+                        Service.name,
+                        Service.description,
+                        Service.duration_min,
+                        Service.price_cents,
+                        Service.capacity,
+                        Service.location_type,
+                        Service.active,
+                        Workspace.currency,
+                    )
+                    .join(Workspace, Workspace.id == Service.workspace_id)
+                    .where(predicate)
+                    .order_by(Service.created_at.desc(), Service.id)
+                    .limit(limit)
+                    .offset(offset)
+                )
+            )
+            .mappings()
+            .all()
+        )
+        items = [ServiceSummary.model_validate(row) for row in rows]
+    _private(response)
+    return ServiceSummaryPage(items=items, total=total, limit=limit, offset=offset)
+
+
 @services_router.get("/{service_id}", response_model=ServiceResponse, operation_id="getService")
 async def get_service(
     service_id: UUID,
@@ -391,6 +553,7 @@ async def get_service(
     "/{service_id}", response_model=ServiceResponse, operation_id="updateService"
 )
 async def update_service(
+    expected_version: ExpectedVersionDependency,
     service_id: UUID,
     payload: ServicePatch,
     response: Response,
@@ -401,7 +564,11 @@ async def update_service(
     changes = _service_values(payload)
     result = (
         await repository.update_service(
-            operator.workspace_id, operator.user_id, service_id, changes
+            operator.workspace_id,
+            operator.user_id,
+            service_id,
+            changes,
+            expected_version=expected_version,
         )
         if changes
         else await repository.get_service(operator.workspace_id, service_id)
@@ -416,12 +583,13 @@ async def update_service(
     "/{service_id}", status_code=HTTPStatus.NO_CONTENT, operation_id="deleteService"
 )
 async def delete_service(
+    expected_version: ExpectedVersionDependency,
     service_id: UUID,
     operator: CsrfOperatorWorkspaceDependency,
     database: DatabaseDependency,
 ) -> Response:
     deleted = await OperatorResourcesRepository(database).delete_service(
-        operator.workspace_id, operator.user_id, service_id
+        operator.workspace_id, operator.user_id, service_id, expected_version=expected_version
     )
     if not deleted:
         raise _not_found("service_not_found", "Service was not found")

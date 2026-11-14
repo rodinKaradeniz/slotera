@@ -1,4 +1,7 @@
-import settingsJson from "@/data/mock/settings.json";
+import { mockData } from "@/services/adapters/mock-data";
+import { nextEditVersion } from "./_editing";
+import { verifiedMetadata, updateVerifiedMetadata, queryClient } from "@/api/query-cache";
+
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -25,6 +28,7 @@ type PaymentResponseDto = components["schemas"]["PaymentSettingsResponse"];
 type PaymentPatchDto = components["schemas"]["PaymentSettingsPatch"];
 
 export type PaymentSettings = {
+  version?: number;
   manualPaymentEnabled: boolean;
   manualPaymentInstructions: string;
   bookingTermsEnabled: boolean;
@@ -43,6 +47,7 @@ export type AvailabilityWindow = {
 };
 
 export type AvailabilitySettings = {
+  version?: number;
   timezone: string;
   weeklyHours: AvailabilityWindow[];
   slotIntervalMin: number;
@@ -62,7 +67,12 @@ export type AvailabilitySettings = {
 
 export type BusinessSettings = SettingsData["business"];
 
-let mock: SettingsData = JSON.parse(JSON.stringify(settingsJson)) as SettingsData;
+let mock: SettingsData;
+if (dataSource === "mock") {
+  mock = mockData<SettingsData>("settings");
+
+mock.business.locations = mock.business.locations.map((item) => ({...item, version: item.version ?? 1}));
+}
 
 function mapAddress(address: AddressDto): Address {
   return {
@@ -90,6 +100,7 @@ function toAddressDto(address: Address): AddressDto {
 
 function mapLocation(location: LocationResponseDto): WorkspaceLocation {
   return {
+    version: location.version,
     id: location.id,
     label: location.label,
     address: mapAddress(location.address),
@@ -101,6 +112,7 @@ function mapBusiness(
   locations: WorkspaceLocation[],
 ): BusinessSettings {
   return {
+    version: business.version,
     name: business.name,
     displayName: business.displayName,
     bio: business.bio,
@@ -121,6 +133,7 @@ function mapBusiness(
 
 function mapAvailability(availability: AvailabilityResponseDto): AvailabilitySettings {
   return {
+    version: availability.version,
     timezone: availability.timezone,
     weeklyHours: availability.weeklyHours.map((window) => ({
       dayOfWeek: window.dayOfWeek,
@@ -202,7 +215,7 @@ export async function updateAvailabilitySettings(
     return mapAvailability(
       await apiRequest<AvailabilityResponseDto, AvailabilityUpdateDto>(
         "/availability",
-        { method: "PUT", body: availabilityPayload(input), csrf: true },
+        { method: "PUT", body: availabilityPayload(input), csrf: true, expectedVersion: input.version },
       ),
     );
   }
@@ -263,31 +276,20 @@ export async function getSettings(): Promise<SettingsData> {
   if (dataSource === "api") {
     const workspace = await getPublicBookingWorkspace();
     return {
-      ...JSON.parse(JSON.stringify(settingsJson)) as SettingsData,
-      branding: workspace.branding ?? { accent: "#3d5a3d", fontFamily: "serif" },
-      business: {
-        ...mock.business,
-        displayName: workspace.displayName,
-        bio: workspace.bio,
-        email: workspace.email,
-        address: workspace.address,
-        bookingPageUrl: workspace.slug,
-        bookingPageEnabled: true,
-        showPlatformBranding: workspace.showPlatformBranding,
-      },
-      payments: {
-        ...mock.payments,
-        processors: [],
-        taxRate: 0,
-        vatNumber: "",
+      branding: workspace.branding ?? {accent: "#3d5a3d", fontFamily: "serif"},
+      business: {name: workspace.displayName, displayName: workspace.displayName,
+        bio: workspace.bio, email: workspace.email, phone: "", address: workspace.address,
+        bookingPageUrl: workspace.slug, bookingPageEnabled: true,
+        showPlatformBranding: workspace.showPlatformBranding, locations: []},
+      payments: {processors: [], taxRate: 0, vatNumber: "",
         manualPaymentEnabled: workspace.manualPaymentEnabled,
         manualPaymentInstructions: workspace.manualPaymentInstructions,
         defaultPaymentMethods: ["manual"],
-        bookingTerms: {
-          enabled: workspace.bookingTermsEnabled,
-          content: workspace.bookingTermsContent,
-        },
-      },
+        bookingTerms: {enabled: workspace.bookingTermsEnabled, content: workspace.bookingTermsContent}},
+      calendar: {connections: [], workingHours: [], defaultMeetingProvider: "in-person"},
+      emails: {notifyAdmin: {newBooking: false, cancellation: false, reschedule: false},
+        notifyClients: {confirmation: true, reminder: true, followUp: false}, fromAddress: ""},
+      account: {email: "", twoFactorEnabled: false, workspaceName: ""},
     };
   }
   await sleep(60);
@@ -305,6 +307,7 @@ export async function updateSettings(
 
 function mapPaymentSettings(item: PaymentResponseDto): PaymentSettings {
   return {
+    version: item.version,
     manualPaymentEnabled: item.manualPaymentEnabled,
     manualPaymentInstructions: item.manualPaymentInstructions,
     bookingTermsEnabled: item.bookingTermsEnabled,
@@ -354,6 +357,7 @@ export async function updatePaymentSettings(
   return mapPaymentSettings(
     await apiRequest<PaymentResponseDto, PaymentPatchDto>("/settings/payments", {
       method: "PATCH",
+      expectedVersion: input.version,
       body: payload,
       csrf: true,
     }),
@@ -363,7 +367,9 @@ export async function updatePaymentSettings(
 /** Marks onboarding finished (Done or Skip). One-way: there is no way to reopen it. */
 export async function completeOnboarding(): Promise<void> {
   if (dataSource === "mock") return;
+  const current = await getBusinessSettings();
   await apiRequest<BusinessResponseDto, BusinessPatchDto>("/settings/business", {
+    expectedVersion: current.version,
     method: "PATCH",
     body: { onboardingCompleted: true },
     csrf: true,
@@ -371,56 +377,35 @@ export async function completeOnboarding(): Promise<void> {
 }
 
 /** Memoises a load for the session; a failed load is retried, `clear` drops it. */
-function memo<T>(load: () => Promise<T>) {
-  let pending: Promise<T> | null = null;
-  return {
-    get: () =>
-      (pending ??= load().catch((error: unknown) => {
-        pending = null;
-        throw error;
-      })),
-    clear: () => {
-      pending = null;
-    },
-  };
-}
-
-const workspaceCurrency = memo(async (): Promise<Currency> => {
-  const business = await apiRequest<BusinessResponseDto>("/settings/business");
-  return apiCurrency(business.currency);
-});
-
-const workspaceTimezone = memo(async (): Promise<string> => {
-  const availability = await apiRequest<AvailabilityResponseDto>("/availability");
-  return availability.timezone;
-});
-
-/** Forget the cached currency and timezone (after settings change or a different sign-in). */
+/** Shared query ownership replaces the previous indefinitely memoized promises. */
 export function clearWorkspaceCache(): void {
-  workspaceCurrency.clear();
-  workspaceTimezone.clear();
+  updateVerifiedMetadata({currency: undefined, timezone: undefined});
+  queryClient().removeQueries({predicate: (query) => typeof query.queryKey[2] === "string" &&
+    /^\/(settings|availability)(?:[/?]|$)/.test(query.queryKey[2])});
 }
 
 /** The workspace's client-payment currency; services and bookings inherit it. */
 export async function getWorkspaceCurrency(): Promise<Currency> {
   if (dataSource === "mock") return "GBP";
-  return workspaceCurrency.get();
+  if (verifiedMetadata().currency) return verifiedMetadata().currency!;
+  return apiCurrency((await apiRequest<BusinessResponseDto>("/settings/business")).currency);
 }
 
 /** The workspace's timezone; the demo shows session times as written (UTC). */
 export async function getWorkspaceTimezone(): Promise<string> {
   if (dataSource === "mock") return "UTC";
-  return workspaceTimezone.get();
+  if (verifiedMetadata().timezone) return verifiedMetadata().timezone!;
+  return (await apiRequest<AvailabilityResponseDto>("/availability")).timezone;
 }
 
-export async function getBusinessSettings(): Promise<BusinessSettings> {
+export async function getBusinessSettings(includeLocations = true): Promise<BusinessSettings> {
   if (dataSource === "mock") {
     await sleep(60);
     return mock.business;
   }
   const [business, locations] = await Promise.all([
     apiRequest<BusinessResponseDto>("/settings/business"),
-    listWorkspaceLocations(),
+    includeLocations ? listWorkspaceLocations() : Promise.resolve([]),
   ]);
   return mapBusiness(business, locations);
 }
@@ -452,6 +437,7 @@ export async function updateBusinessSettings(
   const [business, locations] = await Promise.all([
     apiRequest<BusinessResponseDto, BusinessPatchDto>("/settings/business", {
       method: "PATCH",
+      expectedVersion: patch.version,
       body: payload,
       csrf: true,
     }),
@@ -498,12 +484,13 @@ export async function createWorkspaceLocation(
 export async function updateWorkspaceLocation(
   id: string,
   patch: Omit<WorkspaceLocation, "id">,
+  expectedVersion?: number,
 ): Promise<WorkspaceLocation> {
   if (dataSource === "mock") {
     await sleep(100);
     const index = mock.business.locations.findIndex((item) => item.id === id);
     if (index === -1) throw new NotFoundError("location", id);
-    const updated = { id, ...patch };
+    const updated = { id, ...patch, version: nextEditVersion(mock.business.locations[index], expectedVersion) };
     const locations = [...mock.business.locations];
     locations[index] = updated;
     mock = { ...mock, business: { ...mock.business, locations } };
@@ -515,12 +502,12 @@ export async function updateWorkspaceLocation(
   };
   const response = await apiRequest<LocationResponseDto, LocationPatchDto>(
     `/settings/locations/${encodeURIComponent(id)}`,
-    { method: "PATCH", body: payload, csrf: true },
+    { method: "PATCH", expectedVersion, body: payload, csrf: true },
   );
   return mapLocation(response);
 }
 
-export async function deleteWorkspaceLocation(id: string): Promise<void> {
+export async function deleteWorkspaceLocation(id: string, expectedVersion?: number): Promise<void> {
   if (dataSource === "mock") {
     await sleep(80);
     const before = mock.business.locations.length;
@@ -531,6 +518,7 @@ export async function deleteWorkspaceLocation(id: string): Promise<void> {
   }
   await apiRequest<void>(`/settings/locations/${encodeURIComponent(id)}`, {
     method: "DELETE",
+    expectedVersion,
     csrf: true,
   });
 }
@@ -580,4 +568,10 @@ export async function closeWorkspace(confirmSlug: string): Promise<number> {
   // The server revoked every session of the workspace, including this one.
   clearSession();
   return response.deletedAfterDays;
+}
+
+export async function getWorkspaceLocation(id: string): Promise<WorkspaceLocation | null> {
+  if (dataSource === "mock") return mock.business.locations.find((item) => item.id === id) ?? null;
+  try {return mapLocation(await apiRequest<LocationResponseDto>(`/settings/locations/${encodeURIComponent(id)}`));}
+  catch (error) {if (error instanceof Error && "status" in error && error.status === 404) return null; throw error;}
 }

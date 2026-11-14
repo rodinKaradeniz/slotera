@@ -1,6 +1,8 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { getClient } from "@/services/clients.service";
+import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
@@ -54,7 +56,9 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
   const root = React.useRef<HTMLFieldSetElement>(null);
   const [busy, setBusy] = React.useState(false);
 
-  useResetOnOpen(open, [initial], () => { setForm(inputFor(initial)); setErrors({}); });
+  const edit = useReviewedEdit(open, initial, getClient, (latest) => {setForm(inputFor(latest));});
+
+  useResetOnOpen(open, [initial?.id], () => { setForm(inputFor(initial)); setErrors({}); });
 
   const set = <K extends keyof ClientInput>(key: K, value: ClientInput[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -74,12 +78,13 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
         email: form.email.trim(),
       };
       const saved = initial
-        ? await updateClient(initial.id, normalized)
+        ? await updateClient(initial.id, normalized, edit.version)
         : await createClient(normalized);
       onSaved?.(saved);
       toast.success(initial ? uiText("ui.client.updated") : uiText("ui.client.added"));
       onClose();
     } catch (error) {
+      edit.onError(error);
       toast.error(uiText("ui.couldn.t.save.client"), {
         description: error instanceof Error ? error.message : undefined,
       });
@@ -101,6 +106,7 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
         </>
       }
     >
+      {edit.notice}
       <fieldset ref={root} disabled={busy} className="grid gap-4">
         <ClientIdentityFields value={form} onChange={set} errors={errors} />
         <div className="grid gap-4 sm:grid-cols-2">

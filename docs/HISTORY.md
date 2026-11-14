@@ -1870,3 +1870,109 @@ The final saved API production route was reloaded without injected styles: mobil
 client and document widths all measured 390px, and its German email confirmation opened
 correctly. `/health/ready` reported database ok. Temporary verification servers and databases
 were removed after checking; PostgreSQL and the reset main showcase database remain available.
+
+
+## Bounded booking ledger — 2026-11-14
+
+The API booking ledger previously loaded all bookings, clients, sessions and services and
+joined/filtered them in the browser. A tenant-scoped booking-summary resource now joins the
+necessary display fields and returns bounded status pages plus complete filtered counts.
+Counts and rows share a repeatable-read, read-only transaction; no tenant/RLS privileges
+change. CSV export uses a streaming server cursor in its own read snapshot, with formula
+escaping and no private notes/contact snapshots. Existing booking commands are unchanged.
+The real application opens booking details directly, fixing the missing route to Emails;
+the demo keeps its drawer and gains a View details link. Cancellation reaches fetch rather
+than becoming a misleading network error. No schema migration or seed reset is necessary.
+
+This is an initial implementation slice, not completion of the four-pass architecture plan.
+Other collections, collapsed previews, shared caching/session ownership, edit versions,
+mock/API bundle isolation, and correlated performance instrumentation remain outstanding.
+
+## Shared operational reads and reviewed edits — 2026-11-15
+
+The approved architecture bundle extends the initial booking-ledger work across Clients,
+Calendar, catalogs and platform screens. Collection screens use bounded server pages and
+complete totals; booking details carry joined display context. Contextual notes, tasks and
+attendance are paged, with bulk attendance explicitly limited to the displayed page. Exports
+stream complete filtered results. Selected picker records remain available across searches.
+
+TanStack Query is confined to one local HTTP/query owner (one additional runtime dependency,
+plus its query-core dependency). Operational freshness is 30 seconds; catalog/settings
+freshness and inactive retention are five minutes. Verified identity/workspace scope owns
+private data, cancellation, targeted invalidation and auth expiry. There is no polling,
+cache persistence, Redis or new monitoring service. Session verification is shared, including
+language/currency/timezone metadata; language selection moved to operator Account settings and
+the staff account menu. Refresh failures retain data and settings drafts rather than remounting
+editors. API builds replace the fixture adapter at build time and reject accidental mock access.
+
+Reviewed writes use an HTTP If-Match revision and SQLAlchemy's atomic version predicate.
+Form fields and package items bump their parent. Recurring edits lock series before occurrences
+and review the series revision for following-scope edits. Settings sections serialize on the
+existing business profile, avoiding broader runtime privileges on the workspace root. Staff
+billing has its own revision inside the narrow owner capability. Stale editors keep drafts and
+require explicit review/reload; they cannot force-save. Address corrections compare the reviewed
+recipient under the booking lock, after idempotent replay detection. Client-note writes lock
+and recheck the parent before personal context so erasure cannot be followed by a late note.
+
+Browser verification caught a missing CORS permission for If-Match/X-Series-Version: API tests
+alone had passed while real edits failed at preflight. The specific headers are now allowed,
+origins remain restricted, and an isolated preflight test protects the browser contract.
+The German mobile form editor then rejected a competing revision, preserved the draft and
+showed a safe request reference. Calendar checks also found browser/UTC date grouping beside
+workspace-time filtering; shared wall-date segments now handle midnight overlap consistently.
+
+Diagnostics correlate verified actor/workspace and request/operation IDs through audit and
+outbox triggers, including capability-generated records, and through worker attempts. SQL
+parameters, raw exception/provider values and tokens are excluded. ASGI request tracing spans
+streamed response completion; a regression test ensures export work contributes to duration
+and query metrics. Sentry remains opt-in and scrubs request secrets and exception values.
+
+Verification: 128 frontend tests, 103 isolated backend tests and 78 real-PostgreSQL integration
+tests pass; TypeScript, ESLint, Ruff and strict mypy pass. OpenAPI transport was regenerated.
+The two consolidated migrations were exercised from empty local and isolated databases;
+Alembic check reports no model/schema drift. API/mock production builds use Webpack because
+Turbopack previously stalled in the sandbox; build copies exclude real environment files.
+
+The final isolated workload has two synthetic workspaces, each with 1,000 clients and 10,000
+bookings, on an Apple M1 Pro (10 logical cores, 16 GiB RAM). With five concurrent readers,
+authenticated HTTP p95 is 129.63 ms, eight SQL statements per read, and at most 13,291 response
+bytes. Repository p95 is 95.51 ms, six statements including transaction setup. The 500 ms gate
+passes; the report includes PostgreSQL execution-plan evidence. These are local ASGI/repository
+measurements, not internet latency or a numerical before/after claim: no comparable pre-change
+production capture exists. The artifact is `docs/performance/architecture-2026-11-15.json`.
+
+Production Chrome checks covered EN booking-ledger/detail navigation and Emails visibility;
+TR/DE Account preferences and persistence; German catalog/editor behavior; and mobile settings,
+forms and stale-edit notices at a measured 390 px without horizontal overflow. This is focused
+coverage of affected flows, not an exhaustive recheck of every screen/language combination.
+No live delivery, deployment, real environment-file access or git operations were performed.
+Use `docs/VERIFY_ARCHITECTURE.md` for concise startup/reset and navigation checks.
+
+Final bundle inspection reproduced another build-boundary issue: Next's path resolution
+bypassed the plain Webpack fixture alias. The build now replaces that provider at the compiler
+module boundary, and an automatic postbuild guard rejects API chunks containing the fixture
+adapter or missing explicit mock-access rejection. Both final API and mock builds pass this
+guard. Runtime source hashes were checked against the isolated build input; no environment
+files were copied. The Turbopack alias remains configured, but its build is not claimed verified.
+
+The final fixture-free production login and client-directory check also confirmed that private
+bootstrap reuse no longer fetches a separate language-preferences resource. The test suite leaves
+disposable clients behind, so the normal local database is reset again after verification.
+
+The last mobile client-editor check used a long synthetic email and exposed an implicit
+client-detail grid track expanding the layout viewport to 515 px. The portal inherited that
+expanded viewport, placing Save off-screen. Explicit shrinkable grid tracks, shared header
+wrapping for long identifiers, and the browser's fieldset minimum reset resolve the underlying
+constraints. The measured layout becomes 390 px and the Save footer fits within 844 px.
+The final revision-checked client save closes successfully. These are shared sizing rules,
+not clipping, negative margins or a fixed-height workaround.
+
+The rebuilt production stylesheet was reloaded without injected CSS: inner/visual/document
+widths all measured 390 px, the fieldset minimum measured 0 px, and Save's bottom edge was
+828 px within the 844 px viewport. The real pointer click then saved the client successfully.
+
+The final server fallback privacy gate disables duplicate raw URL access logs and gives Uvicorn
+errors the safe formatter. A live local readiness probe passes against the reset database;
+a synthetic private feed marker is absent from all process output while its route template
+and 404 are retained. The additional isolated redaction test brings that suite to 103 passes.
+Temporary verification servers are stopped and disposable benchmark databases removed.

@@ -210,7 +210,12 @@ async def test_operator_tax_and_required_form_management(setup) -> None:
     client, owner, _ = setup
     await client.patch(
         "/settings/payments",
-        headers=headers(client),
+        headers={
+            **headers(client),
+            "If-Match": '"v'
+            + str((await client.get("/settings/payments")).json().get("version", 1))
+            + '"',
+        },
         json={
             "taxTreatment": "fixed",
             "taxRateBps": 1900,
@@ -258,7 +263,9 @@ async def test_correction_revokes_links_supersedes_queue_and_preserves_snapshots
     key = str(uuid4())
     url = f"/bookings/{booking['id']}/send-details"
     changed = await client.post(
-        url, headers=headers(client, key), json={"recipientEmail": corrected}
+        url,
+        headers=headers(client, key),
+        json={"expectedRecipientEmail": booking["customer"]["email"], "recipientEmail": corrected},
     )
     assert changed.status_code == 202, changed.text
     assert changed.json()["emailContact"] == corrected
@@ -267,7 +274,9 @@ async def test_correction_revokes_links_supersedes_queue_and_preserves_snapshots
         "customer"
     ]["email"]
     repeat = await client.post(
-        url, headers=headers(client, key), json={"recipientEmail": corrected}
+        url,
+        headers=headers(client, key),
+        json={"expectedRecipientEmail": booking["customer"]["email"], "recipientEmail": corrected},
     )
     assert repeat.status_code == 202
     rows = await queued(owner, booking["id"])
@@ -305,12 +314,24 @@ async def test_correction_revokes_links_supersedes_queue_and_preserves_snapshots
     assert exported["bookings"][0]["emailContact"] == corrected
     erased = await client.post(
         f"/clients/{booking['clientId']}/erase",
-        headers=headers(client),
+        headers={
+            **headers(client),
+            "If-Match": '"v'
+            + str((await client.get(f"/clients/{booking['clientId']}")).json().get("version", 1))
+            + '"',
+        },
         json={"confirmEmail": booking["customer"]["email"]},
     )
     assert erased.status_code == 204, erased.text
     assert (
-        await client.post(url, headers=headers(client), json={"recipientEmail": corrected})
+        await client.post(
+            url,
+            headers=headers(client),
+            json={
+                "expectedRecipientEmail": booking["customer"]["email"],
+                "recipientEmail": corrected,
+            },
+        )
     ).status_code == 409
     assert (await client.get(f"/bookings/{booking['id']}/emails")).json()["items"] == []
 
@@ -326,7 +347,12 @@ async def test_claimed_messages_block_correction_and_successful_send_limits(setu
             {"id": UUID(str(booking["id"]))},
         )
     busy = await client.post(
-        url, headers=headers(client), json={"recipientEmail": "wrong@example.com"}
+        url,
+        headers=headers(client),
+        json={
+            "expectedRecipientEmail": booking["customer"]["email"],
+            "recipientEmail": "wrong@example.com",
+        },
     )
     assert busy.status_code == 409
     assert busy.json()["error"]["code"] == "booking_email_sending"
@@ -340,18 +366,42 @@ async def test_claimed_messages_block_correction_and_successful_send_limits(setu
     for _ in range(5):
         key = str(uuid4())
         sent = await client.post(
-            url, headers=headers(client, key), json={"recipientEmail": current}
+            url,
+            headers=headers(client, key),
+            json={
+                "expectedRecipientEmail": booking["customer"]["email"],
+                "recipientEmail": current,
+            },
         )
         assert sent.status_code == 202, sent.text
     assert (
-        await client.post(url, headers=headers(client), json={"recipientEmail": current})
+        await client.post(
+            url,
+            headers=headers(client),
+            json={
+                "expectedRecipientEmail": booking["customer"]["email"],
+                "recipientEmail": current,
+            },
+        )
     ).status_code == 429
     assert (
-        await client.post(url, headers=headers(client, key), json={"recipientEmail": current})
+        await client.post(
+            url,
+            headers=headers(client, key),
+            json={
+                "expectedRecipientEmail": booking["customer"]["email"],
+                "recipientEmail": current,
+            },
+        )
     ).status_code == 202
     assert (
         await client.post(
-            url, headers=headers(client, key), json={"recipientEmail": "changed@example.com"}
+            url,
+            headers=headers(client, key),
+            json={
+                "expectedRecipientEmail": booking["customer"]["email"],
+                "recipientEmail": "changed@example.com",
+            },
         )
     ).status_code == 409
 
@@ -457,7 +507,10 @@ async def test_cancelled_summary_and_safe_delivery_states(setup) -> None:
     result = await client.post(
         f"/bookings/{booking_id}/send-details",
         headers=headers(client),
-        json={"recipientEmail": booking["customer"]["email"]},
+        json={
+            "expectedRecipientEmail": booking["customer"]["email"],
+            "recipientEmail": booking["customer"]["email"],
+        },
     )
     assert result.status_code == 202
     rows = await queued(owner, booking_id)
@@ -473,12 +526,19 @@ async def test_cancelled_summary_and_safe_delivery_states(setup) -> None:
         await client.post(
             f"/bookings/{foreign}/send-details",
             headers=headers(client),
-            json={"recipientEmail": "test@example.com"},
+            json={
+                "expectedRecipientEmail": booking["customer"]["email"],
+                "recipientEmail": "test@example.com",
+            },
         )
     ).status_code == 404
     assert (
         await client.post(
-            f"/bookings/{booking_id}/send-details", json={"recipientEmail": "test@example.com"}
+            f"/bookings/{booking_id}/send-details",
+            json={
+                "expectedRecipientEmail": booking["customer"]["email"],
+                "recipientEmail": "test@example.com",
+            },
         )
     ).status_code == 403
 
@@ -497,7 +557,10 @@ async def test_workspace_limit_counts_successes_but_not_replays(setup) -> None:
         for _ in range(5):
             key = str(uuid4())
             path = f"/bookings/{booking['id']}/send-details"
-            payload = {"recipientEmail": booking["customer"]["email"]}
+            payload = {
+                "expectedRecipientEmail": booking["customer"]["email"],
+                "recipientEmail": booking["customer"]["email"],
+            }
             assert (
                 await client.post(path, headers=headers(client, key), json=payload)
             ).status_code == 202
@@ -508,7 +571,10 @@ async def test_workspace_limit_counts_successes_but_not_replays(setup) -> None:
     result = await client.post(
         f"/bookings/{booking['id']}/send-details",
         headers=headers(client),
-        json={"recipientEmail": booking["customer"]["email"]},
+        json={
+            "expectedRecipientEmail": booking["customer"]["email"],
+            "recipientEmail": booking["customer"]["email"],
+        },
     )
     assert result.status_code == 429
     assert await queued(owner, booking["id"]) == []
@@ -642,7 +708,10 @@ async def test_expired_final_worker_attempt_becomes_recoverable_failure(setup) -
     recovered = await client.post(
         f"/bookings/{booking['id']}/send-details",
         headers=headers(client),
-        json={"recipientEmail": booking["customer"]["email"]},
+        json={
+            "expectedRecipientEmail": booking["customer"]["email"],
+            "recipientEmail": booking["customer"]["email"],
+        },
     )
     assert recovered.status_code == 202, recovered.text
     rows = await queued(owner, booking["id"])

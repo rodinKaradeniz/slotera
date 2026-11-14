@@ -19,8 +19,10 @@ from slotera_api.db.models import (
     SessionSeries,
     SessionStatus,
     Workspace,
+    WorkspaceBusinessProfile,
     WorkspaceMembership,
 )
+from slotera_api.editing import ensure_version, lock_settings_revision
 from slotera_api.scheduling.recurrence import ROLLING_HORIZON_DAYS, expand_weekly_occurrences
 from slotera_api.session_capacity import CAPACITY_CONSUMING_STATUSES
 
@@ -38,6 +40,7 @@ AvailabilityRecord = tuple[
     AvailabilityPolicy,
     list[AvailabilityWindow],
     list[AvailabilityBlackout],
+    int,
 ]
 SessionRecord = tuple[Session, SessionSeries | None]
 
@@ -54,7 +57,7 @@ class SchedulingRepository:
         self.database = database
 
     async def get_availability(self, workspace_id: UUID) -> AvailabilityRecord | None:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
             workspace = await session.get(Workspace, workspace_id)
             policy = await session.get(AvailabilityPolicy, workspace_id)
             if workspace is None or policy is None:
@@ -80,7 +83,9 @@ class SchedulingRepository:
                     )
                 ).all()
             )
-            return workspace, policy, windows, blackouts
+            profile = await session.get(WorkspaceBusinessProfile, workspace_id)
+            assert profile is not None
+            return workspace, policy, windows, blackouts, profile.version
 
     async def replace_availability(
         self,
@@ -91,11 +96,13 @@ class SchedulingRepository:
         policy_values: Mapping[str, Any],
         windows: list[Mapping[str, Any]],
         blackouts: list[Mapping[str, Any]],
+        expected_version: int | None = None,
     ) -> AvailabilityRecord:
         async with self.database.tenant_transaction(workspace_id) as session:
             workspace = await session.get(Workspace, workspace_id)
             if workspace is None:
                 raise RuntimeError("authenticated workspace no longer exists")
+            profile = await lock_settings_revision(session, workspace_id, expected_version)
             workspace.timezone = timezone
             policy = await session.get(AvailabilityPolicy, workspace_id)
             if policy is None:
@@ -137,7 +144,7 @@ class SchedulingRepository:
             await session.flush()
             await session.refresh(workspace)
             await session.refresh(policy)
-            return workspace, policy, created_windows, created_blackouts
+            return workspace, policy, created_windows, created_blackouts, profile.version
 
     async def list_sessions(
         self,
@@ -316,6 +323,8 @@ class SchedulingRepository:
         session_id: UUID,
         changes: Mapping[str, Any],
         scope: Literal["this", "this_and_following"],
+        expected_version: int | None = None,
+        expected_series_version: int | None = None,
     ) -> SessionRecord | None:
         try:
             async with self.database.tenant_transaction(workspace_id) as session:
@@ -326,6 +335,36 @@ class SchedulingRepository:
                 )
                 if target is None:
                     return None
+                # Series is always locked before occurrences, including single edits.
+                series = None
+                if target.series_id is not None:
+                    series = await session.scalar(
+                        select(SessionSeries)
+                        .where(
+                            SessionSeries.workspace_id == workspace_id,
+                            SessionSeries.id == target.series_id,
+                        )
+                        .with_for_update()
+                    )
+                    if scope == "this_and_following" and series is not None:
+                        if expected_version is not None and expected_series_version is None:
+                            from slotera_api.errors import ApiError
+
+                            raise ApiError(
+                                status_code=422,
+                                code="series_version_required",
+                                message="Review the recurring series before editing it",
+                            )
+                        ensure_version(series, expected_series_version)
+                target = await session.scalar(
+                    select(Session)
+                    .where(Session.workspace_id == workspace_id, Session.id == session_id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+                if target is None:
+                    return None
+                ensure_version(target, expected_version)
                 schedule_fields = {
                     "service_id",
                     "calendar_owner_id",
@@ -365,16 +404,21 @@ class SchedulingRepository:
                     affected = list(
                         (
                             await session.scalars(
-                                select(Session).where(
+                                select(Session)
+                                .where(
                                     Session.workspace_id == workspace_id,
                                     Session.series_id == target.series_id,
                                     Session.start_at >= target.start_at,
                                 )
+                                .order_by(Session.id)
+                                .with_for_update()
                             )
                         ).all()
                     )
                     await session.execute(text("SET CONSTRAINTS ex_sessions_owner_time DEFERRED"))
 
+                if series is not None:
+                    series.version += 1
                 start_delta = (
                     changes["start_at"] - target.start_at if "start_at" in changes else None
                 )

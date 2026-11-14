@@ -34,6 +34,7 @@ class SessionActionItemPatch(StrictApiModel):
 
 
 class SessionActionItemResponse(ApiModel):
+    version: int
     id: UUID
     session_id: UUID
     title: str
@@ -46,5 +47,7 @@ class SessionActionItemResponse(ApiModel):
 
 
 class SessionActionItemListResponse(ApiModel):
+    limit: int
+    offset: int
     items: list[SessionActionItemResponse]
     total: int

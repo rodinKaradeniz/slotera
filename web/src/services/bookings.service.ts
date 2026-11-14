@@ -1,4 +1,7 @@
-import bookingsJson from "@/data/mock/bookings.json";
+import { mockData } from "@/services/adapters/mock-data";
+import { apiCurrency } from "./_currency";
+import type { BookingSummaryPage } from "@/types/booking";
+
 import { apiListAll, apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -8,7 +11,7 @@ import { createClient, getClient, searchClients } from "./clients.service";
 import { getSession, updateSession } from "./sessions.service";
 import { getService } from "./services.service";
 import type { ClientIdentity } from "@/lib/client-validation";
-import type { Lang } from "@/lib/i18n";
+import { readLang, type Lang } from "@/lib/i18n";
 import type { BookingEmailPage, BookingEmail, Booking, BookingAttendance, BookingInput } from "@/types/booking";
 import { ApiRequestError, NotFoundError, NotImplementedError } from "./_errors";
 
@@ -17,10 +20,21 @@ type BookingListDto = components["schemas"]["BookingListResponse"];
 type OperatorBookingCreateDto = components["schemas"]["OperatorBookingCreate"];
 type BookingMoveDto = components["schemas"]["BookingMoveCommand"];
 
-let mock: Booking[] = JSON.parse(JSON.stringify(bookingsJson)) as Booking[];
+let mock: Booking[] = dataSource === "mock" ? mockData("bookings") : [] as Booking[];
 
 function mapBooking(booking: BookingDto): Booking {
   return {
+    ...(booking.context ? {context: {
+      clientName: booking.context.clientName, clientEmail: booking.context.clientEmail,
+      serviceName: booking.context.serviceName,
+      session: {id: booking.sessionId, serviceId: booking.context.serviceId,
+        startISO: booking.context.startAt, endISO: booking.context.endAt,
+        capacity: booking.context.capacity, bookedCount: booking.context.bookedCount,
+        status: booking.context.sessionStatus, recurring: booking.context.recurring,
+        locationType: booking.context.locationType, location: booking.context.location,
+        address: booking.context.address ? {...booking.context.address, street2: booking.context.address.street2 ?? undefined,
+          region: booking.context.address.region ?? undefined, notes: booking.context.address.notes ?? undefined} : undefined},
+    }} : {}),
     id: booking.id,
     sessionId: booking.sessionId,
     clientId: booking.clientId,
@@ -178,11 +192,13 @@ export async function listBookingEmails(id: string, offset = 0): Promise<Booking
   const items = mockEmails.get(id) ?? [];
   return { items: items.slice(offset, offset + 20), total: items.length, limit: 20, offset };
 }
-export async function sendBookingDetails(id: string, recipientEmail: string, idempotencyKey: string): Promise<Booking> {
+export async function sendBookingDetails(id: string, recipientEmail: string, idempotencyKey: string, expectedRecipientEmail?: string): Promise<Booking> {
   if (dataSource === "api") return mapBooking(await apiRequest<BookingDto, components["schemas"]["BookingEmailSend"]>(`/bookings/${encodeURIComponent(id)}/send-details`, {
-    method: "POST", body: { recipientEmail }, csrf: true, idempotencyKey,
+    method: "POST", body: { recipientEmail, expectedRecipientEmail: expectedRecipientEmail ?? "" }, csrf: true, idempotencyKey,
   }));
-  return mockCommand(idempotencyKey, { id, recipientEmail }, async () => {
+  return mockCommand(idempotencyKey, { id, recipientEmail, expectedRecipientEmail }, async () => {
+    const current = mock.find((item) => item.id === id);
+    if (expectedRecipientEmail && current?.emailContact !== expectedRecipientEmail) throw new ApiRequestError(409, "resource_stale", "The delivery address changed.");
     const booking = await updateBooking(id, { emailContact: recipientEmail.trim().toLowerCase() });
     mockEmail(booking, "booking_details");
     return booking;
@@ -309,4 +325,31 @@ export async function setBookingAttendance(
   next.status = "completed";
   mock = [...mock.slice(0, idx), next, ...mock.slice(idx + 1)];
   return next;
+}
+
+
+export type { BookingSummaryPage } from "@/types/booking";
+export async function listBookingSummaries(
+  filters: { search?: string; status?: Booking["status"]; clientId?: string; serviceId?: string; sessionId?: string; attendanceOnly?: boolean; offset?: number },
+  signal?: AbortSignal,
+): Promise<BookingSummaryPage> {
+  if (dataSource !== "api") throw new NotImplementedError("listBookingSummaries");
+  const params = new URLSearchParams({ limit: "25", offset: String(filters.offset ?? 0) });
+  if (filters.sessionId) params.set("sessionId", filters.sessionId);
+  if (filters.attendanceOnly) params.set("attendanceOnly", "true");
+  if (filters.search) params.set("search", filters.search);
+  if (filters.status) params.set("status", filters.status);
+  if (filters.clientId) params.set("clientId", filters.clientId);
+  if (filters.serviceId) params.set("serviceId", filters.serviceId);
+  const page = await apiRequest<components["schemas"]["BookingSummaryPage"]>(`/bookings/summaries?${params}`, { signal });
+  const map = (item: components["schemas"]["BookingSummary"]) => ({...item, currency: apiCurrency(item.currency)});
+  return {...page, items: page.items.map(map), statusPreviews: Object.fromEntries(
+    Object.entries(page.statusPreviews).map(([status, items]) => [status, items.map(map)]))};
+}
+
+export async function exportBookingSummaries(filters: { search: string; clientId?: string; serviceId?: string }): Promise<string> {
+  const params = new URLSearchParams({ search: filters.search, language: readLang() });
+  if (filters.clientId) params.set("clientId", filters.clientId);
+  if (filters.serviceId) params.set("serviceId", filters.serviceId);
+  return apiRequest<string>(`/bookings/export.csv?${params}`, { responseType: "text" });
 }

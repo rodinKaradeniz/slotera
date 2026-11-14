@@ -170,7 +170,10 @@ async def test_closing_a_workspace_suspends_it_and_the_purge_deletes_it() -> Non
             corrected = await operator.post(
                 f"/bookings/{booking_id}/send-details",
                 headers={**_csrf(operator), "Idempotency-Key": str(uuid4())},
-                json={"recipientEmail": f"corrected-{suffix}@example.com"},
+                json={
+                    "expectedRecipientEmail": booked.json()["customer"]["email"],
+                    "recipientEmail": f"corrected-{suffix}@example.com",
+                },
             )
             assert corrected.status_code == 202, corrected.text
             async with owner.transaction() as session:

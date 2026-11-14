@@ -80,6 +80,7 @@ class AvailabilityUpdate(StrictApiModel):
 
 
 class AvailabilityResponse(ApiModel):
+    version: int
     timezone: str
     weekly_hours: list[AvailabilityWindowInput]
     slot_interval_min: int
@@ -164,8 +165,10 @@ class SessionPatch(StrictApiModel):
 
 
 class SchedulingSessionResponse(ApiModel):
+    version: int
     id: UUID
     series_id: UUID | None
+    series_version: int | None
     service_id: UUID
     calendar_owner_id: UUID
     start_at: datetime

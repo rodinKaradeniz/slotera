@@ -4,6 +4,7 @@ from enum import StrEnum
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     Date,
@@ -25,6 +26,7 @@ from sqlalchemy.dialects.postgresql import JSONB, ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from slotera_api.db.base import Base
+from slotera_api.db.versioning import Versioned
 
 TENANT_TABLES = frozenset(
     {
@@ -219,6 +221,7 @@ class Workspace(Base):
     # database command (slotera_platform_set_workspace_billing).
     plan: Mapped[str] = mapped_column(String(16), server_default=text("'essentials'"))
     plan_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    billing_version: Mapped[int] = mapped_column(BigInteger, server_default=text("1"))
     billing_interval: Mapped[str] = mapped_column(String(16), server_default=text("'monthly'"))
     trial_ends_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now() + interval '30 days'")
@@ -393,7 +396,7 @@ class AuditEvent(Base):
     )
 
 
-class WorkspaceBusinessProfile(Base):
+class WorkspaceBusinessProfile(Versioned, Base):
     __tablename__ = "workspace_business_profiles"
 
     workspace_id: Mapped[UUID] = mapped_column(
@@ -450,7 +453,7 @@ class WorkspacePaymentSettings(Base):
     )
 
 
-class WorkspaceLocation(Base):
+class WorkspaceLocation(Versioned, Base):
     __tablename__ = "workspace_locations"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -471,7 +474,7 @@ class WorkspaceLocation(Base):
     )
 
 
-class Service(Base):
+class Service(Versioned, Base):
     __tablename__ = "services"
     __table_args__ = (UniqueConstraint("workspace_id", "id", name="uq_services_workspace_id_id"),)
 
@@ -507,7 +510,7 @@ class Service(Base):
     )
 
 
-class Client(Base):
+class Client(Versioned, Base):
     __tablename__ = "clients"
     __table_args__ = (
         UniqueConstraint("workspace_id", "email", name="uq_clients_workspace_id_email"),
@@ -590,7 +593,7 @@ class AvailabilityBlackout(Base):
     reason: Mapped[str | None] = mapped_column(String(240))
 
 
-class SessionSeries(Base):
+class SessionSeries(Versioned, Base):
     __tablename__ = "session_series"
     __table_args__ = (
         CheckConstraint("interval_weeks BETWEEN 1 AND 52", name="interval_weeks"),
@@ -614,7 +617,7 @@ class SessionSeries(Base):
     )
 
 
-class Session(Base):
+class Session(Versioned, Base):
     __tablename__ = "sessions"
     __table_args__ = (
         CheckConstraint("start_at < end_at", name="ordered"),
@@ -680,6 +683,8 @@ class Session(Base):
 class Booking(Base):
     __tablename__ = "bookings"
     __table_args__ = (
+        Index("ix_bookings_workspace_status_created", "workspace_id", "status", text("created_at DESC"), "id"),
+        Index("ix_bookings_workspace_client_created", "workspace_id", "client_id", text("created_at DESC"), "id"),
         CheckConstraint("amount_cents >= 0", name="amount_nonnegative"),
         CheckConstraint("char_length(currency) = 3", name="currency_iso_length"),
         UniqueConstraint("workspace_id", "id", name="uq_bookings_workspace_id_id"),
@@ -890,7 +895,7 @@ class BookingFormResponse(Base):
     )
 
 
-class FormTemplate(Base):
+class FormTemplate(Versioned, Base):
     __tablename__ = "form_templates"
     __table_args__ = (
         UniqueConstraint("workspace_id", "id", name="uq_form_templates_workspace_id_id"),
@@ -935,7 +940,7 @@ class FormTemplateService(Base):
     service_id: Mapped[UUID] = mapped_column(primary_key=True)
 
 
-class ClientNote(Base):
+class ClientNote(Versioned, Base):
     __tablename__ = "client_notes"
     __table_args__ = (
         ForeignKeyConstraint(
@@ -958,7 +963,7 @@ class ClientNote(Base):
     )
 
 
-class SessionActionItem(Base):
+class SessionActionItem(Versioned, Base):
     __tablename__ = "session_action_items"
     __table_args__ = (
         ForeignKeyConstraint(
@@ -1104,7 +1109,7 @@ class BookingFormSnapshot(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
-class ServicePackage(Base):
+class ServicePackage(Versioned, Base):
     __tablename__ = "service_packages"
     __table_args__ = (UniqueConstraint("workspace_id", "id", name="service_packages_workspace_id_id_key"),
         CheckConstraint("price_cents >= 0", name="package_price"), CheckConstraint("status IN ('active', 'inactive')", name="package_status"))

@@ -2,9 +2,13 @@
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
+import { useLoad } from "@/lib/use-load";
+import { Pagination } from "@/components/shared/Pagination";
+import { LoadError } from "@/components/shared/LoadError";
+import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
-import { listForms, setFormServiceAttachment } from "@/services/forms.service";
+import { listFormPickerPage, setFormServiceAttachment } from "@/services/forms.service";
 import type { FormTemplate } from "@/types/form";
 
 /**
@@ -21,12 +25,11 @@ type Props = {
 export function AttachedFormsField({ serviceId, disabled }: Props) {
   const { t: uiText } = useI18n();
   const { toast } = useToast();
-  const [forms, setForms] = React.useState<FormTemplate[] | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [offset, setOffset] = React.useState(0);
   const [busyId, setBusyId] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    listForms().then((all) => setForms(all.filter((f) => f.status === "active")));
-  }, []);
+  const {data: page, error, loading, reload: retry} = useLoad(React.useCallback((signal?: AbortSignal) => listFormPickerPage(search, offset, signal), [search, offset]));
+  const forms = page?.items ?? null;
 
   if (!serviceId) {
     return (
@@ -41,12 +44,11 @@ export function AttachedFormsField({ serviceId, disabled }: Props) {
     const attached = !form.attachedServiceIds.includes(serviceId);
     setBusyId(form.id);
     try {
-      const next = await setFormServiceAttachment(form.id, serviceId, attached);
-      setForms((prev) =>
-        (prev ?? []).map((f) => (f.id === next.id ? next : f)),
-      );
+      await setFormServiceAttachment(form.id, serviceId, attached, form);
+      retry();
       toast.success(attached ? uiText("ui.form.attached") : uiText("ui.form.detached"));
     } catch (err) {
+      retry();
       toast.error(uiText("ui.couldn.t.update.form"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -60,14 +62,16 @@ export function AttachedFormsField({ serviceId, disabled }: Props) {
       label={uiText("ui.attached.forms")}
       hint={uiText("ui.clients.booking.this.service.complete.these.forms.before.payment")}
     >
-      {forms === null ? (
+      <Input value={search} onChange={(event) => {setSearch(event.target.value); setOffset(0);}} aria-label={uiText("common.search")} />
+      {error && <LoadError message={error} onRetry={retry} />}
+      {loading && !forms ? (
         <p className="text-small text-ink-3">{uiText("ui.loading.forms")}</p>
-      ) : forms.length === 0 ? (
+      ) : !forms?.length ? (
         <p className="text-small text-ink-3">
           {uiText("ui.no.active.forms.yet.create.one.under.forms")}</p>
       ) : (
         <div className="flex flex-col gap-1.5 rounded-md border border-line p-2">
-          {forms.map((f) => {
+          {forms?.map((f) => {
             const checked = f.attachedServiceIds.includes(serviceId);
             return (
               <label
@@ -87,6 +91,7 @@ export function AttachedFormsField({ serviceId, disabled }: Props) {
           })}
         </div>
       )}
+      {page && <Pagination total={page.total} offset={offset} limit={20} onChange={setOffset} />}
     </Field>
   );
 }

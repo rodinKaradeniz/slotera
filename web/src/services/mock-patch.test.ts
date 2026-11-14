@@ -23,3 +23,11 @@ describe("mock services patch", () => {
     expect(created).toBeNull();
   });
 });
+
+it("rejects stale catalog edits and retains the first saved version", async () => {
+  const {listForms, updateForm} = await import("./forms.service");
+  const initial = (await listForms())[0];
+  const next = await updateForm(initial.id, {description: "Reviewed change"}, initial.version);
+  await expect(updateForm(initial.id, {description: "Stale draft"}, initial.version)).rejects.toMatchObject({code: "resource_stale"});
+  expect(next.version).toBe((initial.version ?? 1) + 1);
+});

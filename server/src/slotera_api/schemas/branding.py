@@ -23,3 +23,7 @@ class Branding(StrictApiModel):
         if 1.05 / (luminance + 0.05) < 4.5:
             raise ValueError("Choose a darker colour so white button text stays readable")
         return value.lower()
+
+
+class BrandingSettings(Branding):
+    version: int

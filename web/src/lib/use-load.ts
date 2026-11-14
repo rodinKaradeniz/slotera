@@ -1,8 +1,9 @@
 "use client";
 
+import { DATA_CHANGED } from "@/api/query-cache";
 import * as React from "react";
 
-type Settled<T> = { load: () => Promise<T>; attempt: number; data?: T; error?: string };
+type Settled<T> = { load: (signal?: AbortSignal) => Promise<T>; attempt: number; data?: T; error?: Error };
 
 export type Loaded<T> = {
   /** The last successful result; kept while a reload is running. */
@@ -17,14 +18,21 @@ export type Loaded<T> = {
  * Loads data when `load` changes (memoise it with `useCallback`) and again on `reload()`,
  * with loading and error state, so a failed request shows a message instead of loading forever.
  */
-export function useLoad<T>(load: () => Promise<T>): Loaded<T> {
+export function useLoad<T>(load: (signal?: AbortSignal) => Promise<T>): Loaded<T> {
   const [attempt, setAttempt] = React.useState(0);
   const [settled, setSettled] = React.useState<Settled<T> | null>(null);
   const [lastData, setLastData] = React.useState<T | null>(null);
 
   React.useEffect(() => {
+    const refresh = () => setAttempt((value) => value + 1);
+    window.addEventListener(DATA_CHANGED, refresh);
+    return () => window.removeEventListener(DATA_CHANGED, refresh);
+  }, []);
+
+  React.useEffect(() => {
     let live = true;
-    load().then(
+    const controller = new AbortController();
+    load(controller.signal).then(
       (data) => {
         if (!live) return;
         setLastData(data);
@@ -35,19 +43,20 @@ export function useLoad<T>(load: () => Promise<T>): Loaded<T> {
         setSettled({
           load,
           attempt,
-          error: error instanceof Error ? error.message : "Couldn't load this page.",
+          error: error instanceof Error ? error : new Error("Couldn't load this page."),
         });
       },
     );
     return () => {
       live = false;
+      controller.abort();
     };
   }, [load, attempt]);
 
   const current = settled?.load === load && settled.attempt === attempt;
   return {
     data: lastData,
-    error: current ? (settled.error ?? null) : null,
+    error: current ? (settled.error?.message ?? null) : null,
     loading: !current,
     reload: React.useCallback(() => setAttempt((n) => n + 1), []),
   };

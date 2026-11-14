@@ -1,12 +1,12 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { useToast } from "@/components/ui/Toast";
 import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { useLoad } from "@/lib/use-load";
 import { LoadError } from "@/components/shared/LoadError";
-import { plural } from "@/lib/text";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -15,27 +15,24 @@ import { SegGroup } from "@/components/ui/SegGroup";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { PackageCard } from "./PackageCard";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
-import { listPackages } from "@/services/packages.service";
+import { Pagination } from "@/components/shared/Pagination";
+import { getPackage, listPackagePage } from "@/services/packages.service";
 
 type StatusFilter = "all" | "active" | "inactive";
 
 export function PackagesView() {
   const { t: uiText } = useI18n();
+  const { toast } = useToast();
   const { openPackageDrawer } = useDrawers();
-  const { data: items, error, reload: refresh } = useLoad(listPackages);
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<StatusFilter>("all");
 
 
-  const filtered = (items ?? []).filter((p) => {
-    if (status !== "all" && p.status !== status) return false;
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      p.name.toLowerCase().includes(q) ||
-      p.description.toLowerCase().includes(q)
-    );
-  });
+  const [offset, setOffset] = React.useState(0);
+  const load = React.useCallback((signal?: AbortSignal) => listPackagePage({search: query, status, offset}, signal), [query, status, offset]);
+  const {data: page, error, reload: refresh, loading} = useLoad(load);
+  const items = page?.items;
+  const filtered = items ?? [];
 
   return (
     <PageContainer>
@@ -44,11 +41,7 @@ export function PackagesView() {
         eyebrow={uiText("ui.catalog")}
         title={uiText("ui.packages")}
         description={uiText("ui.multi.session.offers.ordered.bundles.of.your.services.presentational.for.now.clients.still")}
-        meta={
-          items
-            ? `${plural(items.length, "package")} · ${uiText("ui.active.count", { count: items.filter((item) => item.status === "active").length })}`
-            : uiText("ui.loading")
-        }
+        meta={page ? String(page.total) : uiText("ui.loading")}
         actions={
           <Button
             variant="primary"
@@ -66,12 +59,12 @@ export function PackagesView() {
             icon="search"
             placeholder={uiText("ui.search.packages")}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {setQuery(e.target.value); setOffset(0);}}
           />
         </div>
         <SegGroup
           value={status}
-          onChange={setStatus}
+          onChange={(value) => {setStatus(value); setOffset(0);}}
           options={[
             { value: "all", label: uiText("ui.all") },
             { value: "active", label: uiText("ui.active") },
@@ -88,13 +81,13 @@ export function PackagesView() {
             <PackageCard
               key={p.id}
               item={p}
-              onClick={() =>
-                openPackageDrawer({
-                  initial: p,
-                  onSaved: refresh,
-                  onRemoved: refresh,
-                })
-              }
+              onClick={async () => {
+                try {
+                  const item = await getPackage(p.id);
+                  if (!item) { refresh(); return; }
+                  openPackageDrawer({initial: item, onSaved: refresh, onRemoved: refresh});
+                } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+              }}
             />
           ))}
           <Card
@@ -111,6 +104,7 @@ export function PackagesView() {
           </Card>
         </div>
       )}
+      {page && <Pagination total={page.total} offset={offset} onChange={setOffset} loading={loading} />}
     </PageContainer>
   );
 }

@@ -1,5 +1,6 @@
+import { mockData } from "@/services/adapters/mock-data";
 import { readLang, translate, localeForLang } from "@/lib/i18n";
-import notificationsJson from "@/data/mock/notifications.json";
+
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -12,9 +13,7 @@ import { apiCurrency } from "./_currency";
 type NotificationListDto = components["schemas"]["NotificationListResponse"];
 type NotificationDto = NotificationListDto["items"][number];
 
-let mock: Notification[] = JSON.parse(
-  JSON.stringify(notificationsJson),
-) as Notification[];
+let mock: Notification[] = dataSource === "mock" ? mockData("notifications") : [] as Notification[];
 
 const PRESENTATION: Record<
   NotificationDto["kind"],
@@ -146,4 +145,10 @@ export async function countUnread(): Promise<number> {
   }
   await sleep(10);
   return mock.filter((notification) => notification.unread).length;
+}
+
+export async function getNotificationSummary(): Promise<{items: Notification[]; unreadCount: number}> {
+  if (dataSource === "mock") return {items: await listNotifications(), unreadCount: mock.filter((item) => item.unread).length};
+  const page = await apiRequest<NotificationListDto>("/notifications");
+  return {items: page.items.map(mapNotification), unreadCount: page.unreadCount};
 }

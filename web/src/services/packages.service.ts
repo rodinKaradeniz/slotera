@@ -1,8 +1,11 @@
+import { mockData } from "@/services/adapters/mock-data";
+import { nextEditVersion } from "./_editing";
+import { apiCurrency } from "./_currency";
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { currentPublicWorkspaceSlug } from "@/services/public-booking.service";
 import type { Currency } from "@/types/common";
-import packagesJson from "@/data/mock/packages.json";
+
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
@@ -16,7 +19,7 @@ function mapOffer(dto: components["schemas"]["PublicPackageView"]): PackageOffer
     items: dto.items.map((item) => ({ ...item, title: item.title ?? undefined, description: item.description ?? undefined })) };
 }
 function mapPackage(dto: PackageDto): ServicePackage {
-  return { ...mapOffer(dto), status: dto.status, notes: dto.notes ?? undefined,
+  return { version: dto.version, ...mapOffer(dto), status: dto.status, notes: dto.notes ?? undefined,
     createdAtISO: dto.createdAt, updatedAtISO: dto.updatedAt };
 }
 function payload(input: ServicePackageInput): components["schemas"]["PackageInput"] {
@@ -32,9 +35,8 @@ function payload(input: ServicePackageInput): components["schemas"]["PackageInpu
  * `ServicePackage.items[].serviceId` — there is no `Service.packageIds` and no
  * dual-write. Editing inclusion happens by editing the package's items.
  */
-let mock: ServicePackage[] = JSON.parse(
-  JSON.stringify(packagesJson),
-) as ServicePackage[];
+let mock: ServicePackage[] = dataSource === "mock" ? mockData("packages") : [] as ServicePackage[];
+mock = mock.map((item) => ({...item, version: item.version ?? 1}));
 
 export async function listPackages(): Promise<ServicePackage[]> {
   if (dataSource === "api") return (await apiRequest<components["schemas"]["PackageList"]>("/packages")).items.map(mapPackage);
@@ -58,6 +60,7 @@ export async function createPackage(
   await sleep(120);
   const now = new Date().toISOString();
   const created: ServicePackage = {
+    version: 1,
     ...input,
     id: makeId("pkg"),
     createdAtISO: now,
@@ -70,11 +73,12 @@ export async function createPackage(
 export async function updatePackage(
   id: string,
   patch: Partial<ServicePackageInput>,
+  expectedVersion?: number,
 ): Promise<ServicePackage> {
   if (dataSource === "api") {
     const previous = await getPackage(id);
     if (!previous) throw new NotFoundError("package", id);
-    return mapPackage(await apiRequest<PackageDto, components["schemas"]["PackageInput"]>(`/packages/${encodeURIComponent(id)}`, { method: "PUT", csrf: true, body: payload({ ...previous, ...patch }) }));
+    return mapPackage(await apiRequest<PackageDto, components["schemas"]["PackageInput"]>(`/packages/${encodeURIComponent(id)}`, { method: "PUT", expectedVersion, csrf: true, body: payload({ ...previous, ...patch }) }));
   }
   await sleep(100);
   const idx = mock.findIndex((p) => p.id === id);
@@ -82,22 +86,27 @@ export async function updatePackage(
   const next: ServicePackage = {
     ...mock[idx],
     ...patch,
+    version: nextEditVersion(mock[idx], expectedVersion),
     updatedAtISO: new Date().toISOString(),
   };
   mock = [...mock.slice(0, idx), next, ...mock.slice(idx + 1)];
   return next;
 }
 
-export async function deactivatePackage(id: string): Promise<ServicePackage> {
-  return updatePackage(id, { status: "inactive" });
+export async function deactivatePackage(id: string, expectedVersion?: number): Promise<ServicePackage> {
+  return updatePackage(id, { status: "inactive" }, expectedVersion);
 }
 
-export async function activatePackage(id: string): Promise<ServicePackage> {
-  return updatePackage(id, { status: "active" });
+export async function activatePackage(id: string, expectedVersion?: number): Promise<ServicePackage> {
+  return updatePackage(id, { status: "active" }, expectedVersion);
 }
 
-export async function removePackage(id: string): Promise<void> {
-  if (dataSource === "api") return apiRequest<void>(`/packages/${encodeURIComponent(id)}`, { method: "DELETE", csrf: true });
+export async function removePackage(id: string,
+  expectedVersion?: number,
+): Promise<void> {
+  if (dataSource === "api") return apiRequest<void>(`/packages/${encodeURIComponent(id)}`, { method: "DELETE", expectedVersion, csrf: true });
+  const reviewed = mock.find((item) => item.id === id);
+  if (reviewed) nextEditVersion(reviewed, expectedVersion);
   await sleep(80);
   mock = mock.filter((p) => p.id !== id);
 }
@@ -128,4 +137,16 @@ export async function listPackagesForService(
       p.status === "active" &&
       p.items.some((item) => item.serviceId === serviceId),
   );
+}
+
+export async function listPackagePage(filters: import("@/types/page").ListFilter, signal?: AbortSignal): Promise<import("@/types/page").Page<import("@/types/package").PackageSummary>> {
+  if (dataSource === "mock") {
+    const items = mock.filter((item) => (!filters.search || item.name.toLowerCase().includes(filters.search.toLowerCase())) && (filters.status === undefined || filters.status === "all" || item.status === filters.status));
+    const offset = filters.offset ?? 0;
+    return {items: items.slice(offset, offset + 25).map((item) => ({...item, itemCount: item.items.length})), total: items.length, limit: 25, offset};
+  }
+  const params = new URLSearchParams({search: filters.search ?? "", limit: "25", offset: String(filters.offset ?? 0)});
+  if (filters.status && filters.status !== "all") params.set("status", filters.status);
+  const page = await apiRequest<components["schemas"]["PackageSummaryPage"]>(`/packages/summaries?${params}`, {signal});
+  return {...page, items: page.items.map((item) => ({...item, currency: apiCurrency(item.currency)}))};
 }

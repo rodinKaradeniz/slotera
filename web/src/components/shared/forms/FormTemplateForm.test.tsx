@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { browserStorage } from "@/test/browser-storage";
 import { FormTemplateForm, type FormTemplateFormValue } from "./FormTemplateForm";
-vi.mock("@/services/services.service", () => ({ listServices: async () => [
+vi.mock("@/services/services.service", () => ({ searchServiceOptions: async () => [
   { id: "one", name: "First service", active: true }, { id: "two", name: "Second service", active: true },
 ] }));
 beforeEach(() => vi.stubGlobal("localStorage", browserStorage()));

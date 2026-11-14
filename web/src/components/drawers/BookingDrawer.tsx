@@ -84,6 +84,7 @@ function SavedBookingDrawer({
   useResetOnOpen(open, [modeProp], () => setMode(modeProp));
 
   React.useEffect(() => {
+    if (!open) return;
     Promise.all([listClients(), listSessions(), listServices()]).then(
       ([c, s, sv]) => {
         setClients(c);
@@ -91,9 +92,9 @@ function SavedBookingDrawer({
         setServices(sv);
       },
     );
-  }, []);
+  }, [open]);
 
-  useResetOnOpen(open, [initial], () => setForm(formFor(initial)));
+  useResetOnOpen(open, [initial?.id], () => setForm(formFor(initial)));
 
   const save = async () => {
     setBusy(true);
@@ -152,6 +153,7 @@ function SavedBookingDrawer({
           <>
             <Button variant="ghost" onClick={onClose}>
               {uiText("ui.close")}</Button>
+            <Link href={`/admin/bookings/${encodeURIComponent(initial.id)}`} onClick={onClose}>{uiText("ui.view.details")}</Link>
             {dataSource === "mock" && (
               <Button icon="edit" onClick={() => setMode("edit")}>
                 {uiText("ui.edit.booking")}</Button>

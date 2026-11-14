@@ -1,6 +1,8 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { getForm } from "@/services/forms.service";
+import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
@@ -57,14 +59,16 @@ export function FormDrawer({
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [persistedActive, setPersistedActive] = React.useState(initial?.status === "active");
   const [deactivation, setDeactivation] = React.useState<"save" | "toggle" | null>(null);
-  useResetOnOpen(open, [initial], () => {
+  const edit = useReviewedEdit(open, initial, getForm, (latest) => {setForm({...latest}); setPersistedActive(latest.status === "active"); setValidationAttempt(0);});
+
+  useResetOnOpen(open, [initial?.id], () => {
     setPersistedActive(initial?.status === "active");
     setDeactivation(null);
     setConfirmDelete(false);
     setValidationAttempt(0);
   });
 
-  useResetOnOpen(open, [initial], () => setForm(initial ? { ...initial } : DEFAULTS));
+  useResetOnOpen(open, [initial?.id], () => setForm(initial ? { ...initial } : DEFAULTS));
 
   const save = async (confirmed = false) => {
     if (busy) return;
@@ -80,7 +84,7 @@ export function FormDrawer({
     setBusy(true);
     try {
       if (isEdit && initial) {
-        const next = await updateForm(initial.id, form);
+        const next = await updateForm(initial.id, form, edit.version);
         onSaved?.(next);
         toast.success(uiText("ui.form.updated"));
       } else {
@@ -90,6 +94,7 @@ export function FormDrawer({
       }
       onClose();
     } catch (err) {
+      if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.save.form"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -104,8 +109,9 @@ export function FormDrawer({
     try {
       const next =
         persistedActive
-          ? await deactivateForm(initial.id)
-          : await activateForm(initial.id);
+          ? await deactivateForm(initial.id, edit.version)
+          : await activateForm(initial.id, edit.version);
+      edit.accept(next);
       setPersistedActive(next.status === "active");
       setDeactivation(null);
       onSaved?.(next);
@@ -114,6 +120,7 @@ export function FormDrawer({
         next.status === "active" ? uiText("ui.form.activated") : uiText("ui.form.deactivated"),
       );
     } catch (err) {
+      if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.update.form"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -126,12 +133,13 @@ export function FormDrawer({
     if (!initial) return;
     setBusy(true);
     try {
-      await removeForm(initial.id);
+      await removeForm(initial.id, edit.version);
       onRemoved?.(initial.id);
       toast.success(uiText("ui.form.deleted"));
       setConfirmDelete(false);
       onClose();
     } catch (err) {
+      if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.delete.form"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -156,7 +164,8 @@ export function FormDrawer({
       }
     >
       <div className="flex flex-col gap-5">
-        <FormTemplateForm value={form} onChange={setForm} disabled={busy} validationAttempt={validationAttempt} />
+        {edit.notice}
+      <FormTemplateForm value={form} onChange={setForm} disabled={busy} validationAttempt={validationAttempt} />
 
         {isEdit && (
           <div className="mt-4 pt-5 border-t border-line-soft">

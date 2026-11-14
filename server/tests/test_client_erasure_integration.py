@@ -108,17 +108,32 @@ async def test_client_export_and_erasure_keep_only_financial_facts() -> None:
             link_before = await visitor.get(MANAGE, headers=token)
             mismatch = await operator.post(
                 f"/clients/{client_id}/erase",
-                headers=_csrf(operator),
+                headers={
+                    **_csrf(operator),
+                    "If-Match": '"v'
+                    + str((await operator.get(f"/clients/{client_id}")).json().get("version", 1))
+                    + '"',
+                },
                 json={"confirmEmail": "someone-else@example.com"},
             )
             unknown = await operator.post(
                 f"/clients/{uuid4()}/erase",
-                headers=_csrf(operator),
+                headers={
+                    **_csrf(operator),
+                    "If-Match": '"v'
+                    + str((await operator.get(f"/clients/{uuid4()}")).json().get("version", 1))
+                    + '"',
+                },
                 json={"confirmEmail": email},
             )
             erased = await operator.post(
                 f"/clients/{client_id}/erase",
-                headers=_csrf(operator),
+                headers={
+                    **_csrf(operator),
+                    "If-Match": '"v'
+                    + str((await operator.get(f"/clients/{client_id}")).json().get("version", 1))
+                    + '"',
+                },
                 json={"confirmEmail": email.upper()},
             )
             after = await operator.get(f"/clients/{client_id}/export")
@@ -192,4 +207,5 @@ async def test_client_export_and_erasure_keep_only_financial_facts() -> None:
     assert booking["currency"] == "GBP" and booking["status"] == "confirmed"
     # The delivered email keeps a blank row (it blocks duplicates); unsent ones are gone.
     assert [(row.recipient_email, row.template_data) for row in outbox] == [("erased@invalid", {})]
-    assert audit == {"booking_count": 1}
+    assert audit["booking_count"] == 1
+    assert set(audit) == {"booking_count", "requestId", "operationId"}

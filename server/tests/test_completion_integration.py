@@ -45,14 +45,24 @@ async def test_forms_offers_branding_billing_and_preferences() -> None:
             assert (
                 await client.patch(
                     "/settings/branding",
-                    headers=csrf,
+                    headers={
+                        **csrf,
+                        "If-Match": '"v'
+                        + str((await client.get("/settings/branding")).json().get("version", 1))
+                        + '"',
+                    },
                     json={"accent": "#ffffff", "fontFamily": "sans"},
                 )
             ).status_code == 422
             assert (
                 await client.patch(
                     "/settings/branding",
-                    headers=csrf,
+                    headers={
+                        **csrf,
+                        "If-Match": '"v'
+                        + str((await client.get("/settings/branding")).json().get("version", 1))
+                        + '"',
+                    },
                     json={"accent": "#123456", "fontFamily": "sans"},
                 )
             ).status_code == 200
@@ -116,13 +126,43 @@ async def test_forms_offers_branding_billing_and_preferences() -> None:
             offer = next(p for p in offers if p["id"] == package_id)
             assert "notes" not in offer and "status" not in offer
             assert offer["currency"] == service.json()["currency"]
-            assert (await client.delete(f"/services/{service_id}", headers=csrf)).status_code == 409
-            await client.patch(f"/services/{service_id}", headers=csrf, json={"active": False})
+            assert (
+                await client.delete(
+                    f"/services/{service_id}",
+                    headers={
+                        **csrf,
+                        "If-Match": '"v'
+                        + str(
+                            (await client.get(f"/services/{service_id}")).json().get("version", 1)
+                        )
+                        + '"',
+                    },
+                )
+            ).status_code == 409
+            await client.patch(
+                f"/services/{service_id}",
+                headers={
+                    **csrf,
+                    "If-Match": '"v'
+                    + str((await client.get(f"/services/{service_id}")).json().get("version", 1))
+                    + '"',
+                },
+                json={"active": False},
+            )
             assert not any(
                 p["id"] == package_id
                 for p in (await client.get("/public/workspaces/lena/packages")).json()["items"]
             )
-            await client.patch(f"/services/{service_id}", headers=csrf, json={"active": True})
+            await client.patch(
+                f"/services/{service_id}",
+                headers={
+                    **csrf,
+                    "If-Match": '"v'
+                    + str((await client.get(f"/services/{service_id}")).json().get("version", 1))
+                    + '"',
+                },
+                json={"active": True},
+            )
             form = await client.post(
                 "/forms",
                 headers=csrf,
@@ -193,7 +233,12 @@ async def test_forms_offers_branding_billing_and_preferences() -> None:
             token = {"X-Booking-Token": payload["manageUrl"].split("#")[1]}
             await client.patch(
                 f"/forms/{form_id}",
-                headers=csrf,
+                headers={
+                    **csrf,
+                    "If-Match": '"v'
+                    + str((await client.get(f"/forms/{form_id}")).json().get("version", 1))
+                    + '"',
+                },
                 json={
                     "fields": [
                         {
@@ -205,7 +250,15 @@ async def test_forms_offers_branding_billing_and_preferences() -> None:
                     ]
                 },
             )
-            await client.delete(f"/forms/{form_id}", headers=csrf)
+            await client.delete(
+                f"/forms/{form_id}",
+                headers={
+                    **csrf,
+                    "If-Match": '"v'
+                    + str((await client.get(f"/forms/{form_id}")).json().get("version", 1))
+                    + '"',
+                },
+            )
             form_id = None
             managed = (await client.get("/public/bookings/manage/forms", headers=token)).json()[
                 "items"
@@ -269,10 +322,13 @@ async def test_forms_offers_branding_billing_and_preferences() -> None:
             )
             assert [response.status_code for response in simultaneous] == [200, 200]
             async with owner.transaction() as session:
-                assert await session.scalar(
-                    text("SELECT count(*) FROM booking_form_responses WHERE booking_id = :id"),
-                    {"id": UUID(booking_id)},
-                ) == 1
+                assert (
+                    await session.scalar(
+                        text("SELECT count(*) FROM booking_form_responses WHERE booking_id = :id"),
+                        {"id": UUID(booking_id)},
+                    )
+                    == 1
+                )
             assert (
                 await client.post(url, headers={**ORIGIN, **token}, json=answers)
             ).status_code == 200
@@ -315,7 +371,12 @@ async def test_forms_offers_branding_billing_and_preferences() -> None:
             assert legacy[0]["answers"][0]["fieldId"] == "yes"
             erased = await client.post(
                 f"/clients/{client_id}/erase",
-                headers=csrf,
+                headers={
+                    **csrf,
+                    "If-Match": '"v'
+                    + str((await client.get(f"/clients/{client_id}")).json().get("version", 1))
+                    + '"',
+                },
                 json={"confirmEmail": f"{stamp}@example.com"},
             )
             assert erased.status_code == 204, erased.text
@@ -326,7 +387,12 @@ async def test_forms_offers_branding_billing_and_preferences() -> None:
             # Restore per-workspace settings changed by this test.
             await client.patch(
                 "/settings/branding",
-                headers=csrf,
+                headers={
+                    **csrf,
+                    "If-Match": '"v'
+                    + str((await client.get("/settings/branding")).json().get("version", 1))
+                    + '"',
+                },
                 json={"accent": "#3d5a3d", "fontFamily": "serif"},
             )
             await client.patch("/auth/preferences", headers=csrf, json={"language": "en"})

@@ -26,6 +26,7 @@ export type Address = {
  * scheduling a session, instead of retyping the address every time.
  */
 export type WorkspaceLocation = {
+  version?: number;
   id: string;
   /** Display name the operator gives the place ("Mitte Studio"). */
   label: string;

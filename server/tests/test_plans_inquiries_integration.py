@@ -55,17 +55,44 @@ async def test_plans_inquiries_and_overview_are_superadmin_controlled() -> None:
             }
             operator_set_plan = await operator.post(
                 f"/platform/workspaces/{workspace_id}/billing",
-                headers=_csrf(operator),
+                headers={
+                    **_csrf(operator),
+                    "If-Match": '"v'
+                    + str(
+                        (await operator.get(f"/platform/workspaces/{workspace_id}"))
+                        .json()
+                        .get("billingVersion", 1)
+                    )
+                    + '"',
+                },
                 json=change,
             )
             set_pro = await staff.post(
                 f"/platform/workspaces/{workspace_id}/billing",
-                headers=_csrf(staff),
+                headers={
+                    **_csrf(staff),
+                    "If-Match": '"v'
+                    + str(
+                        (await staff.get(f"/platform/workspaces/{workspace_id}"))
+                        .json()
+                        .get("billingVersion", 1)
+                    )
+                    + '"',
+                },
                 json=change,
             )
             unchanged = await staff.post(
                 f"/platform/workspaces/{workspace_id}/billing",
-                headers=_csrf(staff),
+                headers={
+                    **_csrf(staff),
+                    "If-Match": '"v'
+                    + str(
+                        (await staff.get(f"/platform/workspaces/{workspace_id}"))
+                        .json()
+                        .get("billingVersion", 1)
+                    )
+                    + '"',
+                },
                 json=change,
             )
             billing_after = await operator.get("/settings/billing")
