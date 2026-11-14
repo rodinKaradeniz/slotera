@@ -1,6 +1,7 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import { getSession } from "@/services/sessions.service";
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
 import { DrawerShell } from "@/components/ui/DrawerShell";
@@ -313,7 +314,7 @@ export function SessionDrawer({
               <Button
                 variant="secondary"
                 icon="plus"
-                onClick={() => openBookingDrawer({ defaultSessionId: initial.id })}
+                onClick={() => openBookingDrawer({ defaultSessionId: initial.id, onSaved: async () => { const fresh = await getSession(initial.id); if (fresh) onSaved?.(fresh); } })}
               >
                 {uiText("ui.add.attendee")}</Button>
             )}

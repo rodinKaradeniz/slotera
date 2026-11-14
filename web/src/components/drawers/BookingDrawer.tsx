@@ -1,4 +1,5 @@
 "use client";
+import { CreateBookingDrawer } from "./CreateBookingDrawer";
 import { readLang, localeForLang } from "@/lib/i18n";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -17,8 +18,6 @@ import { Input } from "@/components/ui/Input";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import {
-  createBooking,
-  createOperatorBooking,
   updateBooking,
   cancelBooking,
 } from "@/services/bookings.service";
@@ -52,48 +51,35 @@ type FormState = {
   paymentStatus: PaymentStatus;
   amountCents: number;
   notes: string;
-  /** API mode: recorded in the audit log with the booking. */
-  auditReason: string;
 };
 
-function emptyForm(opts: { sessionId?: string; clientId?: string } = {}): FormState {
-  return {
-    clientId: opts.clientId ?? "",
-    sessionId: opts.sessionId ?? "",
-    status: "pending",
-    paymentStatus: "pending",
-    amountCents: 0,
-    notes: "",
-    auditReason: "Booked by the operator on the client's behalf",
-  };
+function formFor(booking: Booking): FormState {
+  return { clientId: booking.clientId, sessionId: booking.sessionId, status: booking.status,
+    paymentStatus: booking.paymentStatus, amountCents: booking.amountCents, notes: booking.notes ?? "" };
 }
 
-export function BookingDrawer({
+export function BookingDrawer(props: BookingDrawerProps) {
+  return props.initial ? <SavedBookingDrawer {...props} initial={props.initial} /> : <CreateBookingDrawer {...props} />;
+}
+
+function SavedBookingDrawer({
   open,
   onClose,
   initial,
   mode: modeProp = "edit",
-  defaultSessionId,
-  defaultClientId,
   onSaved,
   onCancelled,
-}: BookingDrawerProps) {
+}: BookingDrawerProps & { initial: Booking }) {
   const { t: uiText } = useI18n();
-  const isEdit = !!initial;
   const [mode, setMode] = React.useState<BookingDrawerMode>(modeProp);
-  const isView = mode === "view" && isEdit;
+  const isView = mode === "view";
   const { toast } = useToast();
   const [confirmCancel, setConfirmCancel] = React.useState(false);
   const [clients, setClients] = React.useState<Client[]>([]);
   const [sessions, setSessions] = React.useState<SessionItem[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
-  const [form, setForm] = React.useState<FormState>(() =>
-    emptyForm({ sessionId: defaultSessionId, clientId: defaultClientId }),
-  );
+  const [form, setForm] = React.useState<FormState>(() => formFor(initial));
   const [busy, setBusy] = React.useState(false);
-  // One key per opened form: a double-click or retry replays, never double-books.
-  const [idempotencyKey, setIdempotencyKey] = React.useState(() => crypto.randomUUID());
-  const [openedAt, setOpenedAt] = React.useState(0);
 
   useResetOnOpen(open, [modeProp], () => setMode(modeProp));
 
@@ -107,76 +93,22 @@ export function BookingDrawer({
     );
   }, []);
 
-  useResetOnOpen(open, [initial, defaultSessionId, defaultClientId], () => {
-    if (initial) {
-      setForm({
-        clientId: initial.clientId,
-        sessionId: initial.sessionId,
-        status: initial.status,
-        paymentStatus: initial.paymentStatus,
-        amountCents: initial.amountCents,
-        notes: initial.notes ?? "",
-        auditReason: "",
-      });
-    } else {
-      setForm(emptyForm({ sessionId: defaultSessionId, clientId: defaultClientId }));
-      setIdempotencyKey(crypto.randomUUID());
-      setOpenedAt(Date.now());
-    }
-  });
-
-  const selectedSession = sessions.find((s) => s.id === form.sessionId);
-  const selectedService = services.find((s) => s.id === selectedSession?.serviceId);
-
-  // A new booking starts at the chosen service's price unless an amount was entered.
-  const [pricedFrom, setPricedFrom] = React.useState<Service | undefined>(undefined);
-  if (!initial && selectedService && selectedService !== pricedFrom) {
-    setPricedFrom(selectedService);
-    if (form.amountCents === 0) {
-      setForm({ ...form, amountCents: selectedService.priceCents });
-    }
-  }
+  useResetOnOpen(open, [initial], () => setForm(formFor(initial)));
 
   const save = async () => {
     setBusy(true);
     try {
-      if (isEdit && initial) {
-        const next = await updateBooking(initial.id, {
-          clientId: form.clientId,
-          sessionId: form.sessionId,
-          status: form.status,
-          paymentStatus: form.paymentStatus,
-          amountCents: form.amountCents,
-          currency: initial.currency,
-          notes: form.notes,
-        });
-        onSaved?.(next);
-        toast.success(uiText("ui.booking.updated"));
-      } else if (dataSource === "api") {
-        const next = await createOperatorBooking(
-          {
-            clientId: form.clientId,
-            sessionId: form.sessionId,
-            notes: form.notes,
-            auditReason: form.auditReason,
-          },
-          idempotencyKey,
-        );
-        onSaved?.(next);
-        toast.success(uiText("ui.booking.created"));
-      } else {
-        const next = await createBooking({
-          clientId: form.clientId,
-          sessionId: form.sessionId,
-          status: form.status,
-          paymentStatus: form.paymentStatus,
-          amountCents: form.amountCents,
-          currency: selectedService?.currency ?? "GBP",
-          notes: form.notes,
-        });
-        onSaved?.(next);
-        toast.success(uiText("ui.booking.created"));
-      }
+      const next = await updateBooking(initial.id, {
+        clientId: form.clientId,
+        sessionId: form.sessionId,
+        status: form.status,
+        paymentStatus: form.paymentStatus,
+        amountCents: form.amountCents,
+        currency: initial.currency,
+        notes: form.notes,
+      });
+      onSaved?.(next);
+      toast.success(uiText("ui.booking.updated"));
       onClose();
     } catch (err) {
       toast.error(uiText("ui.couldn.t.save.booking"), {
@@ -188,7 +120,6 @@ export function BookingDrawer({
   };
 
   const cancel = async () => {
-    if (!initial) return;
     setBusy(true);
     try {
       const next = await cancelBooking(initial.id);
@@ -205,28 +136,10 @@ export function BookingDrawer({
     }
   };
 
-  const ready =
-    !!form.clientId &&
-    !!form.sessionId &&
-    (dataSource === "mock" || isEdit || !!form.auditReason.trim());
-  // API mode books into upcoming, active sessions that still have room.
+  const ready = !!form.clientId && !!form.sessionId;
   const timezone = useWorkspaceTimezone();
-  const bookableSessions =
-    dataSource === "api" && !isEdit
-      ? sessions.filter(
-          (s) =>
-            new Date(s.startISO).getTime() > openedAt &&
-            s.status !== "cancelled" &&
-            s.bookedCount < s.capacity,
-        )
-      : sessions;
-
-  const eyebrow = isView
-    ? uiText("ui.booking.details")
-    : isEdit
-      ? uiText("ui.edit.booking")
-      : uiText("ui.new.booking");
-  const title = isEdit ? `Booking ${initial?.id}` : uiText("ui.create.a.booking");
+  const eyebrow = isView ? uiText("ui.booking.details") : uiText("ui.edit.booking");
+  const title = `Booking ${initial.id}`;
 
   return (
     <DrawerShell
@@ -246,7 +159,7 @@ export function BookingDrawer({
           </>
         ) : (
           <>
-            {isEdit && (
+            {(
               <Button
                 variant="danger"
                 size="sm"
@@ -260,7 +173,7 @@ export function BookingDrawer({
             <Button variant="ghost" onClick={onClose} disabled={busy}>
               {uiText("ui.close")}</Button>
             <Button onClick={save} loading={busy} disabled={!ready}>
-              {isEdit ? uiText("ui.save.changes") : uiText("ui.create.booking")}
+              {uiText("ui.save.changes")}
             </Button>
           </>
         )
@@ -284,7 +197,7 @@ export function BookingDrawer({
             onChange={(e) => setForm({ ...form, sessionId: e.target.value })}
             options={[
               { value: "", label: uiText("ui.select.a.session") },
-              ...bookableSessions.map((s) => {
+              ...sessions.map((s) => {
                 const svc = services.find((x) => x.id === s.serviceId);
                 const start = new Date(s.startISO);
                 const when = `${start.toLocaleDateString(localeForLang(readLang()), {
@@ -300,19 +213,6 @@ export function BookingDrawer({
             ]}
           />
         </Field>
-
-        {selectedSession && (
-          <div className="rounded-md bg-surface-warm border border-line-soft px-4 py-3 text-small">
-            {selectedSession.capacity === 1
-              ? "1:1 session"
-              : uiText("ui.capacity.remaining", { capacity: selectedSession.capacity, count: selectedSession.capacity - selectedSession.bookedCount })}
-          </div>
-        )}
-
-        {dataSource === "api" && !isEdit && (
-          <div className="rounded-md bg-surface-warm border border-line-soft px-4 py-3 text-small">
-            {uiText("ui.the.price.and.currency.come.from.the.service.the.booking.starts.pending.until.its.payment.")}</div>
-        )}
 
         {dataSource === "mock" && (
         <div className="grid grid-cols-2 gap-4">
@@ -366,15 +266,6 @@ export function BookingDrawer({
         </Field>
         )}
 
-        {dataSource === "api" && !isEdit && (
-          <Field label={uiText("ui.reason")} required hint={uiText("ui.kept.in.the.audit.log.with.this.booking")}>
-            <Input
-              value={form.auditReason}
-              onChange={(e) => setForm({ ...form, auditReason: e.target.value })}
-            />
-          </Field>
-        )}
-
         <Field
           label={uiText("ui.booking.note")}
           optional
@@ -387,7 +278,7 @@ export function BookingDrawer({
           />
         </Field>
 
-        {isEdit && (
+        {(
           <div className="pt-1">
             <Link
               href="/booking/manage/demo"

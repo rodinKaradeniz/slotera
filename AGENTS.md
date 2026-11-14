@@ -179,8 +179,11 @@ exposed in API-mode navigation. The navbar and Cmd/Ctrl-K operator search are al
 API-backed. Calendar uses persisted sessions, booking/client context, session action
 items, and group-session attendance. The persisted booking detail exposes narrow,
 idempotent approval, decline, manual-payment receipt, and cancellation actions, and
-Bookings → New booking books an existing client into an upcoming session with room
-(`POST /bookings`, audited reason, one idempotency key per opened form). Settings →
+Bookings → New booking books an existing or newly entered client into an upcoming session with room
+(`POST /bookings`, audited reason, one idempotency key per opened form). Booking details also show paginated customer-email history and a reviewed Send booking details action;
+address correction revokes old management links without editing the client profile or original snapshot.
+Free operator bookings confirm immediately, paid bookings await manual payment, and assigned forms
+remain available through the client management link. Settings →
 Account shows the sign-in email and changes the password (`POST /auth/password/change`
 re-verifies the current password and signs out other sessions). `AuthGuard` admits in API
 mode exactly the routes `navForRole()` lists.
@@ -349,10 +352,14 @@ implemented HTTP surface is deliberately limited to:
 - `GET/POST /services` plus item `GET/PATCH/DELETE` — operator service management,
   including per-service automatic/operator-approval confirmation policy;
 - `GET/POST /clients` plus item `GET/PATCH` — operator client profiles and search;
-- `GET /bookings` (optionally filtered by `sessionId`) plus item `GET`, `POST /bookings`,
+- `GET /bookings` (optionally filtered by `sessionId`) plus item `GET`, `POST /bookings`
+  (exactly one existing/new client, email opt-out and language),
   and explicit item `POST` approve/decline/mark-payment-received/confirm/cancel/complete/
   no-show/attendance commands — tenant-scoped reads plus idempotent, audited booking gate,
   lifecycle, and group-attendance commands;
+- `GET /bookings/{id}/emails` and idempotent `POST /bookings/{id}/send-details` —
+  customer-only safe delivery history and reviewed current-state summaries, with booking-only
+  address correction, old-link revocation and transactional suppression of unclaimed messages;
 - `GET/POST /forms` plus item `GET/PATCH/DELETE` — operator form-template management;
 - `GET /bookings/{id}/forms` — original questions and submitted answers for operators;
 - booking-token-protected `GET /public/bookings/manage/forms` and item `POST /submit` —
@@ -373,7 +380,8 @@ implemented HTTP surface is deliberately limited to:
   subscription or billing state;
 - `GET/PUT /availability` — workspace timezone, split weekly hours, booking-window policy,
   buffers, notice/advance limits, and blackout ranges;
-- `GET/POST /sessions` plus item `GET/PATCH` — one-off and recurring materialised
+- `GET/POST /sessions` plus item `GET/PATCH` — `bookable=true` filters upcoming available
+  sessions; reads include actual capacity-consuming attendee counts; one-off and recurring materialised
   sessions, including explicit `this` / `this_and_following` edit scope;
 - `GET/POST /sessions/{session_id}/action-items` plus item `PATCH/DELETE` — private
   operator session tasks with persisted `todo`/`done` state;

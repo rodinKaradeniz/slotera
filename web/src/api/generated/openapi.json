@@ -603,6 +603,124 @@
         "title": "BookingCustomerSnapshot",
         "type": "object"
       },
+      "BookingEmailListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BookingEmailResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "BookingEmailListResponse",
+        "type": "object"
+      },
+      "BookingEmailResponse": {
+        "properties": {
+          "attemptCount": {
+            "title": "Attemptcount",
+            "type": "integer"
+          },
+          "availableAt": {
+            "format": "date-time",
+            "title": "Availableat",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "recipientEmail": {
+            "title": "Recipientemail",
+            "type": "string"
+          },
+          "sentAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sentat"
+          },
+          "simulated": {
+            "title": "Simulated",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "sending",
+              "retrying",
+              "failed",
+              "sent",
+              "superseded"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "recipientEmail",
+          "status",
+          "createdAt",
+          "sentAt",
+          "availableAt",
+          "attemptCount",
+          "simulated"
+        ],
+        "title": "BookingEmailResponse",
+        "type": "object"
+      },
+      "BookingEmailSend": {
+        "additionalProperties": false,
+        "properties": {
+          "recipientEmail": {
+            "format": "email",
+            "title": "Recipientemail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipientEmail"
+        ],
+        "title": "BookingEmailSend",
+        "type": "object"
+      },
       "BookingFormSubmit": {
         "additionalProperties": false,
         "properties": {
@@ -961,9 +1079,22 @@
             ],
             "title": "Declinedat"
           },
+          "emailContact": {
+            "title": "Emailcontact",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
             "type": "string"
           },
           "manualPaymentInstructionsSnapshot": {
@@ -1135,6 +1266,8 @@
           }
         },
         "required": [
+          "emailContact",
+          "language",
           "id",
           "sessionId",
           "clientId",
@@ -1643,6 +1776,10 @@
             ],
             "title": "Customerphone"
           },
+          "emailContact": {
+            "title": "Emailcontact",
+            "type": "string"
+          },
           "notes": {
             "anyOf": [
               {
@@ -1681,6 +1818,7 @@
           }
         },
         "required": [
+          "emailContact",
           "reference",
           "serviceName",
           "sessionStartAt",
@@ -1765,8 +1903,15 @@
         "type": "object"
       },
       "ClientExportResponse": {
-        "description": "Everything the workspace holds about one client (subject access request).",
         "properties": {
+          "bookingEmails": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Bookingemails",
+            "type": "array"
+          },
           "bookings": {
             "items": {
               "$ref": "#/components/schemas/ClientExportBooking"
@@ -1813,6 +1958,52 @@
           "notes"
         ],
         "title": "ClientExportResponse",
+        "type": "object"
+      },
+      "ClientIdentityCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "company": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ],
+        "title": "ClientIdentityCreate",
         "type": "object"
       },
       "ClientListResponse": {
@@ -3190,9 +3381,36 @@
             "type": "string"
           },
           "clientId": {
-            "format": "uuid",
-            "title": "Clientid",
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clientid"
+          },
+          "language": {
+            "default": "en",
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
             "type": "string"
+          },
+          "newClient": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClientIdentityCreate"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "notes": {
             "anyOf": [
@@ -3206,6 +3424,11 @@
             ],
             "title": "Notes"
           },
+          "sendEmail": {
+            "default": true,
+            "title": "Sendemail",
+            "type": "boolean"
+          },
           "sessionId": {
             "format": "uuid",
             "title": "Sessionid",
@@ -3213,7 +3436,6 @@
           }
         },
         "required": [
-          "clientId",
           "sessionId",
           "auditReason"
         ],
@@ -8164,6 +8386,72 @@
         ]
       }
     },
+    "/bookings/{booking_id}/emails": {
+      "get": {
+        "operationId": "getBookingEmails",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingEmailListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Booking Emails",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
     "/bookings/{booking_id}/forms": {
       "get": {
         "operationId": "getBookingForms",
@@ -8379,6 +8667,70 @@
         ]
       }
     },
+    "/bookings/{booking_id}/send-details": {
+      "post": {
+        "operationId": "sendBookingDetails",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingEmailSend"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Booking Details",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
     "/client-notes/{note_id}": {
       "delete": {
         "operationId": "deleteClientNote",
@@ -8477,7 +8829,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "maxLength": 160,
+                  "maxLength": 320,
                   "type": "string"
                 },
                 {
@@ -10877,6 +11229,16 @@
                 }
               ],
               "title": "Seriesid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bookable",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Bookable",
+              "type": "boolean"
             }
           },
           {

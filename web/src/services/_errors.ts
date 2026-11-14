@@ -30,6 +30,8 @@ export class ApiRequestError extends Error {
   ) {
     const lang = readLang();
     const keys: Record<string, MessageKey> = {
+      idempotency_key_reused: "booking.requestChanged",
+      client_email_conflict: "booking.create.duplicate", booking_email_sending: "booking.emails.sendingConflict", booking_email_erased: "booking.emails.erased",
       network_error: "errors.network", invalid_credentials: "errors.credentials",
       csrf_cookie_missing: "errors.session", csrf_failed: "errors.session",
       rate_limit_exceeded: "errors.rateLimit", validation_error: "errors.validation",

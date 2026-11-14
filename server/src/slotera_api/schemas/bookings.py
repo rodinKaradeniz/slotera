@@ -2,17 +2,55 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import EmailStr, Field, field_validator, model_validator
 
 from slotera_api.schemas.base import ApiModel
+from slotera_api.schemas.clients import ClientIdentityCreate
 from slotera_api.schemas.operator_resources import NonBlank, StrictApiModel
 
 
 class OperatorBookingCreate(StrictApiModel):
-    client_id: UUID
+    client_id: UUID | None = None
+    new_client: ClientIdentityCreate | None = None
+    send_email: bool = True
+    language: Literal["en", "tr", "de"] = "en"
     session_id: UUID
     notes: Annotated[str | None, Field(max_length=2000)] = None
     audit_reason: Annotated[NonBlank, Field(max_length=500)]
+
+    @model_validator(mode="after")
+    def one_client(self) -> "OperatorBookingCreate":
+        if (self.client_id is None) == (self.new_client is None):
+            raise ValueError("Choose an existing client or provide a new client")
+        return self
+
+
+class BookingEmailSend(StrictApiModel):
+    recipient_email: EmailStr
+
+    @field_validator("recipient_email")
+    @classmethod
+    def normalize_email(cls, value: EmailStr) -> str:
+        return str(value).strip().lower()
+
+
+class BookingEmailResponse(ApiModel):
+    id: UUID
+    kind: str
+    recipient_email: str
+    status: Literal["queued", "sending", "retrying", "failed", "sent", "superseded"]
+    created_at: datetime
+    sent_at: datetime | None
+    available_at: datetime
+    attempt_count: int
+    simulated: bool
+
+
+class BookingEmailListResponse(ApiModel):
+    items: list[BookingEmailResponse]
+    total: int
+    limit: int
+    offset: int
 
 
 class BookingMoveCommand(StrictApiModel):
@@ -33,6 +71,8 @@ class BookingCustomerSnapshot(ApiModel):
 
 
 class BookingResponse(ApiModel):
+    email_contact: str
+    language: Literal["en", "tr", "de"]
     id: UUID
     session_id: UUID
     client_id: UUID

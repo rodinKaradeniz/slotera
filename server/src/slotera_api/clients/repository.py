@@ -6,7 +6,9 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import delete, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from slotera_api.booking_emails import export_email_history
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
@@ -132,24 +134,34 @@ class ClientsRepository:
         self, workspace_id: UUID, actor_user_id: UUID, values: Mapping[str, Any]
     ) -> Client:
         async with self.database.tenant_transaction(workspace_id) as session:
-            client = Client(id=uuid4(), workspace_id=workspace_id, **values)
-            session.add(client)
-            session.add(
-                AuditEvent(
-                    workspace_id=workspace_id,
-                    actor_user_id=actor_user_id,
-                    action="client.created",
-                    resource_type="client",
-                    resource_id=client.id,
-                    details={},
-                )
+            return await self.create_in_session(session, workspace_id, actor_user_id, values)
+
+    @staticmethod
+    async def create_in_session(
+        session: AsyncSession, workspace_id: UUID, actor_user_id: UUID, values: Mapping[str, Any]
+    ) -> Client:
+        client = Client(id=uuid4(), workspace_id=workspace_id, **values)
+        session.add(client)
+        session.add(
+            AuditEvent(
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                action="client.created",
+                resource_type="client",
+                resource_id=client.id,
+                details={},
             )
-            try:
-                await session.flush()
-            except IntegrityError as exc:
+        )
+        try:
+            await session.flush()
+        except IntegrityError as exc:
+            if getattr(
+                exc.orig, "sqlstate", None
+            ) == "23505" and "uq_clients_workspace_id_email" in str(exc.orig):
                 raise ClientEmailConflictError from exc
-            await session.refresh(client)
-            return client
+            raise
+        await session.refresh(client)
+        return client
 
     async def update_client(
         self,
@@ -209,9 +221,20 @@ class ClientsRepository:
                 )
             ).all()
             references = {booking.id: booking.reference for booking, _, _ in bookings}
-            snapshots = list((await session.scalars(select(BookingFormSnapshot).where(
-                BookingFormSnapshot.workspace_id == workspace_id,
-                BookingFormSnapshot.booking_id.in_(references)))).all()) if references else []
+            snapshots = (
+                list(
+                    (
+                        await session.scalars(
+                            select(BookingFormSnapshot).where(
+                                BookingFormSnapshot.workspace_id == workspace_id,
+                                BookingFormSnapshot.booking_id.in_(references),
+                            )
+                        )
+                    ).all()
+                )
+                if references
+                else []
+            )
             responses = (
                 list(
                     await session.scalars(
@@ -236,6 +259,7 @@ class ClientsRepository:
                 )
             )
             return {
+                "booking_emails": await export_email_history(session, client_id=client_id),
                 "client": client,
                 "bookings": [
                     {
@@ -250,6 +274,7 @@ class ClientsRepository:
                         "customer_first_name": booking.customer_first_name,
                         "customer_last_name": booking.customer_last_name,
                         "customer_email": booking.customer_email,
+                        "email_contact": booking.delivery_email_override or booking.customer_email,
                         "customer_phone": booking.customer_phone,
                         "customer_company": booking.customer_company,
                         "billing_address": booking.billing_address,
@@ -259,9 +284,13 @@ class ClientsRepository:
                     for booking, start_at, service_name in bookings
                 ],
                 "form_snapshots": [
-                    {"booking_reference": references[item.booking_id], "name": item.name,
-                     "description": item.description, "fields": item.fields,
-                     "required_before_payment": item.required_before_payment}
+                    {
+                        "booking_reference": references[item.booking_id],
+                        "name": item.name,
+                        "description": item.description,
+                        "fields": item.fields,
+                        "required_before_payment": item.required_before_payment,
+                    }
                     for item in snapshots
                 ],
                 "form_responses": [
@@ -297,9 +326,10 @@ class ClientsRepository:
                 return "confirmation_mismatch"
             booking_ids = list(
                 await session.scalars(
-                    select(Booking.id).where(
-                        Booking.workspace_id == workspace_id, Booking.client_id == client_id
-                    )
+                    select(Booking.id)
+                    .where(Booking.workspace_id == workspace_id, Booking.client_id == client_id)
+                    .order_by(Booking.id)
+                    .with_for_update()
                 )
             )
             client.name = "Erased client"
@@ -316,9 +346,12 @@ class ClientsRepository:
                 )
             )
             if booking_ids:
-                await session.execute(delete(BookingFormSnapshot).where(
-                    BookingFormSnapshot.workspace_id == workspace_id,
-                    BookingFormSnapshot.booking_id.in_(booking_ids)))
+                await session.execute(
+                    delete(BookingFormSnapshot).where(
+                        BookingFormSnapshot.workspace_id == workspace_id,
+                        BookingFormSnapshot.booking_id.in_(booking_ids),
+                    )
+                )
                 await session.execute(
                     delete(BookingFormResponse).where(
                         BookingFormResponse.workspace_id == workspace_id,
@@ -332,6 +365,7 @@ class ClientsRepository:
                         customer_first_name="",
                         customer_last_name="",
                         customer_email="",
+                        delivery_email_override=None,
                         customer_phone=None,
                         customer_company=None,
                         billing_address={},

@@ -65,7 +65,7 @@ async def test_operator_can_create_an_idempotent_capacity_consuming_booking() ->
         app = create_app(database=application)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
-            sessions = await client.get("/sessions")
+            sessions = await client.get("/sessions?bookable=true&limit=500")
             workshop = next(item for item in sessions.json()["items"] if item["capacity"] > 1)
             clients = await client.get("/clients")
             created = await client.post(
@@ -126,7 +126,7 @@ async def test_booking_status_commands_preserve_payment_state_and_reject_invalid
         app = create_app(database=application)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
-            sessions = await client.get("/sessions")
+            sessions = await client.get("/sessions?bookable=true&limit=500")
             workshop = next(item for item in sessions.json()["items"] if item["capacity"] > 1)
             clients = await client.get("/clients")
             created = await client.post(
@@ -253,7 +253,7 @@ async def test_confirmed_bookings_can_complete_or_end_as_noshow() -> None:
         app = create_app(database=application)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
-            sessions = await client.get("/sessions")
+            sessions = await client.get("/sessions?bookable=true&limit=500")
             workshop = next(item for item in sessions.json()["items"] if item["capacity"] > 1)
             clients = await client.get("/clients")
             final_responses = []
@@ -314,7 +314,7 @@ async def test_group_attendance_completes_a_booking_and_supports_safe_correction
         app = create_app(database=application)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
-            sessions = await client.get("/sessions")
+            sessions = await client.get("/sessions?bookable=true&limit=500")
             workshop = next(item for item in sessions.json()["items"] if item["capacity"] > 1)
             clients = await client.get("/clients")
             created = await client.post(

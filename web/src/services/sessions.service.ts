@@ -186,3 +186,14 @@ export async function findConflict(
   await sleep(20);
   return sessionOverlaps(candidate, mock);
 }
+
+export async function listBookableSessions(offset = 0): Promise<{ items: SessionItem[]; total: number }> {
+  if (dataSource === "api") {
+    const page = await apiRequest<SessionListDto>(`/sessions?bookable=true&limit=50&offset=${offset}`);
+    return { items: page.items.map(mapSession), total: page.total };
+  }
+  // The showcase uses its fixed demo calendar, independent of the real clock.
+  await sleep(60);
+  const items = mock.filter((s) => s.status === "scheduled" && s.bookedCount < s.capacity);
+  return { items: items.slice(offset, offset + 50), total: items.length };
+}

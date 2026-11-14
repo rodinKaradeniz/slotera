@@ -10,6 +10,7 @@ from slotera_api.auth.dependencies import (
     DatabaseDependency,
     OperatorWorkspaceDependency,
 )
+from slotera_api.booking_emails import email_history
 from slotera_api.booking_forms import BookingFormsResponse, read_forms
 from slotera_api.bookings.repository import (
     BookingApprovalError,
@@ -21,11 +22,14 @@ from slotera_api.bookings.repository import (
     BookingsRepository,
     BookingTransitionError,
 )
+from slotera_api.clients.repository import ClientEmailConflictError
 from slotera_api.db.models import Booking, BookingAttendance, Session
 from slotera_api.errors import ApiError
 from slotera_api.schemas.bookings import (
     BookingAttendanceCommand,
     BookingCustomerSnapshot,
+    BookingEmailListResponse,
+    BookingEmailSend,
     BookingListResponse,
     BookingMoveCommand,
     BookingResponse,
@@ -47,6 +51,8 @@ def _response(item: Booking) -> BookingResponse:
     if item.payment_status.value == "pending":
         pending_reasons.append("payment")
     return BookingResponse(
+        email_contact=item.delivery_email_override or item.customer_email,
+        language=cast(Literal["en", "tr", "de"], item.language),
         id=item.id,
         session_id=item.session_id,
         client_id=item.client_id,
@@ -191,6 +197,9 @@ async def create_operator_booking(
             payload.model_dump(),
             idempotency_key,
         )
+    except ClientEmailConflictError as exc:
+        raise ApiError(status_code=409, code="client_email_conflict",
+            message="A client with this email already exists. Select that client instead") from exc
     except (
         BookingCapacityExceededError,
         BookingIdempotencyConflictError,
@@ -467,3 +476,40 @@ async def get_booking_forms(
             raise _booking_not_found()
         _private(response)
         return await read_forms(session, operator.workspace_id, booking, occurrence.start_at)
+
+
+@router.get("/{booking_id}/emails", response_model=BookingEmailListResponse,
+            operation_id="getBookingEmails")
+async def get_booking_emails(
+    booking_id: UUID, response: Response, operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> BookingEmailListResponse:
+    async with database.tenant_transaction(operator.workspace_id) as session:
+        booking = await session.scalar(select(Booking.id).where(
+            Booking.workspace_id == operator.workspace_id, Booking.id == booking_id))
+        if booking is None:
+            raise _booking_not_found()
+        result = await email_history(session, booking_id=booking_id, limit=limit, offset=offset)
+    _private(response)
+    return BookingEmailListResponse.model_validate(result)
+
+
+@router.post("/{booking_id}/send-details", response_model=BookingResponse, status_code=202,
+             operation_id="sendBookingDetails")
+async def send_booking_details(
+    booking_id: UUID, payload: BookingEmailSend, response: Response,
+    operator: CsrfOperatorWorkspaceDependency, database: DatabaseDependency,
+    idempotency_key: IdempotencyKey,
+) -> BookingResponse:
+    try:
+        result = await BookingsRepository(database).send_details(
+            operator.workspace_id, operator.user_id, booking_id,
+            str(payload.recipient_email), idempotency_key)
+    except (BookingIdempotencyConflictError, BookingTransitionError) as exc:
+        raise _command_error(exc) from exc
+    if result is None:
+        raise _booking_not_found()
+    _private(response)
+    return _response(result.booking)

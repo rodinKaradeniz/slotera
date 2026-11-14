@@ -86,7 +86,7 @@ async def list_clients(
     response: Response,
     operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
-    search: Annotated[str | None, Query(max_length=160)] = None,
+    search: Annotated[str | None, Query(max_length=320)] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> ClientListResponse:
@@ -183,6 +183,7 @@ async def export_client(
         exported_at=datetime.now(UTC),
         client=await _with_stats(repository, operator.workspace_id, exported["client"]),
         bookings=[ClientExportBooking(**item) for item in exported["bookings"]],
+        booking_emails=exported["booking_emails"],
         form_snapshots=exported["form_snapshots"],
         form_responses=[ClientExportFormResponse(**item) for item in exported["form_responses"]],
         notes=[

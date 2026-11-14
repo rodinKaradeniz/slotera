@@ -128,3 +128,13 @@ export async function eraseClient(id: string, confirmEmail: string): Promise<voi
     { method: "POST", body: { confirmEmail }, csrf: true },
   );
 }
+
+/** Bounded picker search; full-directory loading remains confined to directory pages. */
+export async function searchClients(search: string): Promise<Client[]> {
+  if (dataSource === "api") {
+    return (await apiRequest<ClientListDto>(`/clients?search=${encodeURIComponent(search.trim())}&limit=20&offset=0`)).items.map(mapClient);
+  }
+  await sleep(60);
+  const query = search.trim().toLowerCase();
+  return mock.filter((c) => `${c.name} ${c.email}`.toLowerCase().includes(query)).slice(0, 20);
+}

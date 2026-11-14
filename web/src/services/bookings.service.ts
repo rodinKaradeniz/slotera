@@ -4,7 +4,12 @@ import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
-import type { Booking, BookingAttendance, BookingInput } from "@/types/booking";
+import { createClient, getClient, searchClients } from "./clients.service";
+import { getSession, updateSession } from "./sessions.service";
+import { getService } from "./services.service";
+import type { ClientIdentity } from "@/lib/client-validation";
+import type { Lang } from "@/lib/i18n";
+import type { BookingEmailPage, BookingEmail, Booking, BookingAttendance, BookingInput } from "@/types/booking";
 import { ApiRequestError, NotFoundError, NotImplementedError } from "./_errors";
 
 type BookingDto = components["schemas"]["BookingResponse"];
@@ -20,6 +25,8 @@ function mapBooking(booking: BookingDto): Booking {
     sessionId: booking.sessionId,
     clientId: booking.clientId,
     reference: booking.reference,
+    emailContact: booking.emailContact,
+    language: booking.language,
     status: booking.status,
     paymentStatus: booking.paymentStatus,
     paymentMethod: booking.paymentMethod,
@@ -109,37 +116,82 @@ export async function createBooking(input: BookingInput): Promise<Booking> {
     createdAtISO: new Date().toISOString(),
   };
   mock = [created, ...mock];
+  const occurrence = await getSession(created.sessionId);
+  if (occurrence && ["pending", "confirmed"].includes(created.status)) {
+    await updateSession(occurrence.id, { bookedCount: occurrence.bookedCount + 1 });
+  }
   return created;
 }
 
-/**
- * API mode: the operator books a client into an existing session. The server
- * snapshots price/currency, enforces capacity, and records `auditReason`.
- * Reuse one `idempotencyKey` per form so a retried submit cannot double-book.
- */
-export async function createOperatorBooking(
-  input: { clientId: string; sessionId: string; notes?: string; auditReason: string },
-  idempotencyKey: string,
-): Promise<Booking> {
-  if (dataSource !== "api") throw new NotImplementedError("createOperatorBooking");
-  return mapBooking(
-    await apiRequest<BookingDto, OperatorBookingCreateDto>("/bookings", {
-      method: "POST",
-      body: {
-        clientId: input.clientId,
-        sessionId: input.sessionId,
-        notes: input.notes?.trim() || null,
-        auditReason: input.auditReason.trim(),
-      },
-      csrf: true,
-      idempotencyKey,
-    }),
-  );
+export type OperatorBookingInput = {
+  sessionId: string; notes?: string; auditReason: string; sendEmail: boolean; language: Lang;
+} & ({ clientId: string; newClient?: never } | { clientId?: never; newClient: ClientIdentity });
+const mockCommands = new Map<string, { fingerprint: string; result: Promise<Booking> }>();
+const mockEmails = new Map<string, BookingEmail[]>();
+let mockCommandTail: Promise<void> = Promise.resolve();
+function mockCommand(key: string, input: unknown, execute: () => Promise<Booking>): Promise<Booking> {
+  const fingerprint = JSON.stringify(input);
+  const previous = mockCommands.get(key);
+  if (previous) {
+    if (previous.fingerprint !== fingerprint) return Promise.reject(new ApiRequestError(409, "idempotency_conflict", "This request changed. Reopen the dialog to submit a different request."));
+    return previous.result;
+  }
+  const result = mockCommandTail.then(execute).catch((error) => { mockCommands.delete(key); throw error; });
+  mockCommandTail = result.then(() => undefined, () => undefined);
+  mockCommands.set(key, { fingerprint, result });
+  return result;
+}
+function mockEmail(booking: Booking, kind: BookingEmail["kind"]): void {
+  mockEmails.set(booking.id, [{ id: makeId("email"), kind, recipientEmail: booking.emailContact ?? "",
+    status: "sent", createdAt: new Date().toISOString(), sentAt: new Date().toISOString(),
+    availableAt: new Date().toISOString(), attemptCount: 1, simulated: true }, ...(mockEmails.get(booking.id) ?? [])]);
+}
+export async function createOperatorBooking(input: OperatorBookingInput, idempotencyKey: string): Promise<Booking> {
+  if (dataSource === "api") return mapBooking(await apiRequest<BookingDto, OperatorBookingCreateDto>("/bookings", {
+    method: "POST", body: { ...input, notes: input.notes?.trim() || null, auditReason: input.auditReason.trim() }, csrf: true, idempotencyKey,
+  }));
+  return mockCommand(idempotencyKey, input, async () => {
+    const session = await getSession(input.sessionId);
+    const service = session && await getService(session.serviceId);
+    if (!session || !service || session.status !== "scheduled") throw new NotFoundError("session", input.sessionId);
+    if (session.bookedCount >= session.capacity || mock.filter((b) => b.sessionId === session.id && ["pending", "confirmed"].includes(b.status)).length >= session.capacity)
+      throw new ApiRequestError(409, "booking_capacity_exceeded", "This session is full.");
+    if (input.newClient && (await searchClients(input.newClient.email)).some((c) => c.email.toLowerCase() === input.newClient!.email.trim().toLowerCase()))
+      throw new ApiRequestError(409, "client_email_conflict", "This email already belongs to a client. Select that existing client.");
+    const client = input.newClient ? await createClient({ ...input.newClient, email: input.newClient.email.trim().toLowerCase() }) : await getClient(input.clientId!);
+    if (!client) throw new NotFoundError("client", input.clientId!);
+    const free = service.priceCents === 0;
+    const booking = await createBooking({ clientId: client.id, sessionId: session.id, status: free ? "confirmed" : "pending",
+      paymentStatus: free ? "free" : "pending", paymentMethod: free ? "free" : "manual", approvalStatus: "approved",
+      amountCents: service.priceCents, currency: service.currency, notes: input.notes, emailContact: client.email,
+      language: input.language, customer: { firstName: client.name, lastName: "", email: client.email, phone: client.phone, company: client.company } });
+    if (input.sendEmail) mockEmail(booking, free ? "booking_confirmed" : "booking_received");
+    return booking;
+  });
+}
+export async function listBookingEmails(id: string, offset = 0): Promise<BookingEmailPage> {
+  if (dataSource === "api") {
+    const page = await apiRequest<components["schemas"]["BookingEmailListResponse"]>(`/bookings/${encodeURIComponent(id)}/emails?limit=20&offset=${offset}`);
+    return { ...page, items: page.items.map((item) => ({ ...item, kind: item.kind as BookingEmail["kind"] })) };
+  }
+  await sleep(60);
+  const items = mockEmails.get(id) ?? [];
+  return { items: items.slice(offset, offset + 20), total: items.length, limit: 20, offset };
+}
+export async function sendBookingDetails(id: string, recipientEmail: string, idempotencyKey: string): Promise<Booking> {
+  if (dataSource === "api") return mapBooking(await apiRequest<BookingDto, components["schemas"]["BookingEmailSend"]>(`/bookings/${encodeURIComponent(id)}/send-details`, {
+    method: "POST", body: { recipientEmail }, csrf: true, idempotencyKey,
+  }));
+  return mockCommand(idempotencyKey, { id, recipientEmail }, async () => {
+    const booking = await updateBooking(id, { emailContact: recipientEmail.trim().toLowerCase() });
+    mockEmail(booking, "booking_details");
+    return booking;
+  });
 }
 
 /**
  * API mode: move a pending or confirmed booking to another upcoming session of the same
- * service. A booking the client made online also emails them the new time. Reuse one
+ * service. The client receives the new time for either booking origin. Reuse one
  * `idempotencyKey` per dialog so a retried submit cannot move it twice.
  */
 export async function moveBooking(
@@ -166,7 +218,15 @@ export async function updateBooking(
   await sleep(100);
   const idx = mock.findIndex((b) => b.id === id);
   if (idx === -1) throw new NotFoundError("booking", id);
-  const next: Booking = { ...mock[idx], ...patch };
+  const previous = mock[idx];
+  const next: Booking = { ...previous, ...patch };
+  const held = (booking: Booking) => ["pending", "confirmed"].includes(booking.status);
+  if (previous.sessionId !== next.sessionId || held(previous) !== held(next)) {
+    for (const [sessionId, delta] of [[previous.sessionId, held(previous) ? -1 : 0], [next.sessionId, held(next) ? 1 : 0]] as const) {
+      const occurrence = await getSession(sessionId);
+      if (occurrence && delta) await updateSession(sessionId, { bookedCount: Math.max(0, occurrence.bookedCount + delta) });
+    }
+  }
   mock = [...mock.slice(0, idx), next, ...mock.slice(idx + 1)];
   return next;
 }

@@ -535,8 +535,9 @@ stay demonstrations until the backend can support them properly.
   surface; see HISTORY.md Entry 016.
 - **~~Operator booking approval/payment reconciliation UI.~~ DONE for narrow booking-detail actions.**
   API mode exposes approve, decline, mark manual payment received, and cancel when valid.
-  Operator booking creation is DONE from Bookings → New booking (existing clients and
-  sessions only; adding from the Calendar roster is not built). Broader payment
+  Operator booking creation is DONE for existing/new clients in upcoming sessions, including
+  client-detail and Calendar Add attendee entry points; customer-email history and reviewed
+  send/correct actions are also DONE locally. Broader payment
   adjustment/refund behavior remains later.
 - **Client-side authentication at booking time** ("if you have an account, log in") and
   **invitation flows** ("your provider has invited you to book"). Both imply customer
@@ -606,3 +607,7 @@ stay demonstrations until the backend can support them properly.
   immutable incremental migrations.
 - Follow up on the remaining English sign-in description and the next-session card's date
   context when the next session is on a later day; both were observed during this pass.
+
+- **Calendar translation polish (observed 2026-11-14):** `EventBlock` still appends the
+  literal English “booked” to group capacity under TR/DE; move that existing label into
+  the dictionaries in the next Calendar copy pass. New booking/email controls are translated.

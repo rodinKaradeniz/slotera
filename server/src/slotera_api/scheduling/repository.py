@@ -13,6 +13,7 @@ from slotera_api.db.models import (
     AvailabilityBlackout,
     AvailabilityPolicy,
     AvailabilityWindow,
+    Booking,
     Service,
     Session,
     SessionSeries,
@@ -21,6 +22,7 @@ from slotera_api.db.models import (
     WorkspaceMembership,
 )
 from slotera_api.scheduling.recurrence import ROLLING_HORIZON_DAYS, expand_weekly_occurrences
+from slotera_api.session_capacity import CAPACITY_CONSUMING_STATUSES
 
 
 class SessionConflictError(Exception):
@@ -148,8 +150,27 @@ class SchedulingRepository:
         series_id: UUID | None,
         limit: int,
         offset: int,
+        bookable: bool = False,
     ) -> tuple[list[SessionRecord], int]:
         filters: list[Any] = [Session.workspace_id == workspace_id]
+        if bookable:
+            occupied = (
+                select(func.count(Booking.id))
+                .where(
+                    Booking.workspace_id == workspace_id,
+                    Booking.session_id == Session.id,
+                    Booking.status.in_(CAPACITY_CONSUMING_STATUSES),
+                )
+                .correlate(Session)
+                .scalar_subquery()
+            )
+            filters.extend(
+                [
+                    Session.status == SessionStatus.SCHEDULED,
+                    Session.start_at > datetime.now(UTC),
+                    occupied < Session.capacity,
+                ]
+            )
         if starts_from is not None:
             filters.append(Session.end_at > starts_from)
         if starts_before is not None:
@@ -173,6 +194,21 @@ class SchedulingRepository:
                 )
             ).all()
             return [(row[0], row[1]) for row in rows], int(total or 0)
+
+    async def booking_counts(self, workspace_id: UUID, ids: list[UUID]) -> dict[UUID, int]:
+        if not ids:
+            return {}
+        async with self.database.tenant_transaction(workspace_id) as session:
+            rows = await session.execute(
+                select(Booking.session_id, func.count(Booking.id))
+                .where(
+                    Booking.workspace_id == workspace_id,
+                    Booking.session_id.in_(ids),
+                    Booking.status.in_(CAPACITY_CONSUMING_STATUSES),
+                )
+                .group_by(Booking.session_id)
+            )
+            return {session_id: int(count) for session_id, count in rows}
 
     async def get_session(self, workspace_id: UUID, session_id: UUID) -> SessionRecord | None:
         async with self.database.tenant_transaction(workspace_id) as session:

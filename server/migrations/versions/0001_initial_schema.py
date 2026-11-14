@@ -705,20 +705,21 @@ CREATE FUNCTION public.slotera_booking_due_reminders(p_within interval) RETURNS 
 -- Name: slotera_booking_emit_event(uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event text, p_manage_url text DEFAULT NULL::text) RETURNS boolean
+CREATE FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event text, p_manage_url text DEFAULT NULL::text, p_event_key text DEFAULT '', p_notify_operator boolean DEFAULT true) RETURNS boolean
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public'
     AS $$
         DECLARE
           current_workspace_id uuid := public.slotera_current_workspace_id();
           target record;
+          queued_id uuid;
           recipient_user_id uuid;
           notification_kind_value public.notification_kind;
           email_kind text;
           notification_payload jsonb;
         BEGIN
           IF current_workspace_id IS NULL OR p_event NOT IN (
-            'received', 'confirmed', 'reminder', 'rescheduled', 'cancelled'
+            'received', 'confirmed', 'reminder', 'rescheduled', 'cancelled', 'details'
           ) THEN
             RETURN false;
           END IF;
@@ -727,6 +728,7 @@ CREATE FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event tex
             booking.id,
             booking.reference,
             booking.customer_email,
+            coalesce(booking.delivery_email_override, booking.customer_email) AS email_contact,
             booking.approval_status::text AS approval_status,
             booking.payment_status::text AS payment_status,
             booking.payment_method,
@@ -759,7 +761,7 @@ CREATE FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event tex
           WHERE booking.workspace_id = current_workspace_id
             AND booking.id = p_booking_id;
 
-          IF NOT FOUND OR target.customer_email = '' THEN
+          IF NOT FOUND OR target.customer_email = '' OR target.email_contact = '' THEN
             RETURN false;
           END IF;
           IF (p_event = 'received' AND target.booking_status <> 'pending')
@@ -780,7 +782,7 @@ CREATE FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event tex
           END;
 
           -- Reminders go to the customer only; every other event also tells the operator.
-          IF notification_kind_value IS NOT NULL THEN
+          IF p_notify_operator AND notification_kind_value IS NOT NULL THEN
             SELECT membership.user_id
             INTO recipient_user_id
             FROM public.workspace_memberships AS membership
@@ -814,13 +816,14 @@ CREATE FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event tex
 
           INSERT INTO public.email_outbox (
             id, kind, recipient_email, subject, text_body, template_data,
-            related_booking_id
+            related_booking_id, event_key
           ) VALUES (
-            gen_random_uuid(), email_kind, target.customer_email,
+            gen_random_uuid(), email_kind, target.email_contact,
             concat('[template:', email_kind, ']'),
             concat('[template:', email_kind, ']'),
             jsonb_build_object(
               'reference', target.reference,
+              'bookingStatus', target.booking_status,
               'serviceName', target.service_name,
               'providerName', target.provider_name,
               'startsAt', target.start_at,
@@ -843,10 +846,11 @@ CREATE FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event tex
                 THEN target.meeting_url
               END
             ),
-            target.id
+            target.id, p_event_key
           )
-          ON CONFLICT ON CONSTRAINT uq_email_outbox_booking_event DO NOTHING;
-          RETURN true;
+          ON CONFLICT ON CONSTRAINT uq_email_outbox_booking_event DO NOTHING
+          RETURNING id INTO queued_id;
+          RETURN queued_id IS NOT NULL;
         END
 $$;
 
@@ -856,94 +860,8 @@ $$;
 --
 
 CREATE FUNCTION public.slotera_booking_notify_client_moved(p_booking_id uuid, p_manage_url text) RETURNS boolean
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog', 'public'
-    AS $$
-        DECLARE
-          current_workspace_id uuid := public.slotera_current_workspace_id();
-          target record;
-        BEGIN
-          IF current_workspace_id IS NULL THEN
-            RETURN false;
-          END IF;
-
-          SELECT
-            booking.id,
-            booking.reference,
-            booking.customer_email,
-            booking.approval_status::text AS approval_status,
-            booking.payment_status::text AS payment_status,
-            booking.payment_method,
-            booking.amount_cents,
-            booking.currency,
-            booking.payment_due_at,
-            booking.manual_payment_instructions_snapshot,
-            booking.status::text AS booking_status,
-            scheduled_session.start_at,
-            scheduled_session.end_at,
-            scheduled_session.location_type::text AS location_type,
-            scheduled_session.location,
-            scheduled_session.address,
-            service.name AS service_name,
-            service.cancellation_rule,
-            service.meeting_url,
-            workspace.timezone,
-            profile.display_name AS provider_name
-          INTO target
-          FROM public.bookings AS booking
-          JOIN public.sessions AS scheduled_session
-            ON scheduled_session.workspace_id = booking.workspace_id
-           AND scheduled_session.id = booking.session_id
-          JOIN public.services AS service
-            ON service.workspace_id = scheduled_session.workspace_id
-           AND service.id = scheduled_session.service_id
-          JOIN public.workspaces AS workspace ON workspace.id = booking.workspace_id
-          JOIN public.workspace_business_profiles AS profile
-            ON profile.workspace_id = booking.workspace_id
-          WHERE booking.workspace_id = current_workspace_id
-            AND booking.id = p_booking_id;
-
-          IF NOT FOUND OR target.customer_email = ''
-             OR target.booking_status NOT IN ('pending', 'confirmed') THEN
-            RETURN false;
-          END IF;
-
-          INSERT INTO public.email_outbox (
-            id, kind, recipient_email, subject, text_body, template_data,
-            related_booking_id, event_key
-          ) VALUES (
-            gen_random_uuid(), 'booking_rescheduled', target.customer_email,
-            '[template:booking_rescheduled]',
-            '[template:booking_rescheduled]',
-            jsonb_build_object(
-              'reference', target.reference,
-              'serviceName', target.service_name,
-              'providerName', target.provider_name,
-              'startsAt', target.start_at,
-              'endsAt', target.end_at,
-              'timezone', target.timezone,
-              'paymentMethod', target.payment_method,
-              'paymentStatus', target.payment_status,
-              'approvalStatus', target.approval_status,
-              'amountCents', target.amount_cents,
-              'currency', target.currency,
-              'paymentDueAt', target.payment_due_at,
-              'manualPaymentInstructions', target.manual_payment_instructions_snapshot,
-              'cancellationRule', target.cancellation_rule,
-              'manageUrl', p_manage_url,
-              'locationType', target.location_type,
-              'location', target.location,
-              'address', target.address,
-              'meetingUrl', CASE
-                WHEN target.booking_status = 'confirmed' THEN target.meeting_url
-              END
-            ),
-            target.id,
-            gen_random_uuid()::text
-          );
-          RETURN true;
-        END
-        $$;
+    LANGUAGE sql SECURITY DEFINER SET search_path TO 'pg_catalog', 'public'
+    AS $$ SELECT public.slotera_booking_emit_event(p_booking_id, 'rescheduled', p_manage_url, gen_random_uuid()::text, false); $$;
 
 
 --
@@ -1118,11 +1036,24 @@ CREATE FUNCTION public.slotera_email_claim() RETURNS TABLE(id uuid, kind text, r
     SET search_path TO 'pg_catalog', 'public'
     AS $$
         BEGIN
+          -- A worker that dies on its final attempt must not leave an eternal claim.
+          WITH expired AS (
+            SELECT item.id FROM public.email_outbox AS item
+            WHERE item.sent_at IS NULL AND item.suppressed_at IS NULL
+              AND item.attempt_count >= 10
+              AND item.claimed_at < statement_timestamp() - interval '5 minutes'
+            ORDER BY item.claimed_at, item.id
+            FOR UPDATE SKIP LOCKED LIMIT 100
+          )
+          UPDATE public.email_outbox AS item
+          SET claimed_at = NULL, last_error = 'delivery attempt lease expired'
+          FROM expired WHERE item.id = expired.id;
           RETURN QUERY
           WITH candidate AS (
             SELECT item.id
             FROM public.email_outbox AS item
             WHERE item.sent_at IS NULL
+              AND item.suppressed_at IS NULL
               AND item.available_at <= statement_timestamp()
               AND (
                 item.claimed_at IS NULL
@@ -1165,7 +1096,7 @@ CREATE FUNCTION public.slotera_email_mark_failed(p_id uuid, p_error text) RETURN
               last_error = left(p_error, 1000),
               available_at = statement_timestamp()
                 + make_interval(secs => LEAST(3600, 30 * power(2, attempt_count)::integer))
-          WHERE id = p_id AND sent_at IS NULL;
+          WHERE id = p_id AND sent_at IS NULL AND suppressed_at IS NULL;
           RETURN FOUND;
         END
         $$;
@@ -1187,7 +1118,7 @@ CREATE FUNCTION public.slotera_email_mark_sent(p_id uuid, p_provider_message_id 
               last_error = NULL,
               text_body = '[delivered]',
               template_data = '{}'::jsonb
-          WHERE id = p_id AND sent_at IS NULL;
+          WHERE id = p_id AND sent_at IS NULL AND suppressed_at IS NULL;
           RETURN FOUND;
         END
         $$;
@@ -1454,11 +1385,11 @@ CREATE FUNCTION public.slotera_platform_overview(p_actor_user_id uuid) RETURNS T
             (SELECT count(*) FROM public.bookings
                WHERE created_at > statement_timestamp() - interval '30 days')::integer,
             (SELECT count(*) FROM public.platform_inquiries WHERE read_at IS NULL)::integer,
-            (SELECT count(*) FROM public.email_outbox WHERE sent_at IS NULL)::integer,
+            (SELECT count(*) FROM public.email_outbox WHERE sent_at IS NULL AND suppressed_at IS NULL)::integer,
             (SELECT count(*) FROM public.email_outbox
-               WHERE sent_at IS NULL AND last_error IS NOT NULL)::integer,
+               WHERE sent_at IS NULL AND suppressed_at IS NULL AND last_error IS NOT NULL)::integer,
             (SELECT last_error FROM public.email_outbox
-               WHERE sent_at IS NULL AND last_error IS NOT NULL
+               WHERE sent_at IS NULL AND suppressed_at IS NULL AND last_error IS NOT NULL
                ORDER BY available_at DESC LIMIT 1)
           WHERE EXISTS (
             SELECT 1 FROM public.users
@@ -1809,8 +1740,7 @@ CREATE FUNCTION public.slotera_workspace_purge_closed(p_after_days integer DEFAU
             FROM public.workspace_memberships WHERE workspace_id = target;
 
             DELETE FROM public.email_outbox
-            WHERE sent_at IS NULL
-              AND related_booking_id IN (
+            WHERE related_booking_id IN (
                 SELECT id FROM public.bookings WHERE workspace_id = target
               );
             DELETE FROM public.booking_command_idempotency WHERE workspace_id = target;
@@ -2091,6 +2021,7 @@ CREATE TABLE public.bookings (
     terms_accepted_at timestamp with time zone,
     manual_payment_instructions_snapshot text DEFAULT ''::text NOT NULL,
     customer_rescheduled_at timestamp with time zone,
+    delivery_email_override character varying(320),
     language character varying(2) DEFAULT 'en'::character varying NOT NULL,
     CONSTRAINT bookings_language_check CHECK (((language)::text = ANY ((ARRAY['en'::character varying, 'tr'::character varying, 'de'::character varying])::text[]))),
     CONSTRAINT ck_bookings_amount_nonnegative CHECK ((amount_cents >= 0)),
@@ -2180,6 +2111,7 @@ CREATE TABLE public.email_outbox (
     available_at timestamp with time zone DEFAULT now() NOT NULL,
     claimed_at timestamp with time zone,
     sent_at timestamp with time zone,
+    suppressed_at timestamp with time zone,
     provider_message_id character varying(255),
     last_error character varying(1000),
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -3267,7 +3199,7 @@ CREATE INDEX ix_clients_workspace_id_name ON public.clients USING btree (workspa
 -- Name: ix_email_outbox_pending; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX ix_email_outbox_pending ON public.email_outbox USING btree (available_at, created_at) WHERE (sent_at IS NULL);
+CREATE INDEX ix_email_outbox_pending ON public.email_outbox USING btree (available_at, created_at) WHERE (sent_at IS NULL AND suppressed_at IS NULL AND attempt_count < 10);
 
 
 --
@@ -4787,8 +4719,8 @@ GRANT ALL ON FUNCTION public.slotera_booking_due_reminders(p_within interval) TO
 -- Name: FUNCTION slotera_booking_emit_event(p_booking_id uuid, p_event text, p_manage_url text); Type: ACL; Schema: public; Owner: -
 --
 
-REVOKE ALL ON FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event text, p_manage_url text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event text, p_manage_url text) TO slotera_app;
+REVOKE ALL ON FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event text, p_manage_url text, p_event_key text, p_notify_operator boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.slotera_booking_emit_event(p_booking_id uuid, p_event text, p_manage_url text, p_event_key text, p_notify_operator boolean) TO slotera_app;
 
 
 --
@@ -5233,6 +5165,60 @@ ALTER DEFAULT PRIVILEGES FOR ROLE slotera_owner IN SCHEMA public GRANT SELECT,IN
 -- PostgreSQL database dump complete
 --
 
+
+
+CREATE INDEX ix_email_outbox_expired_claim ON public.email_outbox (claimed_at, id)
+WHERE sent_at IS NULL AND suppressed_at IS NULL AND attempt_count >= 10 AND claimed_at IS NOT NULL;
+
+CREATE INDEX ix_email_outbox_booking_created ON public.email_outbox (related_booking_id, created_at, id);
+
+-- Safe customer-email metadata, scoped through the booking; never bodies, tokens or errors.
+CREATE FUNCTION public.slotera_booking_email_history(p_booking_id uuid, p_limit integer, p_offset integer, p_client_id uuid DEFAULT NULL)
+RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'pg_catalog', 'public'
+AS $$
+  WITH items AS (
+    SELECT e.id, e.kind, e.recipient_email, e.created_at, e.sent_at, e.available_at,
+      e.attempt_count,
+      coalesce(e.provider_message_id LIKE 'console:%', false) AS simulated,
+      CASE WHEN e.suppressed_at IS NOT NULL THEN 'superseded'
+        WHEN e.sent_at IS NOT NULL THEN 'sent'
+        WHEN e.claimed_at IS NOT NULL THEN 'sending'
+        WHEN e.attempt_count >= 10 THEN 'failed'
+        WHEN e.attempt_count > 0 THEN 'retrying' ELSE 'queued' END AS status
+    FROM public.email_outbox e JOIN public.bookings b ON b.id=e.related_booking_id
+    WHERE b.workspace_id=public.slotera_current_workspace_id()
+      AND b.customer_email <> ''
+      AND (p_booking_id IS NULL OR b.id=p_booking_id)
+      AND (p_client_id IS NULL OR b.client_id=p_client_id)
+      AND e.kind IN ('booking_received','booking_confirmed','booking_reminder',
+        'booking_rescheduled','booking_cancelled','booking_details')
+  ), page AS (SELECT * FROM items ORDER BY created_at DESC,id LIMIT greatest(1,least(p_limit,100)) OFFSET greatest(0,p_offset))
+  SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(page) ORDER BY created_at DESC,id) FROM page),'[]'::jsonb),
+    'total',(SELECT count(*) FROM items),'limit',greatest(1,least(p_limit,100)),'offset',greatest(0,p_offset));
+$$;
+REVOKE ALL ON FUNCTION public.slotera_booking_email_history(uuid,integer,integer,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.slotera_booking_email_history(uuid,integer,integer,uuid) TO slotera_app;
+
+-- Claim and correction serialize on these rows. A claimed send must finish before correction.
+CREATE FUNCTION public.slotera_booking_prepare_email_send(p_booking_id uuid) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog', 'public'
+AS $$ BEGIN
+  PERFORM id FROM public.bookings WHERE id=p_booking_id
+    AND workspace_id=public.slotera_current_workspace_id() AND customer_email<>'' FOR UPDATE;
+  IF NOT FOUND THEN RETURN false; END IF;
+  PERFORM id FROM public.email_outbox WHERE related_booking_id=p_booking_id
+    AND kind IN ('booking_received','booking_confirmed','booking_reminder','booking_rescheduled','booking_cancelled','booking_details')
+    AND sent_at IS NULL AND suppressed_at IS NULL ORDER BY id FOR UPDATE;
+  IF EXISTS (SELECT 1 FROM public.email_outbox WHERE related_booking_id=p_booking_id
+    AND kind IN ('booking_received','booking_confirmed','booking_reminder','booking_rescheduled','booking_cancelled','booking_details')
+    AND sent_at IS NULL AND suppressed_at IS NULL AND claimed_at IS NOT NULL) THEN RETURN false; END IF;
+  UPDATE public.email_outbox SET suppressed_at=statement_timestamp(),text_body='[superseded]',template_data='{}'::jsonb
+    WHERE related_booking_id=p_booking_id AND sent_at IS NULL AND suppressed_at IS NULL
+    AND kind IN ('booking_received','booking_confirmed','booking_reminder','booking_rescheduled','booking_cancelled','booking_details');
+  RETURN true;
+END $$;
+REVOKE ALL ON FUNCTION public.slotera_booking_prepare_email_send(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.slotera_booking_prepare_email_send(uuid) TO slotera_app;
 
 SET search_path = public;
 SET row_security = on;

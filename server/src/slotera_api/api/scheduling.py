@@ -84,7 +84,9 @@ def _availability_response(
     )
 
 
-def _session_response(item: Session, series: SessionSeries | None) -> SchedulingSessionResponse:
+def _session_response(
+    item: Session, series: SessionSeries | None, booked_count: int = 0
+) -> SchedulingSessionResponse:
     recurring: Literal["one-off", "weekly", "custom"] = "one-off"
     if series is not None:
         local_weekday = item.start_at.astimezone(ZoneInfo(series.timezone)).isoweekday()
@@ -101,6 +103,7 @@ def _session_response(item: Session, series: SessionSeries | None) -> Scheduling
         start_at=item.start_at,
         end_at=item.end_at,
         capacity=item.capacity,
+        booked_count=booked_count,
         status=item.status.value,
         location_type=item.location_type.value,
         location=item.location,
@@ -183,6 +186,7 @@ async def list_sessions(
     service_id: Annotated[UUID | None, Query(alias="serviceId")] = None,
     calendar_owner_id: Annotated[UUID | None, Query(alias="calendarOwnerId")] = None,
     series_id: Annotated[UUID | None, Query(alias="seriesId")] = None,
+    bookable: bool = False,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> SessionListResponse:
@@ -193,12 +197,16 @@ async def list_sessions(
         service_id=service_id,
         calendar_owner_id=calendar_owner_id,
         series_id=series_id,
+        bookable=bookable,
         limit=limit,
         offset=offset,
     )
+    counts = await SchedulingRepository(database).booking_counts(
+        operator.workspace_id, [item.id for item, _ in items]
+    )
     _private(response)
     return SessionListResponse(
-        items=[_session_response(item, series) for item, series in items],
+        items=[_session_response(item, series, counts.get(item.id, 0)) for item, series in items],
         total=total,
         limit=limit,
         offset=offset,
@@ -252,8 +260,11 @@ async def get_session(
     result = await SchedulingRepository(database).get_session(operator.workspace_id, session_id)
     if result is None:
         raise _error(HTTPStatus.NOT_FOUND, "session_not_found", "Session was not found")
+    counts = await SchedulingRepository(database).booking_counts(
+        operator.workspace_id, [session_id]
+    )
     _private(response)
-    return _session_response(*result)
+    return _session_response(*result, booked_count=counts.get(session_id, 0))
 
 
 @sessions_router.patch(
@@ -293,5 +304,8 @@ async def update_session(
         ) from exc
     if result is None:
         raise _error(HTTPStatus.NOT_FOUND, "session_not_found", "Session was not found")
+    counts = await SchedulingRepository(database).booking_counts(
+        operator.workspace_id, [session_id]
+    )
     _private(response)
-    return _session_response(*result)
+    return _session_response(*result, booked_count=counts.get(session_id, 0))

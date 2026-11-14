@@ -30,7 +30,9 @@ DATA: dict[str, object] = {
 
 
 @pytest.mark.parametrize("lang", ["tr", "de"])
-@pytest.mark.parametrize("kind", ["received", "confirmed", "reminder", "rescheduled", "cancelled"])
+@pytest.mark.parametrize(
+    "kind", ["received", "confirmed", "reminder", "rescheduled", "cancelled", "details"]
+)
 def test_client_emails_are_localized_without_translating_authored_content(
     lang: str, kind: str
 ) -> None:

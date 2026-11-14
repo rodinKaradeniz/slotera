@@ -176,3 +176,18 @@ uv run mypy
 The integration test expects the local Compose database to be running. Migrations use the
 owner connection; the application and readiness check use the restricted application
 role.
+
+### Everyday booking and email recovery
+
+`POST /bookings` accepts exactly one `clientId` or `newClient`, plus `sendEmail`
+(default true) and EN/TR/DE `language`. New identity, booking, financial/form snapshots,
+audit, idempotency and initial email commit together. Free bookings confirm; paid bookings
+await manual payment. `GET /sessions?bookable=true` is a bounded upcoming-session picker.
+
+Authenticated `GET /bookings/{id}/emails?limit=20&offset=0` projects safe customer-email
+metadata through a tenant-scoped capability. CSRF/idempotency-protected
+`POST /bookings/{id}/send-details` takes `recipientEmail`, suppresses unclaimed unsent
+messages and queues a current summary. A corrected booking-only address revokes old links;
+a claimed send returns a recoverable conflict. Provider acceptance is not inbox delivery;
+console delivery is labelled simulated. Erasure and exports include the new data. No general
+outbox privileges are granted. Reset the local database after changing the mutable baseline.

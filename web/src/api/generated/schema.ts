@@ -313,6 +313,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bookings/{booking_id}/emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Booking Emails */
+        get: operations["getBookingEmails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bookings/{booking_id}/forms": {
         parameters: {
             query?: never;
@@ -375,6 +392,23 @@ export interface paths {
         put?: never;
         /** Mark Booking Noshow */
         post: operations["markBookingNoshow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{booking_id}/send-details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Booking Details */
+        post: operations["sendBookingDetails"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1544,6 +1578,58 @@ export interface components {
             /** Phone */
             phone: string | null;
         };
+        /** BookingEmailListResponse */
+        BookingEmailListResponse: {
+            /** Items */
+            items: components["schemas"]["BookingEmailResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** BookingEmailResponse */
+        BookingEmailResponse: {
+            /** Attemptcount */
+            attemptCount: number;
+            /**
+             * Availableat
+             * Format: date-time
+             */
+            availableAt: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Recipientemail */
+            recipientEmail: string;
+            /** Sentat */
+            sentAt: string | null;
+            /** Simulated */
+            simulated: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "sending" | "retrying" | "failed" | "sent" | "superseded";
+        };
+        /** BookingEmailSend */
+        BookingEmailSend: {
+            /**
+             * Recipientemail
+             * Format: email
+             */
+            recipientEmail: string;
+        };
         /** BookingFormSubmit */
         BookingFormSubmit: {
             /** Answers */
@@ -1685,11 +1771,18 @@ export interface components {
             customer: components["schemas"]["BookingCustomerSnapshot"];
             /** Declinedat */
             declinedAt: string | null;
+            /** Emailcontact */
+            emailContact: string;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /**
+             * Language
+             * @enum {string}
+             */
+            language: "en" | "tr" | "de";
             /** Manualpaymentinstructionssnapshot */
             manualPaymentInstructionsSnapshot: string;
             /** Netamountcents */
@@ -1903,6 +1996,8 @@ export interface components {
             customerLastName: string;
             /** Customerphone */
             customerPhone: string | null;
+            /** Emailcontact */
+            emailContact: string;
             /** Notes */
             notes: string | null;
             /** Paymentstatus */
@@ -1954,11 +2049,12 @@ export interface components {
              */
             updatedAt: string;
         };
-        /**
-         * ClientExportResponse
-         * @description Everything the workspace holds about one client (subject access request).
-         */
+        /** ClientExportResponse */
         ClientExportResponse: {
+            /** Bookingemails */
+            bookingEmails?: {
+                [key: string]: unknown;
+            }[];
             /** Bookings */
             bookings: components["schemas"]["ClientExportBooking"][];
             client: components["schemas"]["ClientResponse"];
@@ -1975,6 +2071,20 @@ export interface components {
             }[];
             /** Notes */
             notes: components["schemas"]["ClientExportNote"][];
+        };
+        /** ClientIdentityCreate */
+        ClientIdentityCreate: {
+            /** Company */
+            company?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone?: string | null;
         };
         /** ClientListResponse */
         ClientListResponse: {
@@ -2445,13 +2555,22 @@ export interface components {
         OperatorBookingCreate: {
             /** Auditreason */
             auditReason: string;
+            /** Clientid */
+            clientId?: string | null;
             /**
-             * Clientid
-             * Format: uuid
+             * Language
+             * @default en
+             * @enum {string}
              */
-            clientId: string;
+            language: "en" | "tr" | "de";
+            newClient?: components["schemas"]["ClientIdentityCreate"] | null;
             /** Notes */
             notes?: string | null;
+            /**
+             * Sendemail
+             * @default true
+             */
+            sendEmail: boolean;
             /**
              * Sessionid
              * Format: uuid
@@ -4610,6 +4729,40 @@ export interface operations {
             };
         };
     };
+    getBookingEmails: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingEmailListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getBookingForms: {
         parameters: {
             query?: never;
@@ -4726,6 +4879,43 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sendBookingDetails: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingEmailSend"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6445,6 +6635,7 @@ export interface operations {
                 serviceId?: string | null;
                 calendarOwnerId?: string | null;
                 seriesId?: string | null;
+                bookable?: boolean;
                 limit?: number;
                 offset?: number;
             };

@@ -6,6 +6,12 @@ from zoneinfo import ZoneInfo
 
 TEXT: dict[str, dict[str, str]] = {
     "tr": {
+        "details": "Randevu bilgileri",
+        "details_intro": "Güncel randevu bilgileriniz.",
+        "status": "Durum",
+        "pending": "Ödeme veya onay bekleniyor",
+        "completed": "Tamamlandı",
+        "noshow": "Katılmadı",
         "reference": "Referans",
         "service": "Hizmet",
         "provider": "Danışman",
@@ -51,6 +57,12 @@ TEXT: dict[str, dict[str, str]] = {
         "change": "Rezervasyonunuzu değiştirmek için yukarıdaki bağlantıyı kullanın.",
     },
     "de": {
+        "details": "Buchungsdetails",
+        "details_intro": "Ihre aktuellen Buchungsdetails.",
+        "status": "Status",
+        "pending": "Zahlung oder Bestätigung ausstehend",
+        "completed": "Abgeschlossen",
+        "noshow": "Nicht erschienen",
         "reference": "Referenz",
         "service": "Leistung",
         "provider": "Anbieter",
@@ -196,7 +208,10 @@ def render_localized(kind: str, raw: dict[str, object]) -> tuple[str, str]:
         lines.append(f"{text['join']}: {raw['meetingUrl']}")
     if raw.get("cancellationRule"):
         lines.append(f"{text['policy']}: {raw['cancellationRule']}")
-    if event == "received":
+    if event == "details":
+        state = str(raw.get("bookingStatus", "pending"))
+        lines.append(f"{text['status']}: {text[state]}")
+    if event == "received" or (event == "details" and raw.get("bookingStatus") != "cancelled"):
         if raw.get("approvalStatus") == "pending":
             lines.append(text["approval"])
         if raw.get("paymentStatus") == "pending":
@@ -212,7 +227,8 @@ def render_localized(kind: str, raw: dict[str, object]) -> tuple[str, str]:
                 )
             if raw.get("manualPaymentInstructions"):
                 lines += [text["instructions"] + ":", str(raw["manualPaymentInstructions"])]
-        lines.append(text["later"])
+        if event == "received":
+            lines.append(text["later"])
     if raw.get("manageUrl"):
         lines += ["", text["manage"], str(raw["manageUrl"])]
     if event == "confirmed":

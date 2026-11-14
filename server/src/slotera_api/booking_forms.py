@@ -117,7 +117,7 @@ async def read_forms(
                 required_before_payment=form.required_before_payment,
                 can_submit=(
                     not response
-                    and not form.required_before_payment
+                    and (not form.required_before_payment or booking.origin.value == "operator")
                     and booking.status.value in {"pending", "confirmed"}
                     and datetime.now(UTC) < starts_at
                 ),
@@ -210,7 +210,7 @@ async def submit_form(
             )
     else:
         if (
-            form.required_before_payment
+            (form.required_before_payment and booking.origin.value != "operator")
             or booking.status.value not in {"pending", "confirmed"}
             or datetime.now(UTC) >= occurrence.start_at
         ):

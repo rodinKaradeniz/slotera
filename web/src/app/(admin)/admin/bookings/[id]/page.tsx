@@ -1,5 +1,6 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { BookingEmails } from "@/components/admin/bookings/BookingEmails";
 import { BookingForms } from "@/components/booking/BookingForms";
 import { SESSION_RECURRENCE_TEXT, SESSION_STATUS_TEXT } from "@/lib/status-maps";
 
@@ -210,9 +211,9 @@ export default function BookingDetailPage() {
             }
             />
 
-            <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-6 items-start">
               {/* Left: what session/booking is this? */}
-              <div className="flex flex-col gap-6">
+              <div className="min-w-0 flex flex-col gap-6">
                 <Card padded={false}>
                   <CardHead title={uiText("ui.session")} />
                   <div className="p-5">
@@ -301,6 +302,7 @@ export default function BookingDetailPage() {
                 </Card>
 
                 {dataSource === "api" && <BookingForms bookingId={booking.id} />}
+                <BookingEmails booking={booking} fallbackEmail={client?.email} onUpdated={setBooking} />
                 {booking.notes && (
                   <Card padded={false}>
                     <CardHead title={uiText("ui.booking.note")} />

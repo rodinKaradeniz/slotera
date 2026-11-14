@@ -11,6 +11,7 @@ from slotera_api.schemas.base import ApiModel
 
 
 class BookingEmailTemplateData(ApiModel):
+    booking_status: str = "pending"
     reference: str
     service_name: str
     provider_name: str
@@ -34,6 +35,7 @@ class BookingEmailTemplateData(ApiModel):
 
 
 BookingEmailKind = Literal[
+    "booking_details",
     "booking_received",
     "booking_confirmed",
     "booking_reminder",
@@ -88,6 +90,26 @@ def render_booking_email(
         return render_localized(kind, raw_data)
     data = BookingEmailTemplateData.model_validate(raw_data)
     facts = _booking_facts(data)
+    if kind == "booking_details":
+        status = {
+            "pending": "Awaiting payment or approval",
+            "confirmed": "Confirmed",
+            "cancelled": "Cancelled",
+            "completed": "Completed",
+            "noshow": "No-show",
+        }
+        lines = [
+            "Your current booking details.",
+            "",
+            *facts,
+            "Status: " + status[data.booking_status],
+        ]
+        if data.payment_status == "pending" and data.booking_status != "cancelled":
+            lines += [
+                f"Manual payment due: {data.amount_cents / 100:.2f} {data.currency}.",
+                data.manual_payment_instructions,
+            ]
+        return f"Booking details — {data.service_name}", "\n".join([*lines, *_manage_lines(data)])
     if kind == "booking_confirmed":
         subject = f"Booking confirmed — {data.service_name}"
         body = "\n".join(

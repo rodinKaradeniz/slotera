@@ -7,6 +7,8 @@ import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { ClientIdentityFields } from "@/components/shared/forms/ClientIdentityFields";
+import { validateClientIdentity } from "@/lib/client-validation";
 import { Textarea } from "@/components/ui/Textarea";
 import { useToast } from "@/components/ui/Toast";
 import { createClient, updateClient } from "@/services/clients.service";
@@ -48,16 +50,20 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
   const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [form, setForm] = React.useState<ClientInput>(() => inputFor(initial));
+  const [errors, setErrors] = React.useState<ReturnType<typeof validateClientIdentity>>({});
+  const root = React.useRef<HTMLFieldSetElement>(null);
   const [busy, setBusy] = React.useState(false);
 
-  useResetOnOpen(open, [initial], () => setForm(inputFor(initial)));
+  useResetOnOpen(open, [initial], () => { setForm(inputFor(initial)); setErrors({}); });
 
   const set = <K extends keyof ClientInput>(key: K, value: ClientInput[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
 
   const save = async () => {
-    if (!form.name.trim() || !form.email.trim()) {
-      toast.error(uiText("ui.name.and.email.are.required"));
+    const invalid = validateClientIdentity(form);
+    setErrors(invalid);
+    if (Object.keys(invalid).length) {
+      requestAnimationFrame(() => root.current?.querySelector<HTMLInputElement>("[aria-invalid=true]")?.focus());
       return;
     }
     setBusy(true);
@@ -95,21 +101,8 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
         </>
       }
     >
-      <fieldset disabled={busy} className="grid gap-4">
-        <Field label={uiText("ui.full.name")} required>
-          <Input value={form.name} onChange={(event) => set("name", event.target.value)} />
-        </Field>
-        <Field label={uiText("ui.email")} required>
-          <Input type="email" value={form.email} onChange={(event) => set("email", event.target.value)} />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={uiText("ui.phone")} optional>
-            <Input value={form.phone ?? ""} onChange={(event) => set("phone", event.target.value)} />
-          </Field>
-          <Field label={uiText("ui.company")} optional>
-            <Input value={form.company ?? ""} onChange={(event) => set("company", event.target.value)} />
-          </Field>
-        </div>
+      <fieldset ref={root} disabled={busy} className="grid gap-4">
+        <ClientIdentityFields value={form} onChange={set} errors={errors} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={uiText("ui.role")} optional>
             <Input value={form.role ?? ""} onChange={(event) => set("role", event.target.value)} />

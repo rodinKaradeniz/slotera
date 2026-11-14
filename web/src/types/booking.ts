@@ -14,6 +14,8 @@ export type Booking = {
   sessionId: string;
   clientId: string;
   reference?: string;
+  emailContact?: string;
+  language?: "en" | "tr" | "de";
   status: BookingStatus;
   paymentStatus: PaymentStatus;
   paymentMethod?: "free" | "manual";
@@ -58,3 +60,11 @@ export type BookingTimelineEvent = {
   what: string;
   icon: string;
 };
+
+export type BookingEmailKind = "booking_received" | "booking_confirmed" | "booking_cancelled" | "booking_rescheduled" | "booking_reminder" | "booking_details";
+export type BookingEmailStatus = "queued" | "sending" | "retrying" | "failed" | "sent" | "superseded";
+export type BookingEmail = {
+  id: string; kind: BookingEmailKind; recipientEmail: string; status: BookingEmailStatus;
+  createdAt: string; sentAt: string | null; availableAt: string; attemptCount: number; simulated: boolean;
+};
+export type BookingEmailPage = { items: BookingEmail[]; total: number; limit: number; offset: number };

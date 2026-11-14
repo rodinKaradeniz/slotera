@@ -12,6 +12,7 @@ from slotera_api.auth.dependencies import (
     SettingsDependency,
     require_trusted_origin,
 )
+from slotera_api.booking_financials import TaxQuote, quote_for
 from slotera_api.db.models import Service, ServicePackage, Workspace
 from slotera_api.errors import ApiError
 from slotera_api.packages.repository import package_view
@@ -25,8 +26,6 @@ from slotera_api.public_booking.repository import (
     PublicSlotUnavailableError,
     PublicWorkspaceContext,
     PublicWorkspaceNotFoundError,
-    TaxQuote,
-    quote_for,
 )
 from slotera_api.schemas.branding import Branding
 from slotera_api.schemas.forms import FormFieldInput

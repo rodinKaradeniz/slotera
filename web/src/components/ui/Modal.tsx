@@ -106,7 +106,7 @@ export function Modal({
                 </h2>
               )}
               {description && (
-                <p className="text-small mt-1">{description}</p>
+                <div className="text-small mt-1">{description}</div>
               )}
             </div>
             <button

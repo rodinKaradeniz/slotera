@@ -306,7 +306,16 @@ class EmailOutbox(Base):
     __tablename__ = "email_outbox"
     __table_args__ = (
         CheckConstraint("attempt_count >= 0", name="attempt_count_nonnegative"),
-        Index("ix_email_outbox_pending", "available_at", "created_at", postgresql_where=text("sent_at IS NULL")),
+        Index(
+            "ix_email_outbox_pending", "available_at", "created_at",
+            postgresql_where=text("sent_at IS NULL AND suppressed_at IS NULL AND attempt_count < 10"),
+        ),
+        Index(
+            "ix_email_outbox_expired_claim", "claimed_at", "id",
+            postgresql_where=text("sent_at IS NULL AND suppressed_at IS NULL "
+                                  "AND attempt_count >= 10 AND claimed_at IS NOT NULL"),
+        ),
+        Index("ix_email_outbox_booking_created", "related_booking_id", "created_at", "id"),
         UniqueConstraint(
             "kind", "related_booking_id", "event_key", name="uq_email_outbox_booking_event"
         ),
@@ -334,6 +343,7 @@ class EmailOutbox(Base):
     )
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    suppressed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     provider_message_id: Mapped[str | None] = mapped_column(String(255))
     last_error: Mapped[str | None] = mapped_column(String(1000))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -714,6 +724,7 @@ class Booking(Base):
         ),
         server_default=text("'not_required'"),
     )
+    delivery_email_override: Mapped[str | None] = mapped_column(String(320))
     language: Mapped[str] = mapped_column(String(2), server_default="en")
     reference: Mapped[str] = mapped_column(String(32))
     payment_method: Mapped[str] = mapped_column(String(16))

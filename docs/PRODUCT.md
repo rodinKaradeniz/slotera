@@ -584,16 +584,41 @@ The API-mode Bookings list remains a ledger. Its focused detail route exposes on
 narrow valid commands: approve/decline when approval is pending, mark payment received
 when manual payment is pending, cancel an active booking, and, once a confirmed 1:1
 session has started, record its outcome as **Completed** or **No-show**. A 1:1 booking
-never takes `attendance`; that is for group sessions. Booking creation/editing and
-refund behavior are not UI features. Group-session attendance remains in the Calendar
+never takes `attendance`; that is for group sessions. Bookings → New booking creates a booking
+for an existing or new client in an existing upcoming session; Calendar → Add attendee and
+client details reuse that drawer. Generic editing and refunds remain deferred. Group-session attendance remains in the Calendar
 SessionDrawer, where the session roster provides its necessary context.
 
 - Grouped into status accordions in order: **Pending → Confirmed → Completed → No-show → Cancelled**.
 - Accordion headers: color-coded dot + bold label + count + a muted truncated preview like `Maya 10:00 · John 14:30 · +6 more`. **No status badges in headers** — the dot is the indicator.
-- Row-level edit/cancel icons stay removed. Use the `BookingDrawer` for everything.
+- Row-level edit/cancel icons stay removed. Mock rows use `BookingDrawer`; API rows open the focused booking-detail route.
 - `BookingStatus` includes `"noshow"`. Its `BOOKING_STATUS` entry uses tone `warning` and icon `alert` so it's visually distinct from `cancelled` (tone `danger`, icon `x`). Don't make them look the same.
 - Per-booking attendance — `Booking.attendance?: "present" | "late" | "absent"` — is set via the SessionDrawer's **Attendance** tab (renders only when `capacity > 1`). Only confirmed/completed bookings appear; recording an outcome completes the booking but never changes payment state. It is recorded per row with a `SegGroup`; "Mark all present" sends individually idempotent commands and gives one toast.
-- **Booking detail page (`/admin/bookings/[id]`)** is a focused two-column layout: **left = Session + Location** (+ the optional booking note), **right = Payment**. It deliberately does **not** duplicate the full client info card — the Session section shows the client **name as a link to `/admin/clients/<clientId>`** instead. API mode renders stored financial/manual-instruction snapshots and the narrow approval/payment/cancel command card; it has no Stripe, refund, or generic edit workflow.
+- **Booking detail page (`/admin/bookings/[id]`)** is a focused two-column layout: **left = Session + Location**, assigned form answers and email history (+ the optional booking note), **right = Payment**. It deliberately does **not** duplicate the full client info card — the Session section shows the client **name as a link to `/admin/clients/<clientId>`** instead. API mode renders stored financial/manual-instruction snapshots and the narrow approval/payment/cancel command card; it has no Stripe, refund, or generic edit workflow.
+
+**Operator booking creation.** Exactly one existing client or new identity (name/email plus
+optional phone/company) is accepted; a duplicate normalized workspace email requires explicit
+existing-client selection. The server locks the session, checks future scheduled state and
+capacity, and commits the client, booking, immutable tax/contact/form snapshots, audit,
+idempotency record and initial email together. Operator creation supplies approval; free
+bookings confirm immediately and paid bookings await manual payment. It records no client
+consent. The email language defaults to the consultant's saved preference (English fallback).
+“Send details now” skips only the initial email; subsequent lifecycle emails and reminders
+continue normally, without operator self-notifications. All unanswered assigned forms,
+including pre-payment forms, may be submitted once through that booking's management link
+before the session starts; form answers never alter booking gates.
+
+**Booking email recovery.** Booking details show customer-only, paginated metadata: recipient,
+type, timestamps, attempts and queued/sending/retrying/failed/sent/superseded state. Sent means
+provider acceptance, with console/mock delivery labelled local or simulated. Operators can
+review and send a fresh current-state summary. Correcting the destination saves a booking-only
+override, revokes previous management links, supersedes unclaimed unsent customer emails and
+queues the replacement atomically; original contact snapshots and client profiles stay intact.
+A claimed unsent message blocks the command with a recoverable conflict; provider handoffs
+cannot be recalled. Idempotent replays do not resend or consume allowance. Successful manual
+sends are limited to five per booking per fifteen minutes and thirty per workspace per hour.
+Cancelled summaries have no active management link; erased bookings cannot send. Bodies,
+tokens, provider identifiers and provider error text never enter this operator history.
 
 ### Settings
 

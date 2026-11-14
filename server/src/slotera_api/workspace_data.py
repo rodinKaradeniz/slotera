@@ -12,6 +12,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import text
 
+from slotera_api.booking_emails import export_email_history
 from slotera_api.database import Database
 
 CLOSURE_GRACE_DAYS = 30
@@ -85,6 +86,7 @@ class WorkspaceDataRepository:
                     text(_rows_query(table)), {"workspace_id": workspace_id}
                 )
                 exported[table] = list(rows or [])
+            exported["booking_emails"] = await export_email_history(session)
         return exported
 
     async def slug(self, workspace_id: UUID) -> str | None:

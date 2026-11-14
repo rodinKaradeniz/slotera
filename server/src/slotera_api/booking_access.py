@@ -10,14 +10,14 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from slotera_api.config import get_settings
-from slotera_api.db.models import BookingAccessToken, WorkspaceBusinessProfile
+from slotera_api.db.models import Booking, BookingAccessToken, WorkspaceBusinessProfile
 from slotera_api.identity import hash_opaque_token, issue_opaque_token
 
-BookingEvent = Literal["received", "confirmed", "reminder", "rescheduled", "cancelled"]
+BookingEvent = Literal["received", "confirmed", "reminder", "rescheduled", "cancelled", "details"]
 # What a client did themselves; the operator gets an email for each.
 ClientAction = Literal["new", "cancelled", "rescheduled"]
 
@@ -49,15 +49,24 @@ async def emit_booking_event(
     booking_id: UUID,
     session_ends_at: datetime,
     event: BookingEvent,
+    event_key: str = "",
+    operator_notification: bool = True,
 ) -> bool:
     """Queue the customer email (with a manage link) and the operator notification.
 
     Runs inside the caller's tenant transaction. Returns False when the event does not
     apply to the booking's current state, or was already sent for this booking.
     """
+    booking = await session.scalar(
+        select(Booking)
+        .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
+        .with_for_update()
+    )
+    if booking is None or not booking.customer_email:
+        return False
     manage_url = (
         None
-        if event == "cancelled"
+        if event == "cancelled" or booking.status.value == "cancelled"
         else await issue_manage_url(
             session,
             workspace_id=workspace_id,
@@ -66,9 +75,25 @@ async def emit_booking_event(
         )
     )
     emitted = await session.scalar(
-        text("SELECT public.slotera_booking_emit_event(:booking_id, :event, :manage_url)"),
-        {"booking_id": booking_id, "event": event, "manage_url": manage_url},
+        text(
+            "SELECT public.slotera_booking_emit_event("
+            ":booking_id, :event, :manage_url, :event_key, :notify)"
+        ),
+        {
+            "booking_id": booking_id,
+            "event": event,
+            "manage_url": manage_url,
+            "event_key": event_key,
+            "notify": operator_notification,
+        },
     )
+    if not emitted and manage_url:
+        await session.execute(
+            delete(BookingAccessToken).where(
+                BookingAccessToken.workspace_id == workspace_id,
+                BookingAccessToken.token_hash == hash_opaque_token(manage_url.split("#", 1)[1]),
+            )
+        )
     return emitted is True
 
 
@@ -101,14 +126,14 @@ async def notify_client_moved(
     Unlike `emit_booking_event`, it can be sent again for every later move and does not
     notify the operator, who made the change. Runs inside the caller's tenant transaction.
     """
-    manage_url = await issue_manage_url(
+    from uuid import uuid4
+
+    return await emit_booking_event(
         session,
         workspace_id=workspace_id,
         booking_id=booking_id,
         session_ends_at=session_ends_at,
+        event="rescheduled",
+        event_key=str(uuid4()),
+        operator_notification=False,
     )
-    queued = await session.scalar(
-        text("SELECT public.slotera_booking_notify_client_moved(:booking_id, :manage_url)"),
-        {"booking_id": booking_id, "manage_url": manage_url},
-    )
-    return queued is True

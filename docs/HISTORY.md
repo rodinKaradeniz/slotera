@@ -1800,3 +1800,73 @@ position exactly; New form's inner track computed transparent with native scroll
 pass; the mock production build passes. Database/schema/backend code are unchanged.
 The API production build also passes. The verification tab was closed; the developer's
 running stack was not stopped or restarted. No environment files were read.
+
+### Everyday booking and email recovery — 2026-11-14
+
+Operator booking creation now accepts exactly one existing client or a narrow new-client
+identity. Client creation, capacity check under the session lock, booking, shared public/operator
+tax quote, immutable form/contact snapshots, audit, command idempotency and optional initial
+email share one transaction. A duplicate normalized workspace email requires explicit existing
+client selection; no profile merge occurs. Free operator bookings confirm immediately; paid
+bookings await manual payment. Operator creation records no client consent, sends no operator
+self-notification, and permits all assigned unanswered forms before the session starts. The
+initial-email checkbox does not disable later booking lifecycle emails or reminders.
+
+Email recovery is booking-scoped: paginated customer metadata is exposed by narrow tenant
+capabilities, never general outbox grants. A reviewed send queues a current-state summary and
+supersedes unclaimed unsent customer messages. A corrected destination is a nullable booking
+override, leaving original snapshots and client profiles intact, and revokes every prior
+management token. Booking and outbox locks serialize generation, correction and worker claims;
+any claimed unsent message returns a recoverable conflict. Successful sends consume transactional
+booking/workspace rate-limit allowances after replay detection, so retries neither duplicate
+messages nor spend allowances. Cancelled summaries omit management links; erasure blocks sends.
+Sent means provider acceptance; console/mock delivery is visibly simulated.
+
+Browser checks exposed an old read-model omission: session DTOs defaulted bookedCount to zero.
+Scheduling reads now obtain bounded, tenant-scoped aggregate counts using the shared capacity
+status policy. This keeps Calendar, booking details and drawer eligibility consistent without
+adding a stored counter. Workspace purge now deletes both sent and unsent related email rows
+before removing bookings, preventing ON DELETE SET NULL from detaching retained contact data.
+The shared Modal description uses a block container because confirmation descriptions can
+contain labelled form controls; wrapping that ReactNode in a paragraph produced invalid HTML.
+
+The pre-production policy remains exactly two mutable consolidated revisions, with disposable
+local resets. Package credits, imports, customer accounts, new time-creation flows, live delivery,
+infrastructure and deployment remain outside this bundle.
+
+A final concurrency test reproduced a privacy race: an existing client's details could be
+copied before erasure and committed afterward. Existing-client creation now locks that client
+before the session; erasure locks the client and its bookings in a stable order before
+removing forms or contact data. This preserves one lock order with booking commands and makes
+new operator bookings fail closed when the client was erased while the request waited.
+
+Recovery testing also reproduced a terminal lease bug: a worker stopped on its tenth attempt
+left an email permanently claimed because the existing claimant correctly refuses an eleventh
+attempt. The worker claim capability now releases expired terminal claims in a bounded,
+skip-locked cleanup. They remain failed (no automatic eleventh delivery), allowing the reviewed
+send-details command to supersede them. Active claims still block correction without changes.
+
+The final mobile check reproduced booking-detail overflow (390px visual viewport, 429px
+scroll width). Its implicit mobile grid track could retain the columns' intrinsic minimum
+width. Explicit single-column/minmax tracks and shrinkable detail columns fixed the measured
+width to 390px without clipping content or hiding horizontal overflow. This also keeps the
+new email history readable at phone widths.
+
+Final verification: 97 isolated backend tests and 72 real-PostgreSQL integration tests pass;
+Ruff and strict mypy pass. The additional explicit last-seat email-count assertion also
+passes. Frontend TypeScript, ESLint and all 117 Vitest tests pass, with mock/API production
+builds and regenerated transport checked. Both consolidated migrations were exercised from
+empty databases; Alembic check reports no model drift and a repeated upgrade at head is a
+no-op. The main local stack was stopped and its database reset to the small showcase dataset.
+
+Browser verification used a production server and disposable data: EN/TR/DE at desktop and
+phone widths, new/existing clients, free confirmation, paid email opt-out, persisted client
+and Calendar entry-point preselection, reviewed address correction, console-provider acceptance,
+and one-time management-form submission with a required false answer. The previously submitted
+answers remained read-only in all three languages. The existing Calendar “booked” suffix was
+observed untranslated and logged separately in TODO. Live delivery and deployment were not run.
+Developer startup and short navigation checks are in `docs/VERIFY_EVERYDAY_BOOKING.md`.
+The final saved API production route was reloaded without injected styles: mobile visual,
+client and document widths all measured 390px, and its German email confirmation opened
+correctly. `/health/ready` reported database ok. Temporary verification servers and databases
+were removed after checking; PostgreSQL and the reset main showcase database remain available.

@@ -77,3 +77,12 @@ export const PACKAGE_STATUS: Record<ServicePackageStatus, Meta> = {
   active:   { tone: "success", label: "Active" },
   inactive: { tone: "neutral", label: "Inactive" },
 };
+
+export const BOOKING_EMAIL_STATUS = {
+  queued: { tone: "neutral", label: "booking.emails.queued" },
+  sending: { tone: "info", label: "booking.emails.sending" },
+  retrying: { tone: "warning", label: "booking.emails.retrying" },
+  failed: { tone: "danger", label: "booking.emails.failed" },
+  sent: { tone: "success", label: "booking.emails.sent" },
+  superseded: { tone: "neutral", label: "booking.emails.superseded" },
+} as const;

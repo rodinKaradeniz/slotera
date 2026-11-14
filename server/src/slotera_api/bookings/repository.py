@@ -6,15 +6,18 @@ from hashlib import sha256
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from slotera_api.booking_access import emit_booking_event, notify_client_moved
+from slotera_api.booking_financials import financial_snapshot, quote_for
+from slotera_api.clients.repository import ClientsRepository
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
     Booking,
+    BookingAccessToken,
     BookingApprovalStatus,
     BookingAttendance,
     BookingCommandIdempotency,
@@ -29,6 +32,7 @@ from slotera_api.db.models import (
     Workspace,
     WorkspacePaymentSettings,
 )
+from slotera_api.errors import ApiError
 from slotera_api.session_capacity import CAPACITY_CONSUMING_STATUSES, release_public_session
 
 
@@ -160,6 +164,127 @@ class BookingsRepository:
             )
             return result if isinstance(result, Booking) else None
 
+    async def send_details(
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        booking_id: UUID,
+        recipient_email: str,
+        idempotency_key: str,
+    ) -> BookingCommandResult | None:
+        cmd = _command(
+            workspace_id,
+            actor_user_id,
+            idempotency_key,
+            "send_details",
+            {"booking_id": str(booking_id), "recipient_email": recipient_email},
+        )
+        async with self.database.tenant_transaction(workspace_id) as session:
+            booking = await session.scalar(
+                select(Booking)
+                .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
+                .with_for_update()
+            )
+            if booking is None:
+                return None
+            replay = await self._replay_or_conflict(session, cmd)
+            if replay is not None:
+                return BookingCommandResult(replay, True)
+            if not booking.customer_email:
+                raise ApiError(
+                    status_code=409,
+                    code="booking_email_erased",
+                    message="Client data has been erased; email cannot be sent",
+                )
+            prepared = await session.scalar(
+                text("SELECT public.slotera_booking_prepare_email_send(:booking_id)"),
+                {"booking_id": booking_id},
+            )
+            if not prepared:
+                raise ApiError(
+                    status_code=409,
+                    code="booking_email_sending",
+                    message="An email is being sent. Retry shortly",
+                )
+            for scope, value, limit, window in (
+                ("booking_email_send", str(booking_id), 5, 900),
+                ("workspace_email_send", str(workspace_id), 30, 3600),
+            ):
+                allowed = await session.scalar(
+                    text("SELECT public.slotera_rate_limit_consume(:scope,:key,:limit,:window)"),
+                    {
+                        "scope": scope,
+                        "key": sha256(f"{workspace_id}:{value}".encode()).digest(),
+                        "limit": limit,
+                        "window": window,
+                    },
+                )
+                if not allowed:
+                    raise ApiError(
+                        status_code=429,
+                        code="rate_limit_exceeded",
+                        message="Too many email requests. Try again later",
+                    )
+            changed = (booking.delivery_email_override or booking.customer_email) != recipient_email
+            if changed:
+                booking.delivery_email_override = recipient_email
+                await session.execute(
+                    update(BookingAccessToken)
+                    .where(
+                        BookingAccessToken.workspace_id == workspace_id,
+                        BookingAccessToken.booking_id == booking_id,
+                        BookingAccessToken.revoked_at.is_(None),
+                    )
+                    .values(revoked_at=datetime.now(UTC))
+                )
+                session.add(
+                    AuditEvent(
+                        workspace_id=workspace_id,
+                        actor_user_id=actor_user_id,
+                        action="booking.email_contact_changed",
+                        resource_type="booking",
+                        resource_id=booking_id,
+                        details={"fields": ["delivery_email_override"]},
+                    )
+                )
+            occurrence = await session.scalar(
+                select(Session).where(
+                    Session.workspace_id == workspace_id, Session.id == booking.session_id
+                )
+            )
+            if occurrence is None:
+                raise BookingTransitionError
+            await session.flush()
+            queued = await emit_booking_event(
+                session,
+                workspace_id=workspace_id,
+                booking_id=booking_id,
+                session_ends_at=occurrence.end_at,
+                event="details",
+                event_key=f"{actor_user_id}:{idempotency_key}",
+                operator_notification=False,
+            )
+            if not queued:
+                raise ApiError(
+                    status_code=409,
+                    code="booking_email_unavailable",
+                    message="Booking details could not be queued",
+                )
+            session.add(
+                AuditEvent(
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    action="booking.email_details_requested",
+                    resource_type="booking",
+                    resource_id=booking_id,
+                    details={},
+                )
+            )
+            await self._record_idempotency(session, cmd, booking_id)
+            await session.flush()
+            await session.refresh(booking)
+            return BookingCommandResult(booking, False)
+
     async def create_operator_booking(
         self,
         workspace_id: UUID,
@@ -168,20 +293,28 @@ class BookingsRepository:
         idempotency_key: str,
     ) -> BookingCommandResult | None:
         session_id = values["session_id"]
-        client_id = values["client_id"]
+        client_id = values.get("client_id")
         cmd = _command(
             workspace_id,
             actor_user_id,
             idempotency_key,
             "create",
-            {
-                "client_id": str(client_id),
-                "session_id": str(session_id),
-                "notes": values.get("notes"),
-                "audit_reason": values["audit_reason"],
-            },
+            dict(values),
         )
         async with self.database.tenant_transaction(workspace_id) as database_session:
+            # Client precedes session/booking locks, matching erasure's lock order.
+            client = (
+                await database_session.scalar(
+                    select(Client)
+                    .where(
+                        Client.workspace_id == workspace_id,
+                        Client.id == client_id,
+                    )
+                    .with_for_update()
+                )
+                if client_id is not None
+                else None
+            )
             locked = await database_session.execute(
                 select(Session, Service, Workspace)
                 .join(
@@ -200,17 +333,13 @@ class BookingsRepository:
             replay = await self._replay_or_conflict(database_session, cmd)
             if replay is not None:
                 return BookingCommandResult(booking=replay, replayed=True)
-            client = await database_session.scalar(
-                select(Client).where(
-                    Client.workspace_id == workspace_id,
-                    Client.id == client_id,
-                )
-            )
             payment_settings = await database_session.get(WorkspacePaymentSettings, workspace_id)
             if (
-                client is None
+                (client is None and values.get("new_client") is None)
+                or (client is not None and client.email == f"erased+{client.id}@invalid")
                 or payment_settings is None
-                or scheduled_session.status == SessionStatus.CANCELLED
+                or scheduled_session.status != SessionStatus.SCHEDULED
+                or scheduled_session.start_at <= datetime.now(UTC)
             ):
                 return None
             consumed = await database_session.scalar(
@@ -222,6 +351,13 @@ class BookingsRepository:
             )
             if int(consumed or 0) >= scheduled_session.capacity:
                 raise BookingCapacityExceededError
+            if values.get("new_client") is not None:
+                client = await ClientsRepository.create_in_session(
+                    database_session, workspace_id, actor_user_id, values["new_client"]
+                )
+            assert client is not None
+            client_id = client.id
+            quote = quote_for(service, workspace, payment_settings)
             booking_id = uuid4()
             payment_status = (
                 PaymentStatus.FREE if service.price_cents == 0 else PaymentStatus.PENDING
@@ -231,22 +367,17 @@ class BookingsRepository:
                 workspace_id=workspace_id,
                 session_id=session_id,
                 client_id=client_id,
-                status=BookingStatus.PENDING,
+                status=BookingStatus.CONFIRMED
+                if payment_status == PaymentStatus.FREE
+                else BookingStatus.PENDING,
+                language=str(values.get("language", "en")),
                 payment_status=payment_status,
                 origin=BookingOrigin.OPERATOR,
                 confirmation_policy_snapshot=ConfirmationPolicy.AUTOMATIC,
                 approval_status=BookingApprovalStatus.NOT_REQUIRED,
                 reference=f"SLT-{booking_id.hex[:12].upper()}",
                 payment_method="free" if service.price_cents == 0 else "manual",
-                amount_cents=service.price_cents,
-                net_amount_cents=service.price_cents,
-                tax_amount_cents=0,
-                tax_treatment="none",
-                tax_rate_bps=0,
-                tax_label=None,
-                tax_jurisdiction=None,
-                seller_tax_number=None,
-                currency=workspace.currency,
+                **financial_snapshot(quote, payment_settings),
                 billing_address={},
                 payment_due_at=None,
                 payment_received_at=None,
@@ -268,6 +399,7 @@ class BookingsRepository:
             database_session.add(booking)
             await database_session.flush()
             from slotera_api.booking_forms import snapshot_forms
+
             await snapshot_forms(database_session, workspace_id, booking.id, service.id)
             database_session.add(
                 AuditEvent(
@@ -285,6 +417,17 @@ class BookingsRepository:
             )
             await self._record_idempotency(database_session, cmd, booking.id)
             await database_session.flush()
+            if values.get("send_email", True):
+                emitted = await emit_booking_event(
+                    database_session,
+                    workspace_id=workspace_id,
+                    booking_id=booking.id,
+                    session_ends_at=scheduled_session.end_at,
+                    event="confirmed" if booking.status == BookingStatus.CONFIRMED else "received",
+                    operator_notification=False,
+                )
+                if not emitted:
+                    raise RuntimeError("initial booking email could not be queued")
             await database_session.refresh(booking)
             return BookingCommandResult(booking=booking, replayed=False)
 
@@ -298,9 +441,8 @@ class BookingsRepository:
     ) -> BookingCommandResult | None:
         """Move a pending or confirmed booking to another upcoming session of its service.
 
-        The client's price and payment facts stay as booked. A booking the client made
-        themselves also gets a "moved" email; operator-made bookings do not, matching how
-        their confirmation works.
+        The client's price and payment facts stay as booked. Every booking origin
+        receives a current-time summary without notifying the operator of their own action.
         """
         target_id = values["session_id"]
         cmd = _command(
@@ -381,7 +523,7 @@ class BookingsRepository:
             await self._record_idempotency(database_session, cmd, booking.id)
             await database_session.flush()
             await release_public_session(database_session, workspace_id, booking, previous)
-            if booking.origin == BookingOrigin.PUBLIC:
+            if booking.customer_email:
                 await notify_client_moved(
                     database_session,
                     workspace_id=workspace_id,
@@ -575,6 +717,14 @@ class BookingsRepository:
             await self._record_idempotency(database_session, cmd, booking.id)
             await database_session.flush()
             if command == "decline":
+                await emit_booking_event(
+                    database_session,
+                    workspace_id=workspace_id,
+                    booking_id=booking.id,
+                    session_ends_at=scheduled_session.end_at,
+                    event="cancelled",
+                    operator_notification=False,
+                )
                 await release_public_session(
                     database_session, workspace_id, booking, scheduled_session
                 )
@@ -634,6 +784,15 @@ class BookingsRepository:
                 await release_public_session(
                     database_session, workspace_id, booking, scheduled_session
                 )
+            if command == "cancel" and booking.customer_email:
+                await emit_booking_event(
+                    database_session,
+                    workspace_id=workspace_id,
+                    booking_id=booking.id,
+                    session_ends_at=scheduled_session.end_at,
+                    event="cancelled",
+                    operator_notification=False,
+                )
             if command == "confirm":
                 await self._emit_confirmed_event(database_session, booking)
             await database_session.refresh(booking)
@@ -688,7 +847,7 @@ class BookingsRepository:
         database_session: AsyncSession,
         booking: Booking,
     ) -> None:
-        if booking.origin != BookingOrigin.PUBLIC:
+        if not booking.customer_email:
             return
         scheduled_session = await database_session.scalar(
             select(Session).where(
@@ -704,6 +863,7 @@ class BookingsRepository:
             booking_id=booking.id,
             session_ends_at=scheduled_session.end_at,
             event="confirmed",
+            operator_notification=False,
         )
         if not emitted:
             raise RuntimeError("booking confirmation event could not be enqueued")

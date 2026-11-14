@@ -383,7 +383,7 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
         assert second_stored["customer_phone"] == "+49 30 5550199"
         assert second_stored["client_name"] == "Ayla Demir"
         assert second_stored["email_count"] == 3  # two customer emails, one operator email
-        assert second_stored["notification_count"] == 2
+        assert second_stored["notification_count"] == 1
     finally:
         async with owner.transaction() as session:
             await session.execute(

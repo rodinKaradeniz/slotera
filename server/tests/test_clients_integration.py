@@ -114,7 +114,7 @@ async def test_clients_carry_booking_totals_and_a_tag_and_bookings_filter_by_cli
         app = create_app(database=application)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             await _login(client)
-            sessions = await client.get("/sessions")
+            sessions = await client.get("/sessions?bookable=true&limit=500")
             workshop = next(item for item in sessions.json()["items"] if item["capacity"] > 1)
             created = await client.post(
                 "/clients",

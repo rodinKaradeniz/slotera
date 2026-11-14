@@ -1,5 +1,6 @@
+from datetime import UTC, datetime, timedelta
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -133,6 +134,53 @@ async def test_closing_a_workspace_suspends_it_and_the_purge_deletes_it() -> Non
                 },
             )
             assert package.status_code == 201, package.text
+            start = datetime.now(UTC) + timedelta(days=2)
+            occurrence = await operator.post(
+                "/sessions",
+                headers=_csrf(operator),
+                json={
+                    "serviceId": service.json()["id"],
+                    "startAt": start.isoformat(),
+                    "endAt": (start + timedelta(minutes=30)).isoformat(),
+                    "capacity": 1,
+                    "locationType": "online",
+                    "location": "Online",
+                },
+            )
+            assert occurrence.status_code == 201, occurrence.text
+            booked = await operator.post(
+                "/bookings",
+                headers={**_csrf(operator), "Idempotency-Key": str(uuid4())},
+                json={
+                    "clientId": client.json()["id"],
+                    "sessionId": occurrence.json()["id"],
+                    "auditReason": "Closure email history",
+                },
+            )
+            assert booked.status_code == 201, booked.text
+            booking_id = booked.json()["id"]
+            async with owner.transaction() as session:
+                await session.execute(
+                    text(
+                        "UPDATE email_outbox SET sent_at=now(), "
+                        "provider_message_id='console:test' WHERE related_booking_id=:id"
+                    ),
+                    {"id": UUID(booking_id)},
+                )
+            corrected = await operator.post(
+                f"/bookings/{booking_id}/send-details",
+                headers={**_csrf(operator), "Idempotency-Key": str(uuid4())},
+                json={"recipientEmail": f"corrected-{suffix}@example.com"},
+            )
+            assert corrected.status_code == 202, corrected.text
+            async with owner.transaction() as session:
+                email_ids = list(
+                    await session.scalars(
+                        text("SELECT id FROM email_outbox WHERE related_booking_id=:id"),
+                        {"id": UUID(booking_id)},
+                    )
+                )
+            assert len(email_ids) == 2
             mismatch = await operator.post(
                 "/settings/close-workspace",
                 headers=_csrf(operator),
@@ -178,6 +226,9 @@ async def test_closing_a_workspace_suspends_it_and_the_purge_deletes_it() -> Non
                 ),
                 {"id": workspace_id, "email": owner_email},
             )
+            remaining_emails = await session.scalar(
+                text("SELECT count(*) FROM email_outbox WHERE id=ANY(:ids)"), {"ids": email_ids}
+            )
             demo_still_there = await session.scalar(
                 text("SELECT count(*) FROM workspaces WHERE slug = 'lena'")
             )
@@ -210,5 +261,6 @@ async def test_closing_a_workspace_suspends_it_and_the_purge_deletes_it() -> Non
     assert closed_again.status_code == 200
     assert purged_too_early == 0
     assert purged == 1
+    assert remaining_emails == 0
     assert remaining == 0
     assert demo_still_there == 1

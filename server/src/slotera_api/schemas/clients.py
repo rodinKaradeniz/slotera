@@ -8,20 +8,23 @@ from slotera_api.schemas.base import ApiModel, JsonObject
 from slotera_api.schemas.operator_resources import NonBlank, StrictApiModel
 
 
-class ClientCreate(StrictApiModel):
+class ClientIdentityCreate(StrictApiModel):
     name: Annotated[NonBlank, Field(max_length=160)]
     email: EmailStr
     phone: Annotated[str | None, Field(max_length=40)] = None
     company: Annotated[str | None, Field(max_length=160)] = None
-    role: Annotated[str | None, Field(max_length=160)] = None
-    timezone: Annotated[str | None, Field(max_length=64)] = None
-    address: Annotated[str | None, Field(max_length=500)] = None
-    vat_id: Annotated[str | None, Field(max_length=80)] = None
 
     @field_validator("email")
     @classmethod
     def normalize_email(cls, value: EmailStr) -> str:
         return str(value).strip().lower()
+
+
+class ClientCreate(ClientIdentityCreate):
+    role: Annotated[str | None, Field(max_length=160)] = None
+    timezone: Annotated[str | None, Field(max_length=64)] = None
+    address: Annotated[str | None, Field(max_length=500)] = None
+    vat_id: Annotated[str | None, Field(max_length=80)] = None
 
 
 class ClientPatch(StrictApiModel):
@@ -67,6 +70,7 @@ class ClientListResponse(ApiModel):
 
 
 class ClientExportBooking(ApiModel):
+    email_contact: str
     reference: str
     service_name: str
     session_start_at: datetime
@@ -100,6 +104,7 @@ class ClientExportNote(ApiModel):
 
 
 class ClientExportResponse(ApiModel):
+    booking_emails: list[dict[str, object]] = Field(default_factory=list)
     """Everything the workspace holds about one client (subject access request)."""
 
     exported_at: datetime
