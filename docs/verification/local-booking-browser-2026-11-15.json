@@ -1,0 +1,58 @@
+[
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in en",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 9493,
+    "phase": "language"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in tr",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 8906,
+    "phase": "language"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in de",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 7267,
+    "phase": "language"
+  },
+  {
+    "test": "recurring scope retains dates and stops following sessions",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 3979,
+    "phase": "recurring"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in en",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 7839,
+    "phase": "language"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in tr",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 9381,
+    "phase": "language"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in de",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 8805,
+    "phase": "language"
+  },
+  {
+    "test": "recurring scope retains dates and stops following sessions",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 4603,
+    "phase": "recurring"
+  }
+]

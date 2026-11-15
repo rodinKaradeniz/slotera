@@ -127,10 +127,14 @@ async def test_database_rejects_overlap_but_allows_adjacent_sessions() -> None:
             overlapping = await client.post(
                 "/sessions", headers=_csrf_headers(client), json=payload(30)
             )
-            cancelled = await client.patch(
-                f"/sessions/{first.json()['id']}",
+            cancelled = await client.post(
+                f"/sessions/{first.json()['id']}/cancel",
                 headers={
                     **_csrf_headers(client),
+                    "Idempotency-Key": "cancel-overlap-test",
+                    "X-Impact-Revision": (
+                        await client.get(f"/sessions/{first.json()['id']}/change-preview")
+                    ).json()["revision"],
                     "If-Match": '"v'
                     + str(
                         (await client.get(f"/sessions/{first.json()['id']}"))
@@ -145,7 +149,6 @@ async def test_database_rejects_overlap_but_allows_adjacent_sessions() -> None:
                         or 1
                     ),
                 },
-                json={"status": "cancelled"},
             )
             replacement = await client.post(
                 "/sessions", headers=_csrf_headers(client), json=payload(0)
@@ -197,6 +200,12 @@ async def test_recurring_session_materialises_the_six_month_horizon() -> None:
                 params={"scope": "this_and_following"},
                 headers={
                     **_csrf_headers(client),
+                    "Idempotency-Key": "following-location-test",
+                    "X-Impact-Revision": (
+                        await client.get(
+                            f"/sessions/{second_id}/change-preview?scope=this_and_following"
+                        )
+                    ).json()["revision"],
                     "If-Match": '"v'
                     + str((await client.get(f"/sessions/{second_id}")).json().get("version", 1))
                     + '"',

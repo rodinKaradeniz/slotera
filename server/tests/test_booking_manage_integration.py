@@ -89,8 +89,24 @@ async def test_customer_link_views_reschedules_once_gets_reminded_and_cancels() 
 
             # Pull the session inside the 24h window: a reminder becomes due, and
             # self-service closes under the default 24h cutoff.
-            soon = datetime.now(UTC).replace(microsecond=0) + timedelta(hours=3)
+            earliest = datetime.now(UTC).replace(microsecond=0) + timedelta(hours=3)
             async with owner.transaction() as session:
+                soon = await session.scalar(
+                    text("""
+                    SELECT candidate FROM
+                    generate_series(:start, :finish, interval '30 minutes') candidate
+                    WHERE NOT EXISTS (SELECT 1 FROM sessions WHERE workspace_id=:workspace
+                        AND status <> 'cancelled' AND start_at < candidate+interval '30 minutes'
+                        AND end_at > candidate)
+                    ORDER BY candidate LIMIT 1
+                """),
+                    {
+                        "start": earliest,
+                        "finish": earliest + timedelta(hours=18),
+                        "workspace": DEMO_SEED.workspace.id,
+                    },
+                )
+                assert isinstance(soon, datetime)
                 await session.execute(
                     text(
                         "UPDATE sessions SET start_at = :start, end_at = :end "

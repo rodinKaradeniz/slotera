@@ -1,13 +1,14 @@
 import asyncio
 import logging
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 
 from slotera_api.auth.repository import AuthRepository
 from slotera_api.booking_access import emit_booking_event
 from slotera_api.config import get_settings
 from slotera_api.database import Database
+from slotera_api.db.models import Booking, BookingStatus, Session, SessionStatus
 from slotera_api.logging import configure_logging
 from slotera_api.observability import init_sentry
 from slotera_api.scheduling.recurrence import ROLLING_HORIZON_DAYS
@@ -34,12 +35,36 @@ async def queue_booking_reminders(database: Database) -> int:
         ).all()
     queued = 0
     for row in due:
-        async with database.tenant_transaction(row.workspace_id) as session:
+        async with database.tenant_transaction(row.workspace_id, scheduling_write=True) as session:
+            now = datetime.now(UTC)
+            current = (
+                await session.execute(
+                    select(Booking, Session)
+                    .join(
+                        Session,
+                        (Session.workspace_id == Booking.workspace_id)
+                        & (Session.id == Booking.session_id),
+                    )
+                    .where(
+                        Booking.workspace_id == row.workspace_id,
+                        Booking.id == row.booking_id,
+                        Booking.status == BookingStatus.CONFIRMED,
+                        Session.status == SessionStatus.SCHEDULED,
+                        Session.start_at > now,
+                        Session.start_at <= now + REMINDER_LEAD,
+                    )
+                    .with_for_update(of=(Booking, Session))
+                )
+            ).one_or_none()
+            if current is None:
+                continue
+            occurrence = current[1]
             if await emit_booking_event(
                 session,
                 workspace_id=row.workspace_id,
                 booking_id=row.booking_id,
-                session_ends_at=row.ends_at,
+                session_ends_at=occurrence.end_at,
+                event_key=str(int(occurrence.start_at.timestamp())),
                 event="reminder",
             ):
                 queued += 1

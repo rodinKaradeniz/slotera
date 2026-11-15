@@ -2,6 +2,21 @@ import type { Messages } from "./en";
 
 /** German — demo-grade translations. Missing keys fall back to English. */
 export const de: Partial<Messages> = {
+  "session.impactChanged": "Die Teilnahmen haben sich geändert. Ihr Entwurf bleibt erhalten; prüfen Sie die Auswirkungen erneut.",
+  "session.capacityConflict": "Die Kapazität darf nicht unter der Anzahl aktiver Buchungen liegen.",
+  "session.serviceConflict": "Bei Terminen mit Buchungshistorie kann die Leistung nicht geändert werden.",
+  "session.singleDate": "Wählen Sie Diesen Termin, um das Kalenderdatum zu ändern.",
+  "session.cancelled": "Abgesagte Termine können nicht wieder geöffnet werden.",
+
+  "auth.login.description": "Melden Sie sich an, um Buchungen, Termine und Kunden zu verwalten.",
+  "session.changeScope": "Anwenden auf",
+  "session.this": "Diesen Termin",
+  "session.following": "Diesen und folgende",
+  "session.reviewChange": "Terminänderung prüfen",
+  "session.impact": "{sessions} Termine · {bookings} aktive Buchungen · {paid} bezahlte Buchungen.",
+  "session.manualRefund": "Erstattungen bitte manuell vereinbaren; Zahlungsdaten bleiben erhalten.",
+  "session.current": "Aktueller Termin: {date}, {location}, Kapazität {capacity}.",
+
   "attendance.markPage": "Diese Seite als anwesend markieren",
   "common.pagination": "Seitennavigation",
   "calendar.bookedCount": "{count} / {capacity} gebucht",

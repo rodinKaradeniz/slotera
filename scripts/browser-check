@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Production Chromium checks with a fixed disposable database and no environment files."""
+import asyncio
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.request
+
+ROOT = Path(__file__).resolve().parents[1]
+PYTHON = ROOT / "server/.venv/bin/python"
+DB_NAME = "slotera_browser_test"
+API_PORT = 8011
+WEB_PORT = 3345
+
+
+def run(*args, cwd=ROOT, env=None):
+    subprocess.run(args, cwd=cwd, env=env, check=True)
+
+
+def wait_ready(url, process):
+    for _ in range(120):
+        if process.poll() is not None:
+            raise RuntimeError("A browser-check server stopped before readiness")
+        try:
+            with urllib.request.urlopen(url, timeout=1) as response:
+                if response.status == 200:
+                    return
+        except OSError:
+            time.sleep(.25)
+    raise RuntimeError("A browser-check server did not become ready")
+
+
+def main():
+    # Do not inherit provider keys, database URLs or application configuration.
+    env = {key: os.environ[key] for key in ("PATH", "HOME", "TMPDIR", "CI", "SYSTEMROOT") if key in os.environ}
+    env.update({"SLOTERA_ENV_FILE": "", "SLOTERA_ENVIRONMENT": "test",
+        "SLOTERA_DATABASE_URL": f"postgresql+asyncpg://slotera_app:slotera_app_local@localhost:55432/{DB_NAME}",
+        "SLOTERA_MIGRATION_DATABASE_URL": f"postgresql+asyncpg://slotera_owner:slotera_owner_local@localhost:55432/{DB_NAME}",
+        "SLOTERA_CORS_ORIGINS": json.dumps([f"http://localhost:{WEB_PORT}"]),
+        "SLOTERA_PUBLIC_WEB_BASE_URL": f"http://localhost:{WEB_PORT}",
+        "SLOTERA_EMAIL_PROVIDER": "console", "SLOTERA_LOG_LEVEL": "WARNING",
+        "NEXT_PUBLIC_DATA_SOURCE": "api", "NEXT_PUBLIC_API_BASE_URL": f"http://localhost:{API_PORT}",
+        "NEXT_TELEMETRY_DISABLED": "1", "SLOTERA_BROWSER_TEST": "1"})
+    if sys.executable != str(PYTHON):
+        os.execve(str(PYTHON), [str(PYTHON), str(Path(__file__).resolve())], env)
+    import asyncpg
+
+    async def database(create):
+        connection = await asyncpg.connect("postgresql://slotera_owner:slotera_owner_local@localhost:55432/postgres")
+        try:
+            await connection.execute(f"DROP DATABASE IF EXISTS {DB_NAME} WITH (FORCE)")
+            if create:
+                await connection.execute(f"CREATE DATABASE {DB_NAME} OWNER slotera_owner")
+        finally:
+            await connection.close()
+    processes = []
+    shutil.rmtree(ROOT / "web/browser-artifacts", ignore_errors=True)
+    try:
+        asyncio.run(database(True))
+        run(str(ROOT / "server/.venv/bin/alembic"), "upgrade", "head", cwd=ROOT / "server", env=env)
+        with tempfile.TemporaryDirectory(prefix="slotera-browser-") as temporary:
+            web = Path(temporary) / "web"
+            shutil.copytree(ROOT / "web", web, ignore=shutil.ignore_patterns(".env*", ".next", "node_modules", "*tsbuildinfo", "test-results", "browser-artifacts"))
+            shutil.copytree(ROOT / "web/node_modules", web / "node_modules", symlinks=True)
+            run("npm", "run", "build", "--", "--webpack", cwd=web, env=env)
+            # Server output is intentionally discarded: console messages can contain access links.
+            for command, cwd in [([str(ROOT / "server/.venv/bin/uvicorn"), "slotera_api.main:app", "--host", "127.0.0.1", "--port", str(API_PORT), "--no-access-log"], ROOT / "server"),
+                                 (["npm", "run", "start", "--", "--hostname", "127.0.0.1", "--port", str(WEB_PORT)], web)]:
+                processes.append(subprocess.Popen(command, cwd=cwd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True))
+            wait_ready(f"http://localhost:{API_PORT}/health/ready", processes[0])
+            wait_ready(f"http://localhost:{WEB_PORT}/login", processes[1])
+            run(str(ROOT / "web/node_modules/.bin/playwright"), "test", cwd=ROOT / "web", env=env)
+    finally:
+        import signal
+        for process in reversed(processes):
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+        shutil.rmtree(ROOT / "web/test-results", ignore_errors=True)
+        asyncio.run(database(False))
+
+
+if __name__ == "__main__":
+    main()

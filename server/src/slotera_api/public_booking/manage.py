@@ -83,6 +83,19 @@ class BookingManageRepository:
             raise BookingLinkInvalidError
         return row.workspace_id, row.booking_id
 
+    async def verify_access(
+        self, session: AsyncSession, token: str, workspace_id: UUID, booking_id: UUID
+    ) -> None:
+        """Recheck after the scheduling gate; a correction may have revoked a waiting request."""
+        row = (
+            await session.execute(
+                text("SELECT * FROM public.slotera_public_booking_access(:token_hash)"),
+                {"token_hash": hash_opaque_token(token)},
+            )
+        ).one_or_none()
+        if row is None or row.workspace_id != workspace_id or row.booking_id != booking_id:
+            raise BookingLinkInvalidError
+
     async def _load(
         self, session: AsyncSession, workspace_id: UUID, booking_id: UUID, *, lock: bool
     ) -> ManagedBooking:
@@ -121,12 +134,14 @@ class BookingManageRepository:
 
     async def get(self, token: str) -> ManagedBooking:
         workspace_id, booking_id = await self._resolve(token)
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
+            await self.verify_access(session, token, workspace_id, booking_id)
             return await self._load(session, workspace_id, booking_id, lock=False)
 
     async def cancel(self, token: str) -> ManagedBooking:
         workspace_id, booking_id = await self._resolve(token)
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
+            await self.verify_access(session, token, workspace_id, booking_id)
             managed = await self._load(session, workspace_id, booking_id, lock=True)
             if managed.booking.status == BookingStatus.CANCELLED:
                 return managed  # A repeated click is a no-op, not an error.
@@ -158,7 +173,8 @@ class BookingManageRepository:
     async def reschedule(self, token: str, start_at: datetime) -> ManagedBooking:
         workspace_id, booking_id = await self._resolve(token)
         start_at = start_at.astimezone(UTC)
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
+            await self.verify_access(session, token, workspace_id, booking_id)
             managed = await self._load(session, workspace_id, booking_id, lock=True)
             if managed.session.start_at == start_at:
                 return managed  # Same slot: nothing to move (also covers replays).

@@ -77,8 +77,8 @@ async def test_maintenance_tops_up_recurring_series() -> None:
             )
 
         # Pretend the open-ended series was created 8 weeks ago: drop its last 8 weeks
-        # and wind its horizon back. Then change the latest remaining occurrence, as a
-        # "this and following" edit would, and book over one slot that will be re-created.
+        # and wind its horizon back. Update its generation template, as a following edit
+        # would, and book over one slot that will be re-created.
         async with owner.transaction() as session:
             through = await session.scalar(
                 text("SELECT horizon_through FROM session_series WHERE id = :id"),
@@ -103,11 +103,8 @@ async def test_maintenance_tops_up_recurring_series() -> None:
                 {"id": open_ended},
             )
             await session.execute(
-                text(
-                    "UPDATE sessions SET location = 'Google Meet' "
-                    "WHERE series_id = :id AND start_at = :at"
-                ),
-                {"id": open_ended, "at": latest_start},
+                text("UPDATE session_series SET location = 'Google Meet' WHERE id = :id"),
+                {"id": open_ended},
             )
             before = await session.scalar(
                 text("SELECT count(*) FROM sessions WHERE series_id = :id"), {"id": open_ended}

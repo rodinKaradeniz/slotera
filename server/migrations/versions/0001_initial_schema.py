@@ -698,6 +698,8 @@ CREATE FUNCTION public.slotera_booking_due_reminders(p_within interval) RETURNS 
               SELECT 1 FROM public.email_outbox AS outbox
               WHERE outbox.related_booking_id = booking.id
                 AND outbox.kind = 'booking_reminder'
+                AND outbox.suppressed_at IS NULL
+                AND outbox.event_key = floor(extract(epoch FROM scheduled_session.start_at))::bigint::text
             )
           ORDER BY scheduled_session.start_at
           LIMIT 500
@@ -1749,8 +1751,15 @@ CREATE FUNCTION public.slotera_workspace_purge_closed(p_after_days integer DEFAU
               AND operational_status::text = 'suspended'
               AND closure_requested_at
                 < statement_timestamp() - make_interval(days => GREATEST(p_after_days, 1))
-            FOR UPDATE SKIP LOCKED
+            ORDER BY id
           LOOP
+            PERFORM pg_advisory_xact_lock(hashtextextended('slotera:scheduling:' || target::text, 0));
+            PERFORM id FROM public.workspaces WHERE id = target
+              AND closure_requested_at IS NOT NULL
+              AND operational_status::text = 'suspended'
+              AND closure_requested_at < statement_timestamp() - make_interval(days => GREATEST(p_after_days, 1))
+              FOR UPDATE SKIP LOCKED;
+            IF NOT FOUND THEN CONTINUE; END IF;
             SELECT coalesce(array_agg(user_id), '{}') INTO member_ids
             FROM public.workspace_memberships WHERE workspace_id = target;
 
@@ -1758,9 +1767,11 @@ CREATE FUNCTION public.slotera_workspace_purge_closed(p_after_days integer DEFAU
             WHERE related_booking_id IN (
                 SELECT id FROM public.bookings WHERE workspace_id = target
               );
+            DELETE FROM public.session_command_idempotency WHERE workspace_id = target;
             DELETE FROM public.booking_command_idempotency WHERE workspace_id = target;
             DELETE FROM public.bookings WHERE workspace_id = target;
             DELETE FROM public.sessions WHERE workspace_id = target;
+            DELETE FROM public.session_series WHERE workspace_id = target;
             DELETE FROM public.form_template_services WHERE workspace_id = target;
             DELETE FROM public.workspaces WHERE id = target;
 
@@ -2346,7 +2357,6 @@ CREATE TABLE public.session_action_items (
     description character varying(1000),
     status public.session_action_item_status DEFAULT 'todo'::public.session_action_item_status NOT NULL,
     due_date date,
-    client_visible boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -5281,6 +5291,41 @@ ALTER TABLE public.session_action_items ADD COLUMN version bigint DEFAULT 1 NOT 
 ALTER TABLE public.sessions ADD COLUMN version bigint DEFAULT 1 NOT NULL;
 ALTER TABLE public.session_series ADD COLUMN version bigint DEFAULT 1 NOT NULL;
 ALTER TABLE public.workspace_business_profiles ADD COLUMN version bigint DEFAULT 1 NOT NULL;
+
+ALTER TABLE public.session_series ADD COLUMN cancelled_from date;
+ALTER TABLE public.session_series
+ ADD COLUMN service_id uuid NOT NULL,
+ ADD COLUMN calendar_owner_id uuid NOT NULL,
+ ADD COLUMN start_local time without time zone NOT NULL,
+ ADD COLUMN duration_min integer NOT NULL,
+ ADD COLUMN capacity integer NOT NULL,
+ ADD COLUMN location_type public.location_type NOT NULL,
+ ADD COLUMN location varchar(240) NOT NULL,
+ ADD COLUMN address jsonb,
+ ADD COLUMN notes varchar(2000),
+ ADD CONSTRAINT fk_session_series_workspace_id_services FOREIGN KEY(workspace_id,service_id) REFERENCES public.services(workspace_id,id) ON DELETE RESTRICT,
+ ADD CONSTRAINT fk_session_series_workspace_id_workspace_memberships FOREIGN KEY(workspace_id,calendar_owner_id) REFERENCES public.workspace_memberships(workspace_id,user_id) ON DELETE RESTRICT,
+ ADD CONSTRAINT ck_session_series_template_duration CHECK(duration_min >= 1),
+ ADD CONSTRAINT ck_session_series_template_capacity CHECK(capacity BETWEEN 1 AND 10000);
+CREATE TABLE public.session_command_idempotency (
+ id uuid CONSTRAINT pk_session_command_idempotency PRIMARY KEY,
+ workspace_id uuid NOT NULL CONSTRAINT fk_session_command_idempotency_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ actor_user_id uuid NOT NULL CONSTRAINT fk_session_command_idempotency_actor_user_id_users REFERENCES public.users(id) ON DELETE RESTRICT,
+ session_id uuid NOT NULL,
+ idempotency_key varchar(255) NOT NULL,
+ request_fingerprint varchar(64) NOT NULL,
+ outcome jsonb NOT NULL,
+ created_at timestamptz DEFAULT now() NOT NULL,
+ CONSTRAINT uq_session_command_idempotency_workspace_id UNIQUE(workspace_id,actor_user_id,idempotency_key),
+ CONSTRAINT fk_session_command_idempotency_workspace_id_sessions FOREIGN KEY(workspace_id,session_id) REFERENCES public.sessions(workspace_id,id) ON DELETE CASCADE
+);
+CREATE INDEX ix_session_command_idempotency_workspace_id ON public.session_command_idempotency(workspace_id);
+ALTER TABLE public.session_command_idempotency ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.session_command_idempotency FORCE ROW LEVEL SECURITY;
+CREATE POLICY session_commands_tenant ON public.session_command_idempotency
+ USING (workspace_id=public.slotera_current_workspace_id())
+ WITH CHECK (workspace_id=public.slotera_current_workspace_id());
+GRANT SELECT,INSERT,DELETE ON public.session_command_idempotency TO slotera_app;
 
 SET search_path = public;
 SET row_security = on;

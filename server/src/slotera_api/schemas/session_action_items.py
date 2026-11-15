@@ -13,7 +13,6 @@ class SessionActionItemCreate(StrictApiModel):
     title: Annotated[NonBlank, Field(max_length=160)]
     description: Annotated[str | None, Field(max_length=1000)] = None
     due_date: date | None = None
-    client_visible: bool = False
 
 
 class SessionActionItemPatch(StrictApiModel):
@@ -21,7 +20,6 @@ class SessionActionItemPatch(StrictApiModel):
     description: Annotated[str | None, Field(max_length=1000)] = None
     status: Literal["todo", "done"] | None = None
     due_date: date | None = None
-    client_visible: bool | None = None
 
     @model_validator(mode="after")
     def validate_patch(self) -> "SessionActionItemPatch":
@@ -41,7 +39,6 @@ class SessionActionItemResponse(ApiModel):
     description: str | None
     status: Literal["todo", "done"]
     due_date: date | None
-    client_visible: bool
     created_at: datetime
     updated_at: datetime
 

@@ -7191,11 +7191,6 @@
       "SessionActionItemCreate": {
         "additionalProperties": false,
         "properties": {
-          "clientVisible": {
-            "default": false,
-            "title": "Clientvisible",
-            "type": "boolean"
-          },
           "description": {
             "anyOf": [
               {
@@ -7267,17 +7262,6 @@
       "SessionActionItemPatch": {
         "additionalProperties": false,
         "properties": {
-          "clientVisible": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Clientvisible"
-          },
           "description": {
             "anyOf": [
               {
@@ -7336,10 +7320,6 @@
       },
       "SessionActionItemResponse": {
         "properties": {
-          "clientVisible": {
-            "title": "Clientvisible",
-            "type": "boolean"
-          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -7408,7 +7388,6 @@
           "description",
           "status",
           "dueDate",
-          "clientVisible",
           "createdAt",
           "updatedAt"
         ],
@@ -7508,6 +7487,34 @@
           "location"
         ],
         "title": "SessionCreate",
+        "type": "object"
+      },
+      "SessionImpactResponse": {
+        "properties": {
+          "activeBookingCount": {
+            "title": "Activebookingcount",
+            "type": "integer"
+          },
+          "paidBookingCount": {
+            "title": "Paidbookingcount",
+            "type": "integer"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "string"
+          },
+          "sessionCount": {
+            "title": "Sessioncount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sessionCount",
+          "activeBookingCount",
+          "paidBookingCount",
+          "revision"
+        ],
+        "title": "SessionImpactResponse",
         "type": "object"
       },
       "SessionListResponse": {
@@ -13349,6 +13356,28 @@
           },
           {
             "in": "header",
+            "name": "X-Impact-Revision",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 64,
+              "title": "X-Impact-Revision",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
             "name": "X-Series-Version",
             "required": false,
             "schema": {
@@ -13527,6 +13556,169 @@
         "summary": "Create Session Action Item",
         "tags": [
           "session action items"
+        ]
+      }
+    },
+    "/sessions/{session_id}/cancel": {
+      "post": {
+        "operationId": "cancelSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "this",
+              "enum": [
+                "this",
+                "this_and_following"
+              ],
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Impact-Revision",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 64,
+              "title": "X-Impact-Revision",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Series-Version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Series-Version"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/sessions/{session_id}/change-preview": {
+      "get": {
+        "operationId": "previewSessionChange",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "this",
+              "enum": [
+                "this",
+                "this_and_following"
+              ],
+              "title": "Scope",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionImpactResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Session Change",
+        "tags": [
+          "sessions"
         ]
       }
     },

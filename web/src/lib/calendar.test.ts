@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarSegments, clockIn, localDateKey, sessionOverlaps, slotParts, zonedWallToISO } from "./calendar";
+import { calendarSegments, clockIn, isoWeekdayInTimezone, localDateKey, sessionOverlaps, slotParts, zonedWallToISO } from "./calendar";
 
 describe("availability date keys", () => {
   it("keys a calendar cell by its local date, not a UTC timestamp", () => {
@@ -97,4 +97,10 @@ it("segments midnight sessions by workspace wall date without a zero-length last
   expect(calendarSegments("2026-10-12T20:30:00Z", "2026-10-12T21:00:00Z", "Europe/Istanbul")).toEqual([
     {dateKey: "2026-10-12", startHour: 23.5, endHour: 24},
   ]);
+});
+
+
+it("creates weekly rules on the workspace weekday rather than the UTC weekday", () => {
+  expect(isoWeekdayInTimezone("2026-01-04T23:30:00Z", "Europe/Berlin")).toBe(1);
+  expect(isoWeekdayInTimezone("2026-01-05T01:30:00Z", "America/New_York")).toBe(7);
 });

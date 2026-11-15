@@ -7,6 +7,7 @@ export type Recurring = "one-off" | "weekly" | "custom";
 export type SessionItem = {
   version?: number;
   seriesVersion?: number;
+  seriesId?: string;
   id: string;
   serviceId: string;
   startISO: string;

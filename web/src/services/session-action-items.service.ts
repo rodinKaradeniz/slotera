@@ -21,12 +21,7 @@ type SessionActionItemCreateDto =
 type SessionActionItemPatchDto =
   components["schemas"]["SessionActionItemPatch"];
 
-/**
- * Session action items. Mirrors the mock-first conventions of the other
- * services (see CLAUDE.md → Data layer). Lightweight admin tasks attached to a
- * session; `clientVisible` is retained for a future customer-facing surface
- * (admin-only today). Internal-only items stay admin-side.
- */
+/** Private operator tasks attached to a session. */
 let mock: SessionActionItem[] = dataSource === "mock" ? mockData("session-action-items") : [] as SessionActionItem[];
 mock = mock.map((item) => ({...item, version: item.version ?? 1}));
 
@@ -39,7 +34,6 @@ function mapActionItem(item: SessionActionItemDto): SessionActionItem {
     description: item.description ?? undefined,
     status: item.status,
     dueDate: item.dueDate ?? undefined,
-    clientVisible: item.clientVisible,
     createdAtISO: item.createdAt,
     updatedAtISO: item.updatedAt,
   };
@@ -50,7 +44,6 @@ function createPayload(input: SessionActionItemInput): SessionActionItemCreateDt
     title: input.title,
     description: input.description ?? null,
     dueDate: input.dueDate ?? null,
-    clientVisible: input.clientVisible ?? false,
   };
 }
 

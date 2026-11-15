@@ -1,4 +1,5 @@
 "use client";
+import { ApiRequestError } from "@/services/_errors";
 import { DATA_CHANGED } from "@/api/query-cache";
 import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
 import { Pagination } from "@/components/shared/Pagination";
@@ -27,10 +28,15 @@ import {
   updateSession,
   cancelSession,
   findConflict,
+  previewSessionChange,
+  type SessionImpact,
+  type SessionReview,
+  type SessionUpdateScope,
 } from "@/services/sessions.service";
 import { listServicePage, getService } from "@/services/services.service";
 import { listWorkspaceLocations } from "@/services/settings.service";
 import { listActionItemPage } from "@/services/session-action-items.service";
+import { localeForLang } from "@/lib/i18n";
 import { slotParts, zonedWallToISO } from "@/lib/calendar";
 import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import { dataSource } from "@/lib/env";
@@ -114,7 +120,7 @@ export function SessionDrawer({
   onSaved,
   onCancelled,
 }: SessionDrawerProps) {
-  const { t: uiText } = useI18n();
+  const { t: uiText, lang } = useI18n();
   const isEdit = !!initial;
   const { toast } = useToast();
   const timezone = useWorkspaceTimezone();
@@ -134,7 +140,19 @@ export function SessionDrawer({
   });
   const [conflict, setConflict] = React.useState<SessionItem | null>(null);
   const [busy, setBusy] = React.useState(false);
-  const [confirmCancel, setConfirmCancel] = React.useState(false);
+  const [scope, setScope] = React.useState<SessionUpdateScope>("this");
+  const [review, setReview] = React.useState<{action: "save" | "note" | "cancel"; impact: SessionImpact; command: SessionReview; latest: SessionItem} | null>(null);
+  const [changeError, setChangeError] = React.useState<string | null>(null);
+  const requestReview = async (action: "save" | "note" | "cancel") => {
+    if (!initial) return;
+    setBusy(true); setChangeError(null);
+    try {
+      const [impact, latest] = await Promise.all([previewSessionChange(initial.id, action === "note" ? "this" : scope), getSession(initial.id, true)]);
+      if (!latest) throw new Error(uiText("ui.couldn.t.save.session"));
+      setReview({action, impact, latest, command: {impactRevision: impact.revision, idempotencyKey: crypto.randomUUID()}});
+    } catch (cause) {setChangeError(cause instanceof Error ? cause.message : String(cause));}
+    finally {setBusy(false);}
+  };
   const [savingNote, setSavingNote] = React.useState(false);
   // Tabs appear for an existing session: "Notes & Actions" is always available,
   // "Attendance" only for a group session. New / 1:1 sessions render the details
@@ -171,6 +189,7 @@ export function SessionDrawer({
   const openActionCount = actionItems.filter((a) => a.status === "todo").length;
 
   useResetOnOpen(open, [modeProp], () => {
+    setScope("this"); setReview(null); setChangeError(null);
     setMode(modeProp);
     setTab("details");
     // Reopening refetches the action items instead of showing the last copy.
@@ -238,16 +257,15 @@ export function SessionDrawer({
         form.locationType === "online" ? undefined : form.address;
       if (isEdit && initial) {
         const next = await updateSession(initial.id, {
-          serviceId: form.serviceId,
+          ...(scope === "this" ? {serviceId: form.serviceId} : {}),
           startISO,
           endISO,
           capacity: form.capacity,
-          status: form.status,
           locationType: form.locationType,
           location: form.location,
           address: addressOnSave,
           notes: form.notes,
-        }, "this", edit.version);
+        }, scope, review?.latest.version, review?.latest.seriesVersion, review?.command);
         onSaved?.(next);
         toast.success(uiText("ui.session.updated"));
       } else {
@@ -270,6 +288,8 @@ export function SessionDrawer({
       onClose();
     } catch (err) {
       edit.onError(err);
+      setChangeError(err instanceof Error ? err.message : String(err));
+      if (err instanceof ApiRequestError && err.status === 409) setReview(null);
       toast.error(uiText("ui.couldn.t.save.session"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -284,12 +304,15 @@ export function SessionDrawer({
     if (!initial) return;
     setSavingNote(true);
     try {
-      const next = await updateSession(initial.id, { notes: form.notes }, "this", edit.version);
+      const next = await updateSession(initial.id, { notes: form.notes }, "this", review?.latest.version, review?.latest.seriesVersion, review?.command);
+      setReview(null);
       edit.accept(next);
       onSaved?.(next);
       toast.success(uiText("ui.note.saved"));
     } catch (err) {
       edit.onError(err);
+      setChangeError(err instanceof Error ? err.message : String(err));
+      if (err instanceof ApiRequestError && err.status === 409) setReview(null);
       toast.error(uiText("ui.couldn.t.save.note"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -302,13 +325,15 @@ export function SessionDrawer({
     if (!initial) return;
     setBusy(true);
     try {
-      const next = await cancelSession(initial.id, edit.version);
+      const next = await cancelSession(initial.id, review?.latest.version, scope, review?.latest.seriesVersion, review?.command);
       onCancelled?.(next);
       toast.success(uiText("ui.session.cancelled"));
-      setConfirmCancel(false);
+      setReview(null);
       onClose();
     } catch (err) {
       edit.onError(err);
+      setChangeError(err instanceof Error ? err.message : String(err));
+      if (err instanceof ApiRequestError && err.status === 409) setReview(null);
       toast.error(uiText("ui.couldn.t.cancel.session"), {
         description: err instanceof Error ? err.message : undefined,
       });
@@ -346,20 +371,21 @@ export function SessionDrawer({
               >
                 {uiText("ui.add.attendee")}</Button>
             )}
-            <Button icon="edit" onClick={() => setMode("edit")}>
+            <Button icon="edit" disabled={initial?.status === "cancelled"} onClick={() => setMode("edit")}>
               {uiText("ui.edit.session")}</Button>
           </>
         ) : (
           <>
             <Button variant="ghost" onClick={onClose} disabled={busy}>
               {uiText("ui.cancel")}</Button>
-            <Button onClick={save} loading={busy} disabled={!form.serviceId}>
+            <Button onClick={isEdit ? () => requestReview("save") : save} loading={busy} disabled={!form.serviceId}>
               {isEdit ? uiText("ui.save.changes") : uiText("ui.create.session")}
             </Button>
           </>
         )
       }
     >
+      {changeError && <p role="alert" className="mb-4 text-small text-danger">{changeError}</p>}
       {showTabs && (
         <div className="mb-5">
           {edit.notice}
@@ -401,7 +427,7 @@ export function SessionDrawer({
                 variant="secondary"
                 size="sm"
                 icon="check"
-                onClick={saveNote}
+                onClick={() => requestReview("note")}
                 loading={savingNote}
               >
                 {uiText("ui.save.note")}</Button>
@@ -425,10 +451,15 @@ export function SessionDrawer({
         <AttendanceTab sessionId={initial.id} />
       ) : (
       <fieldset disabled={isView} className="flex flex-col gap-5 disabled:opacity-90">
+        {isEdit && initial?.recurring !== "one-off" && <Field label={uiText("session.changeScope")}>
+          <Select value={scope} onChange={(event) => {setScope(event.target.value as SessionUpdateScope); setForm((current) => ({...current, date: slotParts(initial!.startISO, timezone).date}));}}
+            options={[{value: "this", label: uiText("session.this")}, {value: "this_and_following", label: uiText("session.following")}]} />
+        </Field>}
         <Input value={serviceSearch} placeholder={uiText("common.search")} onChange={(event) => setServiceSearch(event.target.value)} />
         {lookupError && <LoadError message={lookupError} onRetry={() => setLookupAttempt((value) => value + 1)} />}
         <Field label={uiText("ui.service")} required>
           <Select
+            disabled={scope === "this_and_following" || (initial?.bookedCount ?? 0) > 0}
             value={form.serviceId}
             onChange={(e) => {
               const id = e.target.value;
@@ -453,6 +484,7 @@ export function SessionDrawer({
           <Field label={uiText("ui.date")} required>
             <Input
               type="date"
+              disabled={scope === "this_and_following"}
               value={form.date}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
             />
@@ -507,6 +539,7 @@ export function SessionDrawer({
           </Field>
           <Field label={uiText("ui.recurrence")}>
             <Select
+              disabled={isEdit}
               value={form.recurring}
               onChange={(e) =>
                 setForm({ ...form, recurring: e.target.value as Recurring })
@@ -561,7 +594,7 @@ export function SessionDrawer({
               variant="danger"
               size="sm"
               icon="x"
-              onClick={() => setConfirmCancel(true)}
+              onClick={() => requestReview("cancel")}
               disabled={busy}
             >
               {uiText("ui.cancel.session")}</Button>
@@ -571,15 +604,14 @@ export function SessionDrawer({
       )}
 
       <ConfirmDialog
-        open={confirmCancel}
-        onClose={() => !busy && setConfirmCancel(false)}
-        onConfirm={cancel}
-        title={uiText("ui.cancel.this.session")}
-        description={uiText("ui.all.attendees.will.be.notified.and.their.bookings.marked.cancelled")}
-        confirmLabel={uiText("ui.cancel.session")}
-        cancelLabel={uiText("ui.keep.session")}
-        destructive
-        busy={busy}
+        open={review !== null}
+        onClose={() => !busy && !savingNote && setReview(null)}
+        onConfirm={review?.action === "cancel" ? cancel : review?.action === "note" ? saveNote : save}
+        title={review?.action === "cancel" ? uiText("ui.cancel.this.session") : uiText("session.reviewChange")}
+        description={review ? `${uiText("session.impact", {sessions: review.impact.sessionCount, bookings: review.impact.activeBookingCount, paid: review.impact.paidBookingCount})} ${review.impact.paidBookingCount && review.action === "cancel" ? uiText("session.manualRefund") : ""} ${uiText("session.current", {date: new Date(review.latest.startISO).toLocaleString(localeForLang(lang), {timeZone: timezone}), location: review.latest.location, capacity: review.latest.capacity})}` : ""}
+        confirmLabel={review?.action === "cancel" ? uiText("ui.cancel.session") : uiText("ui.save.changes")}
+        destructive={review?.action === "cancel"}
+        busy={busy || savingNote}
       />
     </DrawerShell>
   );

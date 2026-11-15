@@ -250,7 +250,7 @@ class PublicBookingRepository:
         now: datetime | None = None,
     ) -> tuple[str, list[AvailabilitySlot]]:
         service, context = await self.get_service(workspace_id, service_id)
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             effective_now = now or datetime.now(UTC)
             await self._expire_manual_bookings(session, workspace_id, effective_now)
             if service.booking_mode == ServiceBookingMode.SCHEDULED:
@@ -517,7 +517,7 @@ class PublicBookingRepository:
         values: Mapping[str, Any],
     ) -> PublicBookingResult:
         fingerprint = _fingerprint(values)
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             await session.execute(
                 text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
                 {"key": f"public-booking-idempotency:{workspace_id}:{idempotency_key}"},

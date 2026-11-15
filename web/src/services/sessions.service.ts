@@ -5,7 +5,8 @@ import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
-import { sessionOverlaps } from "@/lib/calendar";
+import { verifiedMetadata } from "@/api/query-cache";
+import { isoWeekdayInTimezone, sessionOverlaps } from "@/lib/calendar";
 import type { SessionItem, SessionInput } from "@/types/session";
 import { ApiRequestError, NotFoundError } from "./_errors";
 
@@ -48,6 +49,7 @@ function mapSession(session: SessionDto): SessionItem {
   return {
     version: session.version,
     seriesVersion: session.seriesVersion ?? undefined,
+    seriesId: session.seriesId ?? undefined,
     id: session.id,
     serviceId: session.serviceId,
     startISO: session.startAt,
@@ -63,10 +65,6 @@ function mapSession(session: SessionDto): SessionItem {
   };
 }
 
-function isoWeekday(startISO: string): number {
-  const day = new Date(startISO).getUTCDay();
-  return day === 0 ? 7 : day;
-}
 
 function createPayload(input: SessionInput): SessionCreateDto {
   if (input.recurring === "custom") {
@@ -87,7 +85,7 @@ function createPayload(input: SessionInput): SessionCreateDto {
     notes: input.notes ?? null,
     recurrence:
       input.recurring === "weekly"
-        ? { intervalWeeks: 1, weekdays: [isoWeekday(input.startISO)], endsOn: null }
+        ? { intervalWeeks: 1, weekdays: [isoWeekdayInTimezone(input.startISO, verifiedMetadata().timezone ?? "UTC")], endsOn: null }
         : null,
   };
 }
@@ -116,11 +114,11 @@ export async function listSessions(): Promise<SessionItem[]> {
   return [...mock];
 }
 
-export async function getSession(id: string): Promise<SessionItem | null> {
+export async function getSession(id: string, fresh = false): Promise<SessionItem | null> {
   if (dataSource === "api") {
     try {
       return mapSession(
-        await apiRequest<SessionDto>(`/sessions/${encodeURIComponent(id)}`),
+        await apiRequest<SessionDto>(`/sessions/${encodeURIComponent(id)}`, {cache: !fresh}),
       );
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 404) return null;
@@ -148,32 +146,63 @@ export async function createSession(input: SessionInput): Promise<SessionItem> {
   return created;
 }
 
-export async function updateSession(
-  id: string,
-  patch: Partial<SessionInput>,
-  scope: SessionUpdateScope = "this",
-  expectedVersion?: number,
-  seriesVersion?: number,
-): Promise<SessionItem> {
-  if (dataSource === "api") {
-    return mapSession(
-      await apiRequest<SessionDto, SessionPatchDto>(
-        `/sessions/${encodeURIComponent(id)}?scope=${scope}`,
-        { method: "PATCH", body: patchPayload(patch), csrf: true, expectedVersion,
-          headers: seriesVersion ? {"X-Series-Version": String(seriesVersion)} : undefined },
-      ),
-    );
-  }
-  await sleep(100);
-  const idx = mock.findIndex((s) => s.id === id);
-  if (idx === -1) throw new NotFoundError("session", id);
-  const next: SessionItem = { ...mock[idx], ...patch };
-  mock = [...mock.slice(0, idx), next, ...mock.slice(idx + 1)];
-  return next;
+export type SessionReview = { impactRevision: string; idempotencyKey: string };
+export type SessionImpact = {sessionCount: number; activeBookingCount: number; paidBookingCount: number; revision: string};
+export async function previewSessionChange(id: string, scope: SessionUpdateScope): Promise<SessionImpact> {
+  if (dataSource === "api") return apiRequest<components["schemas"]["SessionImpactResponse"]>(`/sessions/${encodeURIComponent(id)}/change-preview?scope=${scope}`, {cache: false});
+  const item = mock.find((entry) => entry.id === id);
+  if (!item) throw new NotFoundError("session", id);
+  const affected = scope === "this" || !item.seriesId ? [item] : mock.filter((entry) => entry.seriesId === item.seriesId && entry.startISO >= item.startISO);
+  const {listBookingsBySession} = await import("./bookings.service");
+  const active = (await Promise.all(affected.map((entry) => listBookingsBySession(entry.id)))).flat().filter((booking) => ["pending", "confirmed"].includes(booking.status));
+  return {sessionCount: affected.length, activeBookingCount: active.length, paidBookingCount: active.filter((booking) => booking.paymentStatus === "paid").length, revision: String(item.version)};
 }
 
-export async function cancelSession(id: string, expectedVersion?: number): Promise<SessionItem> {
-  return updateSession(id, { status: "cancelled" }, "this", expectedVersion);
+export async function updateSession(
+  id: string, patch: Partial<SessionInput>, scope: SessionUpdateScope = "this",
+  expectedVersion?: number, seriesVersion?: number, review?: SessionReview,
+): Promise<SessionItem> {
+  if (dataSource === "api") {
+    if (!review) throw new ApiRequestError(422, "session_review_required", "Review the session impact before saving.");
+    return mapSession(await apiRequest<SessionDto, SessionPatchDto>(`/sessions/${encodeURIComponent(id)}?scope=${scope}`, {
+      method: "PATCH", body: patchPayload(patch), csrf: true, expectedVersion,
+      idempotencyKey: review.idempotencyKey,
+      headers: {"X-Impact-Revision": review.impactRevision, ...(seriesVersion ? {"X-Series-Version": String(seriesVersion)} : {})},
+    }));
+  }
+  await sleep(100);
+  const idx = mock.findIndex((entry) => entry.id === id);
+  if (idx === -1) throw new NotFoundError("session", id);
+  if (expectedVersion !== undefined && mock[idx].version !== expectedVersion) throw new ApiRequestError(409, "resource_stale", "Review the latest session before saving.");
+  if (patch.serviceId !== undefined && patch.serviceId !== mock[idx].serviceId) {
+    const {listBookingsBySession} = await import("./bookings.service");
+    if ((await listBookingsBySession(id)).length) throw new ApiRequestError(409, "session_service_in_use", "A session with booking history cannot change its service.");
+  }
+  const affected = scope === "this" || !mock[idx].seriesId ? [mock[idx]] : mock.filter((entry) => entry.seriesId === mock[idx].seriesId && entry.startISO >= mock[idx].startISO);
+  if (patch.capacity !== undefined && affected.some((entry) => entry.bookedCount > patch.capacity!)) throw new ApiRequestError(409, "session_capacity_in_use", "Capacity cannot be lower than the active booking count.");
+  const ids = affected.map((entry) => entry.id);
+  const startDelta = patch.startISO ? Date.parse(patch.startISO) - Date.parse(mock[idx].startISO) : 0;
+  const endDelta = patch.endISO ? Date.parse(patch.endISO) - Date.parse(mock[idx].endISO) : 0;
+  mock = mock.map((entry) => ids.includes(entry.id) ? {...entry, ...patch,
+    ...(patch.startISO ? {startISO: new Date(Date.parse(entry.startISO) + startDelta).toISOString()} : {}),
+    ...(patch.endISO ? {endISO: new Date(Date.parse(entry.endISO) + endDelta).toISOString()} : {}),
+    version: (entry.version ?? 1) + 1} : entry);
+  return mock.find((entry) => entry.id === id)!;
+}
+
+export async function cancelSession(id: string, expectedVersion?: number, scope: SessionUpdateScope = "this", seriesVersion?: number, review?: SessionReview): Promise<SessionItem> {
+  if (dataSource === "api") {
+    if (!review) throw new ApiRequestError(422, "session_review_required", "Review the session impact before cancelling.");
+    return mapSession(await apiRequest<SessionDto>(`/sessions/${encodeURIComponent(id)}/cancel?scope=${scope}`, {
+      method: "POST", csrf: true, expectedVersion, idempotencyKey: review.idempotencyKey,
+      headers: {"X-Impact-Revision": review.impactRevision, ...(seriesVersion ? {"X-Series-Version": String(seriesVersion)} : {})},
+    }));
+  }
+  const bookingService = await import("./bookings.service");
+  const result = await updateSession(id, {status: "cancelled", bookedCount: 0}, scope, expectedVersion);
+  const ids = scope === "this" || !result.seriesId ? [id] : mock.filter((entry) => entry.seriesId === result.seriesId && entry.startISO >= result.startISO).map((entry) => entry.id);
+  bookingService.cancelMockSessionBookings(ids);
+  return result;
 }
 
 export async function findConflict(

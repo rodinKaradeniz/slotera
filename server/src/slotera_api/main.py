@@ -78,6 +78,7 @@ def create_app(
             "Idempotency-Key",
             "If-Match",
             "X-Series-Version",
+            "X-Impact-Revision",
             "X-Booking-Token",
             "X-CSRF-Token",
         ],

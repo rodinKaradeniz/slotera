@@ -98,7 +98,7 @@ class Database:
 
     @asynccontextmanager
     async def tenant_transaction(
-        self, workspace_id: UUID, *, repeatable_read: bool = False
+        self, workspace_id: UUID, *, repeatable_read: bool = False, scheduling_write: bool = False
     ) -> AsyncIterator[AsyncSession]:
         async with self.session_factory() as session, session.begin():
             started = perf_counter()
@@ -129,6 +129,13 @@ class Database:
                         "request_id": context.request_id,
                         "operation_id": context.operation_id or context.request_id,
                     },
+                )
+            if scheduling_write:
+                if repeatable_read:
+                    raise ValueError("A scheduling write cannot use a read-only snapshot")
+                await session.execute(
+                    text("SELECT pg_advisory_xact_lock(hashtextextended(:scope, 0))"),
+                    {"scope": f"slotera:scheduling:{workspace_id}"},
                 )
             yield session
 

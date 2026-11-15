@@ -1,10 +1,10 @@
 from collections.abc import Mapping
 from datetime import UTC, date, datetime, timedelta
-from typing import Any, Literal
+from typing import Any
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 
 from slotera_api.database import Database
@@ -22,16 +22,12 @@ from slotera_api.db.models import (
     WorkspaceBusinessProfile,
     WorkspaceMembership,
 )
-from slotera_api.editing import ensure_version, lock_settings_revision
+from slotera_api.editing import lock_settings_revision
 from slotera_api.scheduling.recurrence import ROLLING_HORIZON_DAYS, expand_weekly_occurrences
 from slotera_api.session_capacity import CAPACITY_CONSUMING_STATUSES
 
 
 class SessionConflictError(Exception):
-    pass
-
-
-class PastSessionImmutableError(Exception):
     pass
 
 
@@ -236,7 +232,9 @@ class SchedulingRepository:
         recurrence: Mapping[str, Any] | None,
     ) -> SessionRecord | None:
         try:
-            async with self.database.tenant_transaction(workspace_id) as session:
+            async with self.database.tenant_transaction(
+                workspace_id, scheduling_write=True
+            ) as session:
                 service_exists = await session.scalar(
                     select(Service.id).where(
                         Service.workspace_id == workspace_id,
@@ -278,6 +276,15 @@ class SchedulingRepository:
                     series = SessionSeries(
                         id=uuid4(),
                         workspace_id=workspace_id,
+                        service_id=values["service_id"],
+                        calendar_owner_id=values["calendar_owner_id"],
+                        start_local=local_start.time().replace(tzinfo=None),
+                        duration_min=duration_minutes,
+                        capacity=values["capacity"],
+                        location_type=values["location_type"],
+                        location=values["location"],
+                        address=values.get("address"),
+                        notes=values.get("notes"),
                         interval_weeks=recurrence["interval_weeks"],
                         weekdays=recurrence["weekdays"],
                         timezone=timezone,
@@ -316,184 +323,32 @@ class SchedulingRepository:
                 raise SessionConflictError from exc
             raise
 
-    async def update_session(
-        self,
-        workspace_id: UUID,
-        actor_user_id: UUID,
-        session_id: UUID,
-        changes: Mapping[str, Any],
-        scope: Literal["this", "this_and_following"],
-        expected_version: int | None = None,
-        expected_series_version: int | None = None,
-    ) -> SessionRecord | None:
-        try:
-            async with self.database.tenant_transaction(workspace_id) as session:
-                target = await session.scalar(
-                    select(Session).where(
-                        Session.workspace_id == workspace_id, Session.id == session_id
-                    )
-                )
-                if target is None:
-                    return None
-                # Series is always locked before occurrences, including single edits.
-                series = None
-                if target.series_id is not None:
-                    series = await session.scalar(
-                        select(SessionSeries)
-                        .where(
-                            SessionSeries.workspace_id == workspace_id,
-                            SessionSeries.id == target.series_id,
-                        )
-                        .with_for_update()
-                    )
-                    if scope == "this_and_following" and series is not None:
-                        if expected_version is not None and expected_series_version is None:
-                            from slotera_api.errors import ApiError
-
-                            raise ApiError(
-                                status_code=422,
-                                code="series_version_required",
-                                message="Review the recurring series before editing it",
-                            )
-                        ensure_version(series, expected_series_version)
-                target = await session.scalar(
-                    select(Session)
-                    .where(Session.workspace_id == workspace_id, Session.id == session_id)
-                    .with_for_update()
-                    .execution_options(populate_existing=True)
-                )
-                if target is None:
-                    return None
-                ensure_version(target, expected_version)
-                schedule_fields = {
-                    "service_id",
-                    "calendar_owner_id",
-                    "start_at",
-                    "end_at",
-                    "capacity",
-                    "location_type",
-                    "location",
-                    "address",
-                }
-                target_is_past = target.start_at < datetime.now(UTC)
-                if target_is_past and (
-                    scope == "this_and_following" or schedule_fields.intersection(changes)
-                ):
-                    raise PastSessionImmutableError
-                if "service_id" in changes:
-                    exists = await session.scalar(
-                        select(Service.id).where(
-                            Service.workspace_id == workspace_id,
-                            Service.id == changes["service_id"],
-                        )
-                    )
-                    if exists is None:
-                        return None
-                if "calendar_owner_id" in changes:
-                    exists = await session.scalar(
-                        select(WorkspaceMembership.id).where(
-                            WorkspaceMembership.workspace_id == workspace_id,
-                            WorkspaceMembership.user_id == changes["calendar_owner_id"],
-                        )
-                    )
-                    if exists is None:
-                        return None
-
-                affected = [target]
-                if scope == "this_and_following" and target.series_id is not None:
-                    affected = list(
-                        (
-                            await session.scalars(
-                                select(Session)
-                                .where(
-                                    Session.workspace_id == workspace_id,
-                                    Session.series_id == target.series_id,
-                                    Session.start_at >= target.start_at,
-                                )
-                                .order_by(Session.id)
-                                .with_for_update()
-                            )
-                        ).all()
-                    )
-                    await session.execute(text("SET CONSTRAINTS ex_sessions_owner_time DEFERRED"))
-
-                if series is not None:
-                    series.version += 1
-                start_delta = (
-                    changes["start_at"] - target.start_at if "start_at" in changes else None
-                )
-                end_delta = changes["end_at"] - target.end_at if "end_at" in changes else None
-                ordinary = {
-                    key: value
-                    for key, value in changes.items()
-                    if key not in {"start_at", "end_at"}
-                }
-                for occurrence in affected:
-                    if start_delta is not None and end_delta is not None:
-                        occurrence.start_at += start_delta
-                        occurrence.end_at += end_delta
-                    for key, value in ordinary.items():
-                        setattr(occurrence, key, value)
-                session.add(
-                    AuditEvent(
-                        workspace_id=workspace_id,
-                        actor_user_id=actor_user_id,
-                        action="session.updated",
-                        resource_type="session",
-                        resource_id=session_id,
-                        details={"fields": sorted(changes), "scope": scope},
-                    )
-                )
-                await session.flush()
-                await session.refresh(target)
-                series = (
-                    await session.get(SessionSeries, target.series_id)
-                    if target.series_id is not None
-                    else None
-                )
-                return target, series
-        except IntegrityError as exc:
-            if _is_exclusion_violation(exc):
-                raise SessionConflictError from exc
-            raise
-
     async def extend_series(self, workspace_id: UUID, series_id: UUID) -> int:
         """Top a recurring series back up to `ROLLING_HORIZON_DAYS` ahead of today.
 
-        New occurrences copy the latest live occurrence, so edits made with
-        "this and following" carry forward. Dates that already exist are skipped, and an
+        New occurrences use the series-owned generation template, so single-occurrence
+        overrides never leak into future dates. Dates that already exist are skipped, and an
         occurrence that would clash with another session is skipped rather than failing
         the whole series. Returns the number of sessions created.
         """
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             series = await session.scalar(
                 select(SessionSeries)
                 .where(SessionSeries.workspace_id == workspace_id, SessionSeries.id == series_id)
                 .with_for_update()
             )
-            if series is None:
+            if series is None or series.cancelled_from is not None:
                 return 0
-            template = await session.scalar(
-                select(Session)
-                .where(
-                    Session.workspace_id == workspace_id,
-                    Session.series_id == series_id,
-                    Session.status != SessionStatus.CANCELLED,
-                )
-                .order_by(Session.start_at.desc())
-                .limit(1)
-            )
-            if template is None:
-                return 0
-
             today = datetime.now(ZoneInfo(series.timezone)).date()
             target = today + timedelta(days=ROLLING_HORIZON_DAYS)
             horizon_end: date = min(series.ends_on, target) if series.ends_on else target
             if horizon_end <= series.horizon_through:
                 return 0
             ranges = expand_weekly_occurrences(
-                first_start=template.start_at,
-                duration_minutes=int((template.end_at - template.start_at).total_seconds() // 60),
+                first_start=datetime.combine(
+                    series.starts_on, series.start_local, tzinfo=ZoneInfo(series.timezone)
+                ),
+                duration_minutes=series.duration_min,
                 timezone=series.timezone,
                 interval_weeks=series.interval_weeks,
                 weekdays=tuple(series.weekdays),
@@ -520,15 +375,15 @@ class SchedulingRepository:
                                 id=uuid4(),
                                 workspace_id=workspace_id,
                                 series_id=series_id,
-                                service_id=template.service_id,
-                                calendar_owner_id=template.calendar_owner_id,
+                                service_id=series.service_id,
+                                calendar_owner_id=series.calendar_owner_id,
                                 start_at=starts_at,
                                 end_at=ends_at,
-                                capacity=template.capacity,
-                                location_type=template.location_type,
-                                location=template.location,
-                                address=template.address,
-                                notes=template.notes,
+                                capacity=series.capacity,
+                                location_type=series.location_type,
+                                location=series.location,
+                                address=series.address,
+                                notes=series.notes,
                             )
                         )
                     created += 1

@@ -38,3 +38,16 @@ def test_availability_rejects_overlapping_windows_on_the_same_day() -> None:
                 "blackouts": [],
             }
         )
+
+
+def test_recurrence_preserves_an_explicit_second_fall_clock_occurrence() -> None:
+    first = datetime(2026, 10, 25, 1, 30, tzinfo=UTC)
+    occurrences = expand_weekly_occurrences(
+        first_start=first,
+        duration_minutes=60,
+        timezone="Europe/Berlin",
+        interval_weeks=1,
+        weekdays=(7,),
+        horizon_end=date(2026, 11, 1),
+    )
+    assert [start for start, _ in occurrences] == [first, datetime(2026, 11, 1, 1, 30, tzinfo=UTC)]

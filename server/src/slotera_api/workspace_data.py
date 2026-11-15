@@ -51,6 +51,7 @@ NOT_EXPORTED_TABLES: frozenset[str] = frozenset(
         "booking_access_tokens",
         "calendar_feed_tokens",
         "booking_command_idempotency",
+        "session_command_idempotency",
         "public_booking_idempotency",
     }
 )

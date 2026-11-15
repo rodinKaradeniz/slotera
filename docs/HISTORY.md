@@ -1976,3 +1976,72 @@ errors the safe formatter. A live local readiness probe passes against the reset
 a synthetic private feed marker is absent from all process output while its route template
 and 404 are retained. The additional isolated redaction test brings that suite to 103 passes.
 Temporary verification servers are stopped and disposable benchmark databases removed.
+
+
+### 2026-11-15 — Reviewed, transactional local session workflows
+
+Session changes now use a preview and one transaction-scoped workspace scheduling gate before
+row locks. Booking commands formerly locked bookings before sessions, while recurring bulk
+changes needed sessions before attendee bookings; the shared gate removes that conflicting
+write order without blocking reads or adding infrastructure. The same gate covers maintenance,
+client erasure, public form writes and workspace purge. Public management writes recheck their
+link after the gate so a waiting request cannot outlive an address-correction revocation.
+
+Dedicated cancellation transitions only active bookings and preserves terminal, payment,
+financial and immutable form facts. Time/location changes and cancellation suppress old unclaimed
+customer messages and queue current notices using saved destinations/languages; a claimed
+message rejects everything. Session command records retain reviewed outcomes, making identical
+retries harmless even after resource revisions advance. Generic status patches cannot cancel or
+reopen sessions. Private notes remain independently editable, including on cancelled sessions.
+
+Following edits retain each recurrence date and apply local clock deltas across DST. The existing
+series owns a cancellation cutoff and stops later materialisation; no series-splitting system was
+added. The ineffective client-task visibility property, control and database column were removed.
+Sign-in descriptions and upcoming-session dates use existing EN/TR/DE dictionaries/Intl formatting.
+
+Playwright is development-only and runs against an environment-free production build plus a
+fixed disposable test database. Its runner does not inherit provider settings, start a delivery
+worker or read real environment files. CI failure artifacts contain allow-listed result metadata
+and synthetic screen pixels; raw contexts, bodies, headers, tokens, traces and video are excluded.
+Production browser checks caught the day/week Calendar's old selection-toggle behavior, which
+required two clicks to reopen the same event; both grids now open the selected event on every click.
+Named dialog locators also ensure tests wait for asynchronous impact review before confirming.
+
+The two consolidated migrations remain the only revisions; the shared showcase seed drops the
+unused task flag. Webpack was used for isolated verification because the previously observed
+sandbox Turbopack build stall remains outside this change. The default mock demo and dates are
+preserved. See VERIFY_LOCAL_BOOKING.md for exact evidence and walkthroughs. Live integration,
+operational and deployment verification remain on standby, and npm's separately observed
+Next.js/Vitest security advisories are recorded in TODO rather than hidden in this feature work.
+
+
+Final recurrence inspection found that copying the latest occurrence into the rolling horizon
+would leak a "This session" exception into future sessions. The existing series now owns its
+generation fields, with tenant foreign keys to service/calendar owner and explicit local time,
+duration, capacity and location. Only following-scope edits update that template; single changes
+stay on their occurrence. A PostgreSQL regression changes the final occurrence's time/location,
+then extends the horizon and proves the next occurrence still uses the series template.
+
+
+Production browser verification also reproduced active/cancelled events covering one another.
+Day and week views now share a deterministic overlap-lane layout based on rendered card heights,
+so history remains visible without covering active click targets. Day filtering uses the workspace
+calendar-date key, matching the week view. The browser reporter records only safe source-line
+numbers and named phases for failures; it never logs raw locator/URL/error values.
+
+
+Weekly creation now derives its weekday from the verified workspace timezone, rather than
+UTC, so late-night/early-morning sessions retain the selected calendar date. Tests cover both
+a positive and negative UTC offset. The recurrence expander also preserves an explicitly chosen
+second fall-back clock occurrence on the first date instead of silently omitting that occurrence.
+
+
+Verification: 136 frontend tests, 107 isolated backend tests and 93 PostgreSQL integration
+cases pass, with TypeScript, ESLint, Ruff and strict mypy clean. Production Webpack mock/API
+builds pass their fixture boundary guards. Eight production Chromium journeys cover desktop/
+mobile EN/TR/DE booking/form/review/recovery flows and both recurring-control layouts.
+The final schema migrates empty-to-0002 and Alembic reports no model/schema differences.
+The warm local read gate passes at 143.56 ms HTTP p95 with five concurrent readers and eight
+queries/read. The normal local database is restored to the small showcase after tests.
+Remote CI and live integrations were not executed. See VERIFY_LOCAL_BOOKING.md and the
+linked JSON artifacts; dependency advisories remain a separately recorded security finding.

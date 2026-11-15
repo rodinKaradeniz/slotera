@@ -2,6 +2,21 @@ import type { Messages } from "./en";
 
 /** Turkish — demo-grade translations. Missing keys fall back to English. */
 export const tr: Partial<Messages> = {
+  "session.impactChanged": "Katılımcılar değişti. Taslağınız korundu; etkiyi yeniden inceleyin.",
+  "session.capacityConflict": "Kapasite aktif rezervasyon sayısından düşük olamaz.",
+  "session.serviceConflict": "Rezervasyon geçmişi olan bir seansın hizmeti değiştirilemez.",
+  "session.singleDate": "Takvim tarihini değiştirmek için Bu seans seçeneğini kullanın.",
+  "session.cancelled": "İptal edilen seanslar yeniden açılamaz.",
+
+  "auth.login.description": "Rezervasyonları, seansları ve danışanları yönetmek için giriş yapın.",
+  "session.changeScope": "Uygulama kapsamı",
+  "session.this": "Bu seans",
+  "session.following": "Bu ve sonraki seanslar",
+  "session.reviewChange": "Seans değişikliğini inceleyin",
+  "session.impact": "{sessions} seans · {bookings} aktif rezervasyon · {paid} ödenmiş rezervasyon.",
+  "session.manualRefund": "Gerekli iadeleri ayrıca düzenleyin; ödeme kayıtları değişmez.",
+  "session.current": "Mevcut seans: {date}, {location}, kapasite {capacity}.",
+
   "attendance.markPage": "Bu sayfadakileri katıldı işaretle",
   "common.pagination": "Sayfalama",
   "calendar.bookedCount": "{count} / {capacity} kişi kayıtlı",

@@ -9,7 +9,6 @@ import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Toggle } from "@/components/ui/Toggle";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
@@ -34,21 +33,17 @@ type DraftFields = {
   title: string;
   description: string;
   dueDate: string;
-  clientVisible: boolean;
 };
 
 const EMPTY_DRAFT: DraftFields = {
   title: "",
   description: "",
   dueDate: "",
-  clientVisible: false,
 };
 
 /**
  * Admin-side action-item manager rendered inside SessionDrawer's "Notes &
- * Actions" tab. Lightweight by design: add / edit / mark done / delete and an
- * optional due date + "Visible to client" toggle. `clientVisible` flags an
- * item for a future client-facing surface; it is admin-only today. No
+ * Actions" tab. Private add / edit / mark done / delete controls, with no
  * assignees, comments, reminders, or recurrence.
  */
 export function SessionActionItems({ sessionId, items, onChange, loading }: Props) {
@@ -64,7 +59,7 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
 
   const editingItem = items.find((item) => item.id === editingId);
   const edit = useReviewedEdit(editingId !== null, editingItem ? {...editingItem, version: editDraft.version} : null, getActionItem, (latest) => {
-    setEditDraft({version: latest.version, title: latest.title, description: latest.description ?? "", dueDate: latest.dueDate ?? "", clientVisible: latest.clientVisible ?? false});
+    setEditDraft({version: latest.version, title: latest.title, description: latest.description ?? "", dueDate: latest.dueDate ?? ""});
     onChange(items.map((item) => item.id === latest.id ? latest : item));
   });
 
@@ -88,7 +83,6 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
         description: draft.description.trim() || undefined,
         status: "todo",
         dueDate: draft.dueDate || undefined,
-        clientVisible: draft.clientVisible,
       });
       onChange([...items, created]);
       setDraft(EMPTY_DRAFT);
@@ -115,18 +109,6 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
     } finally {setBusy(false);}
   };
 
-  const toggleVisibility = async (item: SessionActionItem) => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const next = await updateActionItem(item.id, {clientVisible: !item.clientVisible}, item.version);
-      onChange(items.map((current) => current.id === next.id ? next : current));
-    } catch (error) {
-      edit.onError(error);
-      toast.error(uiText("ui.couldn.t.update.item"), {description: error instanceof Error ? error.message : undefined});
-    } finally {setBusy(false);}
-  };
-
   const startEdit = (item: SessionActionItem) => {
     setEditingId(item.id);
     setEditDraft({
@@ -134,7 +116,6 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
       title: item.title,
       description: item.description ?? "",
       dueDate: item.dueDate ?? "",
-      clientVisible: item.clientVisible ?? false,
     });
   };
 
@@ -147,7 +128,6 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
         title,
         description: editDraft.description.trim() || undefined,
         dueDate: editDraft.dueDate || undefined,
-        clientVisible: editDraft.clientVisible,
       }, edit.version);
       onChange(items.map((i) => (i.id === item.id ? next : i)));
       setEditingId(null);
@@ -237,16 +217,6 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                           setEditDraft({ ...editDraft, dueDate: e.target.value })
                         }
                       />
-                      <label className="flex items-center gap-2 text-small text-ink-2 select-none">
-                        <Toggle
-                          size="sm"
-                          checked={editDraft.clientVisible}
-                          onChange={(v) =>
-                            setEditDraft({ ...editDraft, clientVisible: v })
-                          }
-                          aria-label={uiText("ui.visible.to.client")}
-                        />
-                        {uiText("ui.visible.to.client")}</label>
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button
@@ -295,10 +265,6 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                         </p>
                       )}
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        {item.clientVisible && (
-                          <Pill tone="accent" icon="user">
-                            {uiText("ui.visible.to.client")}</Pill>
-                        )}
                         {item.dueDate && (
                           <Pill tone="neutral" icon="calendar">
                             {uiText("ui.due")}{item.dueDate}
@@ -307,28 +273,6 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
                       </div>
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => toggleVisibility(item)}
-                        aria-label={
-                          item.clientVisible
-                            ? uiText("ui.hide.from.client")
-                            : uiText("ui.share.with.client")
-                        }
-                        title={
-                          item.clientVisible
-                            ? uiText("ui.hide.from.client")
-                            : uiText("ui.share.with.client")
-                        }
-                        className={cn(
-                          "w-7 h-7 rounded-md flex items-center justify-center transition-colors",
-                          item.clientVisible
-                            ? "text-accent hover:bg-paper-2"
-                            : "text-ink-4 hover:text-ink-2 hover:bg-paper-2",
-                        )}
-                      >
-                        <Icon name="eye" size={15} />
-                      </button>
                       <button
                         type="button"
                         onClick={() => startEdit(item)}
@@ -375,14 +319,6 @@ export function SessionActionItems({ sessionId, items, onChange, loading }: Prop
             aria-label={uiText("ui.due.date")}
             onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })}
           />
-          <label className="flex items-center gap-2 text-small text-ink-2 select-none">
-            <Toggle
-              size="sm"
-              checked={draft.clientVisible}
-              onChange={(v) => setDraft({ ...draft, clientVisible: v })}
-              aria-label={uiText("ui.visible.to.client")}
-            />
-            {uiText("ui.visible.to.client")}</label>
           <Button
             size="sm"
             icon="plus"

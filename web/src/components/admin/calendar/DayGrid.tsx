@@ -2,7 +2,8 @@
 import { readLang, localeForLang } from "@/lib/i18n";
 
 import * as React from "react";
-import { sameDay } from "@/lib/calendar";
+import { eventColumns } from "./event-columns";
+import { sameDay, calendarDayKey } from "@/lib/calendar";
 import { EventBlock, type CalEvent } from "./EventBlock";
 import { cn } from "@/lib/cn";
 
@@ -18,8 +19,9 @@ const HOUR_PX = 64;
 
 export function DayGrid({ anchor, events, selectedId, onSelect }: Props) {
   const dayEvents = events.filter((e) =>
-    sameDay(new Date(e.session.startISO), anchor),
+    e.dateKey === calendarDayKey(anchor),
   );
+  const columns = eventColumns(dayEvents, HOUR_PX);
   const today = sameDay(anchor, new Date());
 
   return (
@@ -64,10 +66,11 @@ export function DayGrid({ anchor, events, selectedId, onSelect }: Props) {
             <EventBlock
               key={e.session.id}
               event={e}
+              column={columns.get(e.session.id)}
               selected={e.session.id === selectedId}
               hourPx={HOUR_PX}
               onSelect={() =>
-                onSelect(e.session.id === selectedId ? null : e.session.id)
+                onSelect(e.session.id)
               }
             />
           ))}

@@ -46,9 +46,14 @@ async def test_operator_manages_session_action_items_without_public_visibility()
                     "title": "Send follow-up",
                     "description": "Include the workshop summary.",
                     "dueDate": "2026-08-01",
-                    "clientVisible": True,
                 },
             )
+            invalid_public_flag = await client.post(
+                f"/sessions/{session_id}/action-items",
+                headers=_csrf_headers(client),
+                json={"title": "Never public", "clientVisible": True},
+            )
+            assert invalid_public_flag.status_code == 422
             action_id = created.json()["id"]
             changed = await client.patch(
                 f"/session-action-items/{action_id}",
@@ -94,7 +99,7 @@ async def test_operator_manages_session_action_items_without_public_visibility()
 
     assert created.status_code == 201
     assert created.headers["Cache-Control"] == "no-store"
-    assert created.json()["clientVisible"] is True
+    assert "clientVisible" not in created.json()
     assert changed.status_code == 200
     assert changed.json()["status"] == "done"
     assert listed.status_code == 200

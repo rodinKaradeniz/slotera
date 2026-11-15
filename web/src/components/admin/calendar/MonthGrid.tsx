@@ -71,6 +71,7 @@ export function MonthGrid({ anchor, events, onSelect }: Props) {
                     key={e.session.id}
                     type="button"
                     onClick={() => onSelect(e.session.id)}
+                    aria-label={`${e.service?.name ?? uiText("ui.session")} · ${e.dateKey} · ${e.session.location}`}
                     className="text-left text-[11px] px-1.5 py-0.5 rounded truncate min-w-0"
                     style={{
                       background: EVENT_STYLE.bg,

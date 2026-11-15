@@ -374,7 +374,7 @@ class BookingsRepository:
                 "expected_recipient_email": expected_recipient_email,
             },
         )
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             booking = await session.scalar(
                 select(Booking)
                 .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
@@ -504,7 +504,9 @@ class BookingsRepository:
             "create",
             dict(values),
         )
-        async with self.database.tenant_transaction(workspace_id) as database_session:
+        async with self.database.tenant_transaction(
+            workspace_id, scheduling_write=True
+        ) as database_session:
             # Client precedes session/booking locks, matching erasure's lock order.
             client = (
                 await database_session.scalar(
@@ -659,7 +661,9 @@ class BookingsRepository:
                 "audit_reason": values["audit_reason"],
             },
         )
-        async with self.database.tenant_transaction(workspace_id) as database_session:
+        async with self.database.tenant_transaction(
+            workspace_id, scheduling_write=True
+        ) as database_session:
             booking = await database_session.scalar(
                 select(Booking)
                 .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
@@ -751,7 +755,9 @@ class BookingsRepository:
             "attendance",
             {"booking_id": str(booking_id), "attendance": attendance.value},
         )
-        async with self.database.tenant_transaction(workspace_id) as database_session:
+        async with self.database.tenant_transaction(
+            workspace_id, scheduling_write=True
+        ) as database_session:
             booking = await database_session.scalar(
                 select(Booking)
                 .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
@@ -814,7 +820,9 @@ class BookingsRepository:
         cmd = _command(
             workspace_id, actor_user_id, idempotency_key, command, {"booking_id": str(booking_id)}
         )
-        async with self.database.tenant_transaction(workspace_id) as database_session:
+        async with self.database.tenant_transaction(
+            workspace_id, scheduling_write=True
+        ) as database_session:
             locked = await self._lock_booking_and_session(
                 database_session, workspace_id, booking_id
             )
@@ -870,7 +878,9 @@ class BookingsRepository:
         cmd = _command(
             workspace_id, actor_user_id, idempotency_key, command, {"booking_id": str(booking_id)}
         )
-        async with self.database.tenant_transaction(workspace_id) as database_session:
+        async with self.database.tenant_transaction(
+            workspace_id, scheduling_write=True
+        ) as database_session:
             locked = await self._lock_booking_and_session(
                 database_session, workspace_id, booking_id
             )
@@ -952,7 +962,9 @@ class BookingsRepository:
             command,
             {"booking_id": str(booking_id)},
         )
-        async with self.database.tenant_transaction(workspace_id) as database_session:
+        async with self.database.tenant_transaction(
+            workspace_id, scheduling_write=True
+        ) as database_session:
             locked = await self._lock_booking_and_session(
                 database_session, workspace_id, booking_id
             )

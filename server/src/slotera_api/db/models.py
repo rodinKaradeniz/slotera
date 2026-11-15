@@ -1,6 +1,7 @@
 # ruff: noqa: E501
 from datetime import date, datetime, time
 from enum import StrEnum
+from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -46,6 +47,7 @@ TENANT_TABLES = frozenset(
         "clients",
         "bookings",
         "booking_command_idempotency",
+        "session_command_idempotency",
         "booking_form_responses",
         "booking_form_snapshots",
         "service_packages",
@@ -310,13 +312,21 @@ class EmailOutbox(Base):
     __table_args__ = (
         CheckConstraint("attempt_count >= 0", name="attempt_count_nonnegative"),
         Index(
-            "ix_email_outbox_pending", "available_at", "created_at",
-            postgresql_where=text("sent_at IS NULL AND suppressed_at IS NULL AND attempt_count < 10"),
+            "ix_email_outbox_pending",
+            "available_at",
+            "created_at",
+            postgresql_where=text(
+                "sent_at IS NULL AND suppressed_at IS NULL AND attempt_count < 10"
+            ),
         ),
         Index(
-            "ix_email_outbox_expired_claim", "claimed_at", "id",
-            postgresql_where=text("sent_at IS NULL AND suppressed_at IS NULL "
-                                  "AND attempt_count >= 10 AND claimed_at IS NOT NULL"),
+            "ix_email_outbox_expired_claim",
+            "claimed_at",
+            "id",
+            postgresql_where=text(
+                "sent_at IS NULL AND suppressed_at IS NULL "
+                "AND attempt_count >= 10 AND claimed_at IS NOT NULL"
+            ),
         ),
         Index("ix_email_outbox_booking_created", "related_booking_id", "created_at", "id"),
         UniqueConstraint(
@@ -596,6 +606,18 @@ class AvailabilityBlackout(Base):
 class SessionSeries(Versioned, Base):
     __tablename__ = "session_series"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["workspace_id", "service_id"],
+            ["services.workspace_id", "services.id"],
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "calendar_owner_id"],
+            ["workspace_memberships.workspace_id", "workspace_memberships.user_id"],
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint("duration_min >= 1", name="template_duration"),
+        CheckConstraint("capacity BETWEEN 1 AND 10000", name="template_capacity"),
         CheckConstraint("interval_weeks BETWEEN 1 AND 52", name="interval_weeks"),
         CheckConstraint("starts_on <= ends_on OR ends_on IS NULL", name="date_order"),
         UniqueConstraint("workspace_id", "id", name="uq_session_series_workspace_id_id"),
@@ -605,12 +627,24 @@ class SessionSeries(Versioned, Base):
     workspace_id: Mapped[UUID] = mapped_column(
         ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
     )
+    service_id: Mapped[UUID]
+    calendar_owner_id: Mapped[UUID]
+    start_local: Mapped[time] = mapped_column(Time(timezone=False))
+    duration_min: Mapped[int] = mapped_column(Integer)
+    capacity: Mapped[int] = mapped_column(Integer)
+    location_type: Mapped[LocationType] = mapped_column(
+        Enum(LocationType, name="location_type", values_callable=_enum_values)
+    )
+    location: Mapped[str] = mapped_column(String(240))
+    address: Mapped[dict[str, object] | None] = mapped_column(JSONB)
+    notes: Mapped[str | None] = mapped_column(String(2000))
     interval_weeks: Mapped[int] = mapped_column(Integer)
     weekdays: Mapped[list[int]] = mapped_column(JSONB)
     timezone: Mapped[str] = mapped_column(String(64))
     starts_on: Mapped[date]
     ends_on: Mapped[date | None]
     horizon_through: Mapped[date]
+    cancelled_from: Mapped[date | None]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -683,8 +717,20 @@ class Session(Versioned, Base):
 class Booking(Base):
     __tablename__ = "bookings"
     __table_args__ = (
-        Index("ix_bookings_workspace_status_created", "workspace_id", "status", text("created_at DESC"), "id"),
-        Index("ix_bookings_workspace_client_created", "workspace_id", "client_id", text("created_at DESC"), "id"),
+        Index(
+            "ix_bookings_workspace_status_created",
+            "workspace_id",
+            "status",
+            text("created_at DESC"),
+            "id",
+        ),
+        Index(
+            "ix_bookings_workspace_client_created",
+            "workspace_id",
+            "client_id",
+            text("created_at DESC"),
+            "id",
+        ),
         CheckConstraint("amount_cents >= 0", name="amount_nonnegative"),
         CheckConstraint("char_length(currency) = 3", name="currency_iso_length"),
         UniqueConstraint("workspace_id", "id", name="uq_bookings_workspace_id_id"),
@@ -774,6 +820,28 @@ class Booking(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class SessionCommandIdempotency(Base):
+    __tablename__ = "session_command_idempotency"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "actor_user_id", "idempotency_key"),
+        ForeignKeyConstraint(
+            ["workspace_id", "session_id"],
+            ["sessions.workspace_id", "sessions.id"],
+            ondelete="CASCADE",
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    actor_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    session_id: Mapped[UUID]
+    idempotency_key: Mapped[str] = mapped_column(String(255))
+    request_fingerprint: Mapped[str] = mapped_column(String(64))
+    outcome: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class BookingCommandIdempotency(Base):
@@ -989,7 +1057,6 @@ class SessionActionItem(Versioned, Base):
         server_default=text("'todo'"),
     )
     due_date: Mapped[date | None] = mapped_column(Date)
-    client_visible: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -1094,12 +1161,22 @@ __all__ = [
 class BookingFormSnapshot(Base):
     __tablename__ = "booking_form_snapshots"
     __table_args__ = (
-        ForeignKeyConstraint(["workspace_id", "booking_id"],
-            ["bookings.workspace_id", "bookings.id"], ondelete="CASCADE"),
-        UniqueConstraint("workspace_id", "booking_id", "form_template_id", name="booking_form_snapshots_workspace_id_booking_id_form_templat_key"),
+        ForeignKeyConstraint(
+            ["workspace_id", "booking_id"],
+            ["bookings.workspace_id", "bookings.id"],
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint(
+            "workspace_id",
+            "booking_id",
+            "form_template_id",
+            name="booking_form_snapshots_workspace_id_booking_id_form_templat_key",
+        ),
     )
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
     booking_id: Mapped[UUID]
     form_template_id: Mapped[UUID]
     name: Mapped[str] = mapped_column(String(160))
@@ -1111,10 +1188,15 @@ class BookingFormSnapshot(Base):
 
 class ServicePackage(Versioned, Base):
     __tablename__ = "service_packages"
-    __table_args__ = (UniqueConstraint("workspace_id", "id", name="service_packages_workspace_id_id_key"),
-        CheckConstraint("price_cents >= 0", name="package_price"), CheckConstraint("status IN ('active', 'inactive')", name="package_status"))
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "id", name="service_packages_workspace_id_id_key"),
+        CheckConstraint("price_cents >= 0", name="package_price"),
+        CheckConstraint("status IN ('active', 'inactive')", name="package_status"),
+    )
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
     name: Mapped[str] = mapped_column(String(160))
     description: Mapped[str] = mapped_column(String(4000))
     status: Mapped[str] = mapped_column(String(8))
@@ -1122,18 +1204,36 @@ class ServicePackage(Versioned, Base):
     notes: Mapped[str | None] = mapped_column(String(4000))
     featured: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class ServicePackageItem(Base):
     __tablename__ = "service_package_items"
     __table_args__ = (
-        ForeignKeyConstraint(["workspace_id", "package_id"], ["service_packages.workspace_id", "service_packages.id"], ondelete="CASCADE"),
-        ForeignKeyConstraint(["workspace_id", "service_id"], ["services.workspace_id", "services.id"], ondelete="RESTRICT"),
-        UniqueConstraint("workspace_id", "package_id", "position", name="service_package_items_workspace_id_package_id_position_key"), CheckConstraint("position >= 0", name="package_position"),
+        ForeignKeyConstraint(
+            ["workspace_id", "package_id"],
+            ["service_packages.workspace_id", "service_packages.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "service_id"],
+            ["services.workspace_id", "services.id"],
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "workspace_id",
+            "package_id",
+            "position",
+            name="service_package_items_workspace_id_package_id_position_key",
+        ),
+        CheckConstraint("position >= 0", name="package_position"),
     )
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
     package_id: Mapped[UUID]
     service_id: Mapped[UUID]
     title: Mapped[str | None] = mapped_column(String(160))

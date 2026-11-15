@@ -8,6 +8,21 @@
  * every seeded string.
  */
 export const en = {
+  "session.impactChanged": "Attendance changed. Your draft is kept; review the impact again.",
+  "session.capacityConflict": "Capacity cannot be lower than the active booking count.",
+  "session.serviceConflict": "A session with booking history cannot change its service.",
+  "session.singleDate": "To change the calendar date, choose This session.",
+  "session.cancelled": "Cancelled sessions cannot be reopened.",
+
+  "auth.login.description": "Sign in to manage bookings, sessions, and clients.",
+  "session.changeScope": "Apply to",
+  "session.this": "This session",
+  "session.following": "This and following",
+  "session.reviewChange": "Review session change",
+  "session.impact": "{sessions} sessions · {bookings} active bookings · {paid} paid bookings.",
+  "session.manualRefund": "Arrange any refunds manually; payment records stay unchanged.",
+  "session.current": "Current session: {date}, {location}, capacity {capacity}.",
+
   "attendance.markPage": "Mark this page present",
   "common.pagination": "Pagination",
   "calendar.bookedCount": "{count} / {capacity} booked",

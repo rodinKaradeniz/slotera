@@ -2,9 +2,9 @@ from datetime import datetime
 from http import HTTPStatus
 from typing import Annotated, Any, Literal
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Header, Query, Response
+from sqlalchemy.exc import IntegrityError
 
 from slotera_api.auth.dependencies import (
     CsrfOperatorWorkspaceDependency,
@@ -15,18 +15,17 @@ from slotera_api.db.models import (
     AvailabilityBlackout,
     AvailabilityPolicy,
     AvailabilityWindow,
-    Session,
-    SessionSeries,
     Workspace,
 )
 from slotera_api.editing import ExpectedVersionDependency
 from slotera_api.errors import ApiError
+from slotera_api.scheduling.commands import SessionCommands
+from slotera_api.scheduling.projection import session_response as _session_response
 from slotera_api.scheduling.repository import (
-    PastSessionImmutableError,
     SchedulingRepository,
     SessionConflictError,
+    _is_exclusion_violation,
 )
-from slotera_api.schemas.operator_resources import Address
 from slotera_api.schemas.scheduling import (
     AvailabilityBlackoutResponse,
     AvailabilityResponse,
@@ -34,6 +33,7 @@ from slotera_api.schemas.scheduling import (
     AvailabilityWindowInput,
     SchedulingSessionResponse,
     SessionCreate,
+    SessionImpactResponse,
     SessionListResponse,
     SessionPatch,
 )
@@ -84,39 +84,6 @@ def _availability_response(
             for item in blackouts
         ],
         updated_at=max(workspace.updated_at, policy.updated_at),
-    )
-
-
-def _session_response(
-    item: Session, series: SessionSeries | None, booked_count: int = 0
-) -> SchedulingSessionResponse:
-    recurring: Literal["one-off", "weekly", "custom"] = "one-off"
-    if series is not None:
-        local_weekday = item.start_at.astimezone(ZoneInfo(series.timezone)).isoweekday()
-        recurring = (
-            "weekly"
-            if series.interval_weeks == 1 and series.weekdays == [local_weekday]
-            else "custom"
-        )
-    return SchedulingSessionResponse(
-        version=item.version,
-        id=item.id,
-        series_id=item.series_id,
-        series_version=series.version if series else None,
-        service_id=item.service_id,
-        calendar_owner_id=item.calendar_owner_id,
-        start_at=item.start_at,
-        end_at=item.end_at,
-        capacity=item.capacity,
-        booked_count=booked_count,
-        status=item.status.value,
-        location_type=item.location_type.value,
-        location=item.location,
-        address=Address.model_validate(item.address) if item.address else None,
-        recurring=recurring,
-        notes=item.notes,
-        created_at=item.created_at,
-        updated_at=item.updated_at,
     )
 
 
@@ -274,10 +241,30 @@ async def get_session(
     return _session_response(*result, booked_count=counts.get(session_id, 0))
 
 
+@sessions_router.get(
+    "/{session_id}/change-preview",
+    response_model=SessionImpactResponse,
+    operation_id="previewSessionChange",
+)
+async def preview_session_change(
+    session_id: UUID,
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    scope: Annotated[Literal["this", "this_and_following"], Query()] = "this",
+) -> SessionImpactResponse:
+    impact = await SessionCommands(database).preview(operator.workspace_id, session_id, scope)
+    _private(response)
+    return SessionImpactResponse(
+        session_count=impact.session_count,
+        active_booking_count=impact.active_booking_count,
+        paid_booking_count=impact.paid_booking_count,
+        revision=impact.revision,
+    )
+
+
 @sessions_router.patch(
-    "/{session_id}",
-    response_model=SchedulingSessionResponse,
-    operation_id="updateSession",
+    "/{session_id}", response_model=SchedulingSessionResponse, operation_id="updateSession"
 )
 async def update_session(
     expected_version: ExpectedVersionDependency,
@@ -286,41 +273,64 @@ async def update_session(
     response: Response,
     operator: CsrfOperatorWorkspaceDependency,
     database: DatabaseDependency,
+    impact_revision: Annotated[
+        str, Header(alias="X-Impact-Revision", min_length=64, max_length=64)
+    ],
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=255)],
     scope: Annotated[Literal["this", "this_and_following"], Query()] = "this",
     series_version: Annotated[int | None, Header(alias="X-Series-Version", ge=1)] = None,
 ) -> SchedulingSessionResponse:
-    repository = SchedulingRepository(database)
-    changes = _session_values(payload)
     try:
-        result = (
-            await repository.update_session(
-                operator.workspace_id,
-                operator.user_id,
-                session_id,
-                changes,
-                scope,
-                expected_version,
-                series_version,
-            )
-            if changes
-            else await repository.get_session(operator.workspace_id, session_id)
+        result = await SessionCommands(database).apply(
+            operator.workspace_id,
+            operator.user_id,
+            session_id,
+            _session_values(payload),
+            scope,
+            expected_version,
+            series_version,
+            impact_revision,
+            idempotency_key,
         )
-    except SessionConflictError as exc:
-        raise _error(
-            HTTPStatus.CONFLICT,
-            "session_conflict",
-            "The calendar owner already has a session during this time",
-        ) from exc
-    except PastSessionImmutableError as exc:
-        raise _error(
-            HTTPStatus.CONFLICT,
-            "past_session_immutable",
-            "Past sessions cannot be changed",
-        ) from exc
-    if result is None:
-        raise _error(HTTPStatus.NOT_FOUND, "session_not_found", "Session was not found")
-    counts = await SchedulingRepository(database).booking_counts(
-        operator.workspace_id, [session_id]
+    except IntegrityError as exc:
+        if _is_exclusion_violation(exc):
+            raise _error(
+                HTTPStatus.CONFLICT,
+                "session_conflict",
+                "The calendar owner already has a session during this time",
+            ) from exc
+        raise
+    _private(response)
+    return result
+
+
+@sessions_router.post(
+    "/{session_id}/cancel", response_model=SchedulingSessionResponse, operation_id="cancelSession"
+)
+async def cancel_session(
+    expected_version: ExpectedVersionDependency,
+    session_id: UUID,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    impact_revision: Annotated[
+        str, Header(alias="X-Impact-Revision", min_length=64, max_length=64)
+    ],
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=255)],
+    scope: Annotated[Literal["this", "this_and_following"], Query()] = "this",
+    series_version: Annotated[int | None, Header(alias="X-Series-Version", ge=1)] = None,
+) -> SchedulingSessionResponse:
+    result = await SessionCommands(database).apply(
+        operator.workspace_id,
+        operator.user_id,
+        session_id,
+        {},
+        scope,
+        expected_version,
+        series_version,
+        impact_revision,
+        idempotency_key,
+        cancel=True,
     )
     _private(response)
-    return _session_response(*result, booked_count=counts.get(session_id, 0))
+    return result

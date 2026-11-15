@@ -134,3 +134,9 @@ export function calendarSegments(startISO: string, endISO: string, timezone: str
   }
   return segments;
 }
+
+
+/** ISO weekday in the workspace, including instants whose UTC calendar date differs. */
+export function isoWeekdayInTimezone(iso: string, timezone: string): number {
+  return new Date(`${slotParts(iso, timezone).date}T00:00:00Z`).getUTCDay() || 7;
+}

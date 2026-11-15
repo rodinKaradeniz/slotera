@@ -136,7 +136,7 @@ export default function LoginPage() {
     <AuthCard
       eyebrow={uiText("ui.operator.workspace")}
       title={uiText("ui.welcome.back")}
-      subtitle="Sign in to manage bookings, sessions, and clients."
+      subtitle={uiText("auth.login.description")}
       footer={
         dataSource === "api" ? (
           <span>

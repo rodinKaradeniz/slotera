@@ -325,8 +325,8 @@ live environment.
      through the service layer; API mode now exposes Calendar and Calendar Settings without
      mixing mock booking/client, attendance, or action-item data.
    - **~~Recurrence horizon maintenance.~~ DONE.** `slotera-maintenance` tops every
-     active series back up to `ROLLING_HORIZON_DAYS` ahead, copying the latest live
-     occurrence (so `this_and_following` edits carry forward) and skipping clashing slots.
+     active series back up to `ROLLING_HORIZON_DAYS` ahead using its own generation
+     template; single-occurrence overrides stay isolated and clashing slots are skipped.
      No series split was needed.
    - **~~Capacity consumption.~~ DONE for MVP bookings.** Scheduled commands lock the
      session and count pending/confirmed bookings; public open-mode capacity-one creation
@@ -346,15 +346,14 @@ live environment.
    - **~~Form-template operator CRUD.~~ DONE.** Operator form templates and their
      single-sourced service attachments persist under RLS, with API-mode create/edit/
      activate/deactivate/delete. Required attached forms are rendered and snapshotted by
-     the public capacity-one flow; post-booking optional responses remain deferred.
+     the public flow; immutable post-booking optional responses are implemented too.
    - **~~Client-notes operator CRUD.~~ DONE.** Private, tenant-scoped note entries now
      persist under RLS with audit events, CSRF-protected mutations, allow-listed HTML
      sanitisation on write, defensive browser sanitisation on render, and an API-mode
      Notes tab. They remain operator-only.
    - **~~Session action items.~~ DONE.** Operator-only task entries now persist against
      real sessions under RLS, with CSRF-protected CRUD/status changes, audit events, and
-     API-mode Calendar drawer support. `clientVisible` remains a stored future flag and
-     does not expose an item to any public or client-booking response.
+     API-mode Calendar drawer support. The unused visibility flag was removed; tasks remain private.
    - **~~Scheduled-session booking capacity consumption and commands.~~ DONE.** Migration
      `20260731_0014` adds idempotent, audited operator creation plus explicit
      confirm/cancel/complete/no-show commands. Creation locks the existing session and
@@ -549,10 +548,9 @@ stay demonstrations until the backend can support them properly.
   the public client, because there is no session reference to read it from at confirmation.
   Surfacing the address publicly is the natural pairing with building `scheduled` mode —
   do them together.
-- **Client-visible session action items.** `clientVisible` is on the type and has a toggle
-  in the admin UI, but nothing reads it. Action items are admin-only today. The helper that
-  would have served a client surface (`listClientActionItemsForSession`) was deleted rather
-  than left dead; re-add it if a real client surface is built.
+- **~~Client-visible session action-item placeholder.~~ DONE (removed).** Removed the unused toggle,
+  domain/transport property, stored column and fixtures; tasks remain operator-only. A client task
+  surface remains outside the product boundaries.
 - **Shared resources / client-facing next steps.** Built, then **removed** — the booking
   workspace was drifting into project management. Listed here so the removal reads as a
   decision (HISTORY.md, Scope boundaries) rather than an omission to be helpfully restored.
@@ -605,12 +603,11 @@ stay demonstrations until the backend can support them properly.
   booked this month fills the fourth slot; the empty card includes a calendar action.
 - Freeze a production baseline without showcase data before live deployment, then resume
   immutable incremental migrations.
-- Follow up on the remaining English sign-in description and the next-session card's date
-  context when the next session is on a later day; both were observed during this pass.
+- **~~Sign-in description and next-session date context.~~ DONE.** Sign-in copy uses all three
+  dictionaries; persisted next-session cards include their workspace-local date in EN/TR/DE.
 
-- **Calendar translation polish (observed 2026-11-14):** `EventBlock` still appends the
-  literal English “booked” to group capacity under TR/DE; move that existing label into
-  the dictionaries in the next Calendar copy pass. New booking/email controls are translated.
+- **~~Calendar translation polish (observed 2026-11-14).~~ DONE.** Group capacity uses the
+  translated `calendar.bookedCount` message; no literal English “booked” remains.
 
 
 ## Completed architecture bundle — 2026-11-15
@@ -626,3 +623,23 @@ stay demonstrations until the backend can support them properly.
 
 Live integration delivery, deployment and pilot operational evidence remain in the previously
 agreed final integration-verification stage; no new architecture work is deferred here.
+
+
+## Dependency security finding — 2026-11-15
+
+- The local npm audit reports critical advisories affecting installed Next.js 16.2.6 and
+  Vitest 3.2.7; the registry offers Next.js 16.4.6 and Vitest 5.1.0 as fixes. These framework
+  and major test-runner upgrades need their own reviewed compatibility pass; they were not
+  silently folded into the session-workflow implementation. Audit totals: 55 advisories
+  (3 critical, 11 high, 40 moderate, 1 low), including transitive/development dependencies.
+  Playwright itself is not identified as an affected direct dependency in this report.
+
+
+## Completed local booking workflows — 2026-11-15
+
+- **~~Transactional session cancellation and booked-session edits.~~ DONE.** Reviewed commands
+  preserve financial/form history, protect capacity/service meaning and atomically queue notices.
+- **~~Recurring operator controls.~~ DONE.** This / following scopes preserve local times and
+  recurrence dates; cancellation stores the generation cutoff and editors retain drafts on conflicts.
+- **~~Repeatable production browser checks.~~ DONE.** Dedicated disposable database, safe artifacts,
+  desktop/mobile EN/TR/DE journeys and a CI job; live integrations remain a separate verification stage.

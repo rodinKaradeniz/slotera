@@ -671,7 +671,6 @@ def _seed_showcase_context(
                 "title": title,
                 "description": "Private consultant preparation.",
                 "status": status,
-                "client_visible": False,
                 "due_date": None,
                 "created_at": now,
                 "updated_at": now,

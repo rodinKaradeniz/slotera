@@ -30,6 +30,9 @@ def expand_weekly_occurrences(
                 time(local_first.hour, local_first.minute, local_first.second),
                 tzinfo=zone,
             )
+            # Preserve an explicitly chosen second clock occurrence on the first date.
+            if cursor == local_first.date():
+                local_start = local_first
             # A UTC round trip detects wall-clock times skipped by a DST transition.
             round_trip = local_start.astimezone(UTC).astimezone(zone)
             if round_trip.replace(fold=local_start.fold) == local_start:

@@ -36,7 +36,6 @@ def _item_response(item: SessionActionItem) -> SessionActionItemResponse:
         description=item.description,
         status=item.status.value,
         due_date=item.due_date,
-        client_visible=item.client_visible,
         created_at=item.created_at,
         updated_at=item.updated_at,
     )

@@ -53,6 +53,8 @@ function mapSession(
   return {
     id: session.id,
     bookingId: session.bookingId ?? undefined,
+    startISO: session.startAt,
+    timezone,
     time: timeInTimezone(session.startAt, timezone),
     end: timeInTimezone(session.endAt, timezone),
     client: session.clientName ?? translate(readLang(), "dashboard.noBooking"),

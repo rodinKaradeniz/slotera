@@ -13,6 +13,7 @@ import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getBooking } from "@/services/bookings.service";
 import type { DashboardScheduleItem } from "@/types/dashboard";
 import type { Booking } from "@/types/booking";
+import { localeForLang } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { dataSource } from "@/lib/env";
 import { MoveBookingDialog } from "@/components/admin/bookings/MoveBookingDialog";
@@ -177,7 +178,7 @@ function HoverBadge({ info }: { info: HoverInfo }) {
 }
 
 export function NextSessionCard({ item, schedule, onChanged }: Props) {
-  const { t: uiText } = useI18n();
+  const { t: uiText, lang } = useI18n();
   const [hover, setHover] = React.useState<HoverInfo | null>(null);
   const { openBookingDrawer } = useDrawers();
   const [loaded, setLoaded] = React.useState<Booking | null>(null);
@@ -262,7 +263,7 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
             {item.service}
           </div>
           <div className="text-small text-ink-3 mt-1">
-            {item.time} – {item.end} · {item.duration}
+            {item.startISO && <>{new Intl.DateTimeFormat(localeForLang(lang), {weekday: "short", day: "numeric", month: "short", timeZone: item.timezone}).format(new Date(item.startISO))} · </>}{item.time} – {item.end} · {item.duration}
           </div>
 
           <div className="mt-4 flex items-stretch gap-5">

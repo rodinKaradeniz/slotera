@@ -14,6 +14,7 @@ from slotera_api.db.models import (
     Service,
     ServicePackageItem,
     Session,
+    SessionSeries,
     Workspace,
     WorkspaceBusinessProfile,
     WorkspaceLocation,
@@ -388,6 +389,13 @@ class OperatorResourcesRepository:
                 if await session.scalar(
                     select(Session.id)
                     .where(Session.workspace_id == workspace_id, Session.service_id == service_id)
+                    .limit(1)
+                ) or await session.scalar(
+                    select(SessionSeries.id)
+                    .where(
+                        SessionSeries.workspace_id == workspace_id,
+                        SessionSeries.service_id == service_id,
+                    )
                     .limit(1)
                 ):
                     raise ApiError(

@@ -433,7 +433,7 @@ class ClientsRepository:
         details, billing addresses, form answers, notes, manage links and queued or sent
         booking emails go.
         """
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             client = await session.scalar(
                 select(Client)
                 .where(Client.id == client_id, Client.workspace_id == workspace_id)

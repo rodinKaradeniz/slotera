@@ -1309,6 +1309,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions/{session_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Session */
+        post: operations["cancelSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{session_id}/change-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview Session Change */
+        get: operations["previewSessionChange"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/billing": {
         parameters: {
             query?: never;
@@ -4176,11 +4210,6 @@ export interface components {
         };
         /** SessionActionItemCreate */
         SessionActionItemCreate: {
-            /**
-             * Clientvisible
-             * @default false
-             */
-            clientVisible: boolean;
             /** Description */
             description?: string | null;
             /** Duedate */
@@ -4201,8 +4230,6 @@ export interface components {
         };
         /** SessionActionItemPatch */
         SessionActionItemPatch: {
-            /** Clientvisible */
-            clientVisible?: boolean | null;
             /** Description */
             description?: string | null;
             /** Duedate */
@@ -4214,8 +4241,6 @@ export interface components {
         };
         /** SessionActionItemResponse */
         SessionActionItemResponse: {
-            /** Clientvisible */
-            clientVisible: boolean;
             /**
              * Createdat
              * Format: date-time
@@ -4282,6 +4307,17 @@ export interface components {
              * Format: date-time
              */
             startAt: string;
+        };
+        /** SessionImpactResponse */
+        SessionImpactResponse: {
+            /** Activebookingcount */
+            activeBookingCount: number;
+            /** Paidbookingcount */
+            paidBookingCount: number;
+            /** Revision */
+            revision: string;
+            /** Sessioncount */
+            sessionCount: number;
         };
         /** SessionListResponse */
         SessionListResponse: {
@@ -7624,6 +7660,8 @@ export interface operations {
                 scope?: "this" | "this_and_following";
             };
             header: {
+                "X-Impact-Revision": string;
+                "Idempotency-Key": string;
                 "X-Series-Version"?: number | null;
                 "If-Match": string;
             };
@@ -7714,6 +7752,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionActionItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancelSession: {
+        parameters: {
+            query?: {
+                scope?: "this" | "this_and_following";
+            };
+            header: {
+                "X-Impact-Revision": string;
+                "Idempotency-Key": string;
+                "X-Series-Version"?: number | null;
+                "If-Match": string;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulingSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    previewSessionChange: {
+        parameters: {
+            query?: {
+                scope?: "this" | "this_and_following";
+            };
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionImpactResponse"];
                 };
             };
             /** @description Validation Error */

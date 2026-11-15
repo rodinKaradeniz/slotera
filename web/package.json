@@ -9,7 +9,8 @@
     "lint": "eslint",
     "generate:api": "../server/.venv/bin/python ../server/scripts/export_openapi.py src/api/generated/openapi.json && openapi-typescript src/api/generated/openapi.json -o src/api/generated/schema.ts",
     "test": "vitest run",
-    "postbuild": "node scripts/check-fixture-boundary.mjs"
+    "postbuild": "node scripts/check-fixture-boundary.mjs",
+    "test:browser": "../scripts/browser-check"
   },
   "dependencies": {
     "@sentry/nextjs": "10.75.3",
@@ -27,6 +28,7 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",

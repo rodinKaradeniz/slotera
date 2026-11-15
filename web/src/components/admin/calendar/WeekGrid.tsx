@@ -3,6 +3,7 @@ import { readLang, localeForLang } from "@/lib/i18n";
 
 import * as React from "react";
 import { buildWeekDays, sameDay, calendarDayKey } from "@/lib/calendar";
+import { eventColumns } from "./event-columns";
 import { EventBlock, type CalEvent } from "./EventBlock";
 import { cn } from "@/lib/cn";
 
@@ -30,6 +31,8 @@ export function WeekGrid({ anchor, events, selectedId, onSelect }: Props) {
     }
     return map;
   }, [events, days]);
+
+  const columns = eventsByDayIndex.map((items) => eventColumns(items));
 
   return (
     <div className="bg-surface border border-line rounded-lg shadow-1 overflow-hidden">
@@ -75,9 +78,10 @@ export function WeekGrid({ anchor, events, selectedId, onSelect }: Props) {
               <EventBlock
                 key={e.session.id}
                 event={e}
+                column={columns[dayIdx].get(e.session.id)}
                 selected={e.session.id === selectedId}
                 onSelect={() =>
-                  onSelect(e.session.id === selectedId ? null : e.session.id)
+                  onSelect(e.session.id)
                 }
               />
             ))}

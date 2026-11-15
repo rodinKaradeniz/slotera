@@ -182,7 +182,8 @@ async def get_managed_forms(
     repository = BookingManageRepository(database)
     try:
         workspace_id, booking_id = await repository._resolve(token)
-        async with database.tenant_transaction(workspace_id) as session:
+        async with database.tenant_transaction(workspace_id, repeatable_read=True) as session:
+            await repository.verify_access(session, token, workspace_id, booking_id)
             managed = await repository._load(session, workspace_id, booking_id, lock=False)
             result = await read_forms(
                 session, workspace_id, managed.booking, managed.session.start_at
@@ -210,8 +211,10 @@ async def submit_managed_form(
     require_trusted_origin(request, settings)
     await _limit(request, database, "public_booking_manage_change")
     try:
-        workspace_id, booking_id = await BookingManageRepository(database)._resolve(token)
-        async with database.tenant_transaction(workspace_id) as session:
+        repository = BookingManageRepository(database)
+        workspace_id, booking_id = await repository._resolve(token)
+        async with database.tenant_transaction(workspace_id, scheduling_write=True) as session:
+            await repository.verify_access(session, token, workspace_id, booking_id)
             result = await submit_form(session, workspace_id, booking_id, form_id, payload.answers)
     except BookingLinkInvalidError as exc:
         raise _link_invalid() from exc

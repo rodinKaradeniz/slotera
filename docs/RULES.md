@@ -190,8 +190,7 @@ adds 4. Planning adds 5.
 
 10. **Don't expose internal data to client-facing surfaces.** Service notes, session notes,
     client notes, and session action items are operator-only. The public booking flow and
-    the booking workspace must never surface them. `clientVisible` on `SessionActionItem`
-    is a placeholder for a future decision, not permission.
+    the booking workspace must never surface them. Session action items have no client-visibility flag or public transport.
 
 11. **Don't weaken the sanitisation assumption around client notes.** `NoteContent.tsx`
     renders stored HTML directly, which is safe only because the content is

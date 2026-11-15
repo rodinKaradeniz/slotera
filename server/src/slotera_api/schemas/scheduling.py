@@ -190,3 +190,10 @@ class SessionListResponse(ApiModel):
     total: int
     limit: int
     offset: int
+
+
+class SessionImpactResponse(ApiModel):
+    session_count: int
+    active_booking_count: int
+    paid_booking_count: int
+    revision: str

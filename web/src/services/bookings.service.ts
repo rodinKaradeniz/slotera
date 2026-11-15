@@ -353,3 +353,10 @@ export async function exportBookingSummaries(filters: { search: string; clientId
   if (filters.serviceId) params.set("serviceId", filters.serviceId);
   return apiRequest<string>(`/bookings/export.csv?${params}`, { responseType: "text" });
 }
+
+/** Synchronous mock transaction used by session cancellation; API effects belong to the server. */
+export function cancelMockSessionBookings(sessionIds: readonly string[]): void {
+  if (dataSource !== "mock") throw new NotImplementedError("cancelMockSessionBookings");
+  mock = mock.map((booking) => sessionIds.includes(booking.sessionId) && ["pending", "confirmed"].includes(booking.status)
+    ? {...booking, status: "cancelled" as const} : booking);
+}

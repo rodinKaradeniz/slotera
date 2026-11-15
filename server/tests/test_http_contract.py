@@ -96,3 +96,21 @@ async def test_openapi_exposes_stable_health_operation_ids() -> None:
     for command, operation_id in command_operations.items():
         operation = booking_paths[f"/bookings/{{booking_id}}/{command}"]["post"]
         assert operation["operationId"] == operation_id
+
+
+async def test_reviewed_session_command_headers_are_allowed_by_cors() -> None:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(database=StubDatabase())), base_url="http://test"
+    ) as client:
+        response = await client.options(
+            "/sessions/00000000-0000-0000-0000-000000000001",
+            headers={
+                "Origin": "http://localhost:3344",
+                "Access-Control-Request-Method": "PATCH",
+                "Access-Control-Request-Headers": (
+                    "If-Match,X-Series-Version,X-Impact-Revision,Idempotency-Key,X-CSRF-Token"
+                ),
+            },
+        )
+    assert response.status_code == 200
+    assert "x-impact-revision" in response.headers["Access-Control-Allow-Headers"].lower()

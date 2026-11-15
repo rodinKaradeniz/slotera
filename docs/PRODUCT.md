@@ -530,7 +530,7 @@ All tab content is mocked English provider/service copy; only the surrounding ch
 
 The separate API implementation uses **secure booking links sent by email and backend persistence**, including address/meeting details and assigned forms. Keep copy non-clinical/non-legal; **no medical-record or compliance claims**. **Internal session notes and action items are never exposed here.** Don't promote this demo page in the public Demo Guide modal unless it stays uncrowded.
 
-**Deliberately simplified — do not re-add to this surface:** "Shared resources" / resource links and a client-facing "Your next steps" / shared action-items list were **removed**. The resources feature (type/service/mock data) was deleted as unused. `clientVisible` remains on `SessionActionItem` for a possible future client surface, but action items are **admin-only today** and must not be surfaced on the booking workspace in this pass.
+**Deliberately simplified — do not re-add to this surface:** "Shared resources" / resource links and a client-facing "Your next steps" / shared action-items list were **removed**. The resources feature (type/service/mock data) was deleted as unused. Action items are **operator-only**; their contracts, persistence and UI contain no client-visibility flag.
 
 **The demo remains illustrative.** The API implements booking links, scheduled reminders,
 self-service changes, forms and service-level approval. Follow-ups and package
@@ -712,9 +712,9 @@ Service (internal), Session (internal), and Booking (booking note) each carry a 
 A session carries two distinct admin surfaces, both in the shared `SessionDrawer` under a **"Notes & Actions"** tab (rendered for existing sessions; the tab label shows the open-item count, e.g. `Notes & Actions (2)`):
 
 - **Internal note** — the existing `SessionItem.notes` single string. **Admin/internal by default and never shown to clients.** While *creating* a session the note stays inline on the Details tab; for an *existing* session it moves into the Notes & Actions tab with its own "Save note" button (`updateSession` is a patch-merge, so this stays consistent with the Details "Save"). Don't build a note history/audit log.
-- **Action items** — lightweight admin tasks attached to a session. Type `SessionActionItem` (`web/src/types/session-action-item.ts`): `{ id, sessionId, title, description?, status: "todo"|"done", dueDate?, clientVisible?, createdAtISO, updatedAtISO }`. Seeded in `web/src/data/mock/session-action-items.json`, served by `web/src/services/session-action-items.service.ts` (`listActionItems`, `listActionItemsForSession`, `createActionItem`, `updateActionItem`, `toggleActionItemStatus`, `deleteActionItem`). Local API mode maps the session-scoped `GET/POST /sessions/{sessionId}/action-items` and item `PATCH/DELETE /session-action-items/{itemId}` resources. The admin manager (`web/src/components/drawers/SessionActionItems.tsx`) supports add / edit / mark todo↔done / delete + optional due date + a **"Visible to client"** toggle.
+- **Action items** — lightweight admin tasks attached to a session. Type `SessionActionItem` (`web/src/types/session-action-item.ts`): `{ id, sessionId, title, description?, status: "todo"|"done", dueDate?, createdAtISO, updatedAtISO }`. Seeded in `web/src/data/mock/session-action-items.json`, served by `web/src/services/session-action-items.service.ts` (`listActionItems`, `listActionItemsForSession`, `createActionItem`, `updateActionItem`, `toggleActionItemStatus`, `deleteActionItem`). Local API mode maps the session-scoped `GET/POST /sessions/{sessionId}/action-items` and item `PATCH/DELETE /session-action-items/{itemId}` resources. The admin manager (`web/src/components/drawers/SessionActionItems.tsx`) supports add / edit / mark todo↔done / delete + optional due date.
 
-`clientVisible` is retained for a possible **future** client-facing surface, but action items are **admin-only today** — they are **not** shown on the customer booking workspace. (The previously-exported `listClientActionItemsForSession` helper was removed as unused once client-facing next steps were dropped from the booking workspace; re-add it if/when a real client surface needs it.) **Internal-only items (the default) never leave the admin surface, and internal notes are never exposed to clients.** Keep this lightweight — **no assignees, comments, reminders, notifications, recurrence, project boards, or messaging.**
+Tasks and notes never leave the operator surface. Keep tasks lightweight: **no client visibility, assignees, comments, reminders, notifications, recurrence, project boards or messaging**.
 
 Derived surfaces: the Dashboard "Needs your attention" list prepends a live **"Review N open session action items"** entry (computed in `dashboard.service.ts` from `todo` items on real sessions; the `ses-demo` seed is excluded). `BookingDrawer` carries a small **"View booking workspace"** link to `/booking/manage/demo`.
 
@@ -809,3 +809,21 @@ preserve unsaved drafts. A stale edit requires reviewing the current record; the
 save. Settings sections share one revision, while staff billing is independent. Correcting a
 booking email requires the address reviewed when the dialog opened and never edits the client
 profile. Operator language belongs in Settings → Account; staff use the account menu.
+
+
+### Reviewed session changes
+
+Upcoming sessions can change time, location and capacity after reviewing their impact.
+Cancelling a session cancels pending/confirmed bookings in the same transaction; completed,
+no-show and already-cancelled booking history, financial snapshots and payment states remain
+unchanged. Paid cancellations require refunds to be arranged manually. A service cannot change
+when any booking history exists, and capacity cannot fall below active attendance.
+
+Recurring changes default to **This session**. **This and following** retains recurrence dates
+and local clock times across daylight-saving changes; date moves apply to one occurrence.
+The series owns its generation template; single-occurrence overrides never change future
+generation. Following cancellation stores a series generation boundary. Reviewed resource/series versions,
+an opaque attendance revision and command idempotency protect changes. Claimed customer
+messages block the entire transaction; other outdated unsent notices are superseded. Updated
+notices use corrected destinations and saved languages without notifying the operator of their
+own action. Cancelled client management views remain read-only.

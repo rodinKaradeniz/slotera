@@ -5,7 +5,6 @@
     "title": "Review the client's intake answers before the call",
     "description": "Skim their Discovery Call prep form so the session starts warm.",
     "status": "todo",
-    "clientVisible": false,
     "createdAtISO": "2026-05-10T09:00:00.000Z",
     "updatedAtISO": "2026-05-10T09:00:00.000Z"
   },
@@ -16,7 +15,6 @@
     "description": "We'll work through your pricing model together — have your latest numbers ready.",
     "status": "todo",
     "dueDate": "2026-05-16",
-    "clientVisible": true,
     "createdAtISO": "2026-05-10T09:05:00.000Z",
     "updatedAtISO": "2026-05-10T09:05:00.000Z"
   },
@@ -26,7 +24,6 @@
     "title": "Review the prep questions before your session",
     "description": "A few minutes of prep helps us cover more ground on the call.",
     "status": "todo",
-    "clientVisible": true,
     "createdAtISO": "2026-05-10T09:06:00.000Z",
     "updatedAtISO": "2026-05-10T09:06:00.000Z"
   },
@@ -37,7 +34,6 @@
     "description": "Finalise the agenda and the exercises for the group session.",
     "status": "todo",
     "dueDate": "2026-05-18",
-    "clientVisible": false,
     "createdAtISO": "2026-05-12T11:00:00.000Z",
     "updatedAtISO": "2026-05-12T11:00:00.000Z"
   },
@@ -46,7 +42,6 @@
     "sessionId": "ses-004",
     "title": "Print name tags and handouts",
     "status": "done",
-    "clientVisible": false,
     "createdAtISO": "2026-05-12T11:02:00.000Z",
     "updatedAtISO": "2026-05-14T08:00:00.000Z"
   },
@@ -56,7 +51,6 @@
     "title": "Send proposal summary",
     "description": "Recap the agreed next steps and share the scope summary.",
     "status": "todo",
-    "clientVisible": false,
     "createdAtISO": "2026-05-12T10:00:00.000Z",
     "updatedAtISO": "2026-05-12T10:00:00.000Z"
   },
@@ -66,7 +60,6 @@
     "title": "Review the prep questions before your session",
     "description": "Take a few minutes to look over the optional forms below.",
     "status": "todo",
-    "clientVisible": true,
     "createdAtISO": "2026-05-01T09:00:00.000Z",
     "updatedAtISO": "2026-05-01T09:00:00.000Z"
   },
@@ -76,7 +69,6 @@
     "title": "Bring your current pricing notes",
     "description": "We'll work through your pricing together, so have your latest numbers handy.",
     "status": "todo",
-    "clientVisible": true,
     "createdAtISO": "2026-05-01T09:01:00.000Z",
     "updatedAtISO": "2026-05-01T09:01:00.000Z"
   },
@@ -86,7 +78,6 @@
     "title": "Book the follow-up session after your strategy call",
     "description": "Optional — many clients pair this with a follow-up to keep momentum.",
     "status": "todo",
-    "clientVisible": true,
     "createdAtISO": "2026-05-01T09:02:00.000Z",
     "updatedAtISO": "2026-05-01T09:02:00.000Z"
   }

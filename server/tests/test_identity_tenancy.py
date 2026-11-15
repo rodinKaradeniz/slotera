@@ -18,6 +18,7 @@ def test_every_declared_tenant_table_carries_workspace_identity() -> None:
         "clients",
         "bookings",
         "booking_command_idempotency",
+        "session_command_idempotency",
         "public_booking_idempotency",
         "booking_form_responses",
         "booking_form_snapshots",

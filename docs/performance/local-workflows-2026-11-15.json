@@ -1,0 +1,161 @@
+{
+  "hardware": "macOS-15.7.3-arm64-arm-64bit-Mach-O",
+  "processor": "arm64",
+  "python": "3.13.3",
+  "workspaces": 2,
+  "clients_per_workspace": 1000,
+  "bookings_per_workspace": 10000,
+  "concurrency": 5,
+  "reads": 100,
+  "p50_ms": 83.03,
+  "p95_ms": 142.88,
+  "queries_per_read": [
+    6
+  ],
+  "response_bytes": 14550,
+  "ledger_plan": [
+    {
+      "Plan": {
+        "Node Type": "Limit",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Startup Cost": 1178.31,
+        "Total Cost": 1178.37,
+        "Plan Rows": 25,
+        "Plan Width": 24,
+        "Actual Startup Time": 7.876,
+        "Actual Total Time": 7.884,
+        "Actual Rows": 25,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 646,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Sort",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Startup Cost": 1178.31,
+            "Total Cost": 1203.31,
+            "Plan Rows": 10000,
+            "Plan Width": 24,
+            "Actual Startup Time": 7.874,
+            "Actual Total Time": 7.878,
+            "Actual Rows": 25,
+            "Actual Loops": 1,
+            "Sort Key": [
+              "created_at DESC",
+              "id"
+            ],
+            "Sort Method": "top-N heapsort",
+            "Sort Space Used": 27,
+            "Sort Space Type": "Memory",
+            "Shared Hit Blocks": 646,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Result",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Startup Cost": 0.01,
+                "Total Cost": 896.11,
+                "Plan Rows": 10000,
+                "Plan Width": 24,
+                "Actual Startup Time": 0.045,
+                "Actual Total Time": 5.641,
+                "Actual Rows": 10000,
+                "Actual Loops": 1,
+                "One-Time Filter": "((NULLIF(current_setting('app.current_workspace_id'::text, true), ''::text))::uuid = '131138d0-136e-499b-947f-ad6f280fcc6c'::uuid)",
+                "Shared Hit Blocks": 646,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Seq Scan",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": false,
+                    "Async Capable": false,
+                    "Relation Name": "bookings",
+                    "Alias": "bookings",
+                    "Startup Cost": 0.01,
+                    "Total Cost": 896.11,
+                    "Plan Rows": 10000,
+                    "Plan Width": 24,
+                    "Actual Startup Time": 0.038,
+                    "Actual Total Time": 3.21,
+                    "Actual Rows": 10000,
+                    "Actual Loops": 1,
+                    "Filter": "(workspace_id = '131138d0-136e-499b-947f-ad6f280fcc6c'::uuid)",
+                    "Rows Removed by Filter": 10008,
+                    "Shared Hit Blocks": 646,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Local Hit Blocks": 0,
+                    "Local Read Blocks": 0,
+                    "Local Dirtied Blocks": 0,
+                    "Local Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "Planning": {
+        "Shared Hit Blocks": 0,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.183,
+      "Triggers": [],
+      "Execution Time": 7.919
+    }
+  ],
+  "level": "repository and authenticated ASGI HTTP; browser checked separately",
+  "http": {
+    "reads": 100,
+    "concurrency": 5,
+    "p50_ms": 103.08,
+    "p95_ms": 143.56,
+    "queries_per_read": [
+      8
+    ],
+    "max_response_bytes": 13291
+  },
+  "fixture_statistics": "ANALYZE after bulk insert",
+  "pass": true
+}

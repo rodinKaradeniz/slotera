@@ -691,7 +691,7 @@ Present tense — what exists in the working tree today.
   trial ends; "Report a problem" in the account menu files an inquiry.
 - Session drawer carries a "Notes & Actions" tab: one internal note plus lightweight
   action items, both admin-only. API mode persists the action-item list, its task status,
-  optional due date, and future-only `clientVisible` flag.
+  and optional due date. Tasks have no client-visibility flag.
 - Group-session SessionDrawer instances also expose an API-backed Attendance tab. It lists
   confirmed/completed session bookings with operator client context and records
   `present`/`late`/`absent` outcomes; 1:1 sessions remain on the no-show lifecycle path.
@@ -781,7 +781,7 @@ Present tense — what exists in the working tree today.
   events. The API strips all HTML attributes and non-editor markup before storage; no
   public response exposes client notes.
 - Session action items persist as separate session-owned operator tasks under forced RLS
-  and audit events. `clientVisible` is stored but has no public/client transport effect.
+  and audit events. Tasks remain private; the unused visibility flag has been removed.
 
 **Mock data set** — 5 services, 4 form templates, 2 packages, 8 clients, 11 bookings,
 10 sessions, 3 client notes, 9 session action items, 8 platform workspaces, 6 inquiries,
@@ -926,7 +926,8 @@ reports 28 passed. `npm run generate:api`, `npx tsc --noEmit`, `npm run lint`, a
 Later on 2026-07-29, session-action-items revision `20260729_0011` added tenant-scoped,
 session-owned operator tasks with forced RLS, audit events, and CSRF-protected CRUD. The
 generated transport now enables the existing API-mode Calendar Notes & Actions manager;
-the stored `clientVisible` flag has no public/client transport effect. `uv run alembic
+at that stage, the stored `clientVisible` flag had no public/client transport effect (removed
+from contracts and storage in November 2026). `uv run alembic
 upgrade head` reached `20260729_0011 (head)` and the repeat seed inserted zero rows.
 Backend isolated pytest reports 28 passed, PostgreSQL integration pytest reports 29
 passed, and Ruff/strict mypy are clean. `npm run generate:api`, `npx tsc --noEmit`,
@@ -1068,3 +1069,38 @@ triggers preserve correlation for capability and ORM writes; workers log safe at
 No SQL parameters, raw provider exceptions, tokens or message bodies are added to diagnostics.
 `scripts/benchmark_reads.py` runs an isolated two-workspace scale check; see
 `docs/performance/architecture-2026-11-15.json` and `docs/VERIFY_ARCHITECTURE.md`.
+
+
+### Local session workflow completion (2026-11-15)
+
+Session edits and cancellation are reviewed commands. `GET /sessions/{id}/change-preview`
+returns counts and an opaque impact revision; `PATCH /sessions/{id}` and dedicated
+`POST /sessions/{id}/cancel` require resource revisions, impact revision and idempotency.
+A workspace scheduling advisory lock precedes row locks in booking/session mutations,
+reminder rechecks, form submissions, client erasure and workspace purge; reads remain concurrent.
+Cancellation transitions only pending/confirmed attendees and preserves payment, financial and
+form history. Time/location changes queue current details; obsolete unsent notices are suppressed,
+claimed notices reject the entire change, and operator actions never notify the operator.
+
+Calendar → session → Edit session supports This session / This and following, reviewed counts,
+manual-refund implications and retained drafts. Following changes preserve local clock times and
+recurrence dates across DST; the series owns its generation template so one-off overrides
+stay isolated, and following cancellation stores a generation cutoff. Services with
+booking history and capacity below active bookings are protected. Cancelled sessions cannot reopen
+through status patches. Private notes remain editable independently. Calendar events reopen with
+one click after closing a drawer, and overlapping day/week cards occupy separate lanes. Tasks no longer contain a public-visibility toggle or property.
+Sign-in descriptions and upcoming-session dates are localized.
+
+`./scripts/browser-check` uses Playwright Chromium, a separate `slotera_browser_test` database,
+an environment-free production build, synthetic records and the console provider (no delivery
+worker). It owns server/database cleanup and uploads only allow-listed result metadata and
+synthetic screenshots on CI failure; traces, video, full error contexts, bodies and tokens are
+excluded. Install Chromium once with `web/node_modules/.bin/playwright install chromium`.
+See `docs/VERIFY_LOCAL_BOOKING.md` for startup, reset, navigation and verification evidence.
+
+
+Local workflow verification records 136 frontend, 107 isolated backend and 93 real-PostgreSQL
+tests passing; eight Chromium production journeys cover EN/TR/DE desktop/mobile plus recurring
+scope controls. Type-check, lint, Ruff, mypy, mock/API fixture-checked builds, empty migrations
+and schema agreement pass. The final local read gate is 143.56 ms HTTP p95 with five concurrent
+readers. CI configuration is added but remote CI/live integrations have not been run.
