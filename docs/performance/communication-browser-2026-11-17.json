@@ -1,0 +1,114 @@
+[
+  {
+    "test": "client communication, follow-up and tasks in en",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 5020,
+    "phase": "setup"
+  },
+  {
+    "test": "client communication, follow-up and tasks in tr",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 4695,
+    "phase": "setup"
+  },
+  {
+    "test": "client communication, follow-up and tasks in de",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 4424,
+    "phase": "setup"
+  },
+  {
+    "test": "production documents enforce script nonces including system pages",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 334,
+    "phase": "setup"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in en",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 8406,
+    "phase": "language"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in tr",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 9519,
+    "phase": "language"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in de",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 9040,
+    "phase": "language"
+  },
+  {
+    "test": "recurring scope retains dates and stops following sessions",
+    "project": "desktop",
+    "status": "passed",
+    "durationMs": 4972,
+    "phase": "recurring"
+  },
+  {
+    "test": "client communication, follow-up and tasks in en",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 5709,
+    "phase": "setup"
+  },
+  {
+    "test": "client communication, follow-up and tasks in tr",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 4840,
+    "phase": "setup"
+  },
+  {
+    "test": "client communication, follow-up and tasks in de",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 5329,
+    "phase": "setup"
+  },
+  {
+    "test": "production documents enforce script nonces including system pages",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 342,
+    "phase": "setup"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in en",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 10053,
+    "phase": "language"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in tr",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 10123,
+    "phase": "language"
+  },
+  {
+    "test": "booking, forms, reviewed session changes and cancellation in de",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 10019,
+    "phase": "language"
+  },
+  {
+    "test": "recurring scope retains dates and stops following sessions",
+    "project": "mobile",
+    "status": "passed",
+    "durationMs": 5514,
+    "phase": "recurring"
+  }
+]

@@ -4,7 +4,7 @@ export type SessionActionItemStatus = "todo" | "done";
 export type SessionActionItem = {
   version?: number;
   id: string;
-  sessionId: string;
+  sessionId?: string;
   title: string;
   description?: string;
   status: SessionActionItemStatus;

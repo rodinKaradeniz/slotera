@@ -1,4 +1,5 @@
 "use client";
+import {ServiceFollowupSettings} from "./ServiceFollowupSettings";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import { getService } from "@/services/services.service";
@@ -178,6 +179,7 @@ export function ServiceDrawer({
           disabled={busy}
         />
 
+        {isEdit && initial && <ServiceFollowupSettings serviceId={initial.id} version={edit.version ?? 1} onSaved={version => edit.accept({...initial,version})} onError={edit.onError} />}
         {isEdit && (
           <div className="mt-4 pt-5 border-t border-line-soft">
             <div className="flex items-center gap-2 mb-2">

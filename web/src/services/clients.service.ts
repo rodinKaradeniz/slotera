@@ -21,6 +21,7 @@ mock = mock.map((item) => ({...item, version: item.version ?? 1}));
 function mapClient(client: ClientDto): Client {
   return {
     version: client.version,
+    erasedAt: client.erasedAt ?? undefined,
     id: client.id,
     name: client.name,
     email: client.email,
@@ -44,7 +45,7 @@ function createPayload(input: ClientInput): ClientCreateDto {
 }
 
 function patchPayload(patch: Partial<ClientInput>): ClientPatchDto {
-  return { ...patch, vatId: "vatId" in patch ? patch.vatId ?? null : undefined };
+  return { ...patch, emailTransferConfirmed: false, vatId: "vatId" in patch ? patch.vatId ?? null : undefined };
 }
 
 export async function listClients(): Promise<Client[]> {
@@ -98,12 +99,14 @@ export async function updateClient(
   id: string,
   patch: Partial<ClientInput>,
   expectedVersion?: number,
+  transfer?: {key: string},
 ): Promise<Client> {
   if (dataSource === "api") {
     return mapClient(
       await apiRequest<ClientDto, ClientPatchDto>(`/clients/${encodeURIComponent(id)}`, {
         method: "PATCH", expectedVersion,
-        body: patchPayload(patch),
+        body: {...patchPayload(patch), emailTransferConfirmed: !!transfer},
+        idempotencyKey: transfer?.key,
         csrf: true,
       }),
     );
@@ -139,11 +142,11 @@ export async function eraseClient(id: string, confirmEmail: string, expectedVers
 /** Bounded picker search; full-directory loading remains confined to directory pages. */
 export async function searchClients(search: string, signal?: AbortSignal): Promise<Client[]> {
   if (dataSource === "api") {
-    return (await apiRequest<ClientListDto>(`/clients?search=${encodeURIComponent(search.trim())}&limit=20&offset=0`, {signal})).items.map(mapClient);
+    return (await apiRequest<ClientListDto>(`/clients?contactable=true&search=${encodeURIComponent(search.trim())}&limit=20&offset=0`, {signal})).items.map(mapClient);
   }
   await sleep(60);
   const query = search.trim().toLowerCase();
-  return mock.filter((c) => `${c.name} ${c.email}`.toLowerCase().includes(query)).slice(0, 20);
+  return mock.filter((c) => !c.erasedAt && `${c.name} ${c.email}`.toLowerCase().includes(query)).slice(0, 20);
 }
 
 export async function listClientPage(search: string, offset = 0, signal?: AbortSignal): Promise<import("@/types/page").Page<Client>> {

@@ -1,6 +1,18 @@
 {
   "components": {
     "schemas": {
+      "Accepted": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "default": true,
+            "title": "Accepted",
+            "type": "boolean"
+          }
+        },
+        "title": "Accepted",
+        "type": "object"
+      },
       "Address": {
         "additionalProperties": false,
         "properties": {
@@ -864,6 +876,14 @@
             ],
             "title": "Answers"
           },
+          "assignmentKind": {
+            "enum": [
+              "preparation",
+              "followup"
+            ],
+            "title": "Assignmentkind",
+            "type": "string"
+          },
           "canSubmit": {
             "default": false,
             "title": "Cansubmit",
@@ -880,11 +900,6 @@
             "title": "Fields",
             "type": "array"
           },
-          "historicalApproximation": {
-            "default": false,
-            "title": "Historicalapproximation",
-            "type": "boolean"
-          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -897,6 +912,18 @@
           "requiredBeforePayment": {
             "title": "Requiredbeforepayment",
             "type": "boolean"
+          },
+          "responseDeadline": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responsedeadline"
           },
           "submittedAt": {
             "anyOf": [
@@ -912,6 +939,8 @@
           }
         },
         "required": [
+          "assignmentKind",
+          "responseDeadline",
           "id",
           "name",
           "description",
@@ -1942,6 +1971,109 @@
         "title": "CalendarFeedStatus",
         "type": "object"
       },
+      "ClientBooking": {
+        "additionalProperties": false,
+        "properties": {
+          "amountCents": {
+            "title": "Amountcents",
+            "type": "integer"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "endAt": {
+            "format": "date-time",
+            "title": "Endat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "paymentStatus": {
+            "enum": [
+              "pending",
+              "paid",
+              "refunded",
+              "free",
+              "overdue"
+            ],
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "serviceName": {
+            "title": "Servicename",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "completed",
+              "cancelled",
+              "noshow"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reference",
+          "status",
+          "paymentStatus",
+          "amountCents",
+          "currency",
+          "startAt",
+          "endAt",
+          "serviceName"
+        ],
+        "title": "ClientBooking",
+        "type": "object"
+      },
+      "ClientBookings": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ClientBooking"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ClientBookings",
+        "type": "object"
+      },
       "ClientCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2250,6 +2382,11 @@
           "client": {
             "$ref": "#/components/schemas/ClientResponse"
           },
+          "communication": {
+            "additionalProperties": true,
+            "title": "Communication",
+            "type": "object"
+          },
           "exportedAt": {
             "format": "date-time",
             "title": "Exportedat",
@@ -2286,6 +2423,74 @@
           "notes"
         ],
         "title": "ClientExportResponse",
+        "type": "object"
+      },
+      "ClientIdentity": {
+        "additionalProperties": false,
+        "properties": {
+          "automaticFollowupEnabled": {
+            "title": "Automaticfollowupenabled",
+            "type": "boolean"
+          },
+          "clientId": {
+            "format": "uuid",
+            "title": "Clientid",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
+          "messageDigestEnabled": {
+            "title": "Messagedigestenabled",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "title": "Workspaceid",
+            "type": "string"
+          },
+          "workspaceName": {
+            "title": "Workspacename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientId",
+          "workspaceId",
+          "workspaceName",
+          "slug",
+          "name",
+          "email",
+          "language",
+          "messageDigestEnabled",
+          "automaticFollowupEnabled",
+          "expiresAt"
+        ],
+        "title": "ClientIdentity",
         "type": "object"
       },
       "ClientIdentityCreate": {
@@ -2332,6 +2537,22 @@
           "email"
         ],
         "title": "ClientIdentityCreate",
+        "type": "object"
+      },
+      "ClientLink": {
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "maxLength": 1024,
+            "minLength": 32,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "ClientLink",
         "type": "object"
       },
       "ClientListResponse": {
@@ -2538,6 +2759,11 @@
             ],
             "title": "Email"
           },
+          "emailTransferConfirmed": {
+            "default": false,
+            "title": "Emailtransferconfirmed",
+            "type": "boolean"
+          },
           "name": {
             "anyOf": [
               {
@@ -2603,6 +2829,51 @@
         "title": "ClientPatch",
         "type": "object"
       },
+      "ClientPreference": {
+        "additionalProperties": false,
+        "properties": {
+          "automaticFollowupEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Automaticfollowupenabled"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "enum": [
+                  "en",
+                  "tr",
+                  "de"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "messageDigestEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Messagedigestenabled"
+          }
+        },
+        "title": "ClientPreference",
+        "type": "object"
+      },
       "ClientResponse": {
         "properties": {
           "address": {
@@ -2643,6 +2914,18 @@
           "email": {
             "title": "Email",
             "type": "string"
+          },
+          "erasedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Erasedat"
           },
           "id": {
             "format": "uuid",
@@ -2725,6 +3008,7 @@
           }
         },
         "required": [
+          "erasedAt",
           "version",
           "id",
           "name",
@@ -2744,6 +3028,93 @@
           "tag"
         ],
         "title": "ClientResponse",
+        "type": "object"
+      },
+      "ClientSignIn": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "language": {
+            "default": "en",
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ClientSignIn",
+        "type": "object"
+      },
+      "ConversationPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ConversationPage",
+        "type": "object"
+      },
+      "ConversationSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "format": "uuid",
+            "title": "Clientid",
+            "type": "string"
+          },
+          "clientName": {
+            "title": "Clientname",
+            "type": "string"
+          },
+          "lastSequence": {
+            "title": "Lastsequence",
+            "type": "integer"
+          },
+          "unreadCount": {
+            "title": "Unreadcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clientId",
+          "clientName",
+          "lastSequence",
+          "unreadCount"
+        ],
+        "title": "ConversationSummary",
         "type": "object"
       },
       "DashboardSessionSummary": {
@@ -2901,6 +3272,10 @@
             "title": "Trend30D",
             "type": "array"
           },
+          "unreadMessagesCount": {
+            "title": "Unreadmessagescount",
+            "type": "integer"
+          },
           "unreadNotificationsCount": {
             "title": "Unreadnotificationscount",
             "type": "integer"
@@ -2926,6 +3301,7 @@
           "averageBookingValueThisMonthCents",
           "averageBookingValuePreviousMonthCents",
           "trend30d",
+          "unreadMessagesCount",
           "unreadNotificationsCount",
           "openActionItemsCount"
         ],
@@ -2954,6 +3330,25 @@
           "bookings"
         ],
         "title": "DashboardTrendPoint",
+        "type": "object"
+      },
+      "DigestPreference": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "enabled"
+        ],
+        "title": "DigestPreference",
         "type": "object"
       },
       "ErrorBody": {
@@ -3036,6 +3431,181 @@
           "error"
         ],
         "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "FollowupCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 0.0,
+            "title": "Expectedversion",
+            "type": "integer"
+          },
+          "recipientEmail": {
+            "maxLength": 320,
+            "title": "Recipientemail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "recipientEmail"
+        ],
+        "title": "FollowupCommand",
+        "type": "object"
+      },
+      "FollowupRuleInput": {
+        "additionalProperties": false,
+        "properties": {
+          "delayHours": {
+            "maximum": 720.0,
+            "minimum": 0.0,
+            "title": "Delayhours",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "formTemplateId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formtemplateid"
+          },
+          "message": {
+            "maxLength": 5000,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "delayHours",
+          "message"
+        ],
+        "title": "FollowupRuleInput",
+        "type": "object"
+      },
+      "FollowupRuleView": {
+        "additionalProperties": false,
+        "properties": {
+          "delayHours": {
+            "maximum": 720.0,
+            "minimum": 0.0,
+            "title": "Delayhours",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "formTemplateId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formtemplateid"
+          },
+          "message": {
+            "maxLength": 5000,
+            "title": "Message",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "delayHours",
+          "message",
+          "version"
+        ],
+        "title": "FollowupRuleView",
+        "type": "object"
+      },
+      "FollowupView": {
+        "additionalProperties": false,
+        "properties": {
+          "canSend": {
+            "title": "Cansend",
+            "type": "boolean"
+          },
+          "deliveryStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverystatus"
+          },
+          "dueAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dueat"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "queuedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queuedat"
+          },
+          "recipientEmail": {
+            "title": "Recipientemail",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "state",
+          "recipientEmail",
+          "message",
+          "dueAt",
+          "queuedAt",
+          "canSend"
+        ],
+        "title": "FollowupView",
         "type": "object"
       },
       "FormFieldInput": {
@@ -3755,6 +4325,114 @@
           "showPlatformBranding"
         ],
         "title": "ManagedBookingResponse",
+        "type": "object"
+      },
+      "ManagementAccess": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "ManagementAccess",
+        "type": "object"
+      },
+      "Message": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "senderKind": {
+            "enum": [
+              "client",
+              "operator"
+            ],
+            "title": "Senderkind",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "sequence",
+          "senderKind",
+          "body",
+          "createdAt"
+        ],
+        "title": "Message",
+        "type": "object"
+      },
+      "MessagePage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "latestSequence": {
+            "title": "Latestsequence",
+            "type": "integer"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "readThrough": {
+            "title": "Readthrough",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "latestSequence",
+          "readThrough",
+          "limit"
+        ],
+        "title": "MessagePage",
+        "type": "object"
+      },
+      "MessageSend": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "submissionId": {
+            "format": "uuid",
+            "title": "Submissionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "submissionId",
+          "body"
+        ],
+        "title": "MessageSend",
         "type": "object"
       },
       "NotificationListResponse": {
@@ -6182,6 +6860,21 @@
         "title": "PublicWorkspaceResponse",
         "type": "object"
       },
+      "ReadThrough": {
+        "additionalProperties": false,
+        "properties": {
+          "sequence": {
+            "minimum": 0.0,
+            "title": "Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sequence"
+        ],
+        "title": "ReadThrough",
+        "type": "object"
+      },
       "ReadinessResponse": {
         "properties": {
           "checks": {
@@ -7354,9 +8047,16 @@
             "type": "string"
           },
           "sessionId": {
-            "format": "uuid",
-            "title": "Sessionid",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
           },
           "status": {
             "enum": [
@@ -7393,6 +8093,14 @@
         ],
         "title": "SessionActionItemResponse",
         "type": "object"
+      },
+      "SessionActionItemStatus": {
+        "enum": [
+          "todo",
+          "done"
+        ],
+        "title": "SessionActionItemStatus",
+        "type": "string"
       },
       "SessionCreate": {
         "additionalProperties": false,
@@ -8001,6 +8709,58 @@
         "title": "SlugAvailability",
         "type": "object"
       },
+      "TaskCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "TaskCreate",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -8039,6 +8799,66 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "WorklistResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SessionActionItemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "paidThrough": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paidthrough"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "trialEndsAt": {
+            "format": "date-time",
+            "title": "Trialendsat",
+            "type": "string"
+          },
+          "unreadMessages": {
+            "title": "Unreadmessages",
+            "type": "integer"
+          },
+          "unreadNotifications": {
+            "title": "Unreadnotifications",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit",
+          "offset",
+          "items",
+          "total",
+          "unreadMessages",
+          "unreadNotifications",
+          "trialEndsAt",
+          "paidThrough"
+        ],
+        "title": "WorklistResponse",
         "type": "object"
       },
       "WorkspaceBillingResponse": {
@@ -9506,6 +10326,126 @@
         ]
       }
     },
+    "/bookings/{booking_id}/follow-up": {
+      "get": {
+        "operationId": "getBookingFollowup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowupView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Followup",
+        "tags": [
+          "follow-ups"
+        ]
+      }
+    },
+    "/bookings/{booking_id}/follow-up/{action}": {
+      "post": {
+        "operationId": "commandBookingFollowup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "enum": [
+                "send",
+                "skip"
+              ],
+              "title": "Action",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FollowupCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowupView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Command Followup",
+        "tags": [
+          "follow-ups"
+        ]
+      }
+    },
     "/bookings/{booking_id}/forms": {
       "get": {
         "operationId": "getBookingForms",
@@ -9933,6 +10873,374 @@
         ]
       }
     },
+    "/client/auth/consume": {
+      "post": {
+        "operationId": "consumeClientSignIn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientIdentity"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Consume Sign In",
+        "tags": [
+          "client access"
+        ]
+      }
+    },
+    "/client/auth/logout": {
+      "post": {
+        "operationId": "logoutClient",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout",
+        "tags": [
+          "client access"
+        ]
+      }
+    },
+    "/client/auth/session": {
+      "get": {
+        "operationId": "getClientSession",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientIdentity"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Session",
+        "tags": [
+          "client access"
+        ]
+      }
+    },
+    "/client/bookings": {
+      "get": {
+        "operationId": "listClientBookings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientBookings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Bookings",
+        "tags": [
+          "client access"
+        ]
+      }
+    },
+    "/client/bookings/{booking_id}/management-access": {
+      "post": {
+        "operationId": "clientBookingManagementAccess",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagementAccess"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Management Access",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/client/conversation/messages": {
+      "get": {
+        "operationId": "listClientMessages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Messages",
+        "tags": [
+          "conversations"
+        ]
+      },
+      "post": {
+        "operationId": "sendClientMessage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageSend"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Send",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/client/conversation/read": {
+      "post": {
+        "operationId": "readClientMessages",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadThrough"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Read",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/client/preferences": {
+      "patch": {
+        "operationId": "updateClientPreferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientPreference"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientIdentity"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preferences",
+        "tags": [
+          "client access"
+        ]
+      }
+    },
     "/clients": {
       "get": {
         "operationId": "listClients",
@@ -9975,6 +11283,16 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contactable",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Contactable",
+              "type": "boolean"
             }
           }
         ],
@@ -10159,6 +11477,24 @@
           },
           {
             "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "in": "header",
             "name": "If-Match",
             "required": true,
             "schema": {
@@ -10203,6 +11539,192 @@
         "summary": "Update Client",
         "tags": [
           "clients"
+        ]
+      }
+    },
+    "/clients/{client_id}/conversation/messages": {
+      "get": {
+        "operationId": "listOperatorMessages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Operator Messages",
+        "tags": [
+          "conversations"
+        ]
+      },
+      "post": {
+        "operationId": "sendOperatorMessage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageSend"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Operator Send",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/clients/{client_id}/conversation/read": {
+      "post": {
+        "operationId": "readOperatorMessages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadThrough"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Operator Read",
+        "tags": [
+          "conversations"
         ]
       }
     },
@@ -10422,6 +11944,62 @@
         ]
       }
     },
+    "/conversations": {
+      "get": {
+        "operationId": "listConversations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Conversations",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
     "/dashboard/summary": {
       "get": {
         "operationId": "getDashboardSummary",
@@ -10440,6 +12018,71 @@
         "summary": "Get Dashboard Summary",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/dashboard/worklist": {
+      "get": {
+        "operationId": "getDashboardWorklist",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SessionActionItemStatus",
+              "default": "todo"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorklistResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Worklist",
+        "tags": [
+          "tasks"
         ]
       }
     },
@@ -12118,6 +13761,58 @@
         ]
       }
     },
+    "/public/workspaces/{slug}/client-sign-in": {
+      "post": {
+        "operationId": "requestClientSignIn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientSignIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Accepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Sign In",
+        "tags": [
+          "client access"
+        ]
+      }
+    },
     "/public/workspaces/{workspace_slug}": {
       "get": {
         "operationId": "getPublicWorkspace",
@@ -12947,61 +14642,17 @@
         ]
       }
     },
-    "/session-action-items/{item_id}": {
-      "delete": {
-        "operationId": "deleteSessionActionItem",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "item_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Item Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "If-Match",
-            "required": true,
-            "schema": {
-              "pattern": "^\"v[1-9][0-9]*\"$",
-              "title": "If-Match",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Session Action Item",
-        "tags": [
-          "session action items"
-        ]
-      },
+    "/services/{service_id}/follow-up": {
       "get": {
-        "operationId": "getSessionActionItem",
+        "operationId": "getFollowupRule",
         "parameters": [
           {
             "in": "path",
-            "name": "item_id",
+            "name": "service_id",
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Item Id",
+              "title": "Service Id",
               "type": "string"
             }
           }
@@ -13011,7 +14662,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionActionItemResponse"
+                  "$ref": "#/components/schemas/FollowupRuleView"
                 }
               }
             },
@@ -13028,21 +14679,21 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Get Session Action Item",
+        "summary": "Get Rule",
         "tags": [
-          "session action items"
+          "follow-ups"
         ]
       },
       "patch": {
-        "operationId": "updateSessionActionItem",
+        "operationId": "updateFollowupRule",
         "parameters": [
           {
             "in": "path",
-            "name": "item_id",
+            "name": "service_id",
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Item Id",
+              "title": "Service Id",
               "type": "string"
             }
           },
@@ -13061,7 +14712,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SessionActionItemPatch"
+                "$ref": "#/components/schemas/FollowupRuleInput"
               }
             }
           },
@@ -13072,7 +14723,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionActionItemResponse"
+                  "$ref": "#/components/schemas/FollowupRuleView"
                 }
               }
             },
@@ -13089,9 +14740,9 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Update Session Action Item",
+        "summary": "Update Rule",
         "tags": [
-          "session action items"
+          "follow-ups"
         ]
       }
     },
@@ -14234,6 +15885,66 @@
         ]
       }
     },
+    "/settings/message-digest": {
+      "get": {
+        "operationId": "getMessageDigestPreference",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestPreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Digest Preference",
+        "tags": [
+          "conversations"
+        ]
+      },
+      "patch": {
+        "operationId": "setMessageDigestPreference",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestPreference"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestPreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Digest Preference",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
     "/settings/payments": {
       "get": {
         "operationId": "getPaymentSettings",
@@ -14324,6 +16035,282 @@
         "summary": "Export Workspace",
         "tags": [
           "settings"
+        ]
+      }
+    },
+    "/tasks": {
+      "get": {
+        "operationId": "listTasks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SessionActionItemStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionActionItemListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Tasks",
+        "tags": [
+          "session action items"
+        ]
+      },
+      "post": {
+        "operationId": "createTask",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionActionItemResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Task",
+        "tags": [
+          "session action items"
+        ]
+      }
+    },
+    "/tasks/{item_id}": {
+      "delete": {
+        "operationId": "deleteSessionActionItem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Session Action Item",
+        "tags": [
+          "session action items"
+        ]
+      },
+      "get": {
+        "operationId": "getSessionActionItem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionActionItemResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session Action Item",
+        "tags": [
+          "session action items"
+        ]
+      },
+      "patch": {
+        "operationId": "updateSessionActionItem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionActionItemPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionActionItemResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Session Action Item",
+        "tags": [
+          "session action items"
         ]
       }
     }

@@ -56,8 +56,8 @@ capacity-one open-mode public booking transaction with separate payment/approval
 operator reconciliation/approval commands, provider-neutral booking email events, and a
 user-targeted notification baseline over the identity/tenancy model. See
 `docs/PRODUCT.md` for the full positioning rules and
-phase plan (Phase 2 later adds booking-workspace magic-link access;
-Phase 3 adds Stripe, scheduled email, and calendar integrations).
+phase plan (booking-workspace magic links and local scheduled email are implemented;
+Stripe and external calendar integrations remain later).
 
 ---
 
@@ -175,7 +175,7 @@ demo has no superadmin area, sign-up, onboarding, or password reset; those 404 t
 **Signing in (local API mode)** — use `hello@slotera.io` / `slotera-local-only`.
 Authentication is cookie-backed and the operator lands on `/admin/dashboard`; Dashboard,
 Calendar, Calendar Settings, Bookings, Clients, Services, Forms, and Business Settings are
-exposed in API-mode navigation. The navbar and Cmd/Ctrl-K operator search are also
+exposed in API-mode navigation, alongside Packages and Messages. The navbar and Cmd/Ctrl-K operator search are also
 API-backed. Calendar uses persisted sessions, booking/client context, session action
 items, and group-session attendance. The persisted booking detail exposes narrow,
 idempotent approval, decline, manual-payment receipt, and cancellation actions, and
@@ -223,14 +223,14 @@ mock mode.
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Framework | Next.js `16.2.6`, App Router, Turbopack | four route groups, one root layout |
+| Framework | Next.js `16.4.6`, App Router, Turbopack | four route groups, one root layout |
 | Language | TypeScript `^5`, `strict: true`, `noEmit: true` | path alias `@/*` → `web/src/*` |
 | UI runtime | React `19.2.4` | most components are `"use client"` |
 | Styling | Tailwind CSS `v4` via `@tailwindcss/postcss` | design tokens in `web/src/app/globals.css` under `@theme inline` |
 | Class composition | `clsx` + `tailwind-merge` (extended) | always via `web/src/lib/cn.ts` |
 | Icons | `lucide-react` | never imported directly — wrapped by `web/src/components/ui/Icon.tsx` as a named `IconName` union |
 | Charts | `recharts` `^3.8` | one usage: `TrendChart` on the dashboard |
-| Rich text | Tiptap `^3.27` (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm`) | one usage: client notes editor |
+| Rich text | Tiptap `^3.34` (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm`) | one usage: client notes editor |
 | Fonts | self-hosted Fraunces, Inter Tight, JetBrains Mono | exposed as `--font-serif` / `--font-sans` / `--font-mono`; no external font requests |
 | Data | mock JSON by default; generated OpenAPI DTOs + HTTP adapters for the local operator bundle | switchable via `NEXT_PUBLIC_DATA_SOURCE` |
 | Frontend auth | mock token in mock mode; HttpOnly cookie + CSRF in API mode | `localStorage` holds only the UI session snapshot |
@@ -239,8 +239,8 @@ mock mode.
 | Backend | Python 3.13 + FastAPI, SQLAlchemy async, Alembic | auth/session + operator settings/locations/services/notifications |
 | Backend data | PostgreSQL 17 via Docker Compose | owner migrations, restricted application role, forced tenant RLS; host port `55432` |
 | Backend tooling | uv, pytest, Ruff, mypy | lockfile under `server/`; GitHub Actions runs quality and PostgreSQL integration gates |
-| Frontend tests | Vitest `^3` (Node; jsdom for component tests) | helpers, routing, DTO mappers, proxy, forms and language preferences; CI runs it with type-check, lint, and build |
-| Error monitoring | Sentry (free plan, EU organisation): `sentry-sdk` in `server/`, `@sentry/nextjs` 10.x in `web/` | off without a DSN; the demo never reports; URLs scrubbed of tokens. See `docs/DEPLOYMENT.md` |
+| Frontend tests | Vitest `^5` (Node; jsdom for component tests) | helpers, routing, DTO mappers, proxy, forms and language preferences; CI runs it with type-check, lint, and build |
+| Error monitoring | Sentry (free plan, EU organisation): `sentry-sdk` in `server/`, `@sentry/nextjs` 11.x in `web/` | off without a DSN; the demo never reports; URLs scrubbed of tokens. See `docs/DEPLOYMENT.md` |
 | Deployment | Docker Compose on one Hetzner server | `deploy/` (Caddy, demo + app images, API, worker, maintenance loop, PostgreSQL, nightly backups); see `docs/DEPLOYMENT.md` |
 
 ---
@@ -323,9 +323,9 @@ export async function listThings(): Promise<T[]> {
   directly from a component is a bug.
 - Errors are `NotImplementedError` or `NotFoundError` from `web/src/services/_errors.ts`;
   components surface `err.message`, usually through `toast.error(...)`.
-- Services are self-contained with one exception: in mock mode, `dashboard.service.ts`
-  composes live from bookings, sessions, and action items to prepend derived "Needs your
-  attention" entries. API mode maps the single dashboard summary read model instead.
+- Mock services compose related records through services where needed (dashboard facts,
+  task worklist and client conversations); components never join full collections in API
+  mode. API dashboard summary and worklist use coherent bounded server read models.
 
 Current services: `auth`, `billing`, `bookings`, `client-notes`, `clients`, `dashboard`,
 `demo`, `forms`, `notifications`, `packages`, `platform`, `services`,
@@ -383,8 +383,9 @@ implemented HTTP surface is deliberately limited to:
 - `GET/POST /sessions` plus item `GET/PATCH` — `bookable=true` filters upcoming available
   sessions; reads include actual capacity-consuming attendee counts; one-off and recurring materialised
   sessions, including explicit `this` / `this_and_following` edit scope;
-- `GET/POST /sessions/{session_id}/action-items` plus item `PATCH/DELETE` — private
-  operator session tasks with persisted `todo`/`done` state;
+- `GET/POST /sessions/{session_id}/action-items`, `GET/POST /tasks`, and item
+  `GET/PATCH/DELETE /tasks/{id}` — private session/general tasks with reviewed versions
+  and persisted `todo`/`done` state;
 - `GET /dashboard/summary` — a tenant- and principal-scoped operator dashboard read model;
 - `GET /search` — a bounded tenant-scoped projection over searchable operator resources;
 - public workspace/catalog/forms/availability reads plus `POST
@@ -464,7 +465,7 @@ mismatch. `homePathForRole()` in `web/src/lib/nav.ts` is the single source of tr
 each role goes home; `OPERATOR_NAV` / `SUPERADMIN_NAV`, API-filtered variants, and
 `navForRole()` live beside it.
 
-`UserRole` is `"operator_admin" | "superadmin"`. Customers never authenticate.
+`UserRole` is `"operator_admin" | "superadmin"`. Clients authenticate separately through workspace-scoped email links, never as a UserRole or staff membership.
 
 ### Route groups
 
@@ -1104,3 +1105,38 @@ tests passing; eight Chromium production journeys cover EN/TR/DE desktop/mobile 
 scope controls. Type-check, lint, Ruff, mypy, mock/API fixture-checked builds, empty migrations
 and schema agreement pass. The final local read gate is 143.56 ms HTTP p95 with five concurrent
 readers. CI configuration is added but remote CI/live integrations have not been run.
+
+## Communication bundle (2026-11-16)
+
+See `docs/PASS1_COMMUNICATION.md` for exact implemented versus remaining scope.
+The bundle adds separate passwordless client access, booking history, immutable plain-text
+conversations, daily unread digests, completion-owned follow-ups and shared private tasks.
+Production uses nonce CSP and the launcher owns process groups with fixed-port preflight.
+The launcher also runs maintenance every 15 minutes and writes `maintenance.log`.
+
+
+Client routes `/client/[slug]/sign-in` and `/client/[slug]` exist only in API mode, with
+Messages / Bookings / Account. An existing client requests a 15-minute single-use link;
+its separate HttpOnly session expires after 12 hours. Local console delivery contains
+sensitive access links, so do not publish worker logs. Clients cannot access staff resources.
+
+Operator Messages and Clients → client → Messages open the same client conversation.
+Service editing exposes separately saved follow-up rules; completed booking details show
+reviewed follow-up send/skip and safe delivery status. Maintenance queues follow-ups and
+9am workspace-local unread digests; live provider delivery remains an operational check.
+Dashboard To-do and Calendar share versioned private tasks; `/tasks` and `/tasks/{id}`
+are canonical task resources, with contextual session list/create routes retained.
+`GET /dashboard/worklist` reads bounded tasks and source-action counts in one snapshot.
+
+Communication models live in `db/client_models.py`, client auth/messages in `client_access/`,
+and shared typed form validation in `form_validation.py`. Credential and digest bookkeeping
+tables have no direct runtime grants; conversation writes use fixed capabilities. Exports,
+erasure, corrected delivery addresses and workspace deletion cover the communication data.
+See `docs/PASS1_COMMUNICATION.md` for verification and the developer walkthrough.
+
+
+Communication verification: 143 frontend, 108 isolated backend and 100 PostgreSQL tests pass;
+16 production Chromium journeys cover desktop/mobile EN/TR/DE. Types, lint, Ruff, mypy,
+transport generation, fixture-checked mock/API builds and empty migrations/schema agreement
+pass. Local read p95 is 82.14 ms with five readers. Seven moderate upstream development-tool
+advisories remain (zero high/critical); Python audit is clean. Local showcase data is reset.

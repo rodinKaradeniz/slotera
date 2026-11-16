@@ -1,6 +1,7 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+import {MessageDigestPreference} from "./MessageDigestPreference";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
@@ -55,6 +56,7 @@ export function ApiAccountPanel() {
     <PanelCard title={uiText("ui.account")}>
       <div className="flex flex-col gap-4">
         <LanguageSwitcher />
+        <MessageDigestPreference />
         <Field label={uiText("ui.account.email")} hint={uiText("ui.contact.us.to.change.the.email.you.sign.in.with")}>
           <Input value={email} readOnly />
         </Field>

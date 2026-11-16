@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import and_, case, func, select
+from sqlalchemy import and_, case, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from slotera_api.database import Database
@@ -61,6 +61,7 @@ class DashboardSummary:
     average_booking_value_previous_month_cents: int
     trend_30d: list[DashboardTrend]
     unread_notifications_count: int
+    unread_messages_count: int
     open_action_items_count: int
 
 
@@ -137,6 +138,18 @@ class DashboardRepository:
                     SessionActionItem.status == SessionActionItemStatus.TODO,
                 )
             )
+            unread_messages = await session.scalar(
+                text("""
+                SELECT count(*) FROM conversation_messages m
+                JOIN clients c ON c.workspace_id=m.workspace_id AND c.id=m.conversation_id
+ AND c.erased_at IS NULL
+                LEFT JOIN conversation_reads r ON r.workspace_id=m.workspace_id AND 
+r.conversation_id=m.conversation_id AND r.actor_key=:actor
+                WHERE m.workspace_id=:workspace AND m.sender_kind='client' AND 
+m.sequence>coalesce(r.last_read,0)
+            """),
+                {"actor": f"operator:{user_id}", "workspace": workspace_id},
+            )
             return DashboardSummary(
                 currency=workspace.currency,
                 timezone=workspace.timezone,
@@ -153,6 +166,7 @@ class DashboardRepository:
                 average_booking_value_this_month_cents=average_this_month,
                 average_booking_value_previous_month_cents=average_previous_month,
                 trend_30d=trend_30d,
+                unread_messages_count=int(unread_messages or 0),
                 unread_notifications_count=int(unread_notifications_count or 0),
                 open_action_items_count=int(open_action_items_count or 0),
             )

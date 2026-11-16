@@ -15,7 +15,7 @@ this*.
 ## The situation you're designing inside
 
 This is a **mock-backed frontend prototype plus an independently developed local backend
-foundation**. No product endpoint is wired to the frontend yet. That boundary drives most
+backend**. Operator, public booking and client communication bundles are API-backed in opt-in API mode; the public demo remains mock-backed. That boundary drives most
 architectural calls here:
 
 - Every service module in `web/src/services/` has an unwritten `api` branch. Today it throws
@@ -26,8 +26,8 @@ architectural calls here:
   depends on cross-reload persistence is broken already and doesn't know it.
 - A React Native client is planned against the *same* API, after the web MVP stabilises.
 
-So the recurring architectural question is: **will this survive contact with a real
-database, real tenancy, and a second client?**
+So the recurring architectural question is: **will this survive contact with real
+tenancy, concurrent updates, and a second API client?**
 
 ## Where the layer boundaries actually are
 

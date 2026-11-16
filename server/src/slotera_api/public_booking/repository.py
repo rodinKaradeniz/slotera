@@ -41,6 +41,7 @@ from slotera_api.db.models import (
     WorkspaceOperationalStatus,
     WorkspacePaymentSettings,
 )
+from slotera_api.form_validation import FormValidationError, validate_form_responses
 from slotera_api.public_booking.terms import PLATFORM_TERMS_VERSION
 
 
@@ -57,10 +58,6 @@ class PublicSlotUnavailableError(Exception):
 
 
 class PublicPaymentMethodError(Exception):
-    pass
-
-
-class PublicFormValidationError(Exception):
     pass
 
 
@@ -650,7 +647,7 @@ class PublicBookingRepository:
                 ).all()
             )
             submissions = values.get("form_responses", [])
-            validated = self._validate_form_responses(
+            validated = validate_form_responses(
                 [form for form in forms if form.required_before_payment], submissions
             )
 
@@ -665,7 +662,7 @@ class PublicBookingRepository:
 
             customer = values["customer"]
             if not isinstance(customer, Mapping):
-                raise PublicFormValidationError
+                raise FormValidationError
             email = str(customer["email"]).strip().lower()
             client = await session.scalar(
                 select(Client).where(
@@ -768,33 +765,22 @@ class PublicBookingRepository:
             )
             session.add(booking)
             await session.flush()
-            session.add_all(
-                [
-                    BookingFormSnapshot(
-                        workspace_id=workspace_id,
-                        booking_id=booking.id,
-                        form_template_id=form.id,
-                        name=form.name,
-                        description=form.description,
-                        fields=form.fields,
-                        required_before_payment=form.required_before_payment,
-                    )
-                    for form in forms
-                ]
-            )
-            session.add_all(
-                [
-                    BookingFormResponse(
-                        id=uuid4(),
-                        workspace_id=workspace_id,
-                        booking_id=booking.id,
-                        form_template_id=form.id,
-                        form_name=form.name,
-                        answers=answers,
-                    )
-                    for form, answers in validated
-                ]
-            )
+            assignments = {form.id: uuid4() for form in forms}
+            session.add_all([
+                BookingFormSnapshot(
+                    id=assignments[form.id], workspace_id=workspace_id, booking_id=booking.id,
+                    form_template_id=form.id, name=form.name, description=form.description,
+                    fields=form.fields, required_before_payment=form.required_before_payment,
+                ) for form in forms
+            ])
+            await session.flush()
+            session.add_all([
+                BookingFormResponse(
+                    id=uuid4(), workspace_id=workspace_id, booking_id=booking.id,
+                    snapshot_id=assignments[form.id], form_template_id=form.id,
+                    form_name=form.name, answers=answers,
+                ) for form, answers in validated
+            ])
             session.add(
                 PublicBookingIdempotency(
                     id=uuid4(),
@@ -834,93 +820,6 @@ class PublicBookingRepository:
             return PublicBookingResult(
                 booking, scheduled_session, quote, replayed=False, meeting_url=service.meeting_url
             )
-
-    @staticmethod
-    def _validate_form_responses(
-        forms: list[FormTemplate], submissions: object
-    ) -> list[tuple[FormTemplate, list[dict[str, object]]]]:
-        if not isinstance(submissions, list):
-            raise PublicFormValidationError
-        forms_by_id = {form.id: form for form in forms}
-        submitted_by_id: dict[UUID, list[dict[str, object]]] = {}
-        for submission in submissions:
-            if not isinstance(submission, Mapping):
-                raise PublicFormValidationError
-            form_id = submission.get("form_template_id")
-            answers = submission.get("answers")
-            if not isinstance(form_id, UUID) or form_id in submitted_by_id:
-                raise PublicFormValidationError
-            form = forms_by_id.get(form_id)
-            if form is None or not isinstance(answers, list):
-                raise PublicFormValidationError
-            fields = {str(field["id"]): field for field in form.fields}
-            normalized: list[dict[str, object]] = []
-            seen: set[str] = set()
-            for answer in answers:
-                if not isinstance(answer, Mapping):
-                    raise PublicFormValidationError
-                field_id = str(answer.get("field_id", ""))
-                if field_id in seen or field_id not in fields:
-                    raise PublicFormValidationError
-                seen.add(field_id)
-                value = answer.get("value")
-                field = fields[field_id]
-                field_type = str(field.get("type"))
-                options = field.get("options")
-                options = options if isinstance(options, list) else []
-                if field_type in {"yes_no", "consent_checkbox"}:
-                    if not isinstance(value, bool):
-                        raise PublicFormValidationError
-                    if (
-                        field_type == "consent_checkbox"
-                        and field.get("required")
-                        and value is not True
-                    ):
-                        raise PublicFormValidationError
-                elif field_type == "multi_select":
-                    if (
-                        not isinstance(value, list)
-                        or len(value) > 100
-                        or not all(isinstance(item, str) for item in value)
-                        or len(set(value)) != len(value)
-                        or not set(value) <= set(options or [])
-                    ):
-                        raise PublicFormValidationError
-                else:
-                    if not isinstance(value, str) or len(value) > 4000:
-                        raise PublicFormValidationError
-                    if (
-                        field_type == "single_select"
-                        and value not in (options or [])
-                        and value != ""
-                    ):
-                        raise PublicFormValidationError
-                    if field_type == "date" and value:
-                        from datetime import date
-
-                        try:
-                            if date.fromisoformat(value).isoformat() != value:
-                                raise ValueError
-                        except ValueError as exc:
-                            raise PublicFormValidationError from exc
-                normalized.append({"field_id": field_id, "value": value})
-            for field_id, field in fields.items():
-                if not field.get("required"):
-                    continue
-                answer = next(
-                    (item["value"] for item in normalized if item["field_id"] == field_id),
-                    None,
-                )
-                if (
-                    answer is None
-                    or (isinstance(answer, str) and not answer.strip())
-                    or answer == []
-                ):
-                    raise PublicFormValidationError
-            submitted_by_id[form_id] = normalized
-        if any(form.required_before_payment and form.id not in submitted_by_id for form in forms):
-            raise PublicFormValidationError
-        return [(forms_by_id[form_id], answers) for form_id, answers in submitted_by_id.items()]
 
     @staticmethod
     def _quote_from_booking(booking: Booking) -> TaxQuote:

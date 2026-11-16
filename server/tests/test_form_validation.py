@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 
 from slotera_api.db.models import FormTemplate
-from slotera_api.public_booking.repository import PublicBookingRepository, PublicFormValidationError
+from slotera_api.form_validation import FormValidationError, validate_form_responses
 
 
 def validate(kind: str, value: object, *, required: bool = True) -> None:
@@ -21,7 +21,7 @@ def validate(kind: str, value: object, *, required: bool = True) -> None:
             }
         ],
     )
-    PublicBookingRepository._validate_form_responses(
+    validate_form_responses(
         [form], [{"form_template_id": form.id, "answers": [{"field_id": "q", "value": value}]}]
     )
 
@@ -59,7 +59,7 @@ def test_valid_form_values(kind: str, value: object) -> None:
     ],
 )
 def test_invalid_form_values(kind: str, value: object) -> None:
-    with pytest.raises(PublicFormValidationError):
+    with pytest.raises(FormValidationError):
         validate(kind, value)
 
 
@@ -71,7 +71,7 @@ def test_http_answer_schema_rejects_coercion_for_boolean_values(value: object) -
 
     # Strings are valid for text fields; validation against yes/no fields still rejects them.
     if isinstance(value, str):
-        with pytest.raises(PublicFormValidationError):
+        with pytest.raises(FormValidationError):
             validate("yes_no", value)
     else:
         with pytest.raises(ValidationError):

@@ -65,11 +65,13 @@ export function relatedReads(path: string): string[] {
   if (path === "/auth/preferences") return [];
   const root = path.split(/[/?]/)[1];
   const related: Record<string, string[]> = {
+    tasks: ["tasks", "session-action-items", "sessions", "dashboard"],
+    conversations: ["conversations", "dashboard"],
     bookings: ["bookings", "sessions", "clients", "dashboard", "notifications", "search"],
     "client-notes": ["client-notes", "clients", "search"],
-    "session-action-items": ["session-action-items", "sessions", "dashboard", "search"],
-    clients: ["clients", "bookings", "dashboard", "search"],
-    sessions: ["sessions", "bookings", "clients", "dashboard", "notifications", "search"],
+    "session-action-items": ["tasks", "session-action-items", "sessions", "dashboard", "search"],
+    clients: ["conversations", "clients", "bookings", "dashboard", "search"],
+    sessions: ["tasks", "sessions", "bookings", "clients", "dashboard", "notifications", "search"],
     services: ["services", "packages", "forms", "sessions", "bookings", "dashboard", "search"],
     forms: ["forms", "bookings", "services", "search"],
     packages: ["packages", "services", "search"],

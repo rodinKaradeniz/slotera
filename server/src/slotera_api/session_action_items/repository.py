@@ -2,7 +2,8 @@ from collections.abc import Mapping
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, select, true
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from slotera_api.database import Database
 from slotera_api.db.models import AuditEvent, Session, SessionActionItem, SessionActionItemStatus
@@ -14,54 +15,23 @@ class SessionActionItemsRepository:
         self.database = database
 
     async def list_items(
-        self, workspace_id: UUID, session_id: UUID, limit: int = 25, offset: int = 0
+        self,
+        workspace_id: UUID,
+        session_id: UUID | None,
+        limit: int = 25,
+        offset: int = 0,
+        status: SessionActionItemStatus | None = None,
     ) -> tuple[list[SessionActionItem], int] | None:
         async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
-            exists = await session.scalar(
-                select(Session.id).where(
-                    Session.workspace_id == workspace_id,
-                    Session.id == session_id,
-                )
+            return await list_items_in_session(
+                session, workspace_id, session_id, limit, offset, status
             )
-            if exists is None:
-                return None
-            items = list(
-                (
-                    await session.scalars(
-                        select(SessionActionItem)
-                        .limit(limit)
-                        .offset(offset)
-                        .where(
-                            SessionActionItem.workspace_id == workspace_id,
-                            SessionActionItem.session_id == session_id,
-                        )
-                        .order_by(
-                            case(
-                                (
-                                    SessionActionItem.status == SessionActionItemStatus.TODO,
-                                    0,
-                                ),
-                                else_=1,
-                            ),
-                            SessionActionItem.created_at,
-                            SessionActionItem.id,
-                        )
-                    )
-                ).all()
-            )
-            total = await session.scalar(
-                select(func.count(SessionActionItem.id)).where(
-                    SessionActionItem.workspace_id == workspace_id,
-                    SessionActionItem.session_id == session_id,
-                )
-            )
-            return items, int(total or 0)
 
     async def create_item(
         self,
         workspace_id: UUID,
         actor_user_id: UUID,
-        session_id: UUID,
+        session_id: UUID | None,
         values: Mapping[str, Any],
     ) -> SessionActionItem | None:
         async with self.database.tenant_transaction(workspace_id) as session:
@@ -71,7 +41,7 @@ class SessionActionItemsRepository:
                     Session.id == session_id,
                 )
             )
-            if exists is None:
+            if session_id is not None and exists is None:
                 return None
             item = SessionActionItem(
                 id=uuid4(),
@@ -166,3 +136,57 @@ class SessionActionItemsRepository:
                 )
             )
             return True
+
+
+async def list_items_in_session(
+    session: AsyncSession,
+    workspace_id: UUID,
+    session_id: UUID | None,
+    limit: int = 25,
+    offset: int = 0,
+    status: SessionActionItemStatus | None = None,
+) -> tuple[list[SessionActionItem], int] | None:
+    exists = await session.scalar(
+        select(Session.id).where(
+            Session.workspace_id == workspace_id,
+            Session.id == session_id,
+        )
+    )
+    if session_id is not None and exists is None:
+        return None
+    items = list(
+        (
+            await session.scalars(
+                select(SessionActionItem)
+                .limit(limit)
+                .offset(offset)
+                .where(
+                    SessionActionItem.workspace_id == workspace_id,
+                    (SessionActionItem.session_id == session_id)
+                    if session_id is not None
+                    else true(),
+                    (SessionActionItem.status == status) if status is not None else true(),
+                )
+                .order_by(
+                    case(
+                        (
+                            SessionActionItem.status == SessionActionItemStatus.TODO,
+                            0,
+                        ),
+                        else_=1,
+                    ),
+                    SessionActionItem.due_date.asc().nulls_last(),
+                    SessionActionItem.created_at,
+                    SessionActionItem.id,
+                )
+            )
+        ).all()
+    )
+    total = await session.scalar(
+        select(func.count(SessionActionItem.id)).where(
+            SessionActionItem.workspace_id == workspace_id,
+            (SessionActionItem.session_id == session_id) if session_id is not None else true(),
+            (SessionActionItem.status == status) if status is not None else true(),
+        )
+    )
+    return items, int(total or 0)

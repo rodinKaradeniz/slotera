@@ -1,17 +1,26 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { buildCsp } from "@/lib/csp";
 
-// Maintenance switch. Read at request time (server-only, not NEXT_PUBLIC_), so
-// flipping MAINTENANCE_MODE=1 and restarting the container is enough — no rebuild.
 export function proxy(request: NextRequest) {
-  if (process.env.MAINTENANCE_MODE !== "1") return NextResponse.next();
-  // 503 + Retry-After so uptime checks and crawlers see an outage, not a normal page.
-  return NextResponse.rewrite(new URL("/maintenance", request.url), {
-    status: 503,
-    headers: { "Retry-After": "600" },
-  });
+  const requestHeaders = new Headers(request.headers);
+  // Always replace incoming nonce/CSP headers: callers cannot select their nonce.
+  requestHeaders.delete("x-nonce");
+  requestHeaders.delete("content-security-policy");
+  const csp = process.env.NODE_ENV === "production"
+    ? buildCsp(process.env.NEXT_PUBLIC_API_BASE_URL ?? "", btoa(crypto.randomUUID()))
+    : undefined;
+  if (csp) requestHeaders.set("Content-Security-Policy", csp);
+  const maintenance = process.env.MAINTENANCE_MODE === "1"
+    && request.nextUrl.pathname !== "/maintenance";
+  const response = maintenance
+    ? NextResponse.rewrite(new URL("/maintenance", request.url), {
+        status: 503, headers: { "Retry-After": "600" }, request: { headers: requestHeaders },
+      })
+    : NextResponse.next({ request: { headers: requestHeaders } });
+  if (csp) response.headers.set("Content-Security-Policy", csp);
+  return response;
 }
 
 export const config = {
-  // Everything except Next internals, static files, and the maintenance page itself.
-  matcher: ["/((?!_next/|favicon.ico|maintenance|.*\\.[a-z0-9]+$).*)"],
+  matcher: ["/((?!_next/|favicon.ico|monitoring|.*\\.[a-z0-9]+$).*)"],
 };

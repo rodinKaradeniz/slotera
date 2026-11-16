@@ -6,7 +6,7 @@ from http import HTTPStatus
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Header, Query, Response
 from fastapi.responses import StreamingResponse
 
 from slotera_api.auth.dependencies import (
@@ -45,6 +45,7 @@ def _client_response(client: Client, stats: ClientStats | None = None) -> Client
     stats = stats or ClientStats()
     return ClientResponse(
         version=client.version,
+        erased_at=client.erased_at,
         id=client.id,
         name=client.name,
         email=client.email,
@@ -95,11 +96,17 @@ async def list_clients(
     search: Annotated[str | None, Query(max_length=320)] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
+    contactable: bool = False,
 ) -> ClientListResponse:
     repository = ClientsRepository(database)
     async with database.tenant_transaction(operator.workspace_id, repeatable_read=True) as session:
         items, total = await repository.list_clients(
-            operator.workspace_id, search=search, limit=limit, offset=offset, dbsession=session
+            operator.workspace_id,
+            search=search,
+            limit=limit,
+            offset=offset,
+            dbsession=session,
+            contactable=contactable,
         )
         stats = await repository.client_stats(
             operator.workspace_id, [item.id for item in items], dbsession=session
@@ -238,8 +245,11 @@ async def update_client(
     response: Response,
     operator: CsrfOperatorWorkspaceDependency,
     database: DatabaseDependency,
+    idempotency_key: Annotated[
+        str | None, Header(alias="Idempotency-Key", min_length=1, max_length=255)
+    ] = None,
 ) -> ClientResponse:
-    changes = payload.model_dump(exclude_unset=True)
+    changes = payload.model_dump(exclude_unset=True, exclude={"email_transfer_confirmed"})
     repository = ClientsRepository(database)
     try:
         client = (
@@ -249,6 +259,8 @@ async def update_client(
                 client_id,
                 changes,
                 expected_version=expected_version,
+                email_transfer_confirmed=payload.email_transfer_confirmed,
+                idempotency_key=idempotency_key,
             )
             if changes
             else await repository.get_client(operator.workspace_id, client_id)
@@ -278,6 +290,7 @@ async def export_client(
         client=await _with_stats(repository, operator.workspace_id, exported["client"]),
         bookings=[ClientExportBooking(**item) for item in exported["bookings"]],
         booking_emails=exported["booking_emails"],
+        communication=exported["communication"],
         form_snapshots=exported["form_snapshots"],
         form_responses=[ClientExportFormResponse(**item) for item in exported["form_responses"]],
         notes=[

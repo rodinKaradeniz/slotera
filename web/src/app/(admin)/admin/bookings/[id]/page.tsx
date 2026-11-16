@@ -1,5 +1,6 @@
 "use client";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { BookingFollowup } from "@/components/admin/bookings/BookingFollowup";
 import { BookingEmails } from "@/components/admin/bookings/BookingEmails";
 import { BookingForms } from "@/components/booking/BookingForms";
 import { SESSION_RECURRENCE_TEXT, SESSION_STATUS_TEXT } from "@/lib/status-maps";
@@ -310,6 +311,7 @@ export default function BookingDetailPage() {
                 </Card>
 
                 {dataSource === "api" && <BookingForms bookingId={booking.id} />}
+                <BookingFollowup bookingId={booking.id} />
                 <BookingEmails booking={booking} fallbackEmail={client?.email} onUpdated={setBooking} />
                 {booking.notes && (
                   <Card padded={false}>

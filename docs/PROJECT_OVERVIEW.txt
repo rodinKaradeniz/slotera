@@ -2,7 +2,7 @@ SLOTERA — PROJECT OVERVIEW
 
 Slotera is a lightweight client workspace for independent consultants, coaches,
 instructors, and small expert-led studios. It brings bookings, session management,
-client preparation, packages, and follow-up into one calm, focused workspace—without
+client preparation, packages, private messaging, and follow-up into one calm, focused workspace—without
 turning into a heavyweight CRM or generic reservation system.
 
 WHO IT IS FOR
@@ -62,3 +62,11 @@ The next phases focus on real public booking transactions, capacity-safe booking
 transactional confirmation email and booking-management links. Stripe payments, advanced
 email automation, and external calendar integrations are planned later, after those core
 flows are reliable.
+
+LOCAL CLIENT COMMUNICATION
+
+Existing clients can use workspace-specific email links to read messages, view their own
+bookings and manage language/email preferences. Consultants use one client conversation,
+completion-based follow-ups with optional forms, and a shared dashboard/calendar To-do list.
+These features use the existing local API, tenant security and transactional outbox; live
+provider delivery and deployment verification remain separate from local implementation.

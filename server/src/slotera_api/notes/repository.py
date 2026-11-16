@@ -62,7 +62,7 @@ class ClientNotesRepository:
                 )
                 .with_for_update()
             )
-            if client is None or client.email == f"erased+{client.id}@invalid":
+            if client is None or client.erased_at is not None:
                 return None
             note = ClientNote(
                 id=uuid4(),
@@ -117,7 +117,7 @@ class ClientNotesRepository:
                 .where(Client.workspace_id == workspace_id, Client.id == note.client_id)
                 .with_for_update()
             )
-            if parent is None or parent.email == f"erased+{parent.id}@invalid":
+            if parent is None or parent.erased_at is not None:
                 return None
             # Erasure may have removed the note while we waited for its parent.
             note = await session.scalar(

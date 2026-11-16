@@ -1,7 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
-import { buildCsp } from "./src/lib/csp";
 
 const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker image (web/Dockerfile).
@@ -22,20 +21,6 @@ const nextConfig: NextConfig = {
       ));
     }
     return config;
-  },
-  // Report-only: violations show in the browser console and block nothing yet (docs/TODO.md).
-  // Production only, since the dev server needs eval.
-  async headers() {
-    if (process.env.NODE_ENV !== "production") return [];
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          { key: "Content-Security-Policy-Report-Only", value: buildCsp(apiBaseUrl) },
-        ],
-      },
-    ];
   },
   // Root-of-section redirects done at the routing layer (not in a page.tsx),
   // because Next 16 + Turbopack tripped a Performance.measure race when a

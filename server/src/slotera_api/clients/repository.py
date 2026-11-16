@@ -1,7 +1,9 @@
+import json
 from collections.abc import AsyncIterator, Mapping, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
@@ -9,16 +11,19 @@ from sqlalchemy import delete, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from slotera_api.booking_access import emit_booking_event
 from slotera_api.booking_emails import export_email_history
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
     Booking,
     BookingAccessToken,
+    BookingFollowup,
     BookingFormResponse,
     BookingFormSnapshot,
     BookingStatus,
     Client,
+    ClientEmailCommand,
     ClientNote,
     PaymentStatus,
     Service,
@@ -26,6 +31,8 @@ from slotera_api.db.models import (
     Workspace,
 )
 from slotera_api.editing import ensure_version
+from slotera_api.errors import ApiError
+from slotera_api.followups import queue_followup
 
 
 class ClientEmailConflictError(Exception):
@@ -74,8 +81,11 @@ class ClientsRepository:
         limit: int,
         offset: int,
         dbsession: AsyncSession | None = None,
+        contactable: bool = False,
     ) -> tuple[list[Client], int]:
         filters: list[Any] = [Client.workspace_id == workspace_id]
+        if contactable:
+            filters.append(Client.erased_at.is_(None))
         if search:
             pattern = (
                 "%" + search.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
@@ -282,14 +292,62 @@ class ClientsRepository:
         client_id: UUID,
         changes: Mapping[str, Any],
         expected_version: int | None = None,
+        email_transfer_confirmed: bool = False,
+        idempotency_key: str | None = None,
     ) -> Client | None:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             client = await session.scalar(
-                select(Client).where(Client.id == client_id, Client.workspace_id == workspace_id)
+                select(Client)
+                .where(Client.id == client_id, Client.workspace_id == workspace_id)
+                .with_for_update()
             )
             if client is None:
                 return None
+            fingerprint = sha256(
+                json.dumps(dict(changes), sort_keys=True, default=str).encode()
+            ).hexdigest()
+            if idempotency_key:
+                replay = await session.scalar(
+                    select(ClientEmailCommand).where(
+                        ClientEmailCommand.workspace_id == workspace_id,
+                        ClientEmailCommand.actor_user_id == actor_user_id,
+                        ClientEmailCommand.idempotency_key == idempotency_key,
+                    )
+                )
+                if replay:
+                    if replay.client_id != client_id or replay.fingerprint != fingerprint:
+                        raise ApiError(
+                            status_code=409,
+                            code="idempotency_key_reused",
+                            message="This edit changed; review and retry.",
+                        )
+                    return client
             ensure_version(client, expected_version)
+            if client.erased_at:
+                raise ApiError(
+                    status_code=409,
+                    code="client_erased",
+                    message="Erased clients cannot be edited.",
+                )
+            transfer = None
+            if "email" in changes and changes["email"] != client.email:
+                if not email_transfer_confirmed or not idempotency_key:
+                    raise ApiError(
+                        status_code=409,
+                        code="client_email_review_required",
+                        message="Confirm the transfer of account and booking-email access.",
+                    )
+                transfer = await session.scalar(
+                    text("SELECT public.slotera_client_contact_prepare(:client,:email)"),
+                    {"client": client_id, "email": changes["email"]},
+                )
+                if transfer is None:
+                    raise ApiError(
+                        status_code=409,
+                        code="booking_email_in_progress",
+                        message="An email is being sent; no changes were saved. Try again later.",
+                    )
+
             for key, value in changes.items():
                 setattr(client, key, value)
             session.add(
@@ -306,6 +364,55 @@ class ClientsRepository:
                 await session.flush()
             except IntegrityError as exc:
                 raise ClientEmailConflictError from exc
+            if transfer is not None:
+                for booking_value in transfer["summaries"]:
+                    booking = await session.scalar(
+                        select(Booking).where(
+                            Booking.workspace_id == workspace_id, Booking.id == UUID(booking_value)
+                        )
+                    )
+                    occurrence = await session.get(Session, booking.session_id) if booking else None
+                    if booking and occurrence:
+                        await emit_booking_event(
+                            session,
+                            workspace_id=workspace_id,
+                            booking_id=booking.id,
+                            session_ends_at=occurrence.end_at,
+                            event="details",
+                            event_key=str(uuid4()),
+                            operator_notification=False,
+                        )
+                for followup_data in transfer["followups"]:
+                    booking_value = followup_data["bookingId"]
+                    booking = await session.scalar(
+                        select(Booking).where(
+                            Booking.workspace_id == workspace_id, Booking.id == UUID(booking_value)
+                        )
+                    )
+                    followup = await session.scalar(
+                        select(BookingFollowup).where(
+                            BookingFollowup.workspace_id == workspace_id,
+                            BookingFollowup.booking_id == UUID(booking_value),
+                        )
+                    )
+                    if booking and followup:
+                        await queue_followup(
+                            session,
+                            booking,
+                            followup,
+                            manual=bool(followup_data["manual"]),
+                            event_key=str(uuid4()),
+                        )
+                session.add(
+                    ClientEmailCommand(
+                        workspace_id=workspace_id,
+                        actor_user_id=actor_user_id,
+                        client_id=client_id,
+                        idempotency_key=idempotency_key,
+                        fingerprint=fingerprint,
+                    )
+                )
+                await session.flush()
             await session.refresh(client)
             return client
 
@@ -372,7 +479,36 @@ class ClientsRepository:
                     .order_by(ClientNote.created_at)
                 )
             )
+            communication = await session.scalar(
+                text("""
+                SELECT jsonb_build_object(
+                  'messages',coalesce((
+                    SELECT jsonb_agg(to_jsonb(m) ORDER BY m.sequence)
+                    FROM conversation_messages m
+                    WHERE m.workspace_id=:workspace AND m.conversation_id=:client
+                  ),'[]'::jsonb),
+                  'followups',coalesce((
+                    SELECT jsonb_agg(to_jsonb(f)-'commands') FROM booking_followups f
+                    JOIN bookings b ON b.workspace_id=f.workspace_id AND b.id=f.booking_id
+                    WHERE b.workspace_id=:workspace AND b.client_id=:client
+                  ),'[]'::jsonb),
+                  'preferences',jsonb_build_object(
+                    'language',CAST(:language AS text),
+                    'messageDigestEnabled',CAST(:digest AS boolean),
+                    'automaticFollowupEnabled',CAST(:followup AS boolean)
+                  )
+                )
+            """),
+                {
+                    "workspace": workspace_id,
+                    "client": client_id,
+                    "language": client.preferred_language,
+                    "digest": client.message_digest_enabled,
+                    "followup": client.automatic_followup_enabled,
+                },
+            )
             return {
+                "communication": communication,
                 "booking_emails": await export_email_history(session, client_id=client_id),
                 "client": client,
                 "bookings": [
@@ -400,6 +536,11 @@ class ClientsRepository:
                 "form_snapshots": [
                     {
                         "booking_reference": references[item.booking_id],
+                        "assignment_id": str(item.id),
+                        "assignment_kind": item.assignment_kind,
+                        "response_deadline": item.response_deadline.isoformat()
+                        if item.response_deadline
+                        else None,
                         "name": item.name,
                         "description": item.description,
                         "fields": item.fields,
@@ -452,6 +593,23 @@ class ClientsRepository:
                     .with_for_update()
                 )
             )
+            prepared = await session.scalar(
+                text("SELECT public.slotera_client_contact_prepare(:client,NULL)"),
+                {"client": client_id},
+            )
+            if prepared is None:
+                raise ApiError(
+                    status_code=409,
+                    code="booking_email_in_progress",
+                    message="An email is being sent; retry erasure later.",
+                )
+            await session.execute(
+                text("SELECT public.slotera_client_erase_context(:client)"), {"client": client_id}
+            )
+            client.erased_at = datetime.now(UTC)
+            client.preferred_language = "en"
+            client.message_digest_enabled = False
+            client.automatic_followup_enabled = False
             client.name = "Erased client"
             client.email = f"erased+{client.id}@invalid"
             client.phone = None

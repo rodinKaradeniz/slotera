@@ -56,12 +56,12 @@ async def test_operator_manages_session_action_items_without_public_visibility()
             assert invalid_public_flag.status_code == 422
             action_id = created.json()["id"]
             changed = await client.patch(
-                f"/session-action-items/{action_id}",
+                f"/tasks/{action_id}",
                 headers={
                     **_csrf_headers(client),
                     "If-Match": '"v'
                     + str(
-                        (await client.get(f"/session-action-items/{action_id}"))
+                        (await client.get(f"/tasks/{action_id}"))
                         .json()
                         .get("version", 1)
                     )
@@ -80,12 +80,12 @@ async def test_operator_manages_session_action_items_without_public_visibility()
                 json={"title": "No CSRF"},
             )
             removed = await client.delete(
-                f"/session-action-items/{action_id}",
+                f"/tasks/{action_id}",
                 headers={
                     **_csrf_headers(client),
                     "If-Match": '"v'
                     + str(
-                        (await client.get(f"/session-action-items/{action_id}"))
+                        (await client.get(f"/tasks/{action_id}"))
                         .json()
                         .get("version", 1)
                     )

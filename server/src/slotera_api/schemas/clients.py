@@ -28,6 +28,7 @@ class ClientCreate(ClientIdentityCreate):
 
 
 class ClientPatch(StrictApiModel):
+    email_transfer_confirmed: bool = False
     name: Annotated[NonBlank | None, Field(max_length=160)] = None
     email: EmailStr | None = None
     phone: Annotated[str | None, Field(max_length=40)] = None
@@ -44,6 +45,7 @@ class ClientPatch(StrictApiModel):
 
 
 class ClientResponse(ApiModel):
+    erased_at: datetime | None
     version: int
     id: UUID
     name: str
@@ -105,6 +107,7 @@ class ClientExportNote(ApiModel):
 
 
 class ClientExportResponse(ApiModel):
+    communication: JsonObject = Field(default_factory=dict)
     booking_emails: list[dict[str, object]] = Field(default_factory=list)
     """Everything the workspace holds about one client (subject access request)."""
 

@@ -6,7 +6,7 @@ from typing import cast
 
 from slotera_api.config import get_settings
 from slotera_api.database import Database
-from slotera_api.email.locales import TEXT, language, render_localized
+from slotera_api.email.locales import COMMUNICATION_COPY, TEXT, language, render_localized
 from slotera_api.email.providers import EmailProvider, EmailProviderError, create_email_provider
 from slotera_api.email.repository import EmailAttachment, EmailOutboxRepository, OutboxMessage
 from slotera_api.email.templates import (
@@ -62,7 +62,14 @@ async def deliver_available(
             break
         try:
             resolved = message
-            if message.kind == "account_activation" and language(message.template_data) != "en":
+            if message.kind == "message_digest":
+                subject, intro = COMMUNICATION_COPY[language(message.template_data)][
+                    "message_digest"
+                ]
+                resolved = replace(
+                    message, subject=subject, text_body=f"{intro}\n\n{message.text_body}"
+                )
+            elif message.kind == "account_activation" and language(message.template_data) != "en":
                 subject, text_body = render_localized(message.kind, message.template_data)
                 resolved = replace(message, subject=subject, text_body=text_body)
             elif message.kind in BOOKING_EMAIL_KINDS:

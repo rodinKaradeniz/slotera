@@ -47,7 +47,7 @@ def main():
         "NEXT_PUBLIC_DATA_SOURCE": "api", "NEXT_PUBLIC_API_BASE_URL": f"http://localhost:{API_PORT}",
         "NEXT_TELEMETRY_DISABLED": "1", "SLOTERA_BROWSER_TEST": "1"})
     if sys.executable != str(PYTHON):
-        os.execve(str(PYTHON), [str(PYTHON), str(Path(__file__).resolve())], env)
+        os.execve(str(PYTHON), [str(PYTHON), str(Path(__file__).resolve()), *sys.argv[1:]], env)
     import asyncpg
 
     async def database(create):
@@ -74,7 +74,7 @@ def main():
                 processes.append(subprocess.Popen(command, cwd=cwd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True))
             wait_ready(f"http://localhost:{API_PORT}/health/ready", processes[0])
             wait_ready(f"http://localhost:{WEB_PORT}/login", processes[1])
-            run(str(ROOT / "web/node_modules/.bin/playwright"), "test", cwd=ROOT / "web", env=env)
+            run(str(ROOT / "web/node_modules/.bin/playwright"), "test", *sys.argv[1:], cwd=ROOT / "web", env=env)
     finally:
         import signal
         for process in reversed(processes):

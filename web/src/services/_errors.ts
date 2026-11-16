@@ -30,6 +30,10 @@ export class ApiRequestError extends Error {
   ) {
     const lang = readLang();
     const keys: Record<string, MessageKey> = {
+      client_authentication_required: "errors.session", csrf_validation_failed: "errors.session",
+      booking_email_in_progress: "booking.emails.sendingConflict", followup_form_in_use: "followup.formUsed",
+      followup_not_ready: "followup.notReady", followup_handled: "followup.handled",
+      client_email_review_required: "client.transferDescription", client_erased: "booking.emails.erased",
       resource_stale: "editing.stale",
       session_impact_stale: "session.impactChanged", session_capacity_in_use: "session.capacityConflict",
       session_service_in_use: "session.serviceConflict", series_date_change_invalid: "session.singleDate",

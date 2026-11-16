@@ -32,6 +32,7 @@ slotera-send-test-email = "slotera_api.email.send_test:main"
 dev = [
   "httpx>=0.28,<2",
   "mypy>=1.16,<2",
+  "pip-audit>=2.10.1",
   "pytest>=8.4,<10",
   "pytest-asyncio>=1.0,<2",
   "ruff>=0.12,<1",

@@ -98,12 +98,11 @@ below are standing security requirements as further API and frontend integration
   and must never be copied into API behavior. A future card-funded booking confirms only
   from a verified payment webhook.
 
-- **The Content-Security-Policy is report-only.** Caddy sets HSTS, `X-Frame-Options`,
-  `nosniff`, `Referrer-Policy` and `Permissions-Policy` on every host (Entry 055); the web
-  app adds `Content-Security-Policy-Report-Only` in production (`lib/csp.ts`, Entry 058).
-  It still allows inline scripts and styles: watch the console for violations, add a
-  `report-uri`, then move to per-request nonces and enforce it before accepting card
-  payments.
+- **~~The Content-Security-Policy is report-only.~~ DONE (foundation, 2026-11-16).**
+  Production documents now enforce fresh script nonces with dynamic rendering, including
+  maintenance/error pages; inline CSS remains intentional. Production Chromium smoke
+  verifies framework nonces and blocked parser-inserted scripts. Full authenticated
+  journey regression remains part of the communication bundle verification.
 - **Smaller code items.** Split `db/models.py` and `public_booking/repository.py` by
   concern, and the other large web files (demo manage page, onboarding, SessionDrawer,
   booking detail); have `GET /bookings` return client and service names so the list stops
@@ -235,7 +234,7 @@ built and exercised separately.
   `none | fixed` tax policy for free/manual flows; do not hand-roll international tax
   tables. Customer-facing output is a booking/payment summary, not a legally numbered tax
   invoice.
-- **Real customer access uses a booking-scoped magic credential, not a customer account.**
+- **~~Real customer access uses only a booking-scoped magic credential.~~ DONE / superseded (2026-11-16).** Guest access remains; separate workspace-scoped client accounts now authorize their own booking history and messages. Original boundary:
   Store only a hash, expiry, and usage/revocation state; never place PII in the URL. Public
   response DTOs are allow-lists and never contain service notes, session notes, client
   notes, or action items. An all-history client dashboard would require cross-booking
@@ -379,7 +378,7 @@ live environment.
 8. Transactional email and customer access: the outbox worker/provider boundary is DONE
    for activation/reset and provider-neutral `booking_received`/`booking_confirmed` events
    with local-console templates. Booking-workspace magic links, post-booking forms,
-   reschedule/cancel requests, and client messages remain a separate later bundle.
+   reschedule/cancel requests are implemented; client conversations are DONE (2026-11-16).
 9. Derived/platform resources:
    - **~~Operator dashboard summary.~~ DONE.** `GET /dashboard/summary` provides a
      tenant- and principal-scoped read model for monthly booking facts, a 30-day trend,
@@ -429,7 +428,7 @@ live environment.
   Resend provider, activation/password-reset delivery, and booking receipt/confirmation
   events/templates are DONE in code. External provider/domain configuration remains an
   operational live-release task. Magic-link access stays paired with the later customer
-  booking workspace; reminders and follow-ups remain Phase 3.
+  booking workspace; local reminders and follow-ups are DONE (2026-11-16).
 - **External calendars:** two-way Google/Outlook sync and auto-created Meet/Zoom links
   remain deferred. **One-way calendar features are DONE:** `.ics` attachments on booking
   emails, "Add to calendar" (file + Google link) for clients, a private per-operator
@@ -460,8 +459,8 @@ the workspace chooser waits for the Team/member product surface.
   Phase 2.
 - **Advanced email scheduling.** Phase 2 carries provider-neutral booking receipt and
   confirmation events first; booking-workspace magic-link delivery follows with that
-  access bundle. Reminder/follow-up scheduling, heavier retry orchestration, and
-  Redis/Celery stay here until their operational need is demonstrated.
+  access bundle. **Reminder/follow-up scheduling is DONE locally (2026-11-16).**
+  Heavier retry orchestration and Redis/Celery require a demonstrated operational need.
 - **Google Calendar / Meet (two-way).** Reading the operator's busy times to block
   double-booking needs Google's OAuth app verification (weeks). One-way is DONE: the
   subscribe feed and calendar files. Meeting links are typed in per service today;
@@ -514,7 +513,7 @@ the workspace chooser waits for the Team/member product surface.
 These exist as *demonstrations* of a future capability. The recorded intent is that they
 stay demonstrations until the backend can support them properly.
 
-- **~~Real customer booking access via magic links.~~ DONE (2026-10-09)** as `/booking/manage#<token>` with self-serve cancel and one reschedule; reminders ship from the maintenance job. Post-booking optional forms are now persisted; client messages remain deferred. Original note: `/booking/manage/demo` is a single
+- **~~Real customer booking access via magic links.~~ DONE (2026-10-09)** as `/booking/manage#<token>` with self-serve cancel and one reschedule; reminders ship from the maintenance job. Post-booking optional forms are now persisted; client messages are DONE (2026-11-16). Original note: `/booking/manage/demo` is a single
   fixed booking with no id, token, or persistence. The real version needs guest access,
   signed expiring links, email delivery, and backend persistence. Customers still get no
   accounts — that boundary is deliberate. An all-history dashboard is not a smaller
@@ -525,8 +524,7 @@ stay demonstrations until the backend can support them properly.
 - **~~Approval before booking.~~ DONE for the capacity-one API flow.** It is a
   **service-level** `automatic | operator_approval` policy, snapshotted on bookings and
   separate from payment/lifecycle state. It does not change the public booking steps.
-- **Email follow-ups.** Transactional receipt/confirmation emails and scheduled reminders
-  are implemented; post-session follow-ups remain deferred.
+- **~~Email follow-ups.~~ DONE (2026-11-16).** Completion snapshots per-service rules and optional forms; maintenance queues local outbox mail, with reviewed manual send/skip and client automatic opt-out.
 - **Package purchase and credits.** Packages are display-only by design — no checkout, no
   credit ledger, no consumption, no entitlements, no memberships, no recurring billing, no
   coupons or gift cards. A real version would need purchase, remaining-credit tracking,
@@ -540,8 +538,7 @@ stay demonstrations until the backend can support them properly.
   adjustment/refund behavior remains later.
 - **Client-side authentication at booking time** ("if you have an account, log in") and
   **invitation flows** ("your provider has invited you to book"). Both imply customer
-  accounts, which the product currently does not have — adopting either is a positioning
-  decision, not just a feature.
+  accounts; workspace-scoped accounts are now DONE (2026-11-16), while booking-time sign-in and invitations remain separate unrequested flows.
 - **~~`bookingMode: "scheduled"` end-to-end.~~ DONE (2026-10-09).** Scheduled services (any capacity) list upcoming operator sessions with seats left; booking locks the session and counts capacity, and the confirmation/manage pages show the session address. Original note: The field exists and services carry it, but
   the public flow's date/time picker generates free-form slots and never resolves to a
   concrete `SessionItem`. Consequence: `SessionItem.address` is stored but never shown to
@@ -556,6 +553,9 @@ stay demonstrations until the backend can support them properly.
   decision (HISTORY.md, Scope boundaries) rather than an omission to be helpfully restored.
 
 ## 7. Longer horizon
+
+- **Embedded video calls.** Possible future feature only; excluded from the current release
+  and development scope, with existing meeting links retained for now (decision 2026-11-16).
 
 - **React Native client.** Not before the web MVP is stable and the backend exists. The
   ordering is deliberate: finish responsive web → make key flows mobile-friendly (drawers
@@ -627,7 +627,7 @@ agreed final integration-verification stage; no new architecture work is deferre
 
 ## Dependency security finding — 2026-11-15
 
-- The local npm audit reports critical advisories affecting installed Next.js 16.2.6 and
+- **~~Framework/test-runner security upgrade.~~ DONE (2026-11-16).** Compatible Next/Vitest/Sentry upgrades reduce the current audit to seven moderate upstream findings, with no high/critical issues; Python audit is clean. Original finding: the local npm audit reported critical advisories affecting installed Next.js 16.2.6 and
   Vitest 3.2.7; the registry offers Next.js 16.4.6 and Vitest 5.1.0 as fixes. These framework
   and major test-runner upgrades need their own reviewed compatibility pass; they were not
   silently folded into the session-workflow implementation. Audit totals: 55 advisories
@@ -643,3 +643,17 @@ agreed final integration-verification stage; no new architecture work is deferre
   recurrence dates; cancellation stores the generation cutoff and editors retain drafts on conflicts.
 - **~~Repeatable production browser checks.~~ DONE.** Dedicated disposable database, safe artifacts,
   desktop/mobile EN/TR/DE journeys and a CI job; live integrations remain a separate verification stage.
+
+
+## Communication release — 2026-11-16
+
+- **~~Workspace-scoped client accounts and booking history.~~ DONE.** Existing clients use
+  separate expiring email-link sessions, without staff memberships or standalone registration.
+- **~~Client/consultant messaging and daily unread digests.~~ DONE.** Immutable bounded
+  plain-text conversations, reviewed access, local outbox and opt-out preferences.
+- **~~Dashboard To-do.~~ DONE.** General and session tasks use the same revisioned records;
+  live billing/message/notification actions resolve through their source.
+- **~~Dependency, CSP and startup hardening.~~ DONE locally.** Production nonce policy,
+  compatible upgrades, owned process cleanup and occupied-port errors; seven moderate
+  upstream TypeScript-ESLint/Minimatch advisories remain without forced overrides.
+- **AI, voice and video** retain the previously agreed future scope; no AI code is added here.

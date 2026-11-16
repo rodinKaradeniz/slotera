@@ -141,7 +141,7 @@ class Database:
 
     @asynccontextmanager
     async def principal_transaction(
-        self, workspace_id: UUID, user_id: UUID
+        self, workspace_id: UUID, user_id: UUID, *, repeatable_read: bool = False
     ) -> AsyncIterator[AsyncSession]:
         async with self.session_factory() as session, session.begin():
             started = perf_counter()
@@ -149,6 +149,10 @@ class Database:
             context = operation_context.get()
             if context:
                 context.db_acquire_ms += (perf_counter() - started) * 1000
+            if repeatable_read:
+                await session.execute(
+                    text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+                )
             await session.execute(
                 text(
                     """

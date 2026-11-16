@@ -1,6 +1,7 @@
 """Booking-owned questions and one-time responses; never expose operator notes."""
 
 from datetime import UTC, datetime
+from typing import Literal, cast
 from uuid import UUID
 
 from pydantic import Field
@@ -18,7 +19,7 @@ from slotera_api.db.models import (
     Session,
 )
 from slotera_api.errors import ApiError
-from slotera_api.public_booking.repository import PublicBookingRepository, PublicFormValidationError
+from slotera_api.form_validation import FormValidationError, validate_form_responses
 from slotera_api.schemas.base import ApiModel
 from slotera_api.schemas.forms import FormFieldInput
 from slotera_api.schemas.operator_resources import StrictApiModel
@@ -26,6 +27,8 @@ from slotera_api.schemas.public_booking import PublicFormAnswer
 
 
 class BookingFormView(ApiModel):
+    assignment_kind: Literal["preparation", "followup"]
+    response_deadline: datetime | None
     id: UUID
     name: str
     description: str
@@ -33,7 +36,6 @@ class BookingFormView(ApiModel):
     answers: list[PublicFormAnswer] | None
     submitted_at: datetime | None
     required_before_payment: bool
-    historical_approximation: bool = False
     can_submit: bool = False
 
 
@@ -100,12 +102,14 @@ async def read_forms(
             )
         )
     ).all()
-    by_form = {item.form_template_id: item for item in responses}
+    by_form = {item.snapshot_id: item for item in responses}
     items = []
     for form in snapshots:
-        response = by_form.pop(form.form_template_id, None)
+        response = by_form.pop(form.id, None)
         items.append(
             BookingFormView(
+                assignment_kind=cast(Literal["preparation", "followup"], form.assignment_kind),
+                response_deadline=form.response_deadline,
                 id=form.id,
                 name=form.name,
                 description=form.description,
@@ -117,31 +121,24 @@ async def read_forms(
                 required_before_payment=form.required_before_payment,
                 can_submit=(
                     not response
-                    and (not form.required_before_payment or booking.origin.value == "operator")
-                    and booking.status.value in {"pending", "confirmed"}
-                    and datetime.now(UTC) < starts_at
+                    and (
+                        (
+                            form.assignment_kind == "preparation"
+                            and (
+                                not form.required_before_payment
+                                or booking.origin.value == "operator"
+                            )
+                            and booking.status.value in {"pending", "confirmed"}
+                            and datetime.now(UTC) < starts_at
+                        )
+                        or (
+                            form.assignment_kind == "followup"
+                            and booking.status.value == "completed"
+                            and form.response_deadline is not None
+                            and datetime.now(UTC) < form.response_deadline
+                        )
+                    )
                 ),
-            )
-        )
-    # Legacy answers have no trustworthy question snapshot. Never assign new forms here.
-    for response in by_form.values():
-        template = await session.scalar(
-            select(FormTemplate).where(
-                FormTemplate.workspace_id == workspace_id,
-                FormTemplate.id == response.form_template_id,
-            )
-        )
-        fields = template.fields if template else []
-        items.append(
-            BookingFormView(
-                id=response.id,
-                name=response.form_name,
-                description="",
-                fields=[FormFieldInput.model_validate(field) for field in fields],
-                answers=[PublicFormAnswer.model_validate(a) for a in response.answers],
-                submitted_at=response.submitted_at,
-                required_before_payment=True,
-                historical_approximation=True,
             )
         )
     return BookingFormsResponse(items=items)
@@ -179,7 +176,7 @@ async def submit_form(
         id=form.form_template_id, name=form.name, fields=form.fields, required_before_payment=True
     )
     try:
-        normalized = PublicBookingRepository._validate_form_responses(
+        normalized = validate_form_responses(
             [template],
             [
                 {
@@ -188,7 +185,7 @@ async def submit_form(
                 }
             ],
         )[0][1]
-    except PublicFormValidationError as exc:
+    except FormValidationError as exc:
         raise ApiError(
             status_code=422, code="booking_form_invalid", message="Check your answers"
         ) from exc
@@ -196,7 +193,7 @@ async def submit_form(
         select(BookingFormResponse).where(
             BookingFormResponse.workspace_id == workspace_id,
             BookingFormResponse.booking_id == booking_id,
-            BookingFormResponse.form_template_id == form.form_template_id,
+            BookingFormResponse.snapshot_id == form.id,
         )
     )
     if previous:
@@ -209,11 +206,19 @@ async def submit_form(
                 message="This form has already been submitted",
             )
     else:
-        if (
-            (form.required_before_payment and booking.origin.value != "operator")
-            or booking.status.value not in {"pending", "confirmed"}
-            or datetime.now(UTC) >= occurrence.start_at
-        ):
+        preparation_open = (
+            form.assignment_kind == "preparation"
+            and (not form.required_before_payment or booking.origin.value == "operator")
+            and booking.status.value in {"pending", "confirmed"}
+            and datetime.now(UTC) < occurrence.start_at
+        )
+        followup_open = (
+            form.assignment_kind == "followup"
+            and booking.status.value == "completed"
+            and form.response_deadline is not None
+            and datetime.now(UTC) < form.response_deadline
+        )
+        if not (preparation_open or followup_open):
             raise ApiError(
                 status_code=409,
                 code="booking_form_closed",
@@ -223,6 +228,7 @@ async def submit_form(
             BookingFormResponse(
                 workspace_id=workspace_id,
                 booking_id=booking_id,
+                snapshot_id=form.id,
                 form_template_id=form.form_template_id,
                 form_name=form.name,
                 answers=normalized,

@@ -10,6 +10,7 @@ async function headers(page: Page) {
   return {Origin: "http://localhost:3345", "X-CSRF-Token": csrf ?? "", "Idempotency-Key": crypto.randomUUID()};
 }
 async function authenticate(page: Page, lang: Lang) {
+  execFileSync(resolve("../server/.venv/bin/python"), [resolve("../server/scripts/browser_fixture.py"), "prepare-auth"], {stdio:"pipe"});
   const login = await page.request.post(`${api}/auth/login`, {headers: {Origin: "http://localhost:3345"}, data: {email: "hello@slotera.io", password: "slotera-local-only"}});
   expect(login.status()).toBe(200);
   const preference = await page.request.patch(`${api}/auth/preferences`, {headers: await headers(page), data: {language: lang}});

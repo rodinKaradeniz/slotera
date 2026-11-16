@@ -24,6 +24,12 @@ describe("Sentry scrubbing", () => {
     expect(event.breadcrumbs?.[0].data).toEqual({ from: "/a", to: "/b" });
   });
 
+  it("scrubs streamed span names and attributes", () => {
+    const span = scrubSpan({name: "GET /search?q=private", attributes: {url: "/manage#secret"}});
+    expect(span.name).toBe("GET /search");
+    expect(span.attributes.url).toBe("/manage");
+  });
+
   it("scrubs span descriptions and URL attributes", () => {
     const span = scrubSpan({
       span_id: "1",

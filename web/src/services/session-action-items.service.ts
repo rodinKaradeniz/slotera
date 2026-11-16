@@ -1,6 +1,10 @@
 import { mockData } from "@/services/adapters/mock-data";
 import { nextEditVersion } from "./_editing";
 
+import { listSessions } from "./sessions.service";
+import { billingAction } from "@/lib/dashboard-actions";
+import { readLang, translate } from "@/lib/i18n";
+import type { PendingAction } from "@/types/dashboard";
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -22,14 +26,17 @@ type SessionActionItemPatchDto =
   components["schemas"]["SessionActionItemPatch"];
 
 /** Private operator tasks attached to a session. */
-let mock: SessionActionItem[] = dataSource === "mock" ? mockData("session-action-items") : [] as SessionActionItem[];
-mock = mock.map((item) => ({...item, version: item.version ?? 1}));
+let mock: SessionActionItem[] =
+  dataSource === "mock"
+    ? mockData("session-action-items")
+    : ([] as SessionActionItem[]);
+mock = mock.map((item) => ({ ...item, version: item.version ?? 1 }));
 
 function mapActionItem(item: SessionActionItemDto): SessionActionItem {
   return {
     version: item.version,
     id: item.id,
-    sessionId: item.sessionId,
+    sessionId: item.sessionId ?? undefined,
     title: item.title,
     description: item.description ?? undefined,
     status: item.status,
@@ -39,7 +46,9 @@ function mapActionItem(item: SessionActionItemDto): SessionActionItem {
   };
 }
 
-function createPayload(input: SessionActionItemInput): SessionActionItemCreateDto {
+function createPayload(
+  input: SessionActionItemInput,
+): SessionActionItemCreateDto {
   return {
     title: input.title,
     description: input.description ?? null,
@@ -52,8 +61,9 @@ function patchPayload(
 ): SessionActionItemPatchDto {
   return {
     ...patch,
-    description: "description" in patch ? patch.description ?? null : undefined,
-    dueDate: "dueDate" in patch ? patch.dueDate ?? null : undefined,
+    description:
+      "description" in patch ? (patch.description ?? null) : undefined,
+    dueDate: "dueDate" in patch ? (patch.dueDate ?? null) : undefined,
   };
 }
 
@@ -82,7 +92,9 @@ export async function createActionItem(
   if (dataSource === "api") {
     return mapActionItem(
       await apiRequest<SessionActionItemDto, SessionActionItemCreateDto>(
-        `/sessions/${encodeURIComponent(input.sessionId)}/action-items`,
+        input.sessionId
+          ? `/sessions/${encodeURIComponent(input.sessionId)}/action-items`
+          : "/tasks",
         { method: "POST", body: createPayload(input), csrf: true },
       ),
     );
@@ -108,8 +120,13 @@ export async function updateActionItem(
   if (dataSource === "api") {
     return mapActionItem(
       await apiRequest<SessionActionItemDto, SessionActionItemPatchDto>(
-        `/session-action-items/${encodeURIComponent(id)}`,
-        { method: "PATCH", expectedVersion, body: patchPayload(patch), csrf: true },
+        `/tasks/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          expectedVersion,
+          body: patchPayload(patch),
+          csrf: true,
+        },
       ),
     );
   }
@@ -132,23 +149,33 @@ export async function toggleActionItemStatus(
   expectedVersion?: number,
 ): Promise<SessionActionItem> {
   if (dataSource === "api") {
-    return updateActionItem(id, {
-      status: currentStatus === "done" ? "todo" : "done",
-    }, expectedVersion);
+    return updateActionItem(
+      id,
+      {
+        status: currentStatus === "done" ? "todo" : "done",
+      },
+      expectedVersion,
+    );
   }
   const current = mock.find((a) => a.id === id);
   if (!current) throw new NotFoundError("session action item", id);
-  return updateActionItem(id, {
-    status: current.status === "done" ? "todo" : "done",
-  }, expectedVersion);
+  return updateActionItem(
+    id,
+    {
+      status: current.status === "done" ? "todo" : "done",
+    },
+    expectedVersion,
+  );
 }
 
-export async function deleteActionItem(id: string,
+export async function deleteActionItem(
+  id: string,
   expectedVersion?: number,
 ): Promise<void> {
   if (dataSource === "api") {
-    await apiRequest<void>(`/session-action-items/${encodeURIComponent(id)}`, {
-      method: "DELETE", expectedVersion,
+    await apiRequest<void>(`/tasks/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      expectedVersion,
       csrf: true,
     });
     return;
@@ -159,17 +186,106 @@ export async function deleteActionItem(id: string,
   mock = mock.filter((a) => a.id !== id);
 }
 
-export async function getActionItem(id: string): Promise<SessionActionItem | null> {
+export async function getActionItem(
+  id: string,
+): Promise<SessionActionItem | null> {
   if (dataSource === "mock") return mock.find((item) => item.id === id) ?? null;
-  try {return mapActionItem(await apiRequest<SessionActionItemDto>(`/session-action-items/${encodeURIComponent(id)}`));}
-  catch (error) {if (error instanceof Error && "status" in error && error.status === 404) return null; throw error;}
+  try {
+    return mapActionItem(
+      await apiRequest<SessionActionItemDto>(
+        `/tasks/${encodeURIComponent(id)}`,
+      ),
+    );
+  } catch (error) {
+    if (error instanceof Error && "status" in error && error.status === 404)
+      return null;
+    throw error;
+  }
 }
 
-export async function listActionItemPage(sessionId: string, offset = 0, signal?: AbortSignal) {
+export async function listActionItemPage(
+  sessionId: string | undefined,
+  offset = 0,
+  signal?: AbortSignal,
+  status?: "todo" | "done",
+) {
   if (dataSource === "api") {
-    const page = await apiRequest<SessionActionItemListDto>(`/sessions/${encodeURIComponent(sessionId)}/action-items?limit=25&offset=${offset}`, {signal});
-    return {...page, items: page.items.map(mapActionItem)};
+    const page = await apiRequest<SessionActionItemListDto>(
+      `/tasks?limit=25&offset=${offset}${sessionId ? `&session_id=${encodeURIComponent(sessionId)}` : ""}${status ? `&status=${status}` : ""}`,
+      { signal },
+    );
+    return { ...page, items: page.items.map(mapActionItem) };
   }
-  const items = await listActionItemsForSession(sessionId);
-  return {items: items.slice(offset, offset+25), total: items.length, limit: 25, offset};
+  const items = (
+    sessionId
+      ? await listActionItemsForSession(sessionId)
+      : await listActionItems()
+  ).filter((item) => !status || item.status === status);
+  return {
+    items: items.slice(offset, offset + 25),
+    total: items.length,
+    limit: 25,
+    offset,
+  };
+}
+
+export async function listWorklistPage(
+  status: "todo" | "done",
+  offset = 0,
+  signal?: AbortSignal,
+) {
+  if (dataSource === "mock") {
+    const [tasks, sessions] = await Promise.all([
+      listActionItems(),
+      listSessions(),
+    ]);
+    const ids = new Set(sessions.map((session) => session.id));
+    const items = tasks.filter(
+      (item) =>
+        item.status === status && (!item.sessionId || ids.has(item.sessionId)),
+    );
+    return {
+      items: items.slice(offset, offset + 25),
+      total: items.length,
+      limit: 25,
+      offset,
+      actions: undefined,
+    };
+  }
+  const page = await apiRequest<components["schemas"]["WorklistResponse"]>(
+    `/dashboard/worklist?status=${status}&limit=25&offset=${offset}`,
+    { signal },
+  );
+  const actions: PendingAction[] = [];
+  if (status === "todo") {
+    const billing = billingAction(page.trialEndsAt, page.paidThrough ?? null);
+    if (billing) actions.push(billing);
+    for (const [id, count, icon, label, hint] of [
+      [
+        "unread-messages",
+        page.unreadMessages,
+        "mail",
+        "messages.unread",
+        "messages.chooseClient",
+      ],
+      [
+        "unread-notifications",
+        page.unreadNotifications,
+        "bell",
+        "dashboard.unread",
+        "dashboard.notificationHint",
+      ],
+    ] as const) {
+      if (count > 0)
+        actions.push({
+          id,
+          tone: "info",
+          icon,
+          label: translate(readLang(), label, { count }),
+          detail: translate(readLang(), hint),
+          age: translate(readLang(), "dashboard.now"),
+        });
+    }
+  }
+  return { ...page, items: page.items.map(mapActionItem), actions };
 }

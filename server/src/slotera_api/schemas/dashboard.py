@@ -39,5 +39,6 @@ class DashboardSummaryResponse(ApiModel):
     average_booking_value_this_month_cents: int
     average_booking_value_previous_month_cents: int
     trend_30d: list[DashboardTrendPoint] = Field(alias="trend30d")
+    unread_messages_count: int
     unread_notifications_count: int
     open_action_items_count: int

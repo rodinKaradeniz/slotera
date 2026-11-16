@@ -5,6 +5,7 @@ import { getClient } from "@/services/clients.service";
 import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
 import * as React from "react";
 import { useResetOnOpen } from "@/lib/use-reset-on-open";
+import {ConfirmDialog} from "@/components/ui/ConfirmDialog";
 import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
@@ -54,6 +55,7 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
   const [form, setForm] = React.useState<ClientInput>(() => inputFor(initial));
   const [errors, setErrors] = React.useState<ReturnType<typeof validateClientIdentity>>({});
   const root = React.useRef<HTMLFieldSetElement>(null);
+  const [transferReview,setTransferReview]=React.useState<string|null>(null);
   const [busy, setBusy] = React.useState(false);
 
   const edit = useReviewedEdit(open, initial, getClient, (latest) => {setForm(inputFor(latest));});
@@ -63,13 +65,14 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
   const set = <K extends keyof ClientInput>(key: K, value: ClientInput[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
 
-  const save = async () => {
+  const save = async (confirmed = false) => {
     const invalid = validateClientIdentity(form);
     setErrors(invalid);
     if (Object.keys(invalid).length) {
       requestAnimationFrame(() => root.current?.querySelector<HTMLInputElement>("[aria-invalid=true]")?.focus());
       return;
     }
+    if(initial && form.email.trim().toLowerCase()!==initial.email.trim().toLowerCase() && !confirmed){setTransferReview(crypto.randomUUID());return;}
     setBusy(true);
     try {
       const normalized: ClientInput = {
@@ -78,13 +81,13 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
         email: form.email.trim(),
       };
       const saved = initial
-        ? await updateClient(initial.id, normalized, edit.version)
+        ? await updateClient(initial.id, normalized, edit.version, transferReview ? {key:transferReview} : undefined)
         : await createClient(normalized);
       onSaved?.(saved);
       toast.success(initial ? uiText("ui.client.updated") : uiText("ui.client.added"));
       onClose();
     } catch (error) {
-      edit.onError(error);
+      if(edit.onError(error))setTransferReview(null);
       toast.error(uiText("ui.couldn.t.save.client"), {
         description: error instanceof Error ? error.message : undefined,
       });
@@ -102,10 +105,11 @@ export function ClientDrawer({ open, onClose, initial, onSaved }: ClientDrawerPr
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>{uiText("ui.cancel")}</Button>
-          <Button onClick={save} loading={busy}>{uiText("ui.save.client")}</Button>
+          <Button onClick={() => save()} loading={busy}>{uiText("ui.save.client")}</Button>
         </>
       }
     >
+      <ConfirmDialog open={!!transferReview} busy={busy} onClose={()=>!busy&&setTransferReview(null)} onConfirm={()=>save(true)} title={uiText("client.transferTitle")} description={`${uiText("client.transferDescription")} ${form.email}`} confirmLabel={uiText("client.transferConfirm")} />
       {edit.notice}
       <fieldset ref={root} disabled={busy} className="grid gap-4">
         <ClientIdentityFields value={form} onChange={set} errors={errors} />

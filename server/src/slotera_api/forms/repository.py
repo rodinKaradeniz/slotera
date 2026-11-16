@@ -5,8 +5,15 @@ from uuid import UUID, uuid4
 from sqlalchemy import delete, func, select
 
 from slotera_api.database import Database
-from slotera_api.db.models import AuditEvent, FormTemplate, FormTemplateService, Service
+from slotera_api.db.models import (
+    AuditEvent,
+    FormTemplate,
+    FormTemplateService,
+    Service,
+    ServiceFollowupRule,
+)
 from slotera_api.editing import ensure_version
+from slotera_api.errors import ApiError
 
 
 class FormsRepository:
@@ -14,7 +21,7 @@ class FormsRepository:
         self.database = database
 
     async def list_forms(self, workspace_id: UUID) -> tuple[list[FormTemplate], int]:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             rows = list(
                 (
                     await session.scalars(
@@ -69,7 +76,7 @@ class FormsRepository:
             return items, total, attachments
 
     async def attachments(self, workspace_id: UUID, form_id: UUID) -> list[UUID]:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             return list(
                 (
                     await session.scalars(
@@ -85,7 +92,7 @@ class FormsRepository:
         self, workspace_id: UUID, actor: UUID, values: dict[str, object]
     ) -> FormTemplate | None:
         service_ids = cast(list[UUID], values.pop("attached_service_ids", []))
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             if service_ids and await session.scalar(
                 select(func.count(Service.id)).where(
                     Service.workspace_id == workspace_id, Service.id.in_(service_ids)
@@ -118,7 +125,7 @@ class FormsRepository:
             return item
 
     async def get_form(self, workspace_id: UUID, form_id: UUID) -> FormTemplate | None:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             result = await session.scalar(
                 select(FormTemplate).where(
                     FormTemplate.workspace_id == workspace_id,
@@ -136,7 +143,7 @@ class FormsRepository:
         expected_version: int | None = None,
     ) -> FormTemplate | None:
         service_ids = values.pop("attached_service_ids", None)
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             if service_ids is not None:
                 service_ids = cast(list[UUID], service_ids)
                 found = (
@@ -160,6 +167,20 @@ class FormsRepository:
             if item is None:
                 return None
             ensure_version(item, expected_version)
+            if values.get("status") == "inactive" and await session.scalar(
+                select(ServiceFollowupRule.service_id)
+                .where(
+                    ServiceFollowupRule.workspace_id == workspace_id,
+                    ServiceFollowupRule.form_template_id == form_id,
+                )
+                .limit(1)
+            ):
+                raise ApiError(
+                    status_code=409,
+                    code="followup_form_in_use",
+                    message="Remove this form from service follow-up settings before deactivating it.",
+                )
+
             if service_ids is not None:
                 await session.execute(
                     delete(FormTemplateService).where(
@@ -201,7 +222,7 @@ class FormsRepository:
         form_id: UUID,
         expected_version: int | None = None,
     ) -> bool:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             item = await session.scalar(
                 select(FormTemplate).where(
                     FormTemplate.workspace_id == workspace_id, FormTemplate.id == form_id
@@ -210,6 +231,20 @@ class FormsRepository:
             if item is None:
                 return False
             ensure_version(item, expected_version)
+            if await session.scalar(
+                select(ServiceFollowupRule.service_id)
+                .where(
+                    ServiceFollowupRule.workspace_id == workspace_id,
+                    ServiceFollowupRule.form_template_id == form_id,
+                )
+                .limit(1)
+            ):
+                raise ApiError(
+                    status_code=409,
+                    code="followup_form_in_use",
+                    message="Remove this form from service follow-up settings before deleting it.",
+                )
+
             await session.delete(item)
             session.add(
                 AuditEvent(

@@ -9,7 +9,7 @@ from slotera_api.auth.dependencies import (
     DatabaseDependency,
     OperatorWorkspaceDependency,
 )
-from slotera_api.db.models import SessionActionItem
+from slotera_api.db.models import SessionActionItem, SessionActionItemStatus
 from slotera_api.editing import ExpectedVersionDependency
 from slotera_api.errors import ApiError
 from slotera_api.schemas.session_action_items import (
@@ -108,7 +108,7 @@ async def create_session_action_item(
 
 
 @router.get(
-    "/session-action-items/{item_id}",
+    "/tasks/{item_id}",
     response_model=SessionActionItemResponse,
     operation_id="getSessionActionItem",
 )
@@ -126,7 +126,7 @@ async def get_session_action_item(
 
 
 @router.patch(
-    "/session-action-items/{item_id}",
+    "/tasks/{item_id}",
     response_model=SessionActionItemResponse,
     operation_id="updateSessionActionItem",
 )
@@ -152,7 +152,7 @@ async def update_session_action_item(
 
 
 @router.delete(
-    "/session-action-items/{item_id}",
+    "/tasks/{item_id}",
     status_code=HTTPStatus.NO_CONTENT,
     operation_id="deleteSessionActionItem",
 )
@@ -168,3 +168,50 @@ async def delete_session_action_item(
     if not deleted:
         raise _item_not_found()
     return Response(status_code=HTTPStatus.NO_CONTENT)
+
+
+class TaskCreate(SessionActionItemCreate):
+    session_id: UUID | None = None
+
+
+@router.get("/tasks", response_model=SessionActionItemListResponse, operation_id="listTasks")
+async def list_tasks(
+    response: Response,
+    operator: OperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    session_id: UUID | None = None,
+    status: SessionActionItemStatus | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> SessionActionItemListResponse:
+    result = await SessionActionItemsRepository(database).list_items(
+        operator.workspace_id, session_id, limit, offset, status
+    )
+    if result is None:
+        raise _session_not_found()
+    items, total = result
+    _private(response)
+    return SessionActionItemListResponse(
+        items=[_item_response(item) for item in items], total=total, limit=limit, offset=offset
+    )
+
+
+@router.post(
+    "/tasks", response_model=SessionActionItemResponse, status_code=201, operation_id="createTask"
+)
+async def create_task(
+    payload: TaskCreate,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> SessionActionItemResponse:
+    item = await SessionActionItemsRepository(database).create_item(
+        operator.workspace_id,
+        operator.user_id,
+        payload.session_id,
+        payload.model_dump(exclude={"session_id"}),
+    )
+    if item is None:
+        raise _session_not_found()
+    _private(response)
+    return _item_response(item)

@@ -191,3 +191,25 @@ messages and queues a current summary. A corrected booking-only address revokes 
 a claimed send returns a recoverable conflict. Provider acceptance is not inbox delivery;
 console delivery is labelled simulated. Erasure and exports include the new data. No general
 outbox privileges are granted. Reset the local database after changing the mutable baseline.
+
+
+### Client communication
+
+Existing clients request an email link at `/public/workspaces/{slug}/client-sign-in`.
+`/client/auth/consume`, `/client/auth/session` and `/client/auth/logout` use separate client
+cookies; `/client/preferences`, `/client/bookings`, conversation and booking-access endpoints
+never accept a staff identity as a client. Link responses remain generic and rate-limited.
+Credential tables have no runtime table grants; immutable message writes and client reads
+use fixed capabilities with their own identity checks. Operator `/conversations` and
+`/clients/{id}/conversation/*` use verified workspace/principal context.
+
+`/services/{id}/follow-up` shares the service revision; booking completion snapshots the
+rule and optional assignment. `/bookings/{id}/follow-up` offers reviewed idempotent send/skip.
+The existing maintenance command queues due follow-ups, daily workspace-local digests and
+expired-client-credential cleanup. Email rendering uses saved EN/TR/DE language.
+
+General and session tasks share `/tasks` and `/tasks/{id}`, with the existing contextual
+session list/create routes. `/dashboard/worklist` returns bounded tasks and live source
+counts in one read snapshot. Client exports/erasure, workspace closure/deletion and reviewed
+email transfers cover communication content and revoke credentials safely.
+See `../docs/PASS1_COMMUNICATION.md` for local verification and navigation.

@@ -1053,12 +1053,16 @@ CREATE FUNCTION public.slotera_email_claim() RETURNS TABLE(id uuid, kind text, r
           UPDATE public.email_outbox AS item
           SET claimed_at = NULL, last_error = 'delivery attempt lease expired'
           FROM expired WHERE item.id = expired.id;
+          UPDATE public.email_outbox AS suppressed SET suppressed_at=statement_timestamp(),text_body='[superseded]'
+          WHERE suppressed.id IN(SELECT e.id FROM public.email_outbox e WHERE e.sent_at IS NULL AND e.suppressed_at IS NULL AND (e.claimed_at IS NULL OR e.claimed_at<statement_timestamp()-interval '5 minutes')
+          AND e.kind IN ('client_sign_in','message_digest','booking_followup') AND NOT public.slotera_client_mail_eligible(e.id) ORDER BY e.created_at,e.id FOR UPDATE SKIP LOCKED LIMIT 100);
           RETURN QUERY
           WITH candidate AS (
             SELECT item.id
             FROM public.email_outbox AS item
             WHERE item.sent_at IS NULL
               AND item.suppressed_at IS NULL
+              AND (item.kind NOT IN ('client_sign_in','message_digest','booking_followup') OR public.slotera_client_mail_eligible(item.id))
               AND item.available_at <= statement_timestamp()
               AND (
                 item.claimed_at IS NULL
@@ -1529,6 +1533,7 @@ CREATE FUNCTION public.slotera_platform_set_workspace_operational_status(p_works
             RETURN 'invalid_status';
           END IF;
 
+          PERFORM pg_advisory_xact_lock(hashtextextended('slotera:scheduling:'||p_workspace_id,0));
           SELECT operational_status::text
           INTO current_status
           FROM public.workspaces
@@ -1549,6 +1554,8 @@ CREATE FUNCTION public.slotera_platform_set_workspace_operational_status(p_works
           WHERE id = p_workspace_id;
 
           IF p_operational_status = 'suspended' THEN
+            DELETE FROM public.client_auth_sessions WHERE workspace_id=p_workspace_id;
+            DELETE FROM public.client_login_tokens WHERE workspace_id=p_workspace_id;
             UPDATE public.auth_sessions
             SET revoked_at = statement_timestamp()
             WHERE active_workspace_id = p_workspace_id
@@ -1806,6 +1813,7 @@ CREATE FUNCTION public.slotera_workspace_request_closure(p_workspace_id uuid, p_
             RETURN 'actor_not_operator';
           END IF;
 
+          PERFORM pg_advisory_xact_lock(hashtextextended('slotera:scheduling:'||p_workspace_id,0));
           UPDATE public.workspaces
           SET closure_requested_at = statement_timestamp(),
               operational_status = 'suspended',
@@ -1815,6 +1823,8 @@ CREATE FUNCTION public.slotera_workspace_request_closure(p_workspace_id uuid, p_
             RETURN 'already_closing';
           END IF;
 
+          DELETE FROM public.client_auth_sessions WHERE workspace_id=p_workspace_id;
+          DELETE FROM public.client_login_tokens WHERE workspace_id=p_workspace_id;
           UPDATE public.auth_sessions
           SET revoked_at = statement_timestamp()
           WHERE active_workspace_id = p_workspace_id AND revoked_at IS NULL;
@@ -2352,7 +2362,7 @@ ALTER TABLE ONLY public.services FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.session_action_items (
     id uuid NOT NULL,
     workspace_id uuid NOT NULL,
-    session_id uuid NOT NULL,
+    session_id uuid,
     title character varying(160) NOT NULL,
     description character varying(1000),
     status public.session_action_item_status DEFAULT 'todo'::public.session_action_item_status NOT NULL,
@@ -5217,7 +5227,7 @@ AS $$
       AND (p_booking_id IS NULL OR b.id=p_booking_id)
       AND (p_client_id IS NULL OR b.client_id=p_client_id)
       AND e.kind IN ('booking_received','booking_confirmed','booking_reminder',
-        'booking_rescheduled','booking_cancelled','booking_details')
+        'booking_rescheduled','booking_cancelled','booking_details','booking_followup')
   ), page AS (SELECT * FROM items ORDER BY created_at DESC,id LIMIT greatest(1,least(p_limit,100)) OFFSET greatest(0,p_offset))
   SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(page) ORDER BY created_at DESC,id) FROM page),'[]'::jsonb),
     'total',(SELECT count(*) FROM items),'limit',greatest(1,least(p_limit,100)),'offset',greatest(0,p_offset));
@@ -5327,6 +5337,546 @@ CREATE POLICY session_commands_tenant ON public.session_command_idempotency
  WITH CHECK (workspace_id=public.slotera_current_workspace_id());
 GRANT SELECT,INSERT,DELETE ON public.session_command_idempotency TO slotera_app;
 
+ALTER TABLE public.clients
+ ADD COLUMN erased_at timestamptz,
+ ADD COLUMN preferred_language varchar(2) DEFAULT 'en' NOT NULL,
+ ADD COLUMN message_digest_enabled boolean DEFAULT true NOT NULL,
+ ADD COLUMN automatic_followup_enabled boolean DEFAULT true NOT NULL;
+CREATE TABLE public.client_login_tokens (
+ id uuid CONSTRAINT pk_client_login_tokens PRIMARY KEY,
+ workspace_id uuid NOT NULL CONSTRAINT fk_client_login_tokens_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ client_id uuid NOT NULL,
+ language varchar(2) DEFAULT 'en' NOT NULL,
+ token_hash bytea NOT NULL CONSTRAINT uq_client_login_tokens_token_hash UNIQUE,
+ expires_at timestamptz NOT NULL,
+ created_at timestamptz DEFAULT now() NOT NULL,
+ CONSTRAINT fk_client_login_tokens_workspace_id_clients FOREIGN KEY(workspace_id,client_id) REFERENCES public.clients(workspace_id,id) ON DELETE CASCADE
+);
+CREATE TABLE public.client_auth_sessions (
+ id uuid CONSTRAINT pk_client_auth_sessions PRIMARY KEY,
+ workspace_id uuid NOT NULL CONSTRAINT fk_client_auth_sessions_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ client_id uuid NOT NULL,
+ token_hash bytea NOT NULL CONSTRAINT uq_client_auth_sessions_token_hash UNIQUE,
+ csrf_hash bytea NOT NULL,
+ expires_at timestamptz NOT NULL,
+ created_at timestamptz DEFAULT now() NOT NULL,
+ CONSTRAINT fk_client_auth_sessions_workspace_id_clients FOREIGN KEY(workspace_id,client_id) REFERENCES public.clients(workspace_id,id) ON DELETE CASCADE
+);
+CREATE INDEX ix_client_login_tokens_expires_at ON public.client_login_tokens(expires_at);
+CREATE INDEX ix_client_auth_sessions_expires_at ON public.client_auth_sessions(expires_at);
+CREATE INDEX ix_client_login_tokens_client ON public.client_login_tokens(workspace_id,client_id);
+CREATE INDEX ix_client_auth_sessions_client ON public.client_auth_sessions(workspace_id,client_id);
+ALTER TABLE public.client_login_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_login_tokens FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.client_auth_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_auth_sessions FORCE ROW LEVEL SECURITY;
+CREATE POLICY client_login_tokens_tenant ON public.client_login_tokens USING(workspace_id=public.slotera_current_workspace_id()) WITH CHECK(workspace_id=public.slotera_current_workspace_id());
+CREATE POLICY client_auth_sessions_tenant ON public.client_auth_sessions USING(workspace_id=public.slotera_current_workspace_id()) WITH CHECK(workspace_id=public.slotera_current_workspace_id());
+-- Authentication records are available only through the fixed capabilities below.
+CREATE FUNCTION public.slotera_client_identity(p_token bytea) RETURNS jsonb
+ LANGUAGE sql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ SELECT jsonb_build_object('clientId',c.id,'workspaceId',w.id,'workspaceName',w.name,
+ 'slug',w.slug,'name',c.name,'email',c.email,'language',c.preferred_language,
+ 'messageDigestEnabled',c.message_digest_enabled,'automaticFollowupEnabled',c.automatic_followup_enabled,
+ 'expiresAt',a.expires_at,'_csrfHash',encode(a.csrf_hash,'hex'))
+ FROM public.client_auth_sessions a JOIN public.clients c ON c.workspace_id=a.workspace_id AND c.id=a.client_id
+ JOIN public.workspaces w ON w.id=c.workspace_id
+ WHERE a.token_hash=p_token AND a.expires_at>statement_timestamp()
+ AND c.erased_at IS NULL AND w.operational_status='active';
+$$;
+CREATE FUNCTION public.slotera_client_login_issue(p_slug text,p_email text,p_hash bytea,p_url text,p_language text,p_subject text,p_body text) RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE target record;
+ BEGIN
+ SELECT c.id,c.workspace_id INTO target FROM public.clients c JOIN public.workspaces w ON w.id=c.workspace_id
+ WHERE w.slug=p_slug AND w.operational_status='active' AND c.email=p_email AND c.erased_at IS NULL;
+ IF NOT FOUND THEN RETURN; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('slotera:scheduling:'||target.workspace_id,0));
+ PERFORM 1 FROM public.clients WHERE workspace_id=target.workspace_id AND id=target.id AND email=p_email AND erased_at IS NULL FOR UPDATE;
+ IF NOT FOUND THEN RETURN; END IF;
+ INSERT INTO public.client_login_tokens(id,workspace_id,client_id,token_hash,expires_at,language)
+ VALUES(gen_random_uuid(),target.workspace_id,target.id,p_hash,statement_timestamp()+interval '15 minutes',p_language);
+ INSERT INTO public.email_outbox(id,kind,recipient_email,subject,text_body,template_data,related_workspace_id)
+ VALUES(gen_random_uuid(),'client_sign_in',p_email,p_subject,p_body || E'\n\n' || p_url,
+ jsonb_build_object('language',p_language,'clientId',target.id,'workspaceId',target.workspace_id),target.workspace_id);
+ END;
+$$;
+CREATE FUNCTION public.slotera_client_login_consume(p_link bytea,p_session bytea,p_csrf bytea) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE target public.client_login_tokens%ROWTYPE;
+ BEGIN
+ SELECT * INTO target FROM public.client_login_tokens WHERE token_hash=p_link AND expires_at>statement_timestamp();
+ IF NOT FOUND THEN RETURN NULL; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('slotera:scheduling:'||target.workspace_id,0));
+ PERFORM 1 FROM public.clients c JOIN public.workspaces w ON w.id=c.workspace_id
+ WHERE c.id=target.client_id AND c.workspace_id=target.workspace_id AND c.erased_at IS NULL AND w.operational_status='active' FOR UPDATE OF c;
+ IF NOT FOUND THEN RETURN NULL; END IF;
+ DELETE FROM public.client_login_tokens WHERE id=target.id AND expires_at>statement_timestamp();
+ IF NOT FOUND THEN RETURN NULL; END IF;
+ UPDATE public.clients SET preferred_language=target.language WHERE workspace_id=target.workspace_id AND id=target.client_id;
+ INSERT INTO public.client_auth_sessions(id,workspace_id,client_id,token_hash,csrf_hash,expires_at)
+ VALUES(gen_random_uuid(),target.workspace_id,target.client_id,p_session,p_csrf,statement_timestamp()+interval '12 hours');
+ RETURN public.slotera_client_identity(p_session);
+ END;
+$$;
+CREATE FUNCTION public.slotera_client_logout(p_token bytea) RETURNS void
+ LANGUAGE sql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DELETE FROM public.client_auth_sessions WHERE token_hash=p_token;
+$$;
+CREATE FUNCTION public.slotera_client_preferences(p_token bytea,p_language text,p_digest boolean,p_followup boolean) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE identity jsonb;
+ BEGIN
+ identity:=public.slotera_client_identity(p_token);
+ IF identity IS NULL THEN RETURN NULL; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('slotera:scheduling:'||(identity->>'workspaceId'),0));
+ identity:=public.slotera_client_identity(p_token);
+ IF identity IS NULL THEN RETURN NULL; END IF;
+ IF p_language IS NOT NULL AND p_language NOT IN ('en','tr','de') THEN RAISE EXCEPTION 'invalid language'; END IF;
+ UPDATE public.clients SET preferred_language=coalesce(p_language,preferred_language),
+ message_digest_enabled=coalesce(p_digest,message_digest_enabled),automatic_followup_enabled=coalesce(p_followup,automatic_followup_enabled)
+ WHERE id=(identity->>'clientId')::uuid AND workspace_id=(identity->>'workspaceId')::uuid;
+ RETURN public.slotera_client_identity(p_token);
+ END;
+$$;
+CREATE FUNCTION public.slotera_client_bookings(p_token bytea,p_limit integer,p_offset integer) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE identity jsonb; result jsonb; n integer;
+ BEGIN
+ identity:=public.slotera_client_identity(p_token);
+ IF identity IS NULL THEN RETURN NULL; END IF;
+ SELECT count(*) INTO n FROM public.bookings b WHERE b.workspace_id=(identity->>'workspaceId')::uuid AND b.client_id=(identity->>'clientId')::uuid;
+ SELECT coalesce(jsonb_agg(to_jsonb(rows)),'[]') INTO result FROM (
+ SELECT b.id,b.reference,b.status,b.payment_status AS "paymentStatus",b.amount_cents AS "amountCents",b.currency,
+ s.start_at AS "startAt",s.end_at AS "endAt",v.name AS "serviceName"
+ FROM public.bookings b JOIN public.sessions s ON s.workspace_id=b.workspace_id AND s.id=b.session_id
+ JOIN public.services v ON v.workspace_id=s.workspace_id AND v.id=s.service_id
+ WHERE b.workspace_id=(identity->>'workspaceId')::uuid AND b.client_id=(identity->>'clientId')::uuid
+ ORDER BY s.start_at DESC,b.id LIMIT least(greatest(p_limit,1),100) OFFSET greatest(p_offset,0)
+ ) rows;
+ RETURN jsonb_build_object('items',result,'total',n,'limit',least(greatest(p_limit,1),100),'offset',greatest(p_offset,0));
+ END;
+$$;
+REVOKE ALL ON FUNCTION public.slotera_client_identity(bytea),public.slotera_client_login_issue(text,text,bytea,text,text,text,text),public.slotera_client_login_consume(bytea,bytea,bytea),public.slotera_client_logout(bytea),public.slotera_client_preferences(bytea,text,boolean,boolean),public.slotera_client_bookings(bytea,integer,integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.slotera_client_identity(bytea),public.slotera_client_login_issue(text,text,bytea,text,text,text,text),public.slotera_client_login_consume(bytea,bytea,bytea),public.slotera_client_logout(bytea),public.slotera_client_preferences(bytea,text,boolean,boolean),public.slotera_client_bookings(bytea,integer,integer) TO slotera_app;
+
+CREATE TABLE public.client_conversations (
+ id uuid CONSTRAINT pk_client_conversations PRIMARY KEY,
+ workspace_id uuid NOT NULL CONSTRAINT fk_client_conversations_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ client_id uuid NOT NULL,
+ last_sequence bigint DEFAULT 0 NOT NULL,
+ created_at timestamptz DEFAULT now() NOT NULL,
+ CONSTRAINT uq_client_conversations_workspace_id UNIQUE(workspace_id,id),
+ CONSTRAINT uq_client_conversations_workspace_id_client UNIQUE(workspace_id,client_id),
+ CONSTRAINT fk_client_conversations_workspace_id_clients FOREIGN KEY(workspace_id,client_id) REFERENCES public.clients(workspace_id,id) ON DELETE CASCADE
+);
+CREATE TABLE public.conversation_messages (
+ id uuid CONSTRAINT pk_conversation_messages PRIMARY KEY,
+ workspace_id uuid NOT NULL CONSTRAINT fk_conversation_messages_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ conversation_id uuid NOT NULL,
+ sequence bigint NOT NULL,
+ sender_key varchar(80) NOT NULL,
+ sender_kind varchar(10) NOT NULL,
+ submission_id uuid NOT NULL,
+ body varchar(4000) NOT NULL,
+ created_at timestamptz DEFAULT now() NOT NULL,
+ CONSTRAINT uq_conversation_messages_sequence UNIQUE(workspace_id,conversation_id,sequence),
+ CONSTRAINT uq_conversation_messages_submission UNIQUE(workspace_id,conversation_id,sender_key,submission_id),
+ CONSTRAINT fk_conversation_messages_workspace_id_client_conversations FOREIGN KEY(workspace_id,conversation_id) REFERENCES public.client_conversations(workspace_id,id) ON DELETE CASCADE,
+ CONSTRAINT ck_conversation_messages_body CHECK(char_length(btrim(body)) BETWEEN 1 AND 4000),
+ CONSTRAINT ck_conversation_messages_sender_kind CHECK(sender_kind IN ('client','operator'))
+);
+CREATE TABLE public.conversation_reads (
+ workspace_id uuid NOT NULL CONSTRAINT fk_conversation_reads_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ conversation_id uuid NOT NULL,
+ actor_key varchar(80) NOT NULL,
+ last_read bigint DEFAULT 0 NOT NULL,
+ last_digest bigint DEFAULT 0 NOT NULL,
+ CONSTRAINT pk_conversation_reads PRIMARY KEY(workspace_id,conversation_id,actor_key),
+ CONSTRAINT fk_conversation_reads_workspace_id_client_conversations FOREIGN KEY(workspace_id,conversation_id) REFERENCES public.client_conversations(workspace_id,id) ON DELETE CASCADE
+);
+CREATE INDEX ix_conversation_messages_tail ON public.conversation_messages(workspace_id,conversation_id,sequence DESC);
+ALTER TABLE public.client_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_conversations FORCE ROW LEVEL SECURITY;
+CREATE POLICY client_conversations_tenant ON public.client_conversations USING(workspace_id=public.slotera_current_workspace_id()) WITH CHECK(workspace_id=public.slotera_current_workspace_id());
+ALTER TABLE public.conversation_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversation_messages FORCE ROW LEVEL SECURITY;
+CREATE POLICY conversation_messages_tenant ON public.conversation_messages USING(workspace_id=public.slotera_current_workspace_id()) WITH CHECK(workspace_id=public.slotera_current_workspace_id());
+ALTER TABLE public.conversation_reads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversation_reads FORCE ROW LEVEL SECURITY;
+CREATE POLICY conversation_reads_tenant ON public.conversation_reads USING(workspace_id=public.slotera_current_workspace_id()) WITH CHECK(workspace_id=public.slotera_current_workspace_id());
+GRANT SELECT ON public.client_conversations,public.conversation_messages,public.conversation_reads TO slotera_app;
+CREATE FUNCTION public.slotera_conversation_actor(p_token bytea,p_client uuid) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE identity jsonb; wid uuid; uid uuid;
+ BEGIN
+ IF p_token IS NOT NULL THEN
+ identity:=public.slotera_client_identity(p_token);
+ IF identity IS NULL OR (p_client IS NOT NULL AND (identity->>'clientId')::uuid<>p_client) THEN RETURN NULL; END IF;
+ RETURN jsonb_build_object('workspaceId',identity->>'workspaceId','clientId',identity->>'clientId','actorKey','client:'||(identity->>'clientId'),'senderKind','client');
+ END IF;
+ wid:=public.slotera_current_workspace_id(); uid:=nullif(current_setting('app.current_user_id',true),'')::uuid;
+ IF NOT EXISTS(SELECT 1 FROM public.workspace_memberships WHERE workspace_id=wid AND user_id=uid) THEN RETURN NULL; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.clients WHERE workspace_id=wid AND id=p_client AND erased_at IS NULL) THEN RETURN NULL; END IF;
+ RETURN jsonb_build_object('workspaceId',wid,'clientId',p_client,'actorKey','operator:'||uid,'senderKind','operator','userId',uid);
+ END;
+$$;
+CREATE FUNCTION public.slotera_conversation_messages(p_token bytea,p_client uuid,p_before bigint,p_after bigint,p_limit integer) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE actor jsonb; records jsonb; latest bigint; read_sequence bigint;
+ BEGIN
+ actor:=public.slotera_conversation_actor(p_token,p_client);
+ IF actor IS NULL THEN RETURN NULL; END IF;
+ SELECT coalesce(c.last_sequence,0) INTO latest FROM public.client_conversations c WHERE c.workspace_id=(actor->>'workspaceId')::uuid AND c.client_id=(actor->>'clientId')::uuid;
+ SELECT coalesce(r.last_read,0) INTO read_sequence FROM public.conversation_reads r WHERE r.workspace_id=(actor->>'workspaceId')::uuid AND r.conversation_id=(actor->>'clientId')::uuid AND r.actor_key=actor->>'actorKey';
+ SELECT coalesce(jsonb_agg(to_jsonb(rows) ORDER BY rows.sequence),'[]') INTO records FROM (
+ SELECT m.id,m.sequence,m.sender_kind AS "senderKind",m.body,m.created_at AS "createdAt" FROM public.conversation_messages m
+ WHERE m.workspace_id=(actor->>'workspaceId')::uuid AND m.conversation_id=(actor->>'clientId')::uuid
+ AND (p_before IS NULL OR m.sequence<p_before) AND (p_after IS NULL OR m.sequence>p_after)
+ ORDER BY CASE WHEN p_after IS NOT NULL THEN m.sequence END ASC, m.sequence DESC
+ LIMIT least(greatest(p_limit,1),100)
+ ) rows;
+ RETURN jsonb_build_object('items',records,'latestSequence',coalesce(latest,0),'readThrough',coalesce(read_sequence,0),'limit',least(greatest(p_limit,1),100));
+ END;
+$$;
+CREATE FUNCTION public.slotera_conversation_send(p_token bytea,p_client uuid,p_submission uuid,p_body text) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE actor jsonb; existing public.conversation_messages%ROWTYPE; next_sequence bigint; result jsonb;
+ BEGIN
+ actor:=public.slotera_conversation_actor(p_token,p_client);
+ IF actor IS NULL THEN RETURN NULL; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('slotera:scheduling:'||(actor->>'workspaceId'),0));
+ PERFORM 1 FROM public.clients WHERE workspace_id=(actor->>'workspaceId')::uuid AND id=(actor->>'clientId')::uuid AND erased_at IS NULL FOR UPDATE;
+ IF NOT FOUND THEN RETURN NULL; END IF;
+ IF p_token IS NOT NULL AND public.slotera_client_identity(p_token) IS NULL THEN RETURN NULL; END IF;
+ INSERT INTO public.client_conversations(id,workspace_id,client_id) VALUES((actor->>'clientId')::uuid,(actor->>'workspaceId')::uuid,(actor->>'clientId')::uuid) ON CONFLICT DO NOTHING;
+ PERFORM 1 FROM public.client_conversations WHERE workspace_id=(actor->>'workspaceId')::uuid AND id=(actor->>'clientId')::uuid FOR UPDATE;
+ SELECT * INTO existing FROM public.conversation_messages WHERE workspace_id=(actor->>'workspaceId')::uuid AND conversation_id=(actor->>'clientId')::uuid AND sender_key=actor->>'actorKey' AND submission_id=p_submission;
+ IF FOUND THEN
+ IF existing.body<>p_body THEN RETURN jsonb_build_object('error','idempotency_key_reused'); END IF;
+ RETURN jsonb_build_object('id',existing.id,'sequence',existing.sequence,'senderKind',existing.sender_kind,'body',existing.body,'createdAt',existing.created_at);
+ END IF;
+ IF char_length(btrim(p_body)) NOT BETWEEN 1 AND 4000 THEN RETURN jsonb_build_object('error','message_invalid'); END IF;
+ IF NOT public.slotera_rate_limit_consume('conversation_send',sha256(convert_to((actor->>'workspaceId')||':'||(actor->>'actorKey'),'UTF8')),30,60) THEN RETURN jsonb_build_object('error','rate_limit_exceeded'); END IF;
+ UPDATE public.client_conversations SET last_sequence=last_sequence+1 WHERE workspace_id=(actor->>'workspaceId')::uuid AND id=(actor->>'clientId')::uuid RETURNING last_sequence INTO next_sequence;
+ INSERT INTO public.conversation_messages(id,workspace_id,conversation_id,sequence,sender_key,sender_kind,submission_id,body)
+ VALUES(gen_random_uuid(),(actor->>'workspaceId')::uuid,(actor->>'clientId')::uuid,next_sequence,actor->>'actorKey',actor->>'senderKind',p_submission,p_body)
+ RETURNING jsonb_build_object('id',id,'sequence',sequence,'senderKind',sender_kind,'body',body,'createdAt',created_at) INTO result;
+ INSERT INTO public.audit_events(id,workspace_id,actor_user_id,action,resource_type,resource_id,details)
+ VALUES(gen_random_uuid(),(actor->>'workspaceId')::uuid,(actor->>'userId')::uuid,'conversation.message_sent','conversation_message',(result->>'id')::uuid,jsonb_build_object('senderKind',actor->>'senderKind'));
+ RETURN result;
+ END;
+$$;
+CREATE FUNCTION public.slotera_conversation_mark_read(p_token bytea,p_client uuid,p_sequence bigint) RETURNS boolean
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE actor jsonb; latest bigint;
+ BEGIN
+ actor:=public.slotera_conversation_actor(p_token,p_client);
+ IF actor IS NULL THEN RETURN false; END IF;
+ PERFORM 1 FROM public.clients WHERE workspace_id=(actor->>'workspaceId')::uuid AND id=(actor->>'clientId')::uuid AND erased_at IS NULL FOR UPDATE;
+ IF NOT FOUND THEN RETURN false; END IF;
+ IF p_token IS NOT NULL AND public.slotera_client_identity(p_token) IS NULL THEN RETURN false; END IF;
+ SELECT last_sequence INTO latest FROM public.client_conversations WHERE workspace_id=(actor->>'workspaceId')::uuid AND id=(actor->>'clientId')::uuid;
+ IF latest IS NULL THEN RETURN true; END IF;
+ INSERT INTO public.conversation_reads(workspace_id,conversation_id,actor_key,last_read)
+ VALUES((actor->>'workspaceId')::uuid,(actor->>'clientId')::uuid,actor->>'actorKey',greatest(0,least(p_sequence,latest)))
+ ON CONFLICT(workspace_id,conversation_id,actor_key) DO UPDATE SET last_read=greatest(conversation_reads.last_read,EXCLUDED.last_read);
+ RETURN true;
+ END;
+$$;
+CREATE FUNCTION public.slotera_client_booking_access(p_token bytea,p_booking uuid,p_hash bytea) RETURNS boolean
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE identity jsonb; ends timestamptz;
+ BEGIN
+ identity:=public.slotera_client_identity(p_token); IF identity IS NULL THEN RETURN false; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('slotera:scheduling:'||(identity->>'workspaceId'),0));
+ IF public.slotera_client_identity(p_token) IS NULL THEN RETURN false; END IF;
+ SELECT s.end_at INTO ends FROM public.bookings b JOIN public.sessions s ON s.workspace_id=b.workspace_id AND s.id=b.session_id
+ WHERE b.id=p_booking AND b.client_id=(identity->>'clientId')::uuid AND b.workspace_id=(identity->>'workspaceId')::uuid;
+ IF NOT FOUND THEN RETURN false; END IF;
+ INSERT INTO public.booking_access_tokens(id,workspace_id,booking_id,token_hash,expires_at)
+ VALUES(gen_random_uuid(),(identity->>'workspaceId')::uuid,p_booking,p_hash,greatest(ends,statement_timestamp())+interval '30 days');
+ RETURN true;
+ END;
+$$;
+REVOKE ALL ON FUNCTION public.slotera_conversation_actor(bytea,uuid),public.slotera_conversation_messages(bytea,uuid,bigint,bigint,integer),public.slotera_conversation_send(bytea,uuid,uuid,text),public.slotera_conversation_mark_read(bytea,uuid,bigint),public.slotera_client_booking_access(bytea,uuid,bytea) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.slotera_conversation_messages(bytea,uuid,bigint,bigint,integer),public.slotera_conversation_send(bytea,uuid,uuid,text),public.slotera_conversation_mark_read(bytea,uuid,bigint),public.slotera_client_booking_access(bytea,uuid,bytea) TO slotera_app;
+
+ALTER TABLE public.booking_form_snapshots ADD COLUMN assignment_kind varchar(20) DEFAULT 'preparation' NOT NULL, ADD COLUMN response_deadline timestamptz;
+ALTER TABLE public.booking_form_snapshots DROP CONSTRAINT booking_form_snapshots_workspace_id_booking_id_form_templat_key;
+ALTER TABLE public.booking_form_snapshots ADD CONSTRAINT booking_form_snapshots_workspace_id_booking_id_form_templat_key UNIQUE(workspace_id,booking_id,form_template_id,assignment_kind);
+ALTER TABLE public.booking_form_responses DROP CONSTRAINT uq_booking_form_response;
+ALTER TABLE public.booking_form_snapshots ADD CONSTRAINT uq_booking_form_snapshots_assignment UNIQUE(workspace_id,booking_id,id), ADD CONSTRAINT ck_booking_form_snapshots_assignment_kind CHECK(assignment_kind IN ('preparation','followup'));
+ALTER TABLE public.booking_form_responses ADD COLUMN snapshot_id uuid NOT NULL;
+ALTER TABLE public.booking_form_responses ADD CONSTRAINT fk_booking_form_responses_workspace_id_booking_form_snapshots FOREIGN KEY(workspace_id,booking_id,snapshot_id) REFERENCES public.booking_form_snapshots(workspace_id,booking_id,id) ON DELETE CASCADE;
+ALTER TABLE public.booking_form_responses ADD CONSTRAINT uq_booking_form_response UNIQUE(workspace_id,booking_id,snapshot_id);
+
+CREATE TABLE public.service_followup_rules (
+ workspace_id uuid NOT NULL CONSTRAINT fk_service_followup_rules_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ service_id uuid NOT NULL,
+ enabled boolean DEFAULT false NOT NULL,
+ delay_hours integer DEFAULT 24 NOT NULL,
+ message varchar(5000) DEFAULT '' NOT NULL,
+ form_template_id uuid,
+ CONSTRAINT pk_service_followup_rules PRIMARY KEY(workspace_id,service_id),
+ CONSTRAINT fk_service_followup_rules_workspace_id_services FOREIGN KEY(workspace_id,service_id) REFERENCES public.services(workspace_id,id) ON DELETE CASCADE,
+ CONSTRAINT fk_service_followup_rules_workspace_id_form_templates FOREIGN KEY(workspace_id,form_template_id) REFERENCES public.form_templates(workspace_id,id) ON DELETE RESTRICT,
+ CONSTRAINT ck_service_followup_rules_delay CHECK(delay_hours BETWEEN 0 AND 720)
+);
+CREATE TABLE public.booking_followups (
+ id uuid CONSTRAINT pk_booking_followups PRIMARY KEY,
+ workspace_id uuid NOT NULL CONSTRAINT fk_booking_followups_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ booking_id uuid NOT NULL,
+ state varchar(16) NOT NULL,
+ message varchar(5000) NOT NULL,
+ delay_hours integer DEFAULT 24 NOT NULL,
+ due_at timestamptz NOT NULL,
+ form_snapshot_id uuid,
+ CONSTRAINT fk_booking_followups_workspace_id_booking_form_snapshots FOREIGN KEY(workspace_id,booking_id,form_snapshot_id) REFERENCES public.booking_form_snapshots(workspace_id,booking_id,id) ON DELETE CASCADE,
+ queued_at timestamptz,
+ commands jsonb DEFAULT '{}'::jsonb NOT NULL,
+ version bigint DEFAULT 1 NOT NULL,
+ created_at timestamptz DEFAULT now() NOT NULL,
+ CONSTRAINT uq_booking_followups_workspace_id UNIQUE(workspace_id,booking_id),
+ CONSTRAINT fk_booking_followups_workspace_id_bookings FOREIGN KEY(workspace_id,booking_id) REFERENCES public.bookings(workspace_id,id) ON DELETE CASCADE
+);
+CREATE INDEX ix_booking_followups_due ON public.booking_followups(state,due_at);
+ALTER TABLE public.service_followup_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.service_followup_rules FORCE ROW LEVEL SECURITY;
+CREATE POLICY service_followup_rules_tenant ON public.service_followup_rules USING(workspace_id=public.slotera_current_workspace_id()) WITH CHECK(workspace_id=public.slotera_current_workspace_id());
+ALTER TABLE public.booking_followups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.booking_followups FORCE ROW LEVEL SECURITY;
+CREATE POLICY booking_followups_tenant ON public.booking_followups USING(workspace_id=public.slotera_current_workspace_id()) WITH CHECK(workspace_id=public.slotera_current_workspace_id());
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.service_followup_rules,public.booking_followups TO slotera_app;
+CREATE FUNCTION public.slotera_due_followups() RETURNS TABLE(workspace_id uuid,booking_id uuid)
+ LANGUAGE sql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ SELECT f.workspace_id,f.booking_id FROM public.booking_followups f JOIN public.workspaces w ON w.id=f.workspace_id
+ WHERE f.state='scheduled' AND f.due_at<=statement_timestamp() AND w.operational_status='active' ORDER BY f.due_at,f.id LIMIT 100;
+$$;
+CREATE FUNCTION public.slotera_followup_queue(p_booking uuid,p_url text,p_subject text,p_body text,p_manual boolean,p_event_key text DEFAULT '') RETURNS boolean
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE b public.bookings%ROWTYPE; c public.clients%ROWTYPE;
+ BEGIN
+ SELECT * INTO b FROM public.bookings WHERE workspace_id=public.slotera_current_workspace_id() AND id=p_booking FOR UPDATE;
+ IF NOT FOUND OR b.status<>'completed' OR b.customer_email='' THEN RETURN false; END IF;
+ SELECT * INTO c FROM public.clients WHERE workspace_id=b.workspace_id AND id=b.client_id;
+ IF c.erased_at IS NOT NULL OR (NOT p_manual AND NOT c.automatic_followup_enabled) THEN RETURN false; END IF;
+ INSERT INTO public.email_outbox(id,kind,recipient_email,subject,text_body,template_data,related_booking_id,event_key)
+ VALUES(gen_random_uuid(),'booking_followup',coalesce(b.delivery_email_override,b.customer_email),p_subject,p_body||E'\n\n'||p_url,
+ jsonb_build_object('language',b.language,'manual',p_manual),b.id,p_event_key) ON CONFLICT DO NOTHING;
+ RETURN FOUND;
+ END;
+$$;
+CREATE FUNCTION public.slotera_followup_suppress(p_booking uuid) RETURNS boolean
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM public.bookings WHERE workspace_id=public.slotera_current_workspace_id() AND id=p_booking) THEN RETURN false; END IF;
+ PERFORM 1 FROM public.email_outbox WHERE related_booking_id=p_booking AND kind='booking_followup' AND sent_at IS NULL AND suppressed_at IS NULL ORDER BY id FOR UPDATE;
+ IF EXISTS(SELECT 1 FROM public.email_outbox WHERE related_booking_id=p_booking AND kind='booking_followup' AND sent_at IS NULL AND suppressed_at IS NULL AND claimed_at IS NOT NULL) THEN RETURN false; END IF;
+ UPDATE public.email_outbox SET suppressed_at=statement_timestamp() WHERE related_booking_id=p_booking AND kind='booking_followup' AND sent_at IS NULL AND suppressed_at IS NULL;
+ RETURN true;
+ END;
+$$;
+REVOKE ALL ON FUNCTION public.slotera_due_followups(),public.slotera_followup_queue(uuid,text,text,text,boolean,text),public.slotera_followup_suppress(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.slotera_due_followups(),public.slotera_followup_queue(uuid,text,text,text,boolean,text),public.slotera_followup_suppress(uuid) TO slotera_app;
+
+CREATE TABLE public.client_email_commands (
+ id uuid CONSTRAINT pk_client_email_commands PRIMARY KEY,
+ workspace_id uuid NOT NULL CONSTRAINT fk_client_email_commands_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ actor_user_id uuid NOT NULL CONSTRAINT fk_client_email_commands_actor_user_id_users REFERENCES public.users(id) ON DELETE RESTRICT,
+ client_id uuid NOT NULL,
+ idempotency_key varchar(255) NOT NULL,
+ fingerprint varchar(64) NOT NULL,
+ created_at timestamptz DEFAULT now() NOT NULL,
+ CONSTRAINT fk_client_email_commands_workspace_id_clients FOREIGN KEY(workspace_id,client_id) REFERENCES public.clients(workspace_id,id) ON DELETE CASCADE,
+ CONSTRAINT uq_client_email_commands_key UNIQUE(workspace_id,actor_user_id,idempotency_key)
+);
+ALTER TABLE public.client_email_commands ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_email_commands FORCE ROW LEVEL SECURITY;
+CREATE POLICY client_email_commands_tenant ON public.client_email_commands USING(workspace_id=public.slotera_current_workspace_id()) WITH CHECK(workspace_id=public.slotera_current_workspace_id());
+GRANT SELECT,INSERT,DELETE ON public.client_email_commands TO slotera_app;
+CREATE FUNCTION public.slotera_client_contact_prepare(p_client uuid,p_email text) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE wid uuid; summaries jsonb; followups jsonb;
+ BEGIN
+ wid:=public.slotera_current_workspace_id();
+ PERFORM id FROM public.clients WHERE workspace_id=wid AND id=p_client FOR UPDATE;
+ IF NOT FOUND THEN RETURN NULL; END IF;
+ PERFORM id FROM public.bookings WHERE workspace_id=wid AND client_id=p_client ORDER BY id FOR UPDATE;
+ PERFORM e.id FROM public.email_outbox e LEFT JOIN public.bookings b ON b.id=e.related_booking_id
+ WHERE (b.workspace_id=wid AND b.client_id=p_client) OR (e.template_data->>'workspaceId'=wid::text AND e.template_data->>'clientId'=p_client::text)
+ ORDER BY e.id FOR UPDATE OF e;
+ IF EXISTS(SELECT 1 FROM public.email_outbox e LEFT JOIN public.bookings b ON b.id=e.related_booking_id
+ WHERE ((b.workspace_id=wid AND b.client_id=p_client) OR (e.template_data->>'workspaceId'=wid::text AND e.template_data->>'clientId'=p_client::text)) AND e.sent_at IS NULL AND e.suppressed_at IS NULL AND e.claimed_at IS NOT NULL) THEN RETURN NULL; END IF;
+ SELECT coalesce(jsonb_agg(DISTINCT e.related_booking_id),'[]') INTO summaries FROM public.email_outbox e JOIN public.bookings b ON b.id=e.related_booking_id
+ WHERE b.workspace_id=wid AND b.client_id=p_client AND e.kind IN ('booking_received','booking_confirmed','booking_reminder','booking_rescheduled','booking_details','booking_cancelled') AND e.sent_at IS NULL AND e.suppressed_at IS NULL;
+ SELECT coalesce(jsonb_agg(DISTINCT jsonb_build_object('bookingId',e.related_booking_id,'manual',coalesce((e.template_data->>'manual')::boolean,false))),'[]') INTO followups FROM public.email_outbox e JOIN public.bookings b ON b.id=e.related_booking_id
+ WHERE b.workspace_id=wid AND b.client_id=p_client AND e.kind='booking_followup' AND e.sent_at IS NULL AND e.suppressed_at IS NULL;
+ -- Generic digests contain no message bodies or credentials; replace their recipient atomically.
+ IF p_email IS NOT NULL THEN
+ INSERT INTO public.email_outbox(id,kind,recipient_email,subject,text_body,template_data,related_workspace_id)
+ SELECT gen_random_uuid(),e.kind,p_email,e.subject,e.text_body,e.template_data,wid FROM public.email_outbox e
+ WHERE e.kind='message_digest' AND e.template_data->>'workspaceId'=wid::text AND e.template_data->>'clientId'=p_client::text
+ AND e.sent_at IS NULL AND e.suppressed_at IS NULL;
+ END IF;
+ UPDATE public.email_outbox e SET suppressed_at=statement_timestamp(),text_body='[superseded]',template_data=CASE WHEN e.related_booking_id IS NULL THEN jsonb_build_object('workspaceId',wid,'clientId',p_client) ELSE '{}'::jsonb END
+ WHERE e.sent_at IS NULL AND e.suppressed_at IS NULL AND (
+ EXISTS(SELECT 1 FROM public.bookings b WHERE b.id=e.related_booking_id AND b.workspace_id=wid AND b.client_id=p_client)
+ OR (e.template_data->>'workspaceId'=wid::text AND e.template_data->>'clientId'=p_client::text AND e.recipient_email IS DISTINCT FROM p_email));
+ DELETE FROM public.client_login_tokens WHERE workspace_id=wid AND client_id=p_client;
+ DELETE FROM public.client_auth_sessions WHERE workspace_id=wid AND client_id=p_client;
+ UPDATE public.booking_access_tokens t SET revoked_at=statement_timestamp() FROM public.bookings b
+ WHERE t.booking_id=b.id AND t.workspace_id=b.workspace_id AND b.workspace_id=wid AND b.client_id=p_client AND t.revoked_at IS NULL;
+ IF p_email IS NOT NULL THEN UPDATE public.bookings SET delivery_email_override=p_email WHERE workspace_id=wid AND client_id=p_client; END IF;
+ RETURN jsonb_build_object('summaries',summaries,'followups',followups);
+ END;
+$$;
+CREATE FUNCTION public.slotera_client_erase_context(p_client uuid) RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE wid uuid;
+ BEGIN
+ wid:=public.slotera_current_workspace_id();
+ IF NOT EXISTS(SELECT 1 FROM public.clients WHERE workspace_id=wid AND id=p_client) THEN RETURN; END IF;
+ DELETE FROM public.message_digest_runs WHERE workspace_id=wid AND actor_key='client:'||p_client;
+ DELETE FROM public.client_login_tokens WHERE workspace_id=wid AND client_id=p_client;
+ DELETE FROM public.client_auth_sessions WHERE workspace_id=wid AND client_id=p_client;
+ DELETE FROM public.client_conversations WHERE workspace_id=wid AND client_id=p_client;
+ DELETE FROM public.client_email_commands WHERE workspace_id=wid AND client_id=p_client;
+ DELETE FROM public.booking_followups f USING public.bookings b WHERE f.workspace_id=wid AND b.workspace_id=wid AND f.booking_id=b.id AND b.client_id=p_client;
+ DELETE FROM public.email_outbox WHERE template_data->>'workspaceId'=wid::text AND template_data->>'clientId'=p_client::text;
+ END;
+$$;
+REVOKE ALL ON FUNCTION public.slotera_client_contact_prepare(uuid,text),public.slotera_client_erase_context(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.slotera_client_contact_prepare(uuid,text),public.slotera_client_erase_context(uuid) TO slotera_app;
+
+ALTER TABLE public.workspace_business_profiles ADD COLUMN notify_operator_messages boolean DEFAULT true NOT NULL;
+ALTER TABLE public.email_outbox ADD COLUMN related_workspace_id uuid CONSTRAINT fk_email_outbox_related_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE;
+CREATE INDEX ix_email_outbox_client_context ON public.email_outbox((template_data->>'workspaceId'),(template_data->>'clientId'));
+CREATE TABLE public.message_digest_runs (
+ workspace_id uuid NOT NULL CONSTRAINT fk_message_digest_runs_workspace_id_workspaces REFERENCES public.workspaces(id) ON DELETE CASCADE,
+ actor_key varchar(80) NOT NULL,
+ digest_day date NOT NULL,
+ CONSTRAINT pk_message_digest_runs PRIMARY KEY(workspace_id,actor_key,digest_day)
+);
+ALTER TABLE public.message_digest_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.message_digest_runs FORCE ROW LEVEL SECURITY;
+CREATE POLICY message_digest_runs_tenant ON public.message_digest_runs USING(workspace_id=public.slotera_current_workspace_id()) WITH CHECK(workspace_id=public.slotera_current_workspace_id());
+CREATE FUNCTION public.slotera_queue_message_digests(p_base text,p_now timestamptz DEFAULT statement_timestamp()) RETURNS integer
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE recipient record; target record; message_count integer; queued integer:=0; copy_subject text; copy_body text;
+ BEGIN
+ FOR recipient IN
+ SELECT c.workspace_id,c.id AS client_id,'client:'||c.id AS actor_key,'operator'::text AS sender_kind,c.email,c.preferred_language AS language,
+ (p_now AT TIME ZONE w.timezone)::date AS local_day,w.slug,w.timezone
+ FROM public.clients c JOIN public.workspaces w ON w.id=c.workspace_id
+ WHERE c.erased_at IS NULL AND c.message_digest_enabled AND w.operational_status='active'
+ AND extract(hour FROM p_now AT TIME ZONE w.timezone)>=9
+ AND NOT EXISTS(SELECT 1 FROM public.message_digest_runs d WHERE d.workspace_id=c.workspace_id AND d.actor_key='client:'||c.id AND d.digest_day=(p_now AT TIME ZONE w.timezone)::date)
+ AND EXISTS(SELECT 1 FROM public.conversation_messages m LEFT JOIN public.conversation_reads r ON r.workspace_id=m.workspace_id AND r.conversation_id=m.conversation_id AND r.actor_key='client:'||c.id WHERE m.workspace_id=c.workspace_id AND m.conversation_id=c.id AND m.sender_kind='operator' AND m.created_at<=((date_trunc('day',p_now AT TIME ZONE w.timezone)+interval '9 hours') AT TIME ZONE w.timezone) AND m.sequence>greatest(coalesce(r.last_read,0),coalesce(r.last_digest,0)))
+ UNION ALL
+ SELECT w.id,NULL::uuid,'operator:'||u.id,'client',u.email,u.preferred_language,
+ (p_now AT TIME ZONE w.timezone)::date,w.slug,w.timezone
+ FROM public.workspaces w JOIN public.workspace_memberships wm ON wm.workspace_id=w.id
+ JOIN public.users u ON u.id=wm.user_id JOIN public.workspace_business_profiles bp ON bp.workspace_id=w.id
+ WHERE w.operational_status='active' AND bp.notify_operator_messages
+ AND extract(hour FROM p_now AT TIME ZONE w.timezone)>=9
+ AND NOT EXISTS(SELECT 1 FROM public.message_digest_runs d WHERE d.workspace_id=w.id AND d.actor_key='operator:'||u.id AND d.digest_day=(p_now AT TIME ZONE w.timezone)::date)
+ AND EXISTS(SELECT 1 FROM public.conversation_messages m LEFT JOIN public.conversation_reads r ON r.workspace_id=m.workspace_id AND r.conversation_id=m.conversation_id AND r.actor_key='operator:'||u.id WHERE m.workspace_id=w.id AND m.sender_kind='client' AND m.created_at<=((date_trunc('day',p_now AT TIME ZONE w.timezone)+interval '9 hours') AT TIME ZONE w.timezone) AND m.sequence>greatest(coalesce(r.last_read,0),coalesce(r.last_digest,0)))
+ ORDER BY 1,3 LIMIT 100
+ LOOP
+ PERFORM pg_advisory_xact_lock(hashtextextended('slotera:scheduling:'||recipient.workspace_id,0));
+ -- Match the same Client -> conversation order used by message/read/erasure writes.
+ FOR target IN SELECT c.id FROM public.clients c WHERE c.workspace_id=recipient.workspace_id AND c.erased_at IS NULL AND (recipient.client_id IS NULL OR c.id=recipient.client_id) ORDER BY c.id FOR UPDATE
+ LOOP
+ PERFORM 1 FROM public.client_conversations WHERE workspace_id=recipient.workspace_id AND client_id=target.id FOR UPDATE;
+ END LOOP;
+ IF recipient.client_id IS NOT NULL THEN
+ SELECT email,preferred_language INTO recipient.email,recipient.language FROM public.clients WHERE workspace_id=recipient.workspace_id AND id=recipient.client_id AND erased_at IS NULL AND message_digest_enabled;
+ IF NOT FOUND THEN CONTINUE; END IF;
+ ELSE
+ IF NOT EXISTS(SELECT 1 FROM public.workspace_business_profiles WHERE workspace_id=recipient.workspace_id AND notify_operator_messages) THEN CONTINUE; END IF;
+ END IF;
+ SELECT count(*) INTO message_count FROM public.conversation_messages m
+ JOIN public.clients cl ON cl.workspace_id=m.workspace_id AND cl.id=m.conversation_id AND cl.erased_at IS NULL
+ LEFT JOIN public.conversation_reads r ON r.workspace_id=m.workspace_id AND r.conversation_id=m.conversation_id AND r.actor_key=recipient.actor_key
+ WHERE m.workspace_id=recipient.workspace_id AND (recipient.client_id IS NULL OR m.conversation_id=recipient.client_id)
+ AND m.sender_kind=recipient.sender_kind AND m.created_at<=((date_trunc('day',p_now AT TIME ZONE recipient.timezone)+interval '9 hours') AT TIME ZONE recipient.timezone) AND m.sequence>greatest(coalesce(r.last_read,0),coalesce(r.last_digest,0));
+ IF message_count=0 THEN CONTINUE; END IF;
+ INSERT INTO public.message_digest_runs(workspace_id,actor_key,digest_day) VALUES(recipient.workspace_id,recipient.actor_key,recipient.local_day) ON CONFLICT DO NOTHING;
+ IF NOT FOUND THEN CONTINUE; END IF;
+ INSERT INTO public.conversation_reads(workspace_id,conversation_id,actor_key,last_digest)
+ SELECT m.workspace_id,m.conversation_id,recipient.actor_key,max(m.sequence) FROM public.conversation_messages m
+ WHERE m.workspace_id=recipient.workspace_id AND (recipient.client_id IS NULL OR m.conversation_id=recipient.client_id) AND m.sender_kind=recipient.sender_kind AND m.created_at<=((date_trunc('day',p_now AT TIME ZONE recipient.timezone)+interval '9 hours') AT TIME ZONE recipient.timezone) GROUP BY m.workspace_id,m.conversation_id
+ ON CONFLICT(workspace_id,conversation_id,actor_key) DO UPDATE SET last_digest=greatest(conversation_reads.last_digest,EXCLUDED.last_digest);
+ INSERT INTO public.email_outbox(id,kind,recipient_email,subject,text_body,template_data,related_workspace_id)
+ VALUES(gen_random_uuid(),'message_digest',recipient.email,'Message digest',rtrim(p_base,'/')||CASE WHEN recipient.client_id IS NULL THEN '/admin/messages' ELSE '/client/'||recipient.slug END,
+ jsonb_build_object('workspaceId',recipient.workspace_id,'clientId',recipient.client_id,'actorKey',recipient.actor_key,'senderKind',recipient.sender_kind,'language',recipient.language),recipient.workspace_id);
+ queued:=queued+1;
+ END LOOP;
+ RETURN queued;
+ END;
+$$;
+CREATE FUNCTION public.slotera_client_mail_eligible(p_id uuid) RETURNS boolean
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE item public.email_outbox%ROWTYPE; cl public.clients%ROWTYPE; wid uuid;
+ BEGIN
+ SELECT * INTO item FROM public.email_outbox WHERE id=p_id;
+ IF item.kind NOT IN ('client_sign_in','message_digest','booking_followup') THEN RETURN true; END IF;
+ IF item.kind='booking_followup' THEN
+ SELECT c.* INTO cl FROM public.clients c JOIN public.bookings b ON b.workspace_id=c.workspace_id AND b.client_id=c.id WHERE b.id=item.related_booking_id AND b.status='completed';
+ RETURN FOUND AND cl.erased_at IS NULL AND (coalesce((item.template_data->>'manual')::boolean,false) OR cl.automatic_followup_enabled);
+ END IF;
+ wid:=(item.template_data->>'workspaceId')::uuid;
+ IF NOT EXISTS(SELECT 1 FROM public.workspaces WHERE id=wid AND operational_status='active') THEN RETURN false; END IF;
+ IF item.template_data->>'clientId' IS NOT NULL THEN
+ SELECT * INTO cl FROM public.clients WHERE workspace_id=wid AND id=(item.template_data->>'clientId')::uuid AND erased_at IS NULL;
+ IF NOT FOUND THEN RETURN false; END IF;
+ IF item.kind='client_sign_in' THEN RETURN EXISTS(SELECT 1 FROM public.client_login_tokens WHERE workspace_id=wid AND client_id=cl.id AND expires_at>statement_timestamp()); END IF;
+ IF NOT cl.message_digest_enabled THEN RETURN false; END IF;
+ ELSE
+ IF NOT EXISTS(SELECT 1 FROM public.workspace_business_profiles WHERE workspace_id=wid AND notify_operator_messages) THEN RETURN false; END IF;
+ END IF;
+ RETURN EXISTS(SELECT 1 FROM public.conversation_messages m JOIN public.conversation_reads r ON r.workspace_id=m.workspace_id AND r.conversation_id=m.conversation_id AND r.actor_key=item.template_data->>'actorKey'
+ WHERE m.workspace_id=wid AND (item.template_data->>'clientId' IS NULL OR m.conversation_id=(item.template_data->>'clientId')::uuid)
+ AND m.sender_kind=item.template_data->>'senderKind' AND m.sequence>r.last_read AND m.sequence<=r.last_digest);
+ END;
+$$;
+CREATE FUNCTION public.slotera_client_auth_maintenance() RETURNS integer
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE n integer; m integer;
+ BEGIN
+ DELETE FROM public.client_login_tokens WHERE id IN(SELECT id FROM public.client_login_tokens WHERE expires_at<statement_timestamp() ORDER BY expires_at LIMIT 1000);
+ GET DIAGNOSTICS n=ROW_COUNT;
+ DELETE FROM public.client_auth_sessions WHERE id IN(SELECT id FROM public.client_auth_sessions WHERE expires_at<statement_timestamp() ORDER BY expires_at LIMIT 1000);
+ GET DIAGNOSTICS m=ROW_COUNT;
+ RETURN n+m;
+ END;
+$$;
+REVOKE ALL ON FUNCTION public.slotera_queue_message_digests(text,timestamptz),public.slotera_client_mail_eligible(uuid),public.slotera_client_auth_maintenance() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.slotera_queue_message_digests(text,timestamptz),public.slotera_client_auth_maintenance() TO slotera_app;
+
+CREATE FUNCTION public.slotera_followup_delivery(p_booking uuid) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE item public.email_outbox%ROWTYPE;
+ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM public.bookings WHERE id=p_booking AND workspace_id=public.slotera_current_workspace_id()) THEN RETURN NULL; END IF;
+ SELECT * INTO item FROM public.email_outbox WHERE related_booking_id=p_booking AND kind='booking_followup' ORDER BY created_at DESC,id DESC LIMIT 1;
+ IF NOT FOUND THEN RETURN jsonb_build_object('pending',false,'status',NULL); END IF;
+ RETURN jsonb_build_object('pending',item.sent_at IS NULL AND item.suppressed_at IS NULL,'manual',coalesce((item.template_data->>'manual')::boolean,false),
+ 'status',CASE WHEN item.suppressed_at IS NOT NULL THEN 'superseded' WHEN item.sent_at IS NOT NULL THEN 'sent' WHEN item.claimed_at IS NOT NULL THEN 'sending' WHEN item.attempt_count>=10 THEN 'failed' WHEN item.attempt_count>0 THEN 'retrying' ELSE 'queued' END);
+ END;
+$$;
+REVOKE ALL ON FUNCTION public.slotera_followup_delivery(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.slotera_followup_delivery(uuid) TO slotera_app;
+
+-- Owner defaults apply to newly created tables too; capabilities alone own credentials
+-- and conversation writes. Tenant projections are read-only to the application role.
+REVOKE ALL ON public.client_login_tokens,public.client_auth_sessions,
+ public.client_conversations,public.conversation_messages,public.conversation_reads,
+ public.message_digest_runs,public.client_email_commands FROM slotera_app;
+GRANT SELECT ON public.client_conversations,public.conversation_messages,public.conversation_reads TO slotera_app;
+GRANT SELECT,INSERT,DELETE ON public.client_email_commands TO slotera_app;
+REVOKE UPDATE ON public.session_command_idempotency FROM slotera_app;
 SET search_path = public;
 SET row_security = on;
 SET check_function_bodies = on;

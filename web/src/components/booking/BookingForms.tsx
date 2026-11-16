@@ -25,7 +25,8 @@ export function BookingForms({ bookingId, token }: { bookingId?: string; token?:
   return <section className="space-y-4"><h2 className="text-h3">{t("forms.answers")}</h2>
     {items.length === 0 && <p className="text-small">{t("forms.none")}</p>}
     {items.map((form) => <Card padded key={form.id}><h3 className="text-h3">{form.name}</h3>
-      {form.historicalApproximation && <p className="text-small">{t("forms.historical")}</p>}
+      <p className="text-small">{t(form.assignmentKind === "followup" ? "followup.title" : "forms.preparation")}</p>
+      {form.responseDeadline && <p className="text-small">{t("forms.respondBy")} {new Intl.DateTimeFormat(localeForLang(lang), {dateStyle:"medium",timeStyle:"short"}).format(new Date(form.responseDeadline))}</p>}
       {form.submittedAt && <p className="text-small">{new Intl.DateTimeFormat(localeForLang(lang), { dateStyle: "medium", timeStyle: "short" }).format(new Date(form.submittedAt))}</p>}
       {form.answers ? <dl className="space-y-3 mt-4">{form.answers.map((answer) => <div key={answer.fieldId}>
         <dt className="font-medium">{form.fields.find((field) => field.id === answer.fieldId)?.label ?? answer.fieldId}</dt>

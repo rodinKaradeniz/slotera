@@ -56,7 +56,7 @@ Hosting is one Hetzner server with Docker Compose (`docs/DEPLOYMENT.md`).
 The mock/api switch in `web/src/lib/env.ts` remains the transition seam (see Data layer below).
 
 **Phase 3 — later and deliberately de-prioritised; starts after Merulio (the operating company) is incorporated.** Stripe connected-account onboarding,
-Checkout/Elements + webhooks, advanced email reminders/follow-ups, and Google
+Checkout/Elements + webhooks, external communication integrations, and Google
 Calendar/Meet arrive only after identity, tenancy, scheduling, tracking, free/manual
 booking, and the booking workspace work reliably. Forward-looking rule worth remembering
 when modelling card flows: **a card-funded booking should only become `confirmed` after a
@@ -84,7 +84,7 @@ Use these terms consistently in code, types, and copy:
   the backend `WorkspaceCurrency` list, the `ck_workspaces_currency_supported` constraint
   and `CURRENCIES` in `web/src/types/common.ts` only when a real tenant needs it. Platform
   billing (what Merulio charges operators) is GBP only and a separate payment domain.
-- **Roles** — `UserRole = "operator_admin" | "superadmin"`. Customers don't have accounts; only operators/admins authenticate. Overlapping sessions on the same operator's calendar must be treated as a conflict (see `web/src/components/shared/ConflictWarning.tsx`).
+- **Roles** — `UserRole = "operator_admin" | "superadmin"`. Operator roles stay unchanged; existing clients use a separate workspace-scoped email-link identity, never a staff membership. Overlapping sessions on the same operator's calendar must be treated as a conflict (see `web/src/components/shared/ConflictWarning.tsx`).
 
 ## Commands
 
@@ -115,7 +115,7 @@ return ...                      // returns from / mutates an in-memory copy of w
 
 `dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The wired API bundles implement auth/session and password reset, business and client-payment settings, saved locations, services, notifications, availability, sessions, clients, booking-ledger reads, forms, client notes, session action items, dashboard/search, the narrow superadmin workspace reads/commands, and the capacity-one public booking flow through `web/src/api/client.ts`; every unwired API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
 
-In mock mode, `getDashboard()` is the only service that composes from other services live: it imports bookings, sessions, and action items to prepend derived attention entries to the fixture. In API mode it maps the single tenant-scoped `GET /dashboard/summary` read model; it must not compose a real dashboard from unrelated mock data or make client-side aggregate queries.
+In mock mode, services may compose related resources through other services; `getDashboard()` imports bookings, sessions, and action items to prepend derived attention entries to the fixture. In API mode it maps the single tenant-scoped `GET /dashboard/summary` read model; it must not compose a real dashboard from unrelated mock data or make client-side aggregate queries.
 
 ### Auth and session
 
@@ -300,7 +300,7 @@ workspace (GBP unless a currency is given) on the Free plan, its activation-pend
 operator, baseline settings and an audit event, then queues a one-time activation link.
 The `NewWorkspaceDrawer` serves both the "New workspace" button and "Promote to
 workspace" on a business inquiry (prefilled; marks the inquiry read on success).
-Suspend/reactivate change only operational access: suspension revokes operator sessions,
+Suspend/reactivate change only operational access: suspension revokes staff and client sessions,
 reactivation permits a fresh login, data is retained, and neither implies billing state.
 Plan changes (`POST /platform/workspaces/{id}/plan`) are audited. There are no admin
 notes, activity streams or impersonation.
@@ -309,7 +309,7 @@ notes, activity streams or impersonation.
 
 ### Auth / Register flow
 
-Customers do not have accounts. Only operators authenticate. Public navbar uses **"Log in"** for the action label, not "Login".
+Existing clients can authenticate through workspace-specific email links; operator registration remains separate. Public navbar uses **"Log in"** for the action label, not "Login".
 
 Sign-up is a single step and exists only in the real app (API mode); the mock demo 404s
 `/register`, `/onboarding`, `/forgot-password`, and `/reset-password`, and its CTAs open
@@ -508,7 +508,7 @@ instructions, policy) — never notes or action items.
 
 ### Customer booking workspace (demo)
 
-**Naming: use "Booking" consistently for this customer-facing concept — never "reservation".** The core domain model stays `Booking`; this is the post-booking *management* layer on top of it. User-facing copy: **"booking workspace"** / **"your booking"** / **"manage booking"**. It is **not a customer account, and never call it a "Customer Portal" or "Client Portal"** (don't use those terms in UI copy). Customers still do not have accounts.
+**Naming: use "Booking" consistently for this customer-facing concept — never "reservation".** The core domain model stays `Booking`; this is the post-booking *management* layer on top of it. User-facing copy: **"booking workspace"** / **"your booking"** / **"manage booking"**. It is **not a customer account, and never call it a "Customer Portal" or "Client Portal"** (don't use those terms in UI copy). Workspace-wide client access is a separate authenticated surface at `/client/[slug]`, not an expansion of a guest booking credential.
 
 `/booking/manage/demo` (`web/src/app/(public)/booking/manage/demo/page.tsx`) is a **mocked, public, no-auth Phase 1 preview** of a lightweight post-booking **booking workspace** — what a customer could see/do *after* booking. It surfaces from the booking confirmation page's "Manage booking" link and from a `BookingDrawer` "View booking workspace" link, and uses a single fixed demo booking (no IDs, tokens, secure links, persistence, or email). There is **no redirect** from the old `/reservation/demo` route — it was removed and all internal links were repointed.
 
@@ -561,8 +561,8 @@ Intentionally more editorial than generic SaaS. **Keep:**
   bookings created during the workspace-local calendar month.
 - Revenue trend with Recharts (`TrendChart`) — its `ResponsiveContainer` is gated on a measured positive size to suppress the `width(-1)/height(-1)` warnings that fire during route transitions.
 - Prominent `NextSessionCard` (also embeds today's schedule timeline — don't add a separate "Today's schedule" card). With no upcoming session, retain a full card with an icon, preparation message and calendar link.
-- `PendingActions` ("Needs your attention"). Mock mode prepends derived attendance/action-item entries. API mode reports only persisted summary facts: open session action-item and unread-notification counts.
-- API mode also prepends a billing reminder when the trial ends within 7 days or the
+- `PendingActions` ("To-do") combines bounded private tasks with live system actions; tasks can be completed, while system actions resolve only at their source. General and session tasks share one model and revision.
+- API worklist includes a billing reminder when the trial ends within 7 days or the
   workspace is unpaid (from `GET /settings/billing`).
 - API mode maps `GET /dashboard/summary` into the same component-facing contract: monthly paid-booking revenue plus active booking count/average, a 30-day trend, today/next session context, weekly session count, and the two attention counts. Currency formatting remains in the service/UI; the API returns currency and minor-unit facts.
 - `Greeting`'s right-hand column has the **booking-page toggle** in mock mode: a `Toggle` + status pill ("Booking page live" / "Bookings paused") + confirmation modal + `toast.info("Bookings paused", { description })` / `toast.success("Bookings live")`. It remains hidden on the API dashboard; the real publication flag is owned by Business Settings and the public endpoint, not by this mock-derived dashboard control.
@@ -827,3 +827,42 @@ an opaque attendance revision and command idempotency protect changes. Claimed c
 messages block the entire transaction; other outdated unsent notices are superseded. Updated
 notices use corrected destinations and saved languages without notifying the operator of their
 own action. Cancelled client management views remain read-only.
+
+
+### Browser security
+
+Production HTML uses an enforced CSP with a fresh per-document script nonce;
+framework HTML is rendered dynamically. Existing inline CSS remains intentional for
+React components, but unrestricted inline scripts and eval are not allowed.
+
+
+### Client communication and post-session follow-up
+
+Existing clients sign in from `/client/[slug]/sign-in` with a generic email-link response;
+there is no standalone client registration or password. A 15-minute single-use link creates
+a separate 12-hour client session; only digests are stored. Client identity is workspace plus
+client UUID, never email alone or a staff role. Messages, Bookings and Account expose only
+that client's safe records. Guest booking management remains available independently.
+
+One plain-text conversation belongs to each workspace/client, independent of bookings.
+Messages are immutable, at most 4,000 characters, with idempotent sends and bounded cursor
+history. Only an open visible thread refreshes every 15 seconds; no WebSockets, attachments,
+typing indicators or public read receipts. Optional daily digests cover new unread messages
+up to 9am workspace time, at most once per recipient/day, without message bodies.
+
+Service follow-up rules start disabled with a 24-hour delay. Future booking completion
+snapshots the rule and optional active form; previous completions are not automatically
+enrolled. Operators may review Send now or Skip. Client preferences disable automatic email,
+not reviewed manual sending. Follow-up assignments permit one submission within 30 days of
+queueing, separately from preparation deadlines; answers never alter payment or consent.
+
+Changing a client profile email requires explicit reviewed transfer: future booking and
+client mail uses the destination, previous sign-in/session/management credentials are revoked,
+and original contact snapshots remain intact. Claimed affected email blocks the transaction.
+Erasure removes conversations, credentials, answers and communication context; workspace
+exports include entered content and safe delivery metadata, never credentials.
+
+Dashboard To-do and Calendar share private task records with optional session association,
+reviewed versions and due dates. Live message, notification and billing actions cannot be
+checked off. AI, voice, video, package credits and external delivery verification remain
+outside this communication release.

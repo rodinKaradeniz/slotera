@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { PageScrollbar } from "@/components/ui/ScrollArea";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -12,9 +13,11 @@ export const metadata: Metadata = {
     "Paid booking and session management for individual service providers.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Nonces belong to each document, including public and error surfaces.
+  await connection();
   return (
     <html
       lang="en"

@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
@@ -9,6 +10,7 @@ from slotera_api.booking_access import emit_booking_event
 from slotera_api.config import get_settings
 from slotera_api.database import Database
 from slotera_api.db.models import Booking, BookingStatus, Session, SessionStatus
+from slotera_api.followups import queue_due_followups
 from slotera_api.logging import configure_logging
 from slotera_api.observability import init_sentry
 from slotera_api.scheduling.recurrence import ROLLING_HORIZON_DAYS
@@ -96,22 +98,51 @@ async def run() -> int:
     try:
         cleaned = await AuthRepository(database).run_maintenance()
         reminders = await queue_booking_reminders(database)
+        followups = await queue_due_followups(database)
+        async with database.transaction() as session:
+            digests = await session.scalar(
+                text("SELECT public.slotera_queue_message_digests(:base)"),
+                {"base": settings.public_web_base_url},
+            )
+            client_credentials = await session.scalar(
+                text("SELECT public.slotera_client_auth_maintenance()")
+            )
         sessions = await extend_series_horizons(database)
         purged = await WorkspaceDataRepository(database).purge_closed()
         # The JSON log formatter keeps only request fields from `extra`, so the counts
         # go in the message.
         logger.info(
             "maintenance_completed auth_rows=%s reminders=%s series_sessions=%s "
-            "workspaces_purged=%s",
+            "workspaces_purged=%s followups=%s digests=%s client_credentials=%s",
             cleaned,
             reminders,
             sessions,
             purged,
+            followups,
+            digests,
+            client_credentials,
         )
-        return cleaned + reminders + sessions + purged
+        return (
+            cleaned
+            + reminders
+            + followups
+            + (digests or 0)
+            + (client_credentials or 0)
+            + sessions
+            + purged
+        )
     finally:
         await database.dispose()
 
 
+async def run_loop() -> None:
+    while True:
+        await run()
+        await asyncio.sleep(900)
+
+
 def main() -> None:
-    asyncio.run(run())
+    parser = argparse.ArgumentParser(description="Run local maintenance jobs")
+    parser.add_argument("--loop", action="store_true", help="repeat every 15 minutes")
+    args = parser.parse_args()
+    asyncio.run(run_loop() if args.loop else run())

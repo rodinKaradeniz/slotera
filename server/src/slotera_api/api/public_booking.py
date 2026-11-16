@@ -15,12 +15,12 @@ from slotera_api.auth.dependencies import (
 from slotera_api.booking_financials import TaxQuote, quote_for
 from slotera_api.db.models import Service, ServicePackage, Workspace
 from slotera_api.errors import ApiError
+from slotera_api.form_validation import FormValidationError
 from slotera_api.packages.repository import package_view
 from slotera_api.plans import shows_platform_branding
 from slotera_api.public_booking.repository import (
     PublicBookingIdempotencyConflictError,
     PublicBookingRepository,
-    PublicFormValidationError,
     PublicPaymentMethodError,
     PublicServiceNotFoundError,
     PublicSlotUnavailableError,
@@ -266,7 +266,7 @@ async def create_public_booking(
             code="idempotency_key_reused",
             message="The idempotency key was already used for another booking",
         ) from exc
-    except (PublicPaymentMethodError, PublicFormValidationError) as exc:
+    except (PublicPaymentMethodError, FormValidationError) as exc:
         raise ApiError(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             code="public_booking_invalid",

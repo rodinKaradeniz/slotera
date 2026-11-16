@@ -2045,3 +2045,60 @@ The warm local read gate passes at 143.56 ms HTTP p95 with five concurrent reade
 queries/read. The normal local database is restored to the small showcase after tests.
 Remote CI and live integrations were not executed. See VERIFY_LOCAL_BOOKING.md and the
 linked JSON artifacts; dependency advisories remain a separately recorded security finding.
+
+
+### Communication foundation — 2026-11-16
+
+Production scripts now use fresh document nonces rather than report-only CSP. Root
+rendering is dynamic to ensure the nonce matches framework scripts; existing React
+inline styles remain allowed deliberately. Maintenance responses use the same policy.
+The local launcher delegates process ownership to a Python supervisor, preflights fixed
+ports and terminates process groups, including descendants after leader exit. It never
+kills a process merely because it owns a desired port. Maintenance now supports an
+explicit 15-minute loop while retaining the existing one-shot command. Dependency
+upgrades include Vitest 5 (ESM configuration) and Sentry 11 to remove vulnerable build
+tooling. Remaining implementation and verification are tracked in PASS1_COMMUNICATION.md.
+
+### Workspace-scoped client communication — 2026-11-16
+
+Existing client records now authorize separate passwordless sessions: 15-minute single-use
+links, 12-hour sessions, distinct cookies/CSRF, workspace/client UUID ownership and narrow
+fixed-search-path capabilities. Staff roles and memberships stay unchanged. Guest booking
+links remain a separate authorization surface. Client content is never persisted in browser
+caches or cross-tab lifecycle signals; a lifecycle event clears the visible client view.
+Same-tab sign-in links listen for fragment changes and immediately remove the fragment.
+
+A conversation belongs to one workspace/client, with immutable plain-text messages,
+idempotent submissions, bounded cursor history and internal read/digest watermarks. Visible
+open threads alone refresh every 15 seconds; polling was chosen over WebSockets because
+this product does not require real-time presence. Daily digests cover messages through 9am
+workspace-local time, respecting DST and per-recipient preferences, with no message content.
+
+Booking completion snapshots a service's follow-up delay, consultant text and optional form.
+Preparation and follow-up responses now reference their exact immutable assignment, allowing
+one template at both stages without shared answers. Follow-up forms expire 30 days after
+queueing. Automatic sends respect client opt-out; reviewed manual sends remain possible.
+Email transfer serializes against the workspace scheduling gate, client, bookings and outbox,
+revokes old credentials and preserves original booking snapshots. Claimed messages reject
+all changes. Exports, erasure, suspension and workspace deletion cover the new data.
+
+Dashboard To-do and Calendar use the same task table with nullable session association and
+reviewed versions, rather than a second task system. Live billing, notification and message
+items resolve through their sources. The dashboard worklist reads tasks/counts coherently.
+Communication models and shared form validation were extracted; the existing modular
+monolith and outbox worker remain. No new infrastructure or AI is introduced.
+
+A negative privilege test caught inherited owner default grants on newly added tables;
+the baseline explicitly revokes runtime credential/digest access and conversation writes,
+then grants only safe tenant reads. This is enforced by real-PostgreSQL tests. The two
+mutable pre-production migrations remain the only revisions; no compatibility path is kept.
+Verification evidence and remaining upstream dependency findings live in PASS1_COMMUNICATION.md.
+
+
+Final communication verification: 143 frontend tests, 108 isolated backend tests and 100
+real-PostgreSQL cases pass, including preference/erasure serialization and closure revocation.
+All 16 production Chromium cases pass on EN/TR/DE desktop/mobile. Transport regeneration,
+types, ESLint, Ruff, mypy, fixture-checked mock/API builds and empty migration/schema agreement
+pass. The read gate records 82.14 ms HTTP p95, eight queries/read with five readers. The
+normal local database is restored to six showcase clients after verification; remote CI,
+live third-party delivery and deployment were not run. See PASS1_COMMUNICATION.md.

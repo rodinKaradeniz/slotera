@@ -8,6 +8,7 @@ type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 type RequestOptions<TBody> = {
   method?: HttpMethod;
+  authKind?: "client";
   signal?: AbortSignal;
   responseType?: "json" | "text";
   cache?: boolean;
@@ -75,7 +76,7 @@ async function request<TResponse, TBody = never>(
     headers.set("Content-Type", "application/json");
   }
   if (options.csrf) {
-    const csrfToken = readCookie(csrfCookieName);
+    const csrfToken = readCookie(options.authKind === "client" ? "slotera_client_csrf" : csrfCookieName);
     if (!csrfToken) {
       throw new ApiRequestError(
         403,
@@ -157,7 +158,7 @@ export async function apiRequest<TResponse, TBody = never>(path: string, options
   const method = options.method ?? "GET";
   const identity = verifiedScope();
   const cacheable = typeof window !== "undefined" && method === "GET" && Boolean(identity)
-    && options.cache !== false && !options.headers && !options.responseType
+    && options.authKind !== "client" && options.cache !== false && !options.headers && !options.responseType
     && !path.startsWith("/auth/") && !path.startsWith("/public/") && !path.includes("/export");
   installQueryEvents();
   try {
@@ -192,7 +193,7 @@ export async function apiRequest<TResponse, TBody = never>(path: string, options
       }
     }
     const result = await request<TResponse, TBody>(path, options);
-    if (method !== "GET") {
+    if (method !== "GET" && options.authKind !== "client") {
       if (method === "DELETE" || /\/(erase|close)$/.test(path)) queryClient().clear();
       await invalidateReads(true, relatedReads(path));
     }
@@ -200,8 +201,8 @@ export async function apiRequest<TResponse, TBody = never>(path: string, options
   } catch (error) {
     if (error instanceof ApiRequestError && error.code === "resource_stale") await invalidateReads(false, relatedReads(path));
     if (error instanceof ApiRequestError && error.status === 401 && !path.startsWith("/auth/login")) {
-      clearQueryScope();
-      if (typeof window !== "undefined") window.dispatchEvent(new Event("slotera-auth-expired"));
+      if (options.authKind !== "client") clearQueryScope();
+      if (typeof window !== "undefined") window.dispatchEvent(new Event(options.authKind === "client" ? "slotera-client-auth-expired" : "slotera-auth-expired"));
     }
     throw error;
   }

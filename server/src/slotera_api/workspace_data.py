@@ -37,6 +37,11 @@ EXPORTED_TABLES: tuple[str, ...] = (
     "session_action_items",
     "clients",
     "client_notes",
+    "client_conversations",
+    "conversation_messages",
+    "conversation_reads",
+    "service_followup_rules",
+    "booking_followups",
     "bookings",
     "booking_form_responses",
     "booking_form_snapshots",
@@ -46,6 +51,10 @@ EXPORTED_TABLES: tuple[str, ...] = (
 NOT_EXPORTED_TABLES: frozenset[str] = frozenset(
     {
         "audit_events",
+        "client_login_tokens",
+        "client_auth_sessions",
+        "client_email_commands",
+        "message_digest_runs",
         "workspace_memberships",
         "notifications",
         "booking_access_tokens",

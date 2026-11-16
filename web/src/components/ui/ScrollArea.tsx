@@ -125,15 +125,18 @@ export function PageScrollbar() {
   return <Scrollbar page controls="page-content" />;
 }
 
-export function ScrollArea({ children, className, contentClassName }: {
+export function ScrollArea({ children, className, contentClassName, viewportRef, onScroll }: {
   children: React.ReactNode;
   className?: string;
   contentClassName?: string;
+  viewportRef?: React.RefObject<HTMLDivElement | null>;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
 }) {
-  const ref = React.useRef<HTMLDivElement>(null);
+  const ownedRef = React.useRef<HTMLDivElement>(null);
+  const ref = viewportRef ?? ownedRef;
   const id = React.useId();
   return <div className={cn("relative flex flex-1 min-h-0 min-w-0", className)}>
-    <div ref={ref} id={id} className="overlay-scroll-viewport flex-1 min-h-0 min-w-0 overflow-y-auto"
+    <div ref={ref} id={id} onScroll={onScroll} className="overlay-scroll-viewport flex-1 min-h-0 min-w-0 overflow-y-auto"
       style={{ scrollbarWidth: "none", scrollbarGutter: "auto" }}>
       <div className={contentClassName}>{children}</div>
     </div>

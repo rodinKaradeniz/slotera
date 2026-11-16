@@ -27,6 +27,33 @@ from sqlalchemy.dialects.postgresql import JSONB, ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from slotera_api.db.base import Base
+from slotera_api.db.client_models import (
+    BookingFollowup as BookingFollowup,
+)
+from slotera_api.db.client_models import (
+    ClientAuthSession as ClientAuthSession,
+)
+from slotera_api.db.client_models import (
+    ClientConversation as ClientConversation,
+)
+from slotera_api.db.client_models import (
+    ClientEmailCommand as ClientEmailCommand,
+)
+from slotera_api.db.client_models import (
+    ClientLoginToken as ClientLoginToken,
+)
+from slotera_api.db.client_models import (
+    ConversationMessage as ConversationMessage,
+)
+from slotera_api.db.client_models import (
+    ConversationRead as ConversationRead,
+)
+from slotera_api.db.client_models import (
+    MessageDigestRun as MessageDigestRun,
+)
+from slotera_api.db.client_models import (
+    ServiceFollowupRule as ServiceFollowupRule,
+)
 from slotera_api.db.versioning import Versioned
 
 TENANT_TABLES = frozenset(
@@ -58,6 +85,15 @@ TENANT_TABLES = frozenset(
         "form_templates",
         "form_template_services",
         "client_notes",
+        "client_login_tokens",
+        "client_auth_sessions",
+        "client_conversations",
+        "conversation_messages",
+        "conversation_reads",
+        "service_followup_rules",
+        "booking_followups",
+        "client_email_commands",
+        "message_digest_runs",
         "session_action_items",
         "workspace_payment_settings",
     }
@@ -312,6 +348,11 @@ class EmailOutbox(Base):
     __table_args__ = (
         CheckConstraint("attempt_count >= 0", name="attempt_count_nonnegative"),
         Index(
+            "ix_email_outbox_client_context",
+            text("(template_data->>'workspaceId')"),
+            text("(template_data->>'clientId')"),
+        ),
+        Index(
             "ix_email_outbox_pending",
             "available_at",
             "created_at",
@@ -341,6 +382,9 @@ class EmailOutbox(Base):
     text_body: Mapped[str] = mapped_column(Text)
     template_data: Mapped[dict[str, object]] = mapped_column(
         JSONB, server_default=text("'{}'::jsonb")
+    )
+    related_workspace_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE")
     )
     related_password_reset_token_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("password_reset_tokens.id", ondelete="SET NULL")
@@ -421,6 +465,7 @@ class WorkspaceBusinessProfile(Versioned, Base):
     address: Mapped[str] = mapped_column(String(500), server_default=text("''"))
     booking_page_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
     # Emails to the owner about what a client did (see booking_access.notify_operator).
+    notify_operator_messages: Mapped[bool] = mapped_column(server_default=text("true"))
     notify_operator_new: Mapped[bool] = mapped_column(server_default=text("true"))
     notify_operator_cancelled: Mapped[bool] = mapped_column(server_default=text("true"))
     notify_operator_rescheduled: Mapped[bool] = mapped_column(server_default=text("true"))
@@ -533,6 +578,10 @@ class Client(Versioned, Base):
     workspace_id: Mapped[UUID] = mapped_column(
         ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
     )
+    erased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    preferred_language: Mapped[str] = mapped_column(String(2), server_default="en")
+    message_digest_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
+    automatic_followup_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
     name: Mapped[str] = mapped_column(String(160))
     email: Mapped[str] = mapped_column(String(320))
     phone: Mapped[str | None] = mapped_column(String(40))
@@ -937,6 +986,8 @@ class PublicBookingIdempotency(Base):
 class BookingFormResponse(Base):
     __tablename__ = "booking_form_responses"
     __table_args__ = (
+        ForeignKeyConstraint(["workspace_id", "booking_id", "snapshot_id"],
+            ["booking_form_snapshots.workspace_id", "booking_form_snapshots.booking_id", "booking_form_snapshots.id"], ondelete="CASCADE"),
         ForeignKeyConstraint(
             ["workspace_id", "booking_id"],
             ["bookings.workspace_id", "bookings.id"],
@@ -945,7 +996,7 @@ class BookingFormResponse(Base):
         UniqueConstraint(
             "workspace_id",
             "booking_id",
-            "form_template_id",
+            "snapshot_id",
             name="uq_booking_form_response",
         ),
     )
@@ -955,6 +1006,7 @@ class BookingFormResponse(Base):
         ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
     )
     booking_id: Mapped[UUID]
+    snapshot_id: Mapped[UUID]
     form_template_id: Mapped[UUID]
     form_name: Mapped[str] = mapped_column(String(160))
     answers: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
@@ -1045,7 +1097,7 @@ class SessionActionItem(Versioned, Base):
     workspace_id: Mapped[UUID] = mapped_column(
         ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
     )
-    session_id: Mapped[UUID] = mapped_column(index=True)
+    session_id: Mapped[UUID | None] = mapped_column(index=True)
     title: Mapped[str] = mapped_column(String(160))
     description: Mapped[str | None] = mapped_column(String(1000))
     status: Mapped[SessionActionItemStatus] = mapped_column(
@@ -1161,6 +1213,8 @@ __all__ = [
 class BookingFormSnapshot(Base):
     __tablename__ = "booking_form_snapshots"
     __table_args__ = (
+        UniqueConstraint("workspace_id", "booking_id", "id", name="uq_booking_form_snapshots_assignment"),
+        CheckConstraint("assignment_kind IN ('preparation','followup')", name="assignment_kind"),
         ForeignKeyConstraint(
             ["workspace_id", "booking_id"],
             ["bookings.workspace_id", "bookings.id"],
@@ -1170,6 +1224,7 @@ class BookingFormSnapshot(Base):
             "workspace_id",
             "booking_id",
             "form_template_id",
+            "assignment_kind",
             name="booking_form_snapshots_workspace_id_booking_id_form_templat_key",
         ),
     )
@@ -1183,6 +1238,8 @@ class BookingFormSnapshot(Base):
     description: Mapped[str] = mapped_column(String(1000))
     fields: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
     required_before_payment: Mapped[bool] = mapped_column(Boolean)
+    assignment_kind: Mapped[str] = mapped_column(String(20), server_default=text("'preparation'"))
+    response_deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -1253,3 +1310,5 @@ class PlatformInquiry(Base):
     message: Mapped[str] = mapped_column(String(4000))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+

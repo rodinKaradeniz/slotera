@@ -364,6 +364,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bookings/{booking_id}/follow-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Followup */
+        get: operations["getBookingFollowup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{booking_id}/follow-up/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Command Followup */
+        post: operations["commandBookingFollowup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bookings/{booking_id}/forms": {
         parameters: {
             query?: never;
@@ -468,6 +502,143 @@ export interface paths {
         patch: operations["updateClientNote"];
         trace?: never;
     };
+    "/client/auth/consume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consume Sign In */
+        post: operations["consumeClientSignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logoutClient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session */
+        get: operations["getClientSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bookings */
+        get: operations["listClientBookings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/bookings/{booking_id}/management-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Management Access */
+        post: operations["clientBookingManagementAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/conversation/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Client Messages */
+        get: operations["listClientMessages"];
+        put?: never;
+        /** Client Send */
+        post: operations["sendClientMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/conversation/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Client Read */
+        post: operations["readClientMessages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Preferences */
+        patch: operations["updateClientPreferences"];
+        trace?: never;
+    };
     "/clients": {
         parameters: {
             query?: never;
@@ -519,6 +690,41 @@ export interface paths {
         head?: never;
         /** Update Client */
         patch: operations["updateClient"];
+        trace?: never;
+    };
+    "/clients/{client_id}/conversation/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Operator Messages */
+        get: operations["listOperatorMessages"];
+        put?: never;
+        /** Operator Send */
+        post: operations["sendOperatorMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/{client_id}/conversation/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Operator Read */
+        post: operations["readOperatorMessages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/clients/{client_id}/erase": {
@@ -573,6 +779,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conversations */
+        get: operations["listConversations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dashboard/summary": {
         parameters: {
             query?: never;
@@ -582,6 +805,23 @@ export interface paths {
         };
         /** Get Dashboard Summary */
         get: operations["getDashboardSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/worklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Worklist */
+        get: operations["getDashboardWorklist"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1046,6 +1286,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/workspaces/{slug}/client-sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Sign In */
+        post: operations["requestClientSignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/workspaces/{workspace_slug}": {
         parameters: {
             query?: never;
@@ -1236,23 +1493,22 @@ export interface paths {
         patch: operations["updateService"];
         trace?: never;
     };
-    "/session-action-items/{item_id}": {
+    "/services/{service_id}/follow-up": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Session Action Item */
-        get: operations["getSessionActionItem"];
+        /** Get Rule */
+        get: operations["getFollowupRule"];
         put?: never;
         post?: never;
-        /** Delete Session Action Item */
-        delete: operations["deleteSessionActionItem"];
+        delete?: never;
         options?: never;
         head?: never;
-        /** Update Session Action Item */
-        patch: operations["updateSessionActionItem"];
+        /** Update Rule */
+        patch: operations["updateFollowupRule"];
         trace?: never;
     };
     "/sessions": {
@@ -1489,6 +1745,24 @@ export interface paths {
         patch: operations["updateWorkspaceLocation"];
         trace?: never;
     };
+    "/settings/message-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Digest Preference */
+        get: operations["getMessageDigestPreference"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Digest Preference */
+        patch: operations["setMessageDigestPreference"];
+        trace?: never;
+    };
     "/settings/payments": {
         parameters: {
             query?: never;
@@ -1524,10 +1798,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tasks */
+        get: operations["listTasks"];
+        put?: never;
+        /** Create Task */
+        post: operations["createTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session Action Item */
+        get: operations["getSessionActionItem"];
+        put?: never;
+        post?: never;
+        /** Delete Session Action Item */
+        delete: operations["deleteSessionActionItem"];
+        options?: never;
+        head?: never;
+        /** Update Session Action Item */
+        patch: operations["updateSessionActionItem"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Accepted */
+        Accepted: {
+            /**
+             * Accepted
+             * @default true
+             */
+            accepted: boolean;
+        };
         /** Address */
         Address: {
             /** City */
@@ -1866,6 +2185,11 @@ export interface components {
             /** Answers */
             answers: components["schemas"]["PublicFormAnswer"][] | null;
             /**
+             * Assignmentkind
+             * @enum {string}
+             */
+            assignmentKind: "preparation" | "followup";
+            /**
              * Cansubmit
              * @default false
              */
@@ -1875,11 +2199,6 @@ export interface components {
             /** Fields */
             fields: components["schemas"]["FormFieldInput"][];
             /**
-             * Historicalapproximation
-             * @default false
-             */
-            historicalApproximation: boolean;
-            /**
              * Id
              * Format: uuid
              */
@@ -1888,6 +2207,8 @@ export interface components {
             name: string;
             /** Requiredbeforepayment */
             requiredBeforePayment: boolean;
+            /** Responsedeadline */
+            responseDeadline: string | null;
             /** Submittedat */
             submittedAt: string | null;
         };
@@ -2267,6 +2588,53 @@ export interface components {
             /** Createdat */
             createdAt: string | null;
         };
+        /** ClientBooking */
+        ClientBooking: {
+            /** Amountcents */
+            amountCents: number;
+            /** Currency */
+            currency: string;
+            /**
+             * Endat
+             * Format: date-time
+             */
+            endAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Paymentstatus
+             * @enum {string}
+             */
+            paymentStatus: "pending" | "paid" | "refunded" | "free" | "overdue";
+            /** Reference */
+            reference: string;
+            /** Servicename */
+            serviceName: string;
+            /**
+             * Startat
+             * Format: date-time
+             */
+            startAt: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "confirmed" | "completed" | "cancelled" | "noshow";
+        };
+        /** ClientBookings */
+        ClientBookings: {
+            /** Items */
+            items: components["schemas"]["ClientBooking"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** ClientCreate */
         ClientCreate: {
             /** Address */
@@ -2381,6 +2749,10 @@ export interface components {
             /** Bookings */
             bookings: components["schemas"]["ClientExportBooking"][];
             client: components["schemas"]["ClientResponse"];
+            /** Communication */
+            communication?: {
+                [key: string]: unknown;
+            };
             /**
              * Exportedat
              * Format: date-time
@@ -2395,6 +2767,44 @@ export interface components {
             /** Notes */
             notes: components["schemas"]["ClientExportNote"][];
         };
+        /** ClientIdentity */
+        ClientIdentity: {
+            /** Automaticfollowupenabled */
+            automaticFollowupEnabled: boolean;
+            /**
+             * Clientid
+             * Format: uuid
+             */
+            clientId: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Language
+             * @enum {string}
+             */
+            language: "en" | "tr" | "de";
+            /** Messagedigestenabled */
+            messageDigestEnabled: boolean;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Workspaceid
+             * Format: uuid
+             */
+            workspaceId: string;
+            /** Workspacename */
+            workspaceName: string;
+        };
         /** ClientIdentityCreate */
         ClientIdentityCreate: {
             /** Company */
@@ -2408,6 +2818,11 @@ export interface components {
             name: string;
             /** Phone */
             phone?: string | null;
+        };
+        /** ClientLink */
+        ClientLink: {
+            /** Token */
+            token: string;
         };
         /** ClientListResponse */
         ClientListResponse: {
@@ -2482,6 +2897,11 @@ export interface components {
             company?: string | null;
             /** Email */
             email?: string | null;
+            /**
+             * Emailtransferconfirmed
+             * @default false
+             */
+            emailTransferConfirmed: boolean;
             /** Name */
             name?: string | null;
             /** Phone */
@@ -2492,6 +2912,15 @@ export interface components {
             timezone?: string | null;
             /** Vatid */
             vatId?: string | null;
+        };
+        /** ClientPreference */
+        ClientPreference: {
+            /** Automaticfollowupenabled */
+            automaticFollowupEnabled?: boolean | null;
+            /** Language */
+            language?: ("en" | "tr" | "de") | null;
+            /** Messagedigestenabled */
+            messageDigestEnabled?: boolean | null;
         };
         /** ClientResponse */
         ClientResponse: {
@@ -2510,6 +2939,8 @@ export interface components {
             createdAt: string;
             /** Email */
             email: string;
+            /** Erasedat */
+            erasedAt: string | null;
             /**
              * Id
              * Format: uuid
@@ -2541,6 +2972,45 @@ export interface components {
             vatId: string | null;
             /** Version */
             version: number;
+        };
+        /** ClientSignIn */
+        ClientSignIn: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Language
+             * @default en
+             * @enum {string}
+             */
+            language: "en" | "tr" | "de";
+        };
+        /** ConversationPage */
+        ConversationPage: {
+            /** Items */
+            items: components["schemas"]["ConversationSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** ConversationSummary */
+        ConversationSummary: {
+            /**
+             * Clientid
+             * Format: uuid
+             */
+            clientId: string;
+            /** Clientname */
+            clientName: string;
+            /** Lastsequence */
+            lastSequence: number;
+            /** Unreadcount */
+            unreadCount: number;
         };
         /** DashboardSessionSummary */
         DashboardSessionSummary: {
@@ -2604,6 +3074,8 @@ export interface components {
             todaySessions: components["schemas"]["DashboardSessionSummary"][];
             /** Trend30D */
             trend30d: components["schemas"]["DashboardTrendPoint"][];
+            /** Unreadmessagescount */
+            unreadMessagesCount: number;
             /** Unreadnotificationscount */
             unreadNotificationsCount: number;
             /** Weeksessioncount */
@@ -2620,6 +3092,13 @@ export interface components {
             day: string;
             /** Revenuecents */
             revenueCents: number;
+        };
+        /** DigestPreference */
+        DigestPreference: {
+            /** Enabled */
+            enabled: boolean;
+            /** Version */
+            version: number;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -2644,6 +3123,56 @@ export interface components {
         /** ErrorEnvelope */
         ErrorEnvelope: {
             error: components["schemas"]["ErrorBody"];
+        };
+        /** FollowupCommand */
+        FollowupCommand: {
+            /** Expectedversion */
+            expectedVersion: number;
+            /** Recipientemail */
+            recipientEmail: string;
+        };
+        /** FollowupRuleInput */
+        FollowupRuleInput: {
+            /** Delayhours */
+            delayHours: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Formtemplateid */
+            formTemplateId?: string | null;
+            /** Message */
+            message: string;
+        };
+        /** FollowupRuleView */
+        FollowupRuleView: {
+            /** Delayhours */
+            delayHours: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Formtemplateid */
+            formTemplateId?: string | null;
+            /** Message */
+            message: string;
+            /** Version */
+            version: number;
+        };
+        /** FollowupView */
+        FollowupView: {
+            /** Cansend */
+            canSend: boolean;
+            /** Deliverystatus */
+            deliveryStatus?: string | null;
+            /** Dueat */
+            dueAt: string | null;
+            /** Message */
+            message: string;
+            /** Queuedat */
+            queuedAt: string | null;
+            /** Recipientemail */
+            recipientEmail: string;
+            /** State */
+            state: string;
+            /** Version */
+            version: number;
         };
         /** FormFieldInput */
         FormFieldInput: {
@@ -2912,6 +3441,54 @@ export interface components {
             timezone: string;
             /** Workspaceslug */
             workspaceSlug: string;
+        };
+        /** ManagementAccess */
+        ManagementAccess: {
+            /** Url */
+            url: string;
+        };
+        /** Message */
+        Message: {
+            /** Body */
+            body: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Senderkind
+             * @enum {string}
+             */
+            senderKind: "client" | "operator";
+            /** Sequence */
+            sequence: number;
+        };
+        /** MessagePage */
+        MessagePage: {
+            /** Items */
+            items: components["schemas"]["Message"][];
+            /** Latestsequence */
+            latestSequence: number;
+            /** Limit */
+            limit: number;
+            /** Readthrough */
+            readThrough: number;
+        };
+        /** MessageSend */
+        MessageSend: {
+            /** Body */
+            body: string;
+            /**
+             * Submissionid
+             * Format: uuid
+             */
+            submissionId: string;
         };
         /** NotificationListResponse */
         NotificationListResponse: {
@@ -3842,6 +4419,11 @@ export interface components {
             /** Timezone */
             timezone: string;
         };
+        /** ReadThrough */
+        ReadThrough: {
+            /** Sequence */
+            sequence: number;
+        };
         /** ReadinessResponse */
         ReadinessResponse: {
             /** Checks */
@@ -4255,11 +4837,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /**
-             * Sessionid
-             * Format: uuid
-             */
-            sessionId: string;
+            /** Sessionid */
+            sessionId: string | null;
             /**
              * Status
              * @enum {string}
@@ -4275,6 +4854,11 @@ export interface components {
             /** Version */
             version: number;
         };
+        /**
+         * SessionActionItemStatus
+         * @enum {string}
+         */
+        SessionActionItemStatus: "todo" | "done";
         /** SessionCreate */
         SessionCreate: {
             address?: components["schemas"]["Address"] | null;
@@ -4495,6 +5079,17 @@ export interface components {
             /** Slug */
             slug: string;
         };
+        /** TaskCreate */
+        TaskCreate: {
+            /** Description */
+            description?: string | null;
+            /** Duedate */
+            dueDate?: string | null;
+            /** Sessionid */
+            sessionId?: string | null;
+            /** Title */
+            title: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -4507,6 +5102,28 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** WorklistResponse */
+        WorklistResponse: {
+            /** Items */
+            items: components["schemas"]["SessionActionItemResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Paidthrough */
+            paidThrough: string | null;
+            /** Total */
+            total: number;
+            /**
+             * Trialendsat
+             * Format: date-time
+             */
+            trialEndsAt: string;
+            /** Unreadmessages */
+            unreadMessages: number;
+            /** Unreadnotifications */
+            unreadNotifications: number;
         };
         /**
          * WorkspaceBillingResponse
@@ -5354,6 +5971,75 @@ export interface operations {
             };
         };
     };
+    getBookingFollowup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowupView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commandBookingFollowup: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+                action: "send" | "skip";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowupCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowupView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getBookingForms: {
         parameters: {
             query?: never;
@@ -5624,12 +6310,277 @@ export interface operations {
             };
         };
     };
+    consumeClientSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientLink"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientIdentity"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logoutClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getClientSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientIdentity"];
+                };
+            };
+        };
+    };
+    listClientBookings: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientBookings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clientBookingManagementAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementAccess"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listClientMessages: {
+        parameters: {
+            query?: {
+                before?: number | null;
+                after?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sendClientMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageSend"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    readClientMessages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadThrough"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateClientPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientPreference"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientIdentity"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listClients: {
         parameters: {
             query?: {
                 search?: string | null;
                 limit?: number;
                 offset?: number;
+                contactable?: boolean;
             };
             header?: never;
             path?: never;
@@ -5757,6 +6708,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
+                "Idempotency-Key"?: string | null;
                 "If-Match": string;
             };
             path: {
@@ -5778,6 +6730,109 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ClientResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listOperatorMessages: {
+        parameters: {
+            query?: {
+                before?: number | null;
+                after?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sendOperatorMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageSend"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    readOperatorMessages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadThrough"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -5925,6 +6980,38 @@ export interface operations {
             };
         };
     };
+    listConversations: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getDashboardSummary: {
         parameters: {
             query?: never;
@@ -5941,6 +7028,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardSummaryResponse"];
+                };
+            };
+        };
+    };
+    getDashboardWorklist: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["SessionActionItemStatus"];
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorklistResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6989,6 +8109,41 @@ export interface operations {
             };
         };
     };
+    requestClientSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientSignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Accepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getPublicWorkspace: {
         parameters: {
             query?: never;
@@ -7453,12 +8608,12 @@ export interface operations {
             };
         };
     };
-    getSessionActionItem: {
+    getFollowupRule: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                item_id: string;
+                service_id: string;
             };
             cookie?: never;
         };
@@ -7470,7 +8625,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionActionItemResponse"];
+                    "application/json": components["schemas"]["FollowupRuleView"];
                 };
             };
             /** @description Validation Error */
@@ -7484,51 +8639,20 @@ export interface operations {
             };
         };
     };
-    deleteSessionActionItem: {
+    updateFollowupRule: {
         parameters: {
             query?: never;
             header: {
                 "If-Match": string;
             };
             path: {
-                item_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateSessionActionItem: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": string;
-            };
-            path: {
-                item_id: string;
+                service_id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SessionActionItemPatch"];
+                "application/json": components["schemas"]["FollowupRuleInput"];
             };
         };
         responses: {
@@ -7538,7 +8662,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionActionItemResponse"];
+                    "application/json": components["schemas"]["FollowupRuleView"];
                 };
             };
             /** @description Validation Error */
@@ -8244,6 +9368,59 @@ export interface operations {
             };
         };
     };
+    getMessageDigestPreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestPreference"];
+                };
+            };
+        };
+    };
+    setMessageDigestPreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestPreference"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestPreference"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getPaymentSettings: {
         parameters: {
             query?: never;
@@ -8315,6 +9492,172 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceExportResponse"];
+                };
+            };
+        };
+    };
+    listTasks: {
+        parameters: {
+            query?: {
+                session_id?: string | null;
+                status?: components["schemas"]["SessionActionItemStatus"] | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionActionItemListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionActionItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getSessionActionItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionActionItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteSessionActionItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateSessionActionItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionActionItemPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionActionItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

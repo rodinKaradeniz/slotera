@@ -3,7 +3,12 @@ import type * as Sentry from "@sentry/nextjs";
 type Options = NonNullable<Parameters<typeof Sentry.init>[0]>;
 type ErrorEvent = Parameters<NonNullable<Options["beforeSend"]>>[0];
 type TransactionEvent = Parameters<NonNullable<Options["beforeSendTransaction"]>>[0];
-type SpanJSON = Parameters<NonNullable<Options["beforeSendSpan"]>>[0];
+type ScrubbableSpan = {
+  description?: string;
+  data?: Record<string, unknown>;
+  name?: string;
+  attributes?: Record<string, unknown>;
+};
 
 // Shared Sentry options for the browser, Node and edge runtimes. Sentry is off unless
 // NEXT_PUBLIC_SENTRY_DSN is set at build time, and only the real app's image gets one,
@@ -37,9 +42,11 @@ export function scrubEvent<T extends ErrorEvent | TransactionEvent>(event: T): T
   return event;
 }
 
-export function scrubSpan(span: SpanJSON): SpanJSON {
+export function scrubSpan<T extends ScrubbableSpan>(span: T): T {
   if (span.description) span.description = stripUrl(span.description);
   scrubData(span.data);
+  if (span.name) span.name = stripUrl(span.name);
+  scrubData(span.attributes);
   return span;
 }
 

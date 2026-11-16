@@ -28,6 +28,11 @@ export function NotificationsButton() {
   }, [lang]);
 
   React.useEffect(() => {
+    const show = () => setOpen(true);
+    window.addEventListener("slotera-open-notifications",show);
+    return () => window.removeEventListener("slotera-open-notifications",show);
+  }, []);
+  React.useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);

@@ -359,16 +359,21 @@ async def test_forms_offers_branding_billing_and_preferences() -> None:
                 client_export.json()["formSnapshots"][0]["fields"][0]["label"]
                 == "Original question"
             )
-            # A legacy answer has no invented historical questions or new assignments.
+            # Answers are owned by an assignment; removal cannot leave orphan responses.
             async with owner.transaction() as session:
                 await session.execute(
                     text("DELETE FROM booking_form_snapshots WHERE booking_id = :id"),
                     {"id": UUID(booking_id)},
                 )
-            legacy = (await client.get(f"/bookings/{booking_id}/forms")).json()["items"]
-            assert legacy[0]["historicalApproximation"] is True
-            assert legacy[0]["fields"] == []
-            assert legacy[0]["answers"][0]["fieldId"] == "yes"
+            assert (await client.get(f"/bookings/{booking_id}/forms")).json()["items"] == []
+            async with owner.transaction() as session:
+                assert (
+                    await session.scalar(
+                        text("SELECT count(*) FROM booking_form_responses WHERE booking_id=:id"),
+                        {"id": UUID(booking_id)},
+                    )
+                    == 0
+                )
             erased = await client.post(
                 f"/clients/{client_id}/erase",
                 headers={

@@ -21,6 +21,7 @@ from slotera_api.db.models import (
     BookingApprovalStatus,
     BookingAttendance,
     BookingCommandIdempotency,
+    BookingFollowup,
     BookingOrigin,
     BookingStatus,
     Client,
@@ -34,6 +35,7 @@ from slotera_api.db.models import (
     WorkspacePaymentSettings,
 )
 from slotera_api.errors import ApiError
+from slotera_api.followups import queue_followup, snapshot_followup
 from slotera_api.session_capacity import CAPACITY_CONSUMING_STATUSES, release_public_session
 
 
@@ -429,7 +431,23 @@ class BookingsRepository:
                         message="Too many email requests. Try again later",
                     )
             changed = (booking.delivery_email_override or booking.customer_email) != recipient_email
+            pending_followup = None
             if changed:
+                pending_followup = await session.scalar(
+                    text("SELECT public.slotera_followup_delivery(:id)"), {"id": booking.id}
+                )
+                if (
+                    pending_followup
+                    and pending_followup["pending"]
+                    and not await session.scalar(
+                        text("SELECT public.slotera_followup_suppress(:id)"), {"id": booking.id}
+                    )
+                ):
+                    raise ApiError(
+                        status_code=409,
+                        code="booking_email_sending",
+                        message="An email is being sent. Retry shortly.",
+                    )
                 booking.delivery_email_override = recipient_email
                 await session.execute(
                     update(BookingAccessToken)
@@ -458,6 +476,23 @@ class BookingsRepository:
             if occurrence is None:
                 raise BookingTransitionError
             await session.flush()
+            if pending_followup and pending_followup["pending"]:
+                followup = await session.scalar(
+                    select(BookingFollowup)
+                    .where(
+                        BookingFollowup.workspace_id == workspace_id,
+                        BookingFollowup.booking_id == booking.id,
+                    )
+                    .with_for_update()
+                )
+                if followup:
+                    await queue_followup(
+                        session,
+                        booking,
+                        followup,
+                        manual=bool(pending_followup["manual"]),
+                        event_key=str(uuid4()),
+                    )
             queued = await emit_booking_event(
                 session,
                 workspace_id=workspace_id,
@@ -541,7 +576,7 @@ class BookingsRepository:
             payment_settings = await database_session.get(WorkspacePaymentSettings, workspace_id)
             if (
                 (client is None and values.get("new_client") is None)
-                or (client is not None and client.email == f"erased+{client.id}@invalid")
+                or (client is not None and client.erased_at is not None)
                 or payment_settings is None
                 or scheduled_session.status != SessionStatus.SCHEDULED
                 or scheduled_session.start_at <= datetime.now(UTC)
@@ -787,6 +822,8 @@ class BookingsRepository:
             previous_attendance = booking.attendance
             booking.status = BookingStatus.COMPLETED
             booking.attendance = attendance
+            if previous_status != BookingStatus.COMPLETED:
+                await snapshot_followup(database_session, booking)
             database_session.add(
                 AuditEvent(
                     workspace_id=workspace_id,
@@ -1008,6 +1045,8 @@ class BookingsRepository:
                     event="cancelled",
                     operator_notification=False,
                 )
+            if command == "complete":
+                await snapshot_followup(database_session, booking)
             if command == "confirm":
                 await self._emit_confirmed_event(database_session, booking)
             await database_session.refresh(booking)

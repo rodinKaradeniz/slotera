@@ -10,7 +10,7 @@ import { browserStorage } from "@/test/browser-storage";
 vi.mock("@/services/booking-forms.service", () => ({ listManagedForms: vi.fn(), submitManagedForm: vi.fn(), listBookingForms: vi.fn() }));
 beforeEach(() => { vi.stubGlobal("localStorage", browserStorage()); });
 afterEach(() => { cleanup(); writeLang("en"); vi.clearAllMocks(); vi.unstubAllGlobals(); });
-const form = { id: "form", name: "Consultant's question", description: "Original description", fields: [{ id: "q", label: "Continue?", type: "yes_no" as const, required: true }], requiredBeforePayment: false, answers: null, submittedAt: null, historicalApproximation: false, canSubmit: true };
+const form = { id: "form", name: "Consultant's question", description: "Original description", fields: [{ id: "q", label: "Continue?", type: "yes_no" as const, required: true }], requiredBeforePayment: false, answers: null, submittedAt: null, assignmentKind: "preparation" as const, responseDeadline: null, canSubmit: true };
 
 describe("booking forms", () => {
   it.each([ ["en", "Submit answers", "No"], ["tr", "Yanıtları gönder", "Hayır"], ["de", "Antworten absenden", "Nein"] ] as [Lang, string, string][])("submits a false answer once in %s without translating consultant content", async (language, submit, no) => {

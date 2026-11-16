@@ -14,6 +14,7 @@ from slotera_api.api.calendar_feed import settings_router as calendar_feed_setti
 from slotera_api.api.client_notes import router as client_notes_router
 from slotera_api.api.clients import router as clients_router
 from slotera_api.api.dashboard import router as dashboard_router
+from slotera_api.api.followups import router as followups_router
 from slotera_api.api.forms import router as forms_router
 from slotera_api.api.health import router as health_router
 from slotera_api.api.notifications import router as notifications_router
@@ -28,8 +29,11 @@ from slotera_api.api.public_booking_manage import router as public_booking_manag
 from slotera_api.api.scheduling import availability_router, sessions_router
 from slotera_api.api.search import router as search_router
 from slotera_api.api.session_action_items import router as session_action_items_router
+from slotera_api.api.worklist import router as worklist_router
 from slotera_api.api.workspace_data import router as workspace_data_router
 from slotera_api.auth.service import AuthServiceProtocol, create_auth_service
+from slotera_api.client_access.api import router as client_access_router
+from slotera_api.client_access.messages import router as conversations_router
 from slotera_api.config import Settings, get_settings
 from slotera_api.database import Database, DatabaseLifecycle
 from slotera_api.errors import install_error_handlers
@@ -91,6 +95,8 @@ def create_app(
     app.include_router(branding_router)
     app.include_router(packages_router)
     app.include_router(auth_router)
+    app.include_router(client_access_router)
+    app.include_router(conversations_router)
     app.include_router(clients_router)
     app.include_router(dashboard_router)
     app.include_router(search_router)
@@ -103,6 +109,7 @@ def create_app(
     app.include_router(client_notes_router)
     app.include_router(bookings_router)
     app.include_router(forms_router)
+    app.include_router(followups_router)
     app.include_router(notifications_router)
     app.include_router(settings_router)
     app.include_router(workspace_data_router)
@@ -112,6 +119,7 @@ def create_app(
     app.include_router(availability_router)
     app.include_router(sessions_router)
     app.include_router(session_action_items_router)
+    app.include_router(worklist_router)
     return app
 
 

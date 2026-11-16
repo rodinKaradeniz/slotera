@@ -34,7 +34,7 @@ class SessionActionItemPatch(StrictApiModel):
 class SessionActionItemResponse(ApiModel):
     version: int
     id: UUID
-    session_id: UUID
+    session_id: UUID | None
     title: str
     description: str | None
     status: Literal["todo", "done"]

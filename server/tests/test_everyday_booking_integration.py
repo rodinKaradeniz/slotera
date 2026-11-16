@@ -666,7 +666,10 @@ async def test_existing_client_redaction_cannot_race_a_new_booking(setup) -> Non
                 await asyncio.sleep(0.01)
             assert waiting, "Booking did not reach the locked client boundary"
             await session.execute(
-                text("UPDATE clients SET name='Erased client',email=:email WHERE id=:id"),
+                text(
+                    "UPDATE clients SET name='Erased client',email=:email,"
+                    "erased_at=now() WHERE id=:id"
+                ),
                 {"id": client_id, "email": f"erased+{client_id}@invalid"},
             )
         result = await asyncio.wait_for(task, timeout=10)

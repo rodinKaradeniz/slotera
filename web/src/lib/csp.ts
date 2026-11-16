@@ -1,9 +1,5 @@
-/**
- * A Content-Security-Policy for the web app, sent report-only first (docs/TODO.md).
- * Inline scripts and styles stay allowed until Next.js nonces are set up; the policy
- * still blocks foreign scripts, frames, plugins and unexpected request targets.
- */
-export function buildCsp(apiBaseUrl: string): string {
+/** Production scripts require a per-document nonce; existing React styles remain allowed. */
+export function buildCsp(apiBaseUrl: string, nonce: string): string {
   let apiOrigin = "";
   try {
     apiOrigin = new URL(apiBaseUrl).origin;
@@ -12,7 +8,7 @@ export function buildCsp(apiBaseUrl: string): string {
   }
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'"],
+    "script-src": ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'"],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:"],
     "font-src": ["'self'", "data:"],

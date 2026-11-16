@@ -52,6 +52,7 @@ def _response(summary: DashboardSummary) -> DashboardSummaryResponse:
             )
             for item in summary.trend_30d
         ],
+        unread_messages_count=summary.unread_messages_count,
         unread_notifications_count=summary.unread_notifications_count,
         open_action_items_count=summary.open_action_items_count,
     )

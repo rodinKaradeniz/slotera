@@ -236,3 +236,33 @@ def render_localized(kind: str, raw: dict[str, object]) -> tuple[str, str]:
     if event == "cancelled":
         lines.append(text["refund"])
     return f"{text[event]} — {service}", "\n".join(lines)
+
+
+COMMUNICATION_COPY: dict[str, dict[str, tuple[str, str]]] = {'en': {'client_sign_in': ('Sign in to your client workspace',
+                           'Use this one-time link within 15 minutes. If you did not '
+                           'request it, ignore this email.'),
+        'booking_followup': ('After your session',
+                             'Thank you for attending. You can review your booking and '
+                             'complete the optional follow-up form using the link below.'),
+        'message_digest': ('You have unread messages',
+                           'Sign in to read your new unread messages.')},
+ 'tr': {'client_sign_in': ('Danışan alanınıza giriş yapın',
+                           'Bu tek kullanımlık bağlantıyı 15 dakika içinde kullanın. Siz '
+                           'istemediyseniz bu e-postayı yok sayın.'),
+        'booking_followup': ('Seansınızın ardından',
+                             'Katılımınız için teşekkürler. Aşağıdaki bağlantıdan '
+                             'rezervasyonunuzu inceleyebilir ve isteğe bağlı takip formunu '
+                             'doldurabilirsiniz.'),
+        'message_digest': ('Okunmamış mesajlarınız var',
+                           'Yeni okunmamış mesajlarınızı görüntülemek için giriş yapın.')},
+ 'de': {'client_sign_in': ('Bei Ihrem Kundenbereich anmelden',
+                           'Verwenden Sie diesen einmaligen Link innerhalb von 15 Minuten. '
+                           'Falls Sie ihn nicht angefordert haben, ignorieren Sie diese '
+                           'E-Mail.'),
+        'booking_followup': ('Nach Ihrer Sitzung',
+                             'Vielen Dank für Ihre Teilnahme. Über den folgenden Link '
+                             'können Sie Ihre Buchung ansehen und das optionale '
+                             'Nachbereitungsformular ausfüllen.'),
+        'message_digest': ('Sie haben ungelesene Nachrichten',
+                           'Melden Sie sich an, um Ihre neuen ungelesenen Nachrichten '
+                           'anzuzeigen.')}}

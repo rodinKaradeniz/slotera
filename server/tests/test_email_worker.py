@@ -151,3 +151,28 @@ async def test_account_emails_get_the_short_no_reply_footer() -> None:
     [sent] = provider.messages
     assert sent.text_body.startswith("Set your password: https://app.example/reset\n")
     assert sent.text_body.endswith(NO_REPLY_FOOTER)
+
+
+async def test_digest_delivery_localizes_without_including_conversation_content() -> None:
+    from slotera_api.email.locales import COMMUNICATION_COPY, TEXT
+
+    for language in ("en", "tr", "de"):
+        message = OutboxMessage(
+            id=uuid4(),
+            kind="message_digest",
+            recipient_email="synthetic@example.com",
+            subject="placeholder",
+            text_body="http://localhost:3344/client/lena/sign-in",
+            template_data={"language": language},
+            attempt_count=1,
+        )
+        provider = CapturingProvider()
+        assert await deliver_available(StubRepository([message]), provider) == 1  # type: ignore[arg-type]
+        delivered = provider.messages[0]
+        assert delivered.subject == COMMUNICATION_COPY[language]["message_digest"][0]
+        assert COMMUNICATION_COPY[language]["message_digest"][1] in delivered.text_body
+        assert "http://localhost:3344/client/lena/sign-in" in delivered.text_body
+        assert "#" not in delivered.text_body
+        assert (
+            TEXT[language]["footer"] if language != "en" else NO_REPLY_FOOTER
+        ) in delivered.text_body

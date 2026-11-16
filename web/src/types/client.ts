@@ -2,6 +2,7 @@ import type { ClientTag } from "./common";
 
 export type Client = {
   version?: number;
+  erasedAt?: string;
   id: string;
   name: string;
   email: string;

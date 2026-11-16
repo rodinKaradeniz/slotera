@@ -9,8 +9,6 @@ import { formatMoney } from "@/lib/money";
 import { listBookings } from "./bookings.service";
 import { listSessions } from "./sessions.service";
 import { listActionItems } from "./session-action-items.service";
-import { getWorkspaceBilling } from "./billing.service";
-import { billingState } from "@/lib/plans";
 import type {
   DashboardData,
   DashboardScheduleItem,
@@ -158,6 +156,7 @@ function mapSummary(summary: DashboardSummaryDto): DashboardData {
     ],
     trend30d,
     pendingActions: [
+      ...(summary.unreadMessagesCount > 0 ? [{id:"unread-messages",tone:"info" as const,icon:"mail",label:translate(readLang(),"messages.unread",{count:summary.unreadMessagesCount}),detail:translate(readLang(),"messages.chooseClient"),age:translate(readLang(),"dashboard.now")}] : []),
       ...(summary.openActionItemsCount > 0
         ? [{
             id: "action-items-pending",
@@ -184,35 +183,11 @@ function mapSummary(summary: DashboardSummaryDto): DashboardData {
 }
 
 /** A reminder when the trial ends within a week or the workspace is unpaid. */
-export function billingAction(
-  trialEndsAtISO: string,
-  paidThrough: string | null,
-  now: Date = new Date(),
-): PendingAction | null {
-  const state = billingState(trialEndsAtISO, paidThrough, now);
-  if (state.kind === "paid" || (state.kind === "trial" && state.daysLeft > 7)) return null;
-  return {
-    id: "billing",
-    tone: "warning",
-    icon: "card",
-    label:
-      state.kind === "trial"
-        ? translate(readLang(), "dashboard.trialEnds", { count: state.daysLeft })
-        : translate(readLang(), "dashboard.trialEnded"),
-    detail: translate(readLang(), "dashboard.billingHint"),
-    age: translate(readLang(), "dashboard.now"),
-  };
-}
-
+export {billingAction} from "@/lib/dashboard-actions";
 export async function getDashboard(_lang: Lang = readLang()): Promise<DashboardData> {
   if (dataSource === "api") {
-    const [summary, billing] = await Promise.all([
-      apiRequest<DashboardSummaryDto>("/dashboard/summary"),
-      getWorkspaceBilling(),
-    ]);
-    const data = mapSummary(summary);
-    const reminder = billingAction(billing.trialEndsAt, billing.paidThrough ?? null);
-    return reminder ? { ...data, pendingActions: [reminder, ...data.pendingActions] } : data;
+    const summary=await apiRequest<DashboardSummaryDto>("/dashboard/summary");
+    return mapSummary(summary);
   }
   await sleep(80);
   const base = mockData<DashboardData>("dashboard");
@@ -263,7 +238,7 @@ function computeActionItemsPending(
 ): PendingAction | null {
   const sessionIds = new Set(sessions.map((s) => s.id));
   const open = actionItems.filter(
-    (a) => a.status === "todo" && sessionIds.has(a.sessionId),
+    (a) => a.status === "todo" && (!a.sessionId || sessionIds.has(a.sessionId)),
   );
   if (open.length === 0) return null;
   const n = open.length;

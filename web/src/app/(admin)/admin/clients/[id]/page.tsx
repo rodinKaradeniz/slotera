@@ -7,6 +7,7 @@ import { useSetCrumbs } from "@/components/layout/PageMeta";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
+import { ConversationThread } from "@/components/messages/ConversationThread";
 import { Tabs } from "@/components/ui/Tabs";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { CardHead } from "@/components/shared/CardHead";
@@ -32,7 +33,7 @@ import { clockIn } from "@/lib/calendar";
 import { fmtDate } from "@/lib/time";
 import { dataSource } from "@/lib/env";
 
-type Tab = "overview" | "notes";
+type Tab = "overview" | "notes" | "messages";
 
 const NONE: never[] = [];
 
@@ -150,11 +151,12 @@ export default function ClientDetailPage() {
               tabs={[
                 { value: "overview", label: uiText("ui.overview") },
                 { value: "notes", label: uiText("ui.notes") },
+                { value: "messages", label: uiText("client.messages") },
               ]}
             />
           </div>
 
-          {tab === "overview" ? (
+          {tab === "messages" ? <Card>{client.erasedAt ? <p>{uiText("booking.emails.erased")}</p> : <ConversationThread key={id} clientId={id} />}</Card> : tab === "overview" ? (
             <div className="space-y-4">
               <Card padded={false}>
                 <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-line-soft">

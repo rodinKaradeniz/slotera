@@ -7,6 +7,21 @@ afterEach(() => {
 });
 
 describe("maintenance proxy", () => {
+  it("enforces fresh production nonces even during maintenance", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("MAINTENANCE_MODE", "1");
+    const request = new NextRequest("http://localhost/book/lena", {
+      headers: {"Content-Security-Policy": "script-src *", "x-nonce": "attacker"},
+    });
+    const first = proxy(request);
+    const second = proxy(request);
+    expect(first.headers.get("Content-Security-Policy")).toContain("'nonce-");
+    expect(first.headers.get("Content-Security-Policy")).not.toContain("attacker");
+    expect(first.headers.get("Content-Security-Policy")).not.toEqual(second.headers.get("Content-Security-Policy"));
+    expect(first.headers.get("Content-Security-Policy-Report-Only")).toBeNull();
+    expect(first.headers.get("x-middleware-request-content-security-policy")).toEqual(first.headers.get("Content-Security-Policy"));
+  });
+
   it("passes requests through normally", () => {
     vi.stubEnv("MAINTENANCE_MODE", "");
     const response = proxy(new NextRequest("http://localhost/admin/dashboard"));

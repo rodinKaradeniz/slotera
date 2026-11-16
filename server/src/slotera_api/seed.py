@@ -590,7 +590,7 @@ def _seed_showcase_context(
         if booking is None or example["session_key"] in {"workshop", "no-show"}:
             continue
         client = session.get(Client, booking.client_id)
-        if client is None or client.email.startswith("erased+"):
+        if client is None or client.erased_at is not None:
             continue
         for form in DEMO_FORMS:
             if form["key"] == "intake" and example["session_key"] in {"upcoming", "cancelled"}:
@@ -621,6 +621,7 @@ def _seed_showcase_context(
                     BookingFormResponse,
                     {
                         "id": _seed_id(f"form-response:{example['key']}:{form['key']}"),
+                        "snapshot_id": _seed_id(f"form-snapshot:{example['key']}:{form['key']}"),
                         "workspace_id": workspace_id,
                         "booking_id": booking_id,
                         "form_template_id": form_id,
@@ -645,7 +646,7 @@ def _seed_showcase_context(
     ):
         client_id = _seed_id(f"client:hartmann-strategy:{client_key}")
         client = session.get(Client, client_id)
-        if client and not client.email.startswith("erased+"):
+        if client and client.erased_at is None:
             context_count += put(
                 ClientNote,
                 {
