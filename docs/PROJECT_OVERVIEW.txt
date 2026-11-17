@@ -14,6 +14,9 @@ flexible for different service businesses.
 
 WHAT IT HELPS WITH
 
+- An opt-in consultant assistant for cited questions, manual client/daily briefings, and
+  explicitly reviewed actions using the same booking and editing rules.
+
 - A customer booking page for browsing services, choosing a time, completing prep forms,
   and reviewing payment details.
 - An operator workspace for managing services, availability, calendar sessions, bookings,

@@ -7,7 +7,7 @@ import { browserStorage } from "@/test/browser-storage";
 import { DATA_CHANGED } from "@/api/query-cache";
 import { getBusinessSettings } from "@/services/settings.service";
 vi.mock("@/lib/env", () => ({dataSource: "api"}));
-vi.mock("next/navigation", () => ({usePathname: () => "/admin/settings"}));
+vi.mock("next/navigation", () => ({usePathname: () => "/admin/settings", useSearchParams: () => new URLSearchParams()}));
 vi.mock("@/services/settings.service", () => ({getBusinessSettings: vi.fn(), getAvailabilitySettings: vi.fn(), getPaymentSettings: vi.fn(), getSettings: vi.fn()}));
 vi.mock("./LocationsCard", () => ({LocationsCard: () => null}));
 vi.mock("./BusinessPanel", () => ({BusinessPanel: () => {

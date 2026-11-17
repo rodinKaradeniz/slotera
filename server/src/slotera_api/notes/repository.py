@@ -53,7 +53,7 @@ class ClientNotesRepository:
         client_id: UUID,
         values: Mapping[str, Any],
     ) -> ClientNote | None:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             client = await session.scalar(
                 select(Client)
                 .where(
@@ -86,7 +86,7 @@ class ClientNotesRepository:
             return note
 
     async def get_note(self, workspace_id: UUID, note_id: UUID) -> ClientNote | None:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             note = await session.scalar(
                 select(ClientNote).where(
                     ClientNote.workspace_id == workspace_id,
@@ -103,7 +103,7 @@ class ClientNotesRepository:
         changes: Mapping[str, Any],
         expected_version: int | None = None,
     ) -> ClientNote | None:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             note = await session.scalar(
                 select(ClientNote).where(
                     ClientNote.workspace_id == workspace_id,
@@ -152,7 +152,7 @@ class ClientNotesRepository:
         note_id: UUID,
         expected_version: int | None = None,
     ) -> bool:
-        async with self.database.tenant_transaction(workspace_id) as session:
+        async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             note = await session.scalar(
                 select(ClientNote).where(
                     ClientNote.workspace_id == workspace_id,

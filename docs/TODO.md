@@ -656,4 +656,5 @@ agreed final integration-verification stage; no new architecture work is deferre
 - **~~Dependency, CSP and startup hardening.~~ DONE locally.** Production nonce policy,
   compatible upgrades, owned process cleanup and occupied-port errors; seven moderate
   upstream TypeScript-ESLint/Minimatch advisories remain without forced overrides.
-- **AI, voice and video** retain the previously agreed future scope; no AI code is added here.
+- **~~Consultant AI assistant.~~ DONE locally.** Opt-in hybrid retrieval, reviewed actions, client/daily briefings, privacy cleanup and bounded provider usage; see `PASS2_ASSISTANT.md`.
+- **Voice and video** remain future scope; live OpenAI quality/delivery/cost checks remain in final integration verification.

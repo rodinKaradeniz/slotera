@@ -21,6 +21,10 @@ x-server-env: &server-env
   SLOTERA_RESEND_API_KEY: ${SLOTERA_RESEND_API_KEY}
   SLOTERA_SIGNUP_OPEN: ${SLOTERA_SIGNUP_OPEN:-false}
   SLOTERA_SENTRY_DSN: ${SLOTERA_SENTRY_DSN:-}
+  SLOTERA_AI_PROVIDER: ${SLOTERA_AI_PROVIDER:-disabled}
+  SLOTERA_AI_API_KEY: ${SLOTERA_AI_API_KEY:-}
+  SLOTERA_AI_MODEL: ${SLOTERA_AI_MODEL:-gpt-6-luna}
+  SLOTERA_AI_EMBEDDING_MODEL: ${SLOTERA_AI_EMBEDDING_MODEL:-text-embedding-3-small}
 
 x-server: &server
   build: ../server
@@ -112,6 +116,13 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  ai-worker:
+    <<: *server
+    command: ["slotera-ai-worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   # Auth clean-up, booking reminders and recurring-series top-up, every 15 minutes.
   maintenance:
     <<: *server
@@ -121,7 +132,7 @@ services:
         condition: service_completed_successfully
 
   db:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:0.8.7-pg17
     restart: unless-stopped
     environment:
       POSTGRES_DB: slotera

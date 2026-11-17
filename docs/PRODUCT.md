@@ -866,3 +866,22 @@ Dashboard To-do and Calendar share private task records with optional session as
 reviewed versions and due dates. Live message, notification and billing actions cannot be
 checked off. AI, voice, video, package credits and external delivery verification remain
 outside this communication release.
+
+
+## Consultant assistant
+
+Both plans support explicit workspace AI opt-in; operators alone access chat and briefings.
+Client narratives and curated application help are separate retrieval sources. Answers cite
+allow-listed records, disclose incomplete coverage and treat retrieved text as untrusted data.
+Only the current operator request may propose one allow-listed action; review and explicit
+confirmation are mandatory. Existing permissions, revisions, session impacts, capacity,
+financial snapshots and idempotency remain authoritative. No assistant email transfer,
+payments, approval, billing/access changes, deletion, messages or note/form writing.
+
+Daily briefing is manually requested on Dashboard, with the workspace’s 9am daily cycle and
+15-minute refresh cooldown; client briefings live on client details. Last results remain dated.
+Workspace quotas and two concurrent generations bound costs; no scheduled model generation.
+History lasts 30 days. Disabling purges AI context; client erasure conservatively purges all
+workspace AI history and that client’s index. Provider keys and management tokens never enter
+browser storage, retrieval or logs. Hosted provider processing is disclosed before opt-in.
+Voice, video and live third-party verification remain outside this release.

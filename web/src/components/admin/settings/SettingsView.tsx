@@ -1,4 +1,6 @@
 "use client";
+import {useSearchParams} from "next/navigation";
+import {AISettings} from "@/components/assistant/AISettings";
 import { DATA_CHANGED } from "@/api/query-cache";
 import { translateInterfaceLabel } from "@/lib/i18n";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -25,6 +27,7 @@ import { ApiEmailsPanel, EmailsPanel } from "./EmailsPanels";
 import { ApiAccountPanel, AccountPanel } from "./AccountPanels";
 
 type SectionId =
+  | "ai"
   | "business"
   | "branding"
   | "payments"
@@ -34,6 +37,7 @@ type SectionId =
   | "account";
 
 const NAV: { id: SectionId; label: string; icon: IconName }[] = [
+  { id: "ai", label: "AI", icon: "sparkle" },
   { id: "business", label: "Business Profile",        icon: "briefcase" },
   { id: "branding", label: "Branding",                icon: "sparkle" },
   { id: "payments", label: "Client Payments",         icon: "card" },
@@ -45,7 +49,8 @@ const NAV: { id: SectionId; label: string; icon: IconName }[] = [
 
 export function SettingsView() {
   const { t: uiText, lang: labelLang } = useI18n();
-  const [section, setSection] = React.useState<SectionId>("business");
+  const params=useSearchParams();
+  const [section, setSection] = React.useState<SectionId>(()=>NAV.some(n=>n.id===params.get("section"))?params.get("section") as SectionId:"business");
   const [data, setData] = React.useState<SettingsData | null>(null);
   const [business, setBusiness] = React.useState<BusinessSettings | null>(null);
   const [availability, setAvailability] = React.useState<AvailabilitySettings | null>(null);
@@ -81,7 +86,7 @@ export function SettingsView() {
   // Platform billing is a real-app concern; the mock demo never shows it.
   const visibleNav = dataSource === "api"
     ? NAV.filter((item) =>
-        ["business", "branding", "payments", "billing", "calendar", "emails", "account"].includes(item.id)
+        ["business", "branding", "payments", "billing", "calendar", "emails", "account", "ai"].includes(item.id)
       )
     : NAV.filter((item) => item.id !== "billing");
   const activeMeta = visibleNav.find((n) => n.id === section);
@@ -142,6 +147,7 @@ export function SettingsView() {
             !loadError && <LoadingRows count={2} />
           ) : (
             <div className="flex flex-col gap-6">
+              {section === "ai" && <AISettings />}
               {section === "business" && (
                 <>
                   <BusinessPanel business={business!} onChange={handleBusinessChange} />

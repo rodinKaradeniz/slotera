@@ -104,6 +104,7 @@ async def run() -> int:
                 text("SELECT public.slotera_queue_message_digests(:base)"),
                 {"base": settings.public_web_base_url},
             )
+            await session.execute(text("SELECT slotera_ai_cleanup()"))
             client_credentials = await session.scalar(
                 text("SELECT public.slotera_client_auth_maintenance()")
             )

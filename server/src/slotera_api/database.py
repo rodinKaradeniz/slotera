@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from hashlib import sha256
 from time import perf_counter
 from typing import Any, Protocol
@@ -20,6 +21,11 @@ class DatabaseLifecycle(Protocol):
     async def healthcheck(self) -> None: ...
 
     async def dispose(self) -> None: ...
+
+
+_command_scope: ContextVar[tuple[object, UUID, AsyncSession] | None] = ContextVar(
+    "command_scope", default=None
+)
 
 
 class Database:
@@ -100,6 +106,12 @@ class Database:
     async def tenant_transaction(
         self, workspace_id: UUID, *, repeatable_read: bool = False, scheduling_write: bool = False
     ) -> AsyncIterator[AsyncSession]:
+        ambient = _command_scope.get()
+        if ambient is not None:
+            if ambient[0] is not self or ambient[1] != workspace_id:
+                raise ValueError("Command transactions cannot cross databases or workspaces")
+            yield ambient[2]
+            return
         async with self.session_factory() as session, session.begin():
             started = perf_counter()
             await session.connection()
@@ -138,6 +150,16 @@ class Database:
                     {"scope": f"slotera:scheduling:{workspace_id}"},
                 )
             yield session
+
+    @asynccontextmanager
+    async def command_transaction(self, workspace_id: UUID) -> AsyncIterator[AsyncSession]:
+        """Compose existing domain commands and their reviewed AI outcome atomically."""
+        async with self.tenant_transaction(workspace_id, scheduling_write=True) as session:
+            token = _command_scope.set((self, workspace_id, session))
+            try:
+                yield session
+            finally:
+                _command_scope.reset(token)
 
     @asynccontextmanager
     async def principal_transaction(

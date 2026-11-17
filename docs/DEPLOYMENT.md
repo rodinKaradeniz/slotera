@@ -216,3 +216,14 @@ Complete and record each item before telling real operators about `app.`:
 Card payments (Stripe Connect), calendar integrations and package credits are outside
 this launch. They wait for Merulio's incorporation. Do not enable a card-payment UI until
 verified payment webhooks exist.
+
+### Assistant configuration (not live-verified)
+
+The static Compose definition uses the PostgreSQL 17 pgvector image and an `ai-worker`
+process from the existing server image; this adds no database or queue service. AI defaults
+to disabled. The optional `SLOTERA_AI_PROVIDER`, `SLOTERA_AI_API_KEY`, `SLOTERA_AI_MODEL` and
+`SLOTERA_AI_EMBEDDING_MODEL` variables are server-only. Each workspace must separately opt
+in. Changing the embedding model requires clearing/rebuilding the index; vectors must have
+1536 dimensions. Live provider quality, retention terms, delivery and costs remain part of
+final integration verification. Developer: run `./scripts/env-check --deploy` before that
+stage and share status-only output. No deployment was performed for this feature.

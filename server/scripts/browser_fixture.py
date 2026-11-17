@@ -25,6 +25,16 @@ async def run():
     database = Database(settings.migration_database_url)
     try:
         operation = sys.argv[1]
+        if operation == "index-ai":
+            from slotera_api.ai.provider import LocalProvider
+            from slotera_api.ai.worker import process_one
+            from slotera_api.config import get_settings
+
+            for _ in range(200):
+                if not await process_one(database, get_settings(), LocalProvider()):
+                    break
+            print(json.dumps({"ready": True}))
+            return
         if operation == "queue-followups":
             print(json.dumps({"queued": await queue_due_followups(database)}))
             return

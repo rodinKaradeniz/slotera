@@ -61,6 +61,17 @@ Stripe and external calendar integrations remain later).
 
 ---
 
+## Consultant assistant (local API)
+
+Operator **Assistant**, **Dashboard → Brief me**, **Clients → Brief me**, and **Settings → AI**
+are implemented behind explicit workspace opt-in on both plans. Server-managed OpenAI routing,
+structured responses and embeddings sit behind a local provider interface; `SLOTERA_AI_PROVIDER=local`
+is an explicit offline simulation. AI is disabled by default. PostgreSQL uses the pgvector
+17 image, tenant-filtered hybrid retrieval, leased indexing and 30-day history maintenance.
+Reviewed actions reuse domain commands in one transaction; no model executes writes directly.
+See `docs/PASS2_ASSISTANT.md` for limits, privacy fences, configuration and the walkthrough.
+The development launcher owns an additional AI worker and `.logs/ai.log`.
+
 ## Running it locally
 
 **Complete development stack** — from the repository root:

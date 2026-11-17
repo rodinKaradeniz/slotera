@@ -1,6 +1,8 @@
 // Maps existing shared label values into the standard message dictionary.
 import type { MessageKey } from "@/i18n/messages/en";
 export const INTERFACE_KEYS: Record<string, MessageKey> = {
+  "AI": "ai.settings",
+  "Assistant": "nav.assistant",
   "Platform": "ui.platform",
   "Service": "ui.service",
   "Completed": "ui.completed",

@@ -19,11 +19,12 @@ export const OPERATOR_NAV: NavItem[] = [
   { id: "packages",  label: "Packages",  icon: "package",   href: "/admin/packages" },
   { id: "forms",     label: "Forms",     icon: "file",      href: "/admin/forms" },
   { id: "messages", label: "Messages", icon: "mail", href: "/admin/messages" },
+  { id: "assistant", label: "Assistant", icon: "sparkle", href: "/admin/assistant" },
   { id: "settings",  label: "Settings",  icon: "cog",       href: "/admin/settings" },
 ];
 
 export const API_OPERATOR_NAV: NavItem[] = OPERATOR_NAV.filter((item) =>
-  ["dashboard", "calendar", "bookings", "clients", "services", "packages", "forms", "messages", "settings"].includes(item.id),
+  ["dashboard", "calendar", "bookings", "clients", "services", "packages", "forms", "messages", "assistant", "settings"].includes(item.id),
 );
 
 export const SUPERADMIN_NAV: NavItem[] = [

@@ -2,7 +2,7 @@ import os
 from functools import lru_cache
 from typing import Literal, Self
 
-from pydantic import SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LOCAL_APPLICATION_DATABASE_URL = (
@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     sentry_traces_sample_rate: float = 0.1
     release: str | None = None
+    ai_provider: Literal["disabled", "openai", "local"] = "disabled"
+    ai_api_key: SecretStr | None = None
+    ai_model: str = "gpt-6-luna"
+    ai_embedding_model: str = "text-embedding-3-small"
+    ai_daily_answers: int = Field(default=50, ge=1, le=10000)
+    ai_daily_tokens: int = Field(default=250_000, ge=1, le=100_000_000)
+    ai_daily_indexing_tokens: int = Field(default=100_000, ge=1, le=100_000_000)
 
     @field_validator("cors_origins")
     @classmethod
@@ -63,6 +70,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def reject_local_credentials_in_production(self) -> Self:
+        if self.ai_provider == "openai" and not self.ai_api_key:
+            raise ValueError("SLOTERA_AI_API_KEY is required for the OpenAI provider")
+        if self.environment == "production" and self.ai_provider == "local":
+            raise ValueError("The simulated AI provider is local/test only")
         if self.environment == "production" and "_local" in self.database_url:
             raise ValueError("local database credentials cannot be used in production")
         if self.environment == "production" and not self.csrf_cookie_domain:

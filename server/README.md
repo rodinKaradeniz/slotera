@@ -213,3 +213,13 @@ session list/create routes. `/dashboard/worklist` returns bounded tasks and live
 counts in one read snapshot. Client exports/erasure, workspace closure/deletion and reviewed
 email transfers cover communication content and revoke credentials safely.
 See `../docs/PASS1_COMMUNICATION.md` for local verification and navigation.
+
+## Consultant assistant
+
+AI is disabled by default. The local database image includes pgvector; enable the explicit
+simulation with `SLOTERA_AI_PROVIDER=local`, then Settings → AI → Enable. The launcher owns
+`python -m slotera_api.ai.worker` alongside the email worker. No simulation is permitted
+in production and there is no automatic provider fallback. Optional hosted configuration
+is documented in `env.example`; never expose the server key as a public frontend variable.
+See [`docs/PASS2_ASSISTANT.md`](../docs/PASS2_ASSISTANT.md) for privacy, usage limits,
+reviewed actions, the dedicated production-browser suite and startup/reset steps.

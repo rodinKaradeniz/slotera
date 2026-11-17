@@ -9,6 +9,14 @@ def test_every_declared_tenant_table_carries_workspace_identity() -> None:
 
     assert {
         "audit_events",
+        "ai_states",
+        "ai_documents",
+        "ai_jobs",
+        "ai_threads",
+        "ai_turns",
+        "ai_briefings",
+        "ai_usage",
+        "ai_source_revisions",
         "workspace_memberships",
         "workspace_slug_history",
         "workspaces",

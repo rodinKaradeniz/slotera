@@ -19,6 +19,9 @@ CLOSURE_GRACE_DAYS = 30
 
 # What the operator entered or their clients submitted, in a sensible reading order.
 EXPORTED_TABLES: tuple[str, ...] = (
+    "ai_threads",
+    "ai_turns",
+    "ai_briefings",
     "workspaces",
     "workspace_business_profiles",
     "workspace_locations",
@@ -50,6 +53,11 @@ EXPORTED_TABLES: tuple[str, ...] = (
 # Credentials, retry bookkeeping and Slotera's own records: not the operator's content.
 NOT_EXPORTED_TABLES: frozenset[str] = frozenset(
     {
+        "ai_states",
+        "ai_source_revisions",
+        "ai_documents",
+        "ai_jobs",
+        "ai_usage",
         "audit_events",
         "client_login_tokens",
         "client_auth_sessions",

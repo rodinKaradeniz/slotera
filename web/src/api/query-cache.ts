@@ -65,6 +65,7 @@ export function relatedReads(path: string): string[] {
   if (path === "/auth/preferences") return [];
   const root = path.split(/[/?]/)[1];
   const related: Record<string, string[]> = {
+    ai: ["ai", "bookings", "clients", "services", "packages", "sessions", "tasks", "dashboard", "notifications"],
     tasks: ["tasks", "session-action-items", "sessions", "dashboard"],
     conversations: ["conversations", "dashboard"],
     bookings: ["bookings", "sessions", "clients", "dashboard", "notifications", "search"],
@@ -81,5 +82,5 @@ export function relatedReads(path: string): string[] {
     platform: ["platform"], auth: ["notifications"],
     public: ["bookings", "sessions", "clients", "dashboard", "notifications"],
   };
-  return related[root] ?? [root];
+  return root === "ai" ? related.ai : [...(related[root] ?? [root]), "ai"];
 }

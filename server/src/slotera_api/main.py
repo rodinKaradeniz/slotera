@@ -5,6 +5,7 @@ from typing import cast
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from slotera_api.api.ai import router as ai_router
 from slotera_api.api.auth import router as auth_router
 from slotera_api.api.billing_requests import router as billing_requests_router
 from slotera_api.api.bookings import router as bookings_router
@@ -89,6 +90,7 @@ def create_app(
     )
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
+    app.include_router(ai_router)
     app.include_router(health_router)
     app.include_router(preferences_router)
     app.include_router(billing_requests_router)

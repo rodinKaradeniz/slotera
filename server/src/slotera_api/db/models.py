@@ -26,6 +26,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
+from slotera_api.db import ai_models as ai_models
 from slotera_api.db.base import Base
 from slotera_api.db.client_models import (
     BookingFollowup as BookingFollowup,
@@ -58,6 +59,14 @@ from slotera_api.db.versioning import Versioned
 
 TENANT_TABLES = frozenset(
     {
+        "ai_states",
+        "ai_source_revisions",
+        "ai_documents",
+        "ai_jobs",
+        "ai_threads",
+        "ai_turns",
+        "ai_briefings",
+        "ai_usage",
         "audit_events",
         "workspace_memberships",
         "workspace_slug_history",
@@ -986,8 +995,15 @@ class PublicBookingIdempotency(Base):
 class BookingFormResponse(Base):
     __tablename__ = "booking_form_responses"
     __table_args__ = (
-        ForeignKeyConstraint(["workspace_id", "booking_id", "snapshot_id"],
-            ["booking_form_snapshots.workspace_id", "booking_form_snapshots.booking_id", "booking_form_snapshots.id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(
+            ["workspace_id", "booking_id", "snapshot_id"],
+            [
+                "booking_form_snapshots.workspace_id",
+                "booking_form_snapshots.booking_id",
+                "booking_form_snapshots.id",
+            ],
+            ondelete="CASCADE",
+        ),
         ForeignKeyConstraint(
             ["workspace_id", "booking_id"],
             ["bookings.workspace_id", "bookings.id"],
@@ -1213,7 +1229,9 @@ __all__ = [
 class BookingFormSnapshot(Base):
     __tablename__ = "booking_form_snapshots"
     __table_args__ = (
-        UniqueConstraint("workspace_id", "booking_id", "id", name="uq_booking_form_snapshots_assignment"),
+        UniqueConstraint(
+            "workspace_id", "booking_id", "id", name="uq_booking_form_snapshots_assignment"
+        ),
         CheckConstraint("assignment_kind IN ('preparation','followup')", name="assignment_kind"),
         ForeignKeyConstraint(
             ["workspace_id", "booking_id"],
@@ -1310,5 +1328,3 @@ class PlatformInquiry(Base):
     message: Mapped[str] = mapped_column(String(4000))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-

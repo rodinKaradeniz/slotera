@@ -79,6 +79,7 @@ def main():
     commands = [
         ("api", server, [str(executable / "uvicorn"), "slotera_api.main:app", "--reload", "--port", "8000", "--no-access-log"]),
         ("worker", server, [str(executable / "slotera-email-worker")]),
+        ("ai", server, [str(executable / "python"), "-m", "slotera_api.ai.worker"]),
         ("maintenance", server, [str(executable / "slotera-maintenance"), "--loop"]),
         ("web", ROOT / "web", ["npm", "run", "dev", "--", "--port", "3344"]),
     ]

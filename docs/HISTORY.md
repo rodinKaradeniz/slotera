@@ -2102,3 +2102,34 @@ types, ESLint, Ruff, mypy, fixture-checked mock/API builds and empty migration/s
 pass. The read gate records 82.14 ms HTTP p95, eight queries/read with five readers. The
 normal local database is restored to six showcase clients after verification; remote CI,
 live third-party delivery and deployment were not run. See PASS1_COMMUNICATION.md.
+
+
+## 2026-11-17 — Consultant assistant boundaries
+
+The assistant uses current SQL facts plus tenant-filtered full-text/pgvector retrieval,
+reciprocal-rank fusion and a versioned application-help corpus. Exact cosine search is
+intentional at pilot scale. Provider routing is advisory; strict schemas, a fixed command
+registry, explicit review and existing domain validation govern every write. A transaction
+context composes existing commands and proposal outcomes without nested commits or HTTP.
+
+Source edits append a transaction-ID journal rather than locking a shared workspace revision
+row, which would add a competing lock order to existing catalog writes. Generation captures
+a PostgreSQL snapshot and rejects journal transactions that were not visible then; sequence
+numbers alone are unsafe because commits can finish out of order. Privacy epochs additionally
+fence erasure, history deletion, opt-out and closure. Index workers lock the job before
+publishing; source triggers update that job before deleting vectors to prevent resurrection.
+
+SQLAlchemy needs explicit vector type reflection and the full-text expression index in model
+metadata for meaningful Alembic drift checks. Optional UI update callbacks must not wrap an
+awaited mutation in optional-call syntax: JavaScript skips evaluating that argument when the
+callback is absent. A component regression now covers this confirmation case.
+
+Later verification also covered cascade deletion while AI is enabled, revisioning workspace
+settings as generation sources, retaining unrelated indexing work during client erasure,
+and enforcing the briefing cooldown across language changes. Assistant integration fixtures
+seed once per module and clear AI state per test, avoiding repeated full showcase repair;
+streaming-log assertions accept both normal and slow-request log levels.
+
+Production browser builds now reuse the installed dependency directory through a symlink;
+copying it for every isolated build caused severe avoidable filesystem work. Source files,
+environment selection, production output and the disposable database remain isolated.

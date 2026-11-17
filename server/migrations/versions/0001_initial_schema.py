@@ -5877,6 +5877,256 @@ REVOKE ALL ON public.client_login_tokens,public.client_auth_sessions,
 GRANT SELECT ON public.client_conversations,public.conversation_messages,public.conversation_reads TO slotera_app;
 GRANT SELECT,INSERT,DELETE ON public.client_email_commands TO slotera_app;
 REVOKE UPDATE ON public.session_command_idempotency FROM slotera_app;
+
+SET search_path = public;
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE ai_documents (
+	id UUID NOT NULL, 
+	workspace_id UUID NOT NULL, 
+	client_id UUID, 
+	kind VARCHAR(40) NOT NULL, 
+	source_id UUID NOT NULL, 
+	position INTEGER NOT NULL, 
+	title VARCHAR(200) NOT NULL, 
+	content TEXT NOT NULL, 
+	href VARCHAR(300) NOT NULL, 
+	embedding VECTOR(1536) NOT NULL, 
+	CONSTRAINT pk_ai_documents PRIMARY KEY (id), 
+	CONSTRAINT uq_ai_documents_workspace_id UNIQUE (workspace_id, kind, source_id, position), 
+	CONSTRAINT fk_ai_documents_workspace_id_workspaces FOREIGN KEY(workspace_id) REFERENCES workspaces (id) ON DELETE CASCADE,
+ CONSTRAINT fk_ai_documents_workspace_id_clients FOREIGN KEY(workspace_id,client_id) REFERENCES clients(workspace_id,id) ON DELETE CASCADE
+)
+
+;
+CREATE INDEX ix_ai_documents_workspace_id ON ai_documents (workspace_id);
+
+CREATE TABLE ai_jobs (
+	id UUID NOT NULL, 
+	workspace_id UUID NOT NULL, 
+	kind VARCHAR(40) NOT NULL, 
+	source_id UUID NOT NULL, 
+	revision BIGINT DEFAULT 1 NOT NULL, 
+	attempts INTEGER DEFAULT 0 NOT NULL, 
+	due_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
+	claimed_at TIMESTAMP WITH TIME ZONE, 
+	CONSTRAINT pk_ai_jobs PRIMARY KEY (id), 
+	CONSTRAINT uq_ai_jobs_workspace_id UNIQUE (workspace_id, kind, source_id), 
+	CONSTRAINT fk_ai_jobs_workspace_id_workspaces FOREIGN KEY(workspace_id) REFERENCES workspaces (id) ON DELETE CASCADE
+)
+
+;
+CREATE INDEX ix_ai_jobs_due_at ON ai_jobs (due_at);
+
+CREATE TABLE ai_source_revisions (
+	id BIGSERIAL NOT NULL, 
+	transaction_id BIGINT DEFAULT txid_current() NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT clock_timestamp() NOT NULL, 
+	workspace_id UUID NOT NULL, 
+	CONSTRAINT pk_ai_source_revisions PRIMARY KEY (id), 
+	CONSTRAINT fk_ai_source_revisions_workspace_id_workspaces FOREIGN KEY(workspace_id) REFERENCES workspaces (id) ON DELETE CASCADE
+)
+
+;
+CREATE INDEX ix_ai_source_revisions_workspace_id ON ai_source_revisions (workspace_id, id);
+
+CREATE TABLE ai_states (
+	workspace_id UUID NOT NULL, 
+	enabled BOOLEAN DEFAULT false NOT NULL, 
+	revision BIGINT DEFAULT 1 NOT NULL, 
+	privacy_epoch BIGINT DEFAULT 1 NOT NULL, 
+	CONSTRAINT pk_ai_states PRIMARY KEY (workspace_id), 
+	CONSTRAINT fk_ai_states_workspace_id_workspaces FOREIGN KEY(workspace_id) REFERENCES workspaces (id) ON DELETE CASCADE
+)
+
+;
+
+CREATE TABLE ai_threads (
+	id UUID NOT NULL, 
+	workspace_id UUID NOT NULL, 
+	actor_id UUID NOT NULL, 
+	title VARCHAR(120) NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
+	CONSTRAINT pk_ai_threads PRIMARY KEY (id), 
+	CONSTRAINT uq_ai_threads_tenant_id UNIQUE (workspace_id, id), 
+	CONSTRAINT fk_ai_threads_workspace_id_workspaces FOREIGN KEY(workspace_id) REFERENCES workspaces (id) ON DELETE CASCADE, 
+	CONSTRAINT fk_ai_threads_actor_id_users FOREIGN KEY(actor_id) REFERENCES users (id) ON DELETE CASCADE
+)
+
+;
+CREATE INDEX ix_ai_threads_owner ON ai_threads (workspace_id, actor_id, created_at);
+
+CREATE TABLE ai_usage (
+	workspace_id UUID NOT NULL, 
+	day DATE NOT NULL, 
+	answers INTEGER DEFAULT 0 NOT NULL, 
+	tokens INTEGER DEFAULT 0 NOT NULL, 
+	indexing_tokens INTEGER DEFAULT 0 NOT NULL, 
+	CONSTRAINT pk_ai_usage PRIMARY KEY (workspace_id, day), 
+	CONSTRAINT fk_ai_usage_workspace_id_workspaces FOREIGN KEY(workspace_id) REFERENCES workspaces (id) ON DELETE CASCADE
+)
+
+;
+
+CREATE TABLE ai_turns (
+	id UUID NOT NULL, 
+	workspace_id UUID NOT NULL, 
+	actor_id UUID NOT NULL, 
+	thread_id UUID NOT NULL, 
+	key VARCHAR(255) NOT NULL, 
+	fingerprint VARCHAR(64) NOT NULL, 
+	prompt TEXT NOT NULL, 
+	answer TEXT DEFAULT '' NOT NULL, 
+	language VARCHAR(2) NOT NULL, 
+	status VARCHAR(20) DEFAULT 'pending' NOT NULL, 
+	privacy_epoch BIGINT NOT NULL, 
+	citations JSONB DEFAULT '[]'::jsonb NOT NULL, 
+	proposal JSONB, 
+	error_code VARCHAR(50), 
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
+	CONSTRAINT pk_ai_turns PRIMARY KEY (id), 
+	CONSTRAINT uq_ai_turns_workspace_id UNIQUE (workspace_id, actor_id, key), 
+	CONSTRAINT uq_ai_turns_tenant_id UNIQUE (workspace_id, id), 
+	CONSTRAINT fk_ai_turns_workspace_id_ai_threads FOREIGN KEY(workspace_id, thread_id) REFERENCES ai_threads (workspace_id, id) ON DELETE CASCADE, 
+	CONSTRAINT fk_ai_turns_workspace_id_workspaces FOREIGN KEY(workspace_id) REFERENCES workspaces (id) ON DELETE CASCADE, 
+	CONSTRAINT fk_ai_turns_actor_id_users FOREIGN KEY(actor_id) REFERENCES users (id) ON DELETE CASCADE
+)
+
+;
+CREATE INDEX ix_ai_turns_thread ON ai_turns (workspace_id, thread_id, created_at);
+
+CREATE TABLE ai_briefings (
+	id UUID NOT NULL, 
+	workspace_id UUID NOT NULL, 
+	actor_id UUID NOT NULL, 
+	scope VARCHAR(80) NOT NULL, 
+	cycle VARCHAR(40) NOT NULL, 
+	language VARCHAR(2) NOT NULL, 
+	turn_id UUID NOT NULL, 
+	generated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
+	CONSTRAINT pk_ai_briefings PRIMARY KEY (id), 
+	CONSTRAINT uq_ai_briefings_workspace_id UNIQUE (workspace_id, actor_id, scope), 
+	CONSTRAINT fk_ai_briefings_workspace_id_ai_turns FOREIGN KEY(workspace_id, turn_id) REFERENCES ai_turns (workspace_id, id) ON DELETE CASCADE, 
+	CONSTRAINT fk_ai_briefings_workspace_id_workspaces FOREIGN KEY(workspace_id) REFERENCES workspaces (id) ON DELETE CASCADE, 
+	CONSTRAINT fk_ai_briefings_actor_id_users FOREIGN KEY(actor_id) REFERENCES users (id) ON DELETE CASCADE
+)
+
+;
+ALTER TABLE ai_briefings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_briefings FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_briefings_tenant ON ai_briefings USING(workspace_id=slotera_current_workspace_id()) WITH CHECK(workspace_id=slotera_current_workspace_id());
+REVOKE ALL ON ai_briefings FROM slotera_app;
+GRANT SELECT,INSERT,UPDATE,DELETE ON ai_briefings TO slotera_app;
+ALTER TABLE ai_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_documents FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_documents_tenant ON ai_documents USING(workspace_id=slotera_current_workspace_id()) WITH CHECK(workspace_id=slotera_current_workspace_id());
+REVOKE ALL ON ai_documents FROM slotera_app;
+GRANT SELECT,INSERT,UPDATE,DELETE ON ai_documents TO slotera_app;
+ALTER TABLE ai_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_jobs FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_jobs_tenant ON ai_jobs USING(workspace_id=slotera_current_workspace_id()) WITH CHECK(workspace_id=slotera_current_workspace_id());
+REVOKE ALL ON ai_jobs FROM slotera_app;
+GRANT SELECT,INSERT,UPDATE,DELETE ON ai_jobs TO slotera_app;
+ALTER TABLE ai_source_revisions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_source_revisions FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_source_revisions_tenant ON ai_source_revisions USING(workspace_id=slotera_current_workspace_id()) WITH CHECK(workspace_id=slotera_current_workspace_id());
+REVOKE ALL ON ai_source_revisions FROM slotera_app;
+GRANT SELECT ON ai_source_revisions TO slotera_app;
+ALTER TABLE ai_states ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_states FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_states_tenant ON ai_states USING(workspace_id=slotera_current_workspace_id()) WITH CHECK(workspace_id=slotera_current_workspace_id());
+REVOKE ALL ON ai_states FROM slotera_app;
+GRANT SELECT,INSERT,UPDATE,DELETE ON ai_states TO slotera_app;
+ALTER TABLE ai_threads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_threads FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_threads_tenant ON ai_threads USING(workspace_id=slotera_current_workspace_id()) WITH CHECK(workspace_id=slotera_current_workspace_id());
+REVOKE ALL ON ai_threads FROM slotera_app;
+GRANT SELECT,INSERT,UPDATE,DELETE ON ai_threads TO slotera_app;
+ALTER TABLE ai_turns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_turns FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_turns_tenant ON ai_turns USING(workspace_id=slotera_current_workspace_id()) WITH CHECK(workspace_id=slotera_current_workspace_id());
+REVOKE ALL ON ai_turns FROM slotera_app;
+GRANT SELECT,INSERT,UPDATE,DELETE ON ai_turns TO slotera_app;
+ALTER TABLE ai_usage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_usage FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_usage_tenant ON ai_usage USING(workspace_id=slotera_current_workspace_id()) WITH CHECK(workspace_id=slotera_current_workspace_id());
+REVOKE ALL ON ai_usage FROM slotera_app;
+GRANT SELECT,INSERT,UPDATE,DELETE ON ai_usage TO slotera_app;
+CREATE INDEX ix_ai_documents_words ON ai_documents USING gin(to_tsvector('simple',content));
+CREATE FUNCTION slotera_ai_changed() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE wid uuid; sid uuid;
+BEGIN
+ wid:=coalesce((to_jsonb(NEW)->>'workspace_id')::uuid,(to_jsonb(OLD)->>'workspace_id')::uuid,(to_jsonb(NEW)->>'id')::uuid,(to_jsonb(OLD)->>'id')::uuid);
+ sid:=coalesce((to_jsonb(NEW)->>'id')::uuid,(to_jsonb(OLD)->>'id')::uuid,wid);
+ IF NOT EXISTS(SELECT 1 FROM workspaces WHERE id=wid) THEN RETURN coalesce(NEW,OLD); END IF;
+ IF EXISTS(SELECT 1 FROM ai_states WHERE workspace_id=wid AND enabled) THEN
+ INSERT INTO ai_source_revisions(workspace_id) VALUES(wid);
+ END IF;
+ IF TG_TABLE_NAME='clients' AND TG_OP='UPDATE' AND (to_jsonb(NEW)->>'erased_at') IS NOT NULL AND (to_jsonb(OLD)->>'erased_at') IS NULL THEN
+  UPDATE ai_states SET privacy_epoch=privacy_epoch+1 WHERE workspace_id=wid;
+  DELETE FROM ai_threads WHERE workspace_id=wid;
+  DELETE FROM ai_documents WHERE workspace_id=wid AND client_id=sid;
+  UPDATE ai_jobs SET revision=revision+1,attempts=0,claimed_at=NULL,due_at=statement_timestamp() WHERE workspace_id=wid;
+ END IF;
+ IF TG_OP='DELETE' AND TG_TABLE_NAME IN ('client_notes','conversation_messages','booking_form_responses') THEN
+ UPDATE ai_states SET privacy_epoch=privacy_epoch+1 WHERE workspace_id=wid;
+ DELETE FROM ai_threads WHERE workspace_id=wid;
+ END IF;
+ IF TG_OP='DELETE' THEN DELETE FROM ai_jobs WHERE workspace_id=wid AND kind=TG_TABLE_NAME AND source_id=sid; END IF;
+ IF TG_OP<>'DELETE' AND EXISTS(SELECT 1 FROM ai_states WHERE workspace_id=wid AND enabled)
+ AND TG_TABLE_NAME IN ('client_notes','conversation_messages','booking_form_responses','services','service_packages','sessions') THEN
+ INSERT INTO ai_jobs(id,workspace_id,kind,source_id) VALUES(gen_random_uuid(),wid,TG_TABLE_NAME,sid)
+ ON CONFLICT(workspace_id,kind,source_id) DO UPDATE SET revision=ai_jobs.revision+1,attempts=0,due_at=statement_timestamp(),claimed_at=NULL;
+ END IF;
+ DELETE FROM ai_documents WHERE workspace_id=wid AND kind=TG_TABLE_NAME AND source_id=sid;
+ RETURN coalesce(NEW,OLD);
+END $$;
+REVOKE ALL ON FUNCTION slotera_ai_changed() FROM PUBLIC;
+CREATE FUNCTION slotera_ai_claim() RETURNS TABLE(id uuid,workspace_id uuid) LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+ UPDATE ai_jobs j SET claimed_at=statement_timestamp(),attempts=attempts+1
+ WHERE j.id=(SELECT x.id FROM ai_jobs x JOIN ai_states a ON a.workspace_id=x.workspace_id JOIN workspaces w ON w.id=x.workspace_id WHERE a.enabled AND w.operational_status='active' AND x.attempts<5 AND x.due_at<=statement_timestamp() AND (x.claimed_at IS NULL OR x.claimed_at<statement_timestamp()-interval '2 minutes') ORDER BY x.due_at,x.id FOR UPDATE OF x SKIP LOCKED LIMIT 1)
+ RETURNING j.id,j.workspace_id;
+$$;
+REVOKE ALL ON FUNCTION slotera_ai_claim() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION slotera_ai_claim() TO slotera_app;
+CREATE FUNCTION slotera_ai_close() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+BEGIN
+ IF NEW.operational_status='suspended' THEN
+ UPDATE ai_states SET enabled=false,privacy_epoch=privacy_epoch+1 WHERE workspace_id=NEW.id;
+ DELETE FROM ai_threads WHERE workspace_id=NEW.id;
+ DELETE FROM ai_documents WHERE workspace_id=NEW.id;
+ DELETE FROM ai_jobs WHERE workspace_id=NEW.id;
+ END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION slotera_ai_close() FROM PUBLIC;
+CREATE TRIGGER ai_workspace_close AFTER UPDATE OF operational_status ON workspaces FOR EACH ROW EXECUTE FUNCTION slotera_ai_close();
+CREATE TRIGGER ai_change AFTER UPDATE ON workspaces FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON workspace_business_profiles FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON workspace_payment_settings FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON clients FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON client_notes FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON conversation_messages FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON booking_form_responses FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON services FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON service_packages FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON sessions FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON bookings FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+CREATE TRIGGER ai_change AFTER INSERT OR UPDATE OR DELETE ON session_action_items FOR EACH ROW EXECUTE FUNCTION slotera_ai_changed();
+
+CREATE FUNCTION slotera_ai_cleanup() RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE n integer;
+BEGIN
+ DELETE FROM ai_turns WHERE id IN(SELECT id FROM ai_turns WHERE created_at<statement_timestamp()-interval '30 days' ORDER BY created_at LIMIT 1000);
+ GET DIAGNOSTICS n=ROW_COUNT;
+ DELETE FROM ai_threads WHERE id IN(SELECT t.id FROM ai_threads t WHERE t.created_at<statement_timestamp()-interval '30 days' AND NOT EXISTS(SELECT 1 FROM ai_turns r WHERE r.thread_id=t.id) LIMIT 1000);
+ DELETE FROM ai_usage WHERE day<current_date-31;
+ DELETE FROM ai_source_revisions WHERE id IN(SELECT r.id FROM ai_source_revisions r WHERE r.created_at<clock_timestamp()-interval '30 days' LIMIT 1000);
+ RETURN n;
+END $$;
+REVOKE ALL ON FUNCTION slotera_ai_cleanup() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION slotera_ai_cleanup() TO slotera_app;
+
 SET search_path = public;
 SET row_security = on;
 SET check_function_bodies = on;

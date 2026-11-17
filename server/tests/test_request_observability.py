@@ -129,11 +129,13 @@ async def test_request_metrics_include_streamed_response_work() -> None:
 
         return StreamingResponse(body())
 
-    with patch("slotera_api.middleware.logger.info") as logged:
+    with patch("slotera_api.middleware.logger") as logged:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/test-stream")
     assert response.text == "firstlast"
-    metrics = logged.call_args.kwargs["extra"]
+    call = logged.info.call_args or logged.warning.call_args
+    assert call is not None
+    metrics = call.kwargs["extra"]
     assert metrics["db_query_count"] == 1
     assert metrics["duration_ms"] >= 20
     assert metrics["request_id"] == response.headers["x-request-id"]

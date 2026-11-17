@@ -1,5 +1,6 @@
 "use client";
 
+import {BriefingCard} from "@/components/assistant/BriefingCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { readLang, translate } from "@/lib/i18n";
 import * as React from "react";
@@ -40,6 +41,7 @@ export function DashboardView() {
   return (
     <PageContainer>
       <Greeting firstName={firstName} subtitle={subtitle} />
+      <div className="mb-6"><BriefingCard /></div>
 
       {error ? (
         <LoadError message={error} onRetry={reload} />
