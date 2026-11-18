@@ -393,7 +393,8 @@ export async function getWorkspaceCurrency(): Promise<Currency> {
 
 /** The workspace's timezone; the demo shows session times as written (UTC). */
 export async function getWorkspaceTimezone(): Promise<string> {
-  if (dataSource === "mock") return "UTC";
+  // One demo timezone: the one the availability rules (and so the booking page) use.
+  if (dataSource === "mock") return mockAvailability().timezone;
   if (verifiedMetadata().timezone) return verifiedMetadata().timezone!;
   return (await apiRequest<AvailabilityResponseDto>("/availability")).timezone;
 }

@@ -292,10 +292,11 @@ export const en = {
   // Landing — hero
   "landing.hero.eyebrow": "For independent consultants, coaches & instructors",
   "landing.hero.title": "Paid bookings, without the calendar chaos.",
-  "landing.hero.shot.dashboard": "The Slotera dashboard: the next call, today's schedule and the to-do list.",
-  "landing.hero.shot.booking": "The client booking page, listing the consultant's services and prices.",
-  "landing.hero.caption.dashboard": "Your workspace",
-  "landing.hero.caption.booking": "Your booking page, as clients see it",
+  "landing.hero.shot.nextCall": "Your next call in Slotera, with its countdown, client and a Join button.",
+  "landing.hero.shot.trend": "The 30-day revenue trend chart.",
+  "landing.hero.shot.kpi": "Revenue this month, with the change from last month.",
+  "landing.hero.shot.messages": "Client conversations with the latest message and an unread mark.",
+  "landing.hero.shot.services": "The client booking page, listing services and prices.",
   "landing.hero.subtitle":
     "Slotera is a lightweight client workspace for independent experts. Take paid bookings with bank-transfer payment, send prep forms, bundle sessions into packages, and keep client context and follow-up in one place. No heavy CRM.",
 

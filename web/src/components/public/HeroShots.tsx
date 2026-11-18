@@ -1,59 +1,61 @@
 "use client";
 
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { cn } from "@/lib/cn";
+import nextCall from "@/assets/landing/hero-next-call.png";
+import trend from "@/assets/landing/hero-trend.png";
+import kpi from "@/assets/landing/hero-kpi.png";
+import messages from "@/assets/landing/hero-messages.png";
+import services from "@/assets/landing/hero-services.png";
 
 /**
- * Real screenshots of the product (captured by `npm run ui:walk` into `public/landing/`):
- * the operator dashboard, with the client booking page laid over its corner on wide
- * screens, and the phone dashboard on small ones.
+ * Real screenshots of single product components (captured by `npm run ui:walk` into
+ * `src/assets/landing/`; importing them gives each capture a content-hashed URL, so a new
+ * capture is never hidden by the image optimiser's cache). On wide screens they sit loosely
+ * overlapped beside the hero copy; smaller screens show two of them under it.
  */
 export function HeroShots() {
   const { t } = useI18n();
   return (
-    <div className="relative mt-14 sm:mt-16">
-      <figure className="hidden sm:block lg:mr-24 xl:mr-32">
-        <div className="rounded-xl border border-line bg-surface shadow-3 overflow-hidden">
-          <Image
-            src="/landing/hero-dashboard.png"
-            width={2848}
-            height={1424}
-            sizes="(min-width: 1280px) 1040px, 92vw"
-            priority
-            alt={t("landing.hero.shot.dashboard")}
-            className="block w-full h-auto"
-          />
-        </div>
-        <figcaption className="mt-3 text-small text-ink-3">{t("landing.hero.caption.dashboard")}</figcaption>
-      </figure>
+    <>
+      {/* Positions are percentages of a 520 × 580 stage, so the arrangement scales with the column. */}
+      <div className="hidden lg:block relative w-full aspect-[520/580] select-none">
+        <Shot placed image={kpi} alt={t("landing.hero.shot.kpi")} sizes="180px" className="left-0 top-0 w-[33%] z-10" />
+        <Shot placed image={trend} alt={t("landing.hero.shot.trend")} sizes="380px" className="right-0 top-[3%] w-[69%]" />
+        <Shot placed image={nextCall} alt={t("landing.hero.shot.nextCall")} sizes="480px" priority className="-left-[4%] top-[33%] w-[90%] z-20" />
+        <Shot placed image={messages} alt={t("landing.hero.shot.messages")} sizes="230px" className="left-[2%] top-[63%] w-[42%] z-10" />
+        <Shot placed image={services} alt={t("landing.hero.shot.services")} sizes="280px" paper className="-right-[2%] top-[64%] w-[52%] z-30" />
+      </div>
+      <div className="lg:hidden mt-12 grid gap-4 max-w-xl">
+        <Shot image={nextCall} alt={t("landing.hero.shot.nextCall")} sizes="(min-width: 640px) 576px, 92vw" priority />
+        <Shot image={services} alt={t("landing.hero.shot.services")} sizes="(min-width: 640px) 460px, 74vw" paper className="w-4/5 justify-self-end" />
+      </div>
+    </>
+  );
+}
 
-      <figure className="hidden lg:block absolute right-0 top-[18%] w-[300px] xl:w-[330px]">
-        <div className="rounded-xl border border-line bg-paper shadow-3 overflow-hidden p-2">
-          <Image
-            src="/landing/hero-booking.png"
-            width={944}
-            height={1016}
-            sizes="330px"
-            alt={t("landing.hero.shot.booking")}
-            className="block w-full h-auto rounded-lg"
-          />
-        </div>
-        <figcaption className="mt-3 text-small text-ink-3">{t("landing.hero.caption.booking")}</figcaption>
-      </figure>
-
-      <figure className="sm:hidden mx-auto w-full max-w-[340px]">
-        <div className="rounded-[28px] border border-line bg-surface shadow-3 overflow-hidden">
-          <Image
-            src="/landing/hero-mobile.png"
-            width={780}
-            height={1400}
-            sizes="340px"
-            priority
-            alt={t("landing.hero.shot.dashboard")}
-            className="block w-full h-auto"
-          />
-        </div>
-      </figure>
-    </div>
+function Shot({ image, alt, sizes, className, priority, paper, placed }: {
+  image: StaticImageData;
+  alt: string;
+  sizes: string;
+  className?: string;
+  priority?: boolean;
+  /** The booking-page capture has the page's paper colour around its cards. */
+  paper?: boolean;
+  /** Positioned on the wide-screen stage. */
+  placed?: boolean;
+}) {
+  return (
+    <figure
+      className={cn(
+        "rounded-xl border border-line shadow-3 overflow-hidden",
+        paper ? "bg-paper" : "bg-surface",
+        placed && "absolute",
+        className,
+      )}
+    >
+      <Image src={image} alt={alt} sizes={sizes} priority={priority} className="block w-full h-auto" />
+    </figure>
   );
 }

@@ -2410,4 +2410,20 @@ Applied every recommendation from the screenshot critique.
   `paper-2`); placeholders, future step labels, the schedule axis, the ⌘K hint and two icon
   buttons moved off `--ink-4`, which stays for decoration. Top-bar buttons are 44px on touch
   screens, and the assistant and messages links carry text labels on wide screens.
+- **Follow-up from the screenshot review.** The demo had two timezones: availability (and so
+  the booking page and the new dashboard) used Europe/Berlin while `getWorkspaceTimezone()`
+  returned UTC, so one session read 09:30 on the dashboard and 08:30 in the calendar and lists.
+  The demo workspace timezone now comes from the availability settings. A demo message no
+  longer names a weekday that the date shift would make wrong, and the hero capture hides the
+  demo-only "Demo" button.
+- **Hero images moved to `web/src/assets/landing/`.** Served from `public/` under a fixed URL,
+  the image optimiser kept returning the first crop after new captures replaced the file.
+  `HeroShots` now imports the images, so every capture gets a content-hashed URL (and its
+  size comes from the file). `npm run ui:walk` writes the captures there.
+- **Hero layout, second take.** One large dashboard screenshot under the buttons was not what
+  was asked for: the hero now keeps the copy on the left and scatters five small captures of
+  single components on the right (next call, revenue trend, revenue KPI, messages list, the
+  booking page's services), loosely overlapped on a percentage-based stage; phones and tablets
+  show two of them under the copy. The captions (one of which overlapped its image) are gone.
+  The walkthrough captures each card as an element at 2x.
 

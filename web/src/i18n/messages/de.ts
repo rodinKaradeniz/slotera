@@ -283,10 +283,11 @@ export const de: Partial<Messages> = {
 
   "landing.hero.eyebrow": "Für unabhängige Beratende, Coaches & Trainer:innen",
   "landing.hero.title": "Bezahlte Buchungen, ohne Kalender-Chaos.",
-  "landing.hero.shot.dashboard": "Das Slotera-Dashboard: der nächste Termin, der heutige Ablauf und die Aufgabenliste.",
-  "landing.hero.shot.booking": "Die Buchungsseite für Klient:innen mit den Leistungen und Preisen.",
-  "landing.hero.caption.dashboard": "Ihr Workspace",
-  "landing.hero.caption.booking": "Ihre Buchungsseite aus Sicht der Klient:innen",
+  "landing.hero.shot.nextCall": "Ihr nächster Termin in Slotera mit Countdown, Klient:in und Beitreten-Button.",
+  "landing.hero.shot.trend": "Das Umsatzdiagramm der letzten 30 Tage.",
+  "landing.hero.shot.kpi": "Umsatz dieses Monats mit der Veränderung zum Vormonat.",
+  "landing.hero.shot.messages": "Unterhaltungen mit Klient:innen, mit der neuesten Nachricht und einer Ungelesen-Markierung.",
+  "landing.hero.shot.services": "Die Buchungsseite für Klient:innen mit Leistungen und Preisen.",
   "landing.hero.subtitle":
     "Slotera ist ein schlanker Klienten-Workspace für unabhängige Expert:innen. Nehmen Sie bezahlte Buchungen per Banküberweisung an, versenden Sie Vorbereitungsformulare, bündeln Sie Sitzungen zu Paketen und behalten Sie Klienten-Kontext und Nachfassen an einem Ort. Kein schweres CRM.",
 

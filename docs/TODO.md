@@ -667,9 +667,8 @@ agreed final integration-verification stage; no new architecture work is deferre
 
 ## Calm motion and de-templating follow-ups — 2026-11-18
 
-- **~~Landing hero collage.~~ DONE 2026-11-18.** `HeroShots` shows real captures from
-  `public/landing/` (dashboard, client booking page, phone dashboard), which `npm run ui:walk`
-  refreshes at 2x on a fixed morning clock.
+- **~~Landing hero collage.~~ DONE 2026-11-18.** `HeroShots` shows five real component captures
+  from `src/assets/landing/`, which `npm run ui:walk` refreshes at 2x on a fixed morning clock.
 - **~~Task completion.~~ DONE 2026-11-18.** `Checkbox` (role `checkbox`, 32px hit area) draws
   its tick in and erases it quickly; the dashboard to-do uses it.
 - **~~Row removal.~~ DONE 2026-11-18.** `useLeavingRows` + `.row-shell`: a removed row fades

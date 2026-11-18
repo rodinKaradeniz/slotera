@@ -283,10 +283,11 @@ export const tr: Partial<Messages> = {
 
   "landing.hero.eyebrow": "Bağımsız danışmanlar, koçlar ve eğitmenler için",
   "landing.hero.title": "Takvim karmaşası olmadan, ücretli rezervasyonlar.",
-  "landing.hero.shot.dashboard": "Slotera paneli: sıradaki görüşme, bugünün programı ve yapılacaklar listesi.",
-  "landing.hero.shot.booking": "Danışanların gördüğü rezervasyon sayfası: hizmetler ve fiyatlar.",
-  "landing.hero.caption.dashboard": "Çalışma alanınız",
-  "landing.hero.caption.booking": "Danışanlarınızın gördüğü rezervasyon sayfanız",
+  "landing.hero.shot.nextCall": "Slotera'da sıradaki görüşmeniz: geri sayım, danışan ve Katıl düğmesi.",
+  "landing.hero.shot.trend": "Son 30 günün gelir grafiği.",
+  "landing.hero.shot.kpi": "Bu ayın geliri ve geçen aya göre değişim.",
+  "landing.hero.shot.messages": "Danışan yazışmaları: son mesaj ve okunmamış işareti.",
+  "landing.hero.shot.services": "Danışanların gördüğü rezervasyon sayfası: hizmetler ve fiyatlar.",
   "landing.hero.subtitle":
     "Slotera, bağımsız uzmanlar için hafif bir müşteri çalışma alanıdır. Banka havalesiyle ücretli rezervasyon alın, hazırlık formları gönderin, seansları paketler hâlinde sunun ve müşteri bağlamı ile takibi tek yerde tutun. Ağır bir CRM değil.",
 
