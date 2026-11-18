@@ -4,6 +4,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Toggle } from "@/components/ui/Toggle";
 import type { SettingsData } from "@/types/settings";
 import { cn } from "@/lib/cn";
 
@@ -17,11 +18,15 @@ export function PanelCard({
   hint,
   children,
   onSave,
+  dirty,
 }: {
-  title: string;
+  /** Omit when the card's heading would repeat the section title above it. */
+  title?: string;
   hint?: string;
   children: React.ReactNode;
   onSave?: () => void | Promise<void>;
+  /** When given, Save appears only while there are unsaved changes. */
+  dirty?: boolean;
 }) {
   const { t: uiText } = useI18n();
   const [saving, setSaving] = React.useState(false);
@@ -34,21 +39,28 @@ export function PanelCard({
   };
   return (
     <Card padded>
-      <div className="mb-4">
-        <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>{title}</h2>
-        {hint && <p className="text-small mt-1">{hint}</p>}
-      </div>
+      {(title || hint) && (
+        <div className="mb-4">
+          {title && <h2 className="text-h3 text-ink" style={{ fontSize: 18 }}>{title}</h2>}
+          {hint && <p className={cn("text-small", title && "mt-1")}>{hint}</p>}
+        </div>
+      )}
       {children}
       {error && <p role="alert" className="text-small text-danger mt-3">{error.message}</p>}
       {onSave && (
-        <div className="flex justify-end mt-5 pt-4 border-t border-line-soft">
-          <Button variant="primary" loading={saving} onClick={save}>{uiText("ui.save.changes")}</Button>
+        <div className="collapse-grid" data-state={dirty === false && !saving ? "closed" : "open"} inert={dirty === false && !saving}>
+          <div>
+            <div className="flex justify-end mt-5 pt-4 border-t border-line-soft">
+              <Button variant="primary" loading={saving} onClick={save}>{uiText("ui.save.changes")}</Button>
+            </div>
+          </div>
         </div>
       )}
     </Card>
   );
 }
 
+/** A setting that is on or off: the label, with a switch at the end of the row. */
 export function CheckRow({
   checked,
   onChange,
@@ -59,19 +71,9 @@ export function CheckRow({
   label: string;
 }) {
   return (
-    <label
-      className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer border transition-colors",
-        checked ? "bg-accent-soft border-[rgba(61,90,61,0.2)]" : "bg-surface border-line-soft",
-      )}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-4 h-4 accent-[color:var(--accent)]"
-      />
+    <div className="flex items-center justify-between gap-4 py-1">
       <span className="text-[14px] text-ink">{label}</span>
-    </label>
+      <Toggle checked={checked} onChange={onChange} aria-label={label} />
+    </div>
   );
 }

@@ -122,7 +122,8 @@ class PublicBookingCreate(StrictApiModel):
     service_id: UUID
     start_at: datetime
     customer: PublicBookingCustomer
-    billing_address: PublicBookingBillingAddress
+    # Required for paid (manual) bookings; free bookings skip the billing step.
+    billing_address: PublicBookingBillingAddress | None = None
     payment_method: Literal["free", "manual"]
     form_responses: list[PublicFormSubmission] = Field(default_factory=list, max_length=50)
     terms_accepted: Literal[True]

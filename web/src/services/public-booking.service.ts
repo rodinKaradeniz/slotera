@@ -168,7 +168,8 @@ export async function createPublicBooking(
       company: draft.customer.company || null,
       notes: draft.customer.notes || null,
     },
-    billingAddress: {
+    // Free bookings skip the billing step; the server needs an address only for paid ones.
+    billingAddress: draft.service.priceCents === 0 ? null : {
       street: draft.billing.street,
       street2: draft.billing.address2 || null,
       city: draft.billing.city,

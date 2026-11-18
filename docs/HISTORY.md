@@ -2376,3 +2376,38 @@ walkthrough shots. The hero subtitle no longer promises card payments. The clien
 hint still described the removed 9am daily cycle; it now says briefings are made on request
 and should be refreshed after new sessions or notes.
 
+## 2026-11-18 — Design critique pass
+
+Applied every recommendation from the screenshot critique.
+
+- **Honest landing copy.** "How it works", "Paid bookings" and the pricing small print no
+  longer promise card payments; cards are "coming soon" and the per-payment cut applies once
+  they launch.
+- **Demo dates follow the clock.** Fixtures are written as if today were 17 May 2026;
+  `mockData()` shifts every date and date-time by the same whole number of days. The demo
+  dashboard now builds today's schedule, the next call and the week count from the demo
+  sessions (as the API summary does), the calendar opens on this week in both modes, and the
+  "in 2h 14m" pill is a real countdown in both modes instead of a fixed demo string. The
+  clients KPI is an illustrative fixture like the other three ("500%" came from computing it
+  over a fortnight of demo bookings).
+- **Free bookings skip Billing.** The server now accepts a booking without a billing address
+  when it is free and still requires one for manual payment (integration-tested); the last
+  step reads "Confirm" for free services.
+- **Lists.** Booking rows on phones put the date and time on their own line; the payment badge
+  is dropped where it repeats the group ("Pending" in Pending); empty status groups are a flat
+  muted line; pagination hides when everything fits on one page.
+- **Messages.** The conversation list shows the last message (with "You:" for replies), its
+  time and an unread dot, from new `lastMessagePreview` / `lastMessageAt` / `lastMessageFrom`
+  fields on `GET /conversations`; the newest conversation opens by default. The demo has three
+  conversations instead of one.
+- **Hierarchy and consistency.** List-page titles use the h2 size; Settings drops the extra
+  eyebrows and the card heading that repeated "Business Profile"; settings checkboxes are
+  switch rows; Business and Branding show Save only with unsaved changes; the client page's
+  AI briefing is one line below the stats when AI is off; upcoming calendar sessions carry the
+  accent and past ones step back; amount fields show "£" rather than "GBP"; KPI changes read
+  "+12.4% vs last month".
+- **Accessibility.** `--ink-3` is now `#6A655A` (at least 4.5:1 on every surface, was 3.76:1 on
+  `paper-2`); placeholders, future step labels, the schedule axis, the ⌘K hint and two icon
+  buttons moved off `--ink-4`, which stays for decoration. Top-bar buttons are 44px on touch
+  screens, and the assistant and messages links carry text labels on wide screens.
+

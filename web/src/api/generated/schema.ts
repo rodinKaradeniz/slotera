@@ -3282,6 +3282,18 @@ export interface components {
             clientId: string;
             /** Clientname */
             clientName: string;
+            /**
+             * Lastmessageat
+             * Format: date-time
+             */
+            lastMessageAt: string;
+            /**
+             * Lastmessagefrom
+             * @enum {string}
+             */
+            lastMessageFrom: "client" | "operator";
+            /** Lastmessagepreview */
+            lastMessagePreview: string;
             /** Lastsequence */
             lastSequence: number;
             /** Unreadcount */
@@ -4368,7 +4380,7 @@ export interface components {
         };
         /** PublicBookingCreate */
         PublicBookingCreate: {
-            billingAddress: components["schemas"]["PublicBookingBillingAddress"];
+            billingAddress?: components["schemas"]["PublicBookingBillingAddress"] | null;
             customer: components["schemas"]["PublicBookingCustomer"];
             /** Formresponses */
             formResponses?: components["schemas"]["PublicFormSubmission"][];

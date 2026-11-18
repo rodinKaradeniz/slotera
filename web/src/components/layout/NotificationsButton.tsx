@@ -62,7 +62,7 @@ export function NotificationsButton() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative w-9 h-9 rounded-md hover:bg-paper-2 text-ink-2 flex items-center justify-center"
+        className="relative w-11 h-11 md:w-9 md:h-9 rounded-md hover:bg-paper-2 text-ink-2 flex items-center justify-center"
         aria-label={uiText("ui.notifications")}
       >
         <Icon name="bell" size={18} />

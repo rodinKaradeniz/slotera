@@ -3287,6 +3287,23 @@
             "title": "Clientname",
             "type": "string"
           },
+          "lastMessageAt": {
+            "format": "date-time",
+            "title": "Lastmessageat",
+            "type": "string"
+          },
+          "lastMessageFrom": {
+            "enum": [
+              "client",
+              "operator"
+            ],
+            "title": "Lastmessagefrom",
+            "type": "string"
+          },
+          "lastMessagePreview": {
+            "title": "Lastmessagepreview",
+            "type": "string"
+          },
           "lastSequence": {
             "title": "Lastsequence",
             "type": "integer"
@@ -3300,7 +3317,10 @@
           "clientId",
           "clientName",
           "lastSequence",
-          "unreadCount"
+          "unreadCount",
+          "lastMessagePreview",
+          "lastMessageAt",
+          "lastMessageFrom"
         ],
         "title": "ConversationSummary",
         "type": "object"
@@ -6251,7 +6271,14 @@
         "additionalProperties": false,
         "properties": {
           "billingAddress": {
-            "$ref": "#/components/schemas/PublicBookingBillingAddress"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicBookingBillingAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "customer": {
             "$ref": "#/components/schemas/PublicBookingCustomer"
@@ -6302,7 +6329,6 @@
           "serviceId",
           "startAt",
           "customer",
-          "billingAddress",
           "paymentMethod",
           "termsAccepted"
         ],

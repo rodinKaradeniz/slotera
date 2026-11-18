@@ -16,7 +16,7 @@ export function BrandingPanel({ data, onChange }: PanelProps) {
     onChange(next);
   };
   return (
-    <PanelCard title={uiText("ui.branding")} hint={uiText("ui.used.across.emails.and.the.booking.page")} onSave={save}>
+    <PanelCard title={uiText("ui.branding")} hint={uiText("ui.used.across.emails.and.the.booking.page")} onSave={save} dirty={JSON.stringify(local) !== JSON.stringify(data.branding)}>
       <Field label={uiText("ui.accent.color")}>
         <div className="flex items-center gap-3">
           <span

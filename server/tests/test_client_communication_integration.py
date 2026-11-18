@@ -112,6 +112,11 @@ async def test_client_messages_are_private_immutable_idempotent_and_revocable(co
         json={"submissionId": str(uuid4()), "body": "Synthetic reply"},
     )
     assert reply.status_code == 200
+    listed = (await operator.get("/conversations")).json()["items"]
+    summary = next(item for item in listed if item["clientId"] == client_id)
+    assert summary["lastMessagePreview"] == "Synthetic reply"
+    assert summary["lastMessageFrom"] == "operator"
+    assert summary["lastMessageAt"]
     assert (await customer.get("/client/conversation/messages?after=1")).json()["items"][0][
         "sequence"
     ] == 2

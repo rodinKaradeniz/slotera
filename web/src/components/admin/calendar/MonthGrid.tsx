@@ -7,8 +7,8 @@ import { calendarDayKey } from "@/lib/calendar";
 import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 import type { CalEvent } from "./EventBlock";
 import { cn } from "@/lib/cn";
+import { useMinute } from "@/lib/use-minute";
 
-const EVENT_STYLE = { bg: "#ECE8E0", fg: "#3B3B33" };
 
 type Props = {
   anchor: Date;
@@ -21,6 +21,7 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export function MonthGrid({ anchor, events, onSelect }: Props) {
   const { t: uiText } = useI18n();
   const timezone = useWorkspaceTimezone();
+  const now = useMinute();
   const cells = buildMonthGrid(anchor);
   const eventsByDay = new Map<string, CalEvent[]>();
   for (const e of events) {
@@ -72,12 +73,12 @@ export function MonthGrid({ anchor, events, onSelect }: Props) {
                     type="button"
                     onClick={() => onSelect(e.session.id)}
                     aria-label={`${e.service?.name ?? uiText("ui.session")} · ${e.dateKey} · ${e.session.location}`}
-                    className="text-left text-[11px] px-1.5 py-0.5 rounded truncate min-w-0"
-                    style={{
-                      background: EVENT_STYLE.bg,
-                      color: EVENT_STYLE.fg,
-                      border: "1px solid rgba(0,0,0,0.05)",
-                    }}
+                    className={cn(
+                      "text-left text-[11px] px-1.5 py-0.5 rounded truncate min-w-0 border",
+                      e.session.status === "cancelled" || e.session.status === "done" || Date.parse(e.session.endISO) < now
+                        ? "bg-paper-2 text-ink-3 border-line-soft"
+                        : "bg-accent-soft text-accent-ink border-accent/20",
+                    )}
                   >
                     <span className="font-mono opacity-70 mr-1">
                       {clockIn(e.session.startISO, timezone)}

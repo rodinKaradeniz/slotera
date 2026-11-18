@@ -396,3 +396,48 @@ async def test_public_open_booking_is_private_transactional_and_idempotent() -> 
             )
         await application.dispose()
         await owner.dispose()
+
+
+@pytest.mark.integration
+async def test_free_bookings_skip_billing_but_paid_bookings_need_an_address() -> None:
+    owner = Database(get_migration_settings().migration_database_url)
+    application = Database(get_settings().database_url)
+    try:
+        await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
+        app = create_app(database=application)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            items = (await client.get("/public/workspaces/lena/services")).json()["items"]
+            free = next(item for item in items if item["name"] == "Discovery Call")
+            paid = next(item for item in items if item["name"] == "Strategy Session")
+            starts_on = date.today() + timedelta(days=7)
+            window = {
+                "from": starts_on.isoformat(),
+                "to": (starts_on + timedelta(days=14)).isoformat(),
+            }
+
+            async def book(service: dict[str, object], method: str) -> int:
+                slots = await client.get(
+                    f"/public/workspaces/lena/services/{service['id']}/availability", params=window
+                )
+                response = await client.post(
+                    "/public/workspaces/lena/bookings",
+                    headers={"Origin": "http://localhost:3344", "Idempotency-Key": str(uuid4())},
+                    json={
+                        "serviceId": service["id"],
+                        "startAt": slots.json()["items"][0]["startAt"],
+                        "customer": {
+                            "firstName": "Noa",
+                            "lastName": "Ilić",
+                            "email": "noa@example.com",
+                        },
+                        "paymentMethod": method,
+                        "termsAccepted": True,
+                    },
+                )
+                return response.status_code
+
+            assert await book(free, "free") == 201
+            assert await book(paid, "manual") == 422
+    finally:
+        await application.dispose()
+        await owner.dispose()

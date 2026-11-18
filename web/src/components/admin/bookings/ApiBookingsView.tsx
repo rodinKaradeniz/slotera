@@ -121,6 +121,12 @@ function BookingGroup({ revision, status, search, clientId, serviceId, count, pr
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [open, status, search, clientId, serviceId, offset, attempt, onCounts, revision]);
+  // Same as the demo list: an empty group is a flat, muted line rather than a panel.
+  if (count === 0) {
+    return <div className="flex items-center gap-3 rounded-lg border border-line-soft px-5 py-3 text-small text-ink-3">
+      {translateInterfaceLabel(lang, BOOKING_STATUS[status].label)} · 0
+    </div>;
+  }
   return <AccordionItem open={open} onToggle={() => { if (!open) setLoading(true); setOpen((value) => !value); }}
     header={<span>{translateInterfaceLabel(lang, BOOKING_STATUS[status].label)} · {count ?? "…"}{!open && previews?.length ? <span className="text-small ml-3">{previews.map((item) => item.clientName).join(", ")}</span> : null}</span>}>
     {error && <LoadError message={error} onRetry={() => {setLoading(true); setAttempt((value) => value + 1);}} />}
@@ -131,13 +137,13 @@ function BookingGroup({ revision, status, search, clientId, serviceId, count, pr
         className="w-full flex flex-wrap items-center gap-4 justify-between px-5 py-4 text-left border-b border-line-soft hover:bg-surface-warm">
         <span className="min-w-0 flex-1"><span className="block font-medium">{item.clientName}</span><span className="text-small">{item.serviceName}</span></span>
         <span className="text-small">{new Intl.DateTimeFormat(localeForLang(lang), { dateStyle: "medium", timeStyle: "short", timeZone: timezone }).format(new Date(item.startAt))}</span>
-        <StatusBadge kind="payment" status={item.paymentStatus} /><span>{formatMoney(item.amountCents, item.currency)}</span>
+        {item.paymentStatus !== status && <StatusBadge kind="payment" status={item.paymentStatus} />}<span>{formatMoney(item.amountCents, item.currency)}</span>
       </button>)}
-      <div className="flex items-center justify-between gap-3 p-4">
+      {page.total > 25 && <div className="flex items-center justify-between gap-3 p-4">
         <Button variant="secondary" disabled={loading || offset === 0} aria-label={t("common.back")} onClick={() => {setLoading(true); setOffset(Math.max(0, offset - 25));}}>←</Button>
         <span className="text-small">{page.total === 0 ? 0 : page.offset + 1}–{page.offset + page.items.length} / {page.total}</span>
         <Button variant="secondary" disabled={loading || offset + page.items.length >= page.total} aria-label={t("common.continue")} onClick={() => {setLoading(true); setOffset(offset + 25);}}>→</Button>
-      </div>
+      </div>}
     </>}
   </AccordionItem>;
 }

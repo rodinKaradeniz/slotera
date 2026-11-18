@@ -11,7 +11,7 @@ export function KpiTile({ kpi }: { kpi: Kpi }) {
   const up = kpi.trend === "up";
   const down = kpi.trend === "down";
   const { t } = useI18n();
-  // "+12.4%" → "12.4% increase from last month"; anything that isn't a percentage is left out.
+  // "+12.4%" → "+12.4% vs last month"; anything that isn't a percentage is left out.
   const percent = /^[+−-]?\d+(?:[.,]\d+)?%$/.test(kpi.delta) ? kpi.delta.replace(/^[+−-]/, "") : null;
   const change = percent === null ? null
     : up ? t("dashboard.kpi.increase", { value: percent })

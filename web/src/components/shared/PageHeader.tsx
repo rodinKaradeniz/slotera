@@ -11,14 +11,14 @@ type Props = {
   /** Legacy slot — kept as an alias for `meta` so existing call sites keep working. */
   sub?: React.ReactNode;
   actions?: React.ReactNode;
-  /** Default mb is 10 (40px). "tight" for nested headers. */
+  /** Default mb is 8 (32px). "tight" for nested headers. */
   spacing?: "tight" | "default";
   className?: string;
 };
 
 const SPACING: Record<NonNullable<Props["spacing"]>, string> = {
   tight: "mb-6",
-  default: "mb-10",
+  default: "mb-8",
 };
 
 export function PageHeader({
@@ -42,7 +42,8 @@ export function PageHeader({
     >
       <div className="min-w-0 flex flex-col">
         {eyebrow && <div className="eyebrow mb-3">{eyebrow}</div>}
-        <h1 className="text-h1 text-ink">{title}</h1>
+        {/* List pages: the title names the page; the content, not the heading, leads. */}
+        <h1 className="text-h2 text-ink">{title}</h1>
         {description && (
           <p className="text-body text-ink-2 mt-3 max-w-[60ch] [overflow-wrap:anywhere]">{description}</p>
         )}

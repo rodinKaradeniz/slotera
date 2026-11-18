@@ -58,6 +58,23 @@ const subscribeMinute = (onChange: () => void) => {
 const currentMinute = () => Math.floor(Date.now() / 60_000);
 const noMinute = () => null;
 
+/** "in 2h 14m" until a call today, "tomorrow" / "in 3 days" later on, "Now" once started. */
+function Countdown({ startISO }: { startISO: string }) {
+  const { t, lang } = useI18n();
+  const minute = React.useSyncExternalStore(subscribeMinute, currentMinute, noMinute);
+  if (minute === null) return null;
+  const minutes = Math.ceil((Date.parse(startISO) - minute * 60_000) / 60_000);
+  let label: string;
+  if (minutes <= 0) label = t("dashboard.countdown.now");
+  else if (minutes < 60) label = t("dashboard.countdown.minutes", { m: minutes });
+  else if (minutes < 24 * 60) label = t("dashboard.countdown.hours", { h: Math.floor(minutes / 60), m: minutes % 60 });
+  else {
+    const days = Math.round(minutes / (24 * 60));
+    label = new Intl.RelativeTimeFormat(localeForLang(lang), { numeric: "auto" }).format(days, "day");
+  }
+  return <Pill tone="accent" icon="clock">{label}</Pill>;
+}
+
 /** Today's "now" on the rail, in the workspace's timezone; glides as the minutes pass. */
 function NowMarker({ startMin, endMin }: { startMin: number; endMin: number }) {
   const { t: uiText } = useI18n();
@@ -177,7 +194,7 @@ function ScheduleRail({
               className="block w-px"
               style={{ height: 4, background: "var(--line)" }}
             />
-            <span className="block text-[10px] font-mono text-ink-4 mt-1">
+            <span className="block text-[10px] font-mono text-ink-3 mt-1">
               {String(h).padStart(2, "0")}:00
             </span>
           </div>
@@ -282,7 +299,7 @@ export function NextSessionCard({ item, onChanged }: Props) {
     <Card padded={false} className="relative flex flex-col overflow-hidden">
       <CardHead
         title={uiText("dashboard.nextCall")}
-        right={dataSource === "mock" ? <Pill tone="accent" icon="clock">{uiText("dashboard.demoCountdown")}</Pill> : undefined}
+        right={item.startISO ? <Countdown startISO={item.startISO} /> : undefined}
       />
       <div className="relative flex-1 flex flex-col">
         <div className="relative px-6 pt-5 pb-5">

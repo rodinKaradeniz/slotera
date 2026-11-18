@@ -1,4 +1,5 @@
 "use client";
+import { currencySymbol } from "@/lib/money";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
@@ -87,7 +88,7 @@ export function ServiceForm({
         <Field label={uiText("ui.price")}>
           <Input
             type="number"
-            prefix={value.currency}
+            prefix={currencySymbol(value.currency)}
             value={String(value.priceCents / 100)}
             onChange={(e) =>
               onChange({

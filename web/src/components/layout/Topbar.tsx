@@ -39,7 +39,7 @@ export function Topbar({
       <button
         type="button"
         onClick={onToggleSidebar}
-        className="w-9 h-9 rounded-md hover:bg-paper-2 text-ink-2 flex items-center justify-center"
+        className="w-11 h-11 md:w-9 md:h-9 rounded-md hover:bg-paper-2 text-ink-2 flex items-center justify-center"
         aria-label={
           collapsed
             ? uiText("ui.expand.sidebar")
@@ -81,17 +81,20 @@ export function Topbar({
             href="/admin/assistant"
             aria-label={uiText("ask.title")}
             title={uiText("ask.title")}
-            className="w-9 h-9 shrink-0 rounded-md flex items-center justify-center text-ink-2 hover:bg-paper-2"
+            className="h-11 min-w-11 md:h-9 md:min-w-9 xl:px-2.5 gap-2 shrink-0 rounded-md inline-flex items-center justify-center text-ink-2 hover:bg-paper-2"
           >
             <Icon name="ask" size={18} />
+            {/* Wide screens name the two look-alike icons; narrower ones keep the tooltip. */}
+            <span className="hidden xl:inline text-[13px]">{uiText("ask.title")}</span>
           </Link>
           <Link
             href="/admin/messages"
             aria-label={uiText("client.messages")}
             title={uiText("client.messages")}
-            className="w-9 h-9 shrink-0 rounded-md flex items-center justify-center text-ink-2 hover:bg-paper-2"
+            className="h-11 min-w-11 md:h-9 md:min-w-9 xl:px-2.5 gap-2 shrink-0 rounded-md inline-flex items-center justify-center text-ink-2 hover:bg-paper-2"
           >
             <Icon name="mail" size={18} />
+            <span className="hidden xl:inline text-[13px]">{uiText("client.messages")}</span>
           </Link>
         </>
       )}

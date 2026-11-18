@@ -51,7 +51,8 @@ export function ReceiptCard({
   const clientName =
     `${draft.customer.firstName} ${draft.customer.lastName}`.trim() || null;
 
-  const addressLines = [
+  // Free bookings skip Billing, so they have no address to show.
+  const addressLines = !draft.billing.street.trim() ? [] : [
     draft.billing.street,
     draft.billing.address2,
     [draft.billing.zip, draft.billing.city].filter(Boolean).join(" "),

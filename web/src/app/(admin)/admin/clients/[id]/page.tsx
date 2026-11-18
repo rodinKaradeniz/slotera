@@ -157,7 +157,6 @@ export default function ClientDetailPage() {
             />
           </div>
 
-          {!client.erasedAt && <div className="mb-5"><BriefingCard clientId={client.id}/></div>}
           <TabPanel value={tab} order={["overview", "notes", "messages"]}>
           {tab === "messages" ? <Card>{client.erasedAt ? <p>{uiText("booking.emails.erased")}</p> : <ConversationThread key={id} clientId={id} />}</Card> : tab === "overview" ? (
             <div className="space-y-4">
@@ -180,6 +179,8 @@ export default function ClientDetailPage() {
                   />
                 </div>
               </Card>
+
+              {!client.erasedAt && <BriefingCard clientId={client.id} />}
 
               <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-6 items-stretch">
                 <Card padded={false} className="min-w-0 flex flex-col lg:min-h-[22rem]">

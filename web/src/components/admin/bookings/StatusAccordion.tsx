@@ -42,6 +42,18 @@ export function StatusAccordion({ status, rows, defaultOpen, onRowClick }: Props
   const preview = rows.slice(0, PREVIEW);
   const overflow = Math.max(0, rows.length - PREVIEW);
 
+  // An empty group has nothing to open: a flat, muted line keeps the order of statuses
+  // visible without a panel that expands to "no bookings".
+  if (rows.length === 0) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border border-line-soft px-5 py-3 text-small text-ink-3">
+        <span aria-hidden className="w-2 h-2 rounded-full flex-shrink-0 opacity-60" style={{ background: dotColor }} />
+        <span>{translateInterfaceLabel(labelLang, meta.label)}</span>
+        <span className="tabular-nums">0</span>
+      </div>
+    );
+  }
+
   return (
     <AccordionItem
       open={open}
@@ -70,13 +82,9 @@ export function StatusAccordion({ status, rows, defaultOpen, onRowClick }: Props
       }
     >
       <div className="list-rise">
-        {rows.length === 0 ? (
-          <div className="px-5 py-6 text-small text-center">{uiText("ui.no.bookings.in.this.status")}</div>
-        ) : (
-          rows.slice(0, shown).map((r) => (
-            <BookingRow key={r.id} row={r} onClick={() => onRowClick(r)} />
-          ))
-        )}
+        {rows.slice(0, shown).map((r) => (
+          <BookingRow key={r.id} row={r} groupStatus={status} onClick={() => onRowClick(r)} />
+        ))}
         {rows.length > shown && (
           <div className="px-5 py-3 border-t border-line-soft text-center">
             <button

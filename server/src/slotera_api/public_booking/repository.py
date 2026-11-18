@@ -625,7 +625,11 @@ class PublicBookingRepository:
             if service.price_cents == 0:
                 if payment_method != "free":
                     raise PublicPaymentMethodError
-            elif payment_method != "manual" or not payments.manual_payment_enabled:
+            elif (
+                payment_method != "manual"
+                or not payments.manual_payment_enabled
+                or not values.get("billing_address")
+            ):
                 raise PublicPaymentMethodError
 
             forms = list(
@@ -742,7 +746,7 @@ class PublicBookingRepository:
                 reference=f"SLT-{booking_id.hex[:12].upper()}",
                 payment_method=str(payment_method),
                 **financial_snapshot(quote, payments),
-                billing_address=dict(values["billing_address"]),
+                billing_address=dict(values.get("billing_address") or {}),
                 payment_due_at=payment_due_at,
                 payment_received_at=None,
                 approved_at=None,

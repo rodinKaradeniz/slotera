@@ -17,9 +17,10 @@ export type BookingRowData = {
   time: string;
 };
 
-type Props = { row: BookingRowData; onClick: () => void };
+/** `groupStatus`: the status group the row sits in, so a badge that repeats it is dropped. */
+type Props = { row: BookingRowData; onClick: () => void; groupStatus?: string };
 
-export function BookingRow({ row, onClick }: Props) {
+export function BookingRow({ row, onClick, groupStatus }: Props) {
   const { t: uiText } = useI18n();
   return (
     <button
@@ -31,17 +32,18 @@ export function BookingRow({ row, onClick }: Props) {
       <div className="min-w-0">
         <div className="text-[14px] text-ink truncate">{row.clientName}</div>
         {row.clientCompany && (
-          <div className="text-micro truncate">{row.clientCompany}</div>
+          <div className="hidden md:block text-micro truncate">{row.clientCompany}</div>
         )}
-        {/* Phones: one line of context under the name instead of three columns. */}
-        <div className="md:hidden text-micro truncate tabular-nums">
-          {row.serviceName}, {row.when}
-        </div>
+        {/* Phones: the service, then the date and time on a line of their own so they never cut off. */}
+        <div className="md:hidden text-micro truncate">{row.serviceName}</div>
+        <div className="md:hidden text-micro whitespace-nowrap tabular-nums">{row.when}</div>
       </div>
       <div className="hidden md:block text-[14px] text-ink-2 truncate">{row.serviceName}</div>
       <div className="hidden md:block text-small whitespace-nowrap tabular-nums">{row.when}</div>
       <div className="hidden md:flex justify-end">
-        <StatusBadge kind="payment" status={row.booking.paymentStatus} />
+        {row.booking.paymentStatus !== groupStatus && (
+          <StatusBadge kind="payment" status={row.booking.paymentStatus} />
+        )}
       </div>
       <div className="text-[14px] font-medium text-ink whitespace-nowrap text-right tabular-nums">
         {row.booking.amountCents === 0

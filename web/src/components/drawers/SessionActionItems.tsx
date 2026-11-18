@@ -367,7 +367,7 @@ export function SessionActionItems({
                         type="button"
                         onClick={() => startEdit(item)}
                         aria-label={uiText("ui.edit")}
-                        className="w-7 h-7 rounded-md flex items-center justify-center text-ink-4 hover:text-ink-2 hover:bg-paper-2 transition-colors"
+                        className="w-7 h-7 rounded-md flex items-center justify-center text-ink-3 hover:text-ink-2 hover:bg-paper-2 transition-colors"
                       >
                         <Icon name="edit" size={15} />
                       </button>
@@ -375,7 +375,7 @@ export function SessionActionItems({
                         type="button"
                         onClick={() => setPendingDelete(item)}
                         aria-label={uiText("ui.remove")}
-                        className="w-7 h-7 rounded-md flex items-center justify-center text-ink-4 hover:text-danger hover:bg-paper-2 transition-colors"
+                        className="w-7 h-7 rounded-md flex items-center justify-center text-ink-3 hover:text-danger hover:bg-paper-2 transition-colors"
                       >
                         <Icon name="trash" size={15} />
                       </button>

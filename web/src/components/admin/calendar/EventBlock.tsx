@@ -3,6 +3,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
 import { cn } from "@/lib/cn";
+import { useMinute } from "@/lib/use-minute";
 import type { EventColumn } from "./event-columns";
 import type { Service } from "@/types/service";
 import type { SessionItem } from "@/types/session";
@@ -24,14 +25,14 @@ type Props = {
   column?: EventColumn;
 };
 
-const EVENT_STYLE = { bg: "#ECE8E0", fg: "#3B3B33" };
-
 export function EventBlock({ event, selected, onSelect, hourPx = 56, column = {index: 0, total: 1} }: Props) {
   const { t: uiText } = useI18n();
   const top = (event.startHour - 8) * hourPx;
   const height = Math.max(36, (event.endHour - event.startHour) * hourPx);
   const session = event.session;
-  const dimmed = session.status === "cancelled" || session.status === "done";
+  // Upcoming sessions carry the accent; past, done or cancelled ones step back.
+  const now = useMinute();
+  const past = session.status === "cancelled" || session.status === "done" || Date.parse(session.endISO) < now;
 
   const secondary =
     session.capacity > 1
@@ -44,9 +45,12 @@ export function EventBlock({ event, selected, onSelect, hourPx = 56, column = {i
       onClick={onSelect}
       aria-label={`${event.service?.name ?? uiText("ui.session")} · ${event.dateKey} · ${session.location}`}
       className={cn(
-        "absolute left-1 right-1 rounded-md text-left p-2 transition-shadow",
-        selected ? "shadow-2 ring-2 ring-accent" : "shadow-1 hover:shadow-2",
-        dimmed && "opacity-60",
+        "absolute left-1 right-1 rounded-md text-left p-2 border transition-shadow",
+        past
+          ? "bg-paper-2 text-ink-3 border-line-soft"
+          : "bg-accent-soft text-accent-ink border-accent/20 border-l-[3px] border-l-accent",
+        selected ? "shadow-2 ring-2 ring-accent" : past ? "" : "shadow-1 hover:shadow-2",
+        session.status === "cancelled" && "line-through",
       )}
       style={{
         top,
@@ -54,9 +58,6 @@ export function EventBlock({ event, selected, onSelect, hourPx = 56, column = {i
         left: `calc(${column.index * 100 / column.total}% + 4px)`,
         right: "auto",
         width: `calc(${100 / column.total}% - 8px)`,
-        background: EVENT_STYLE.bg,
-        color: EVENT_STYLE.fg,
-        border: "1px solid rgba(0,0,0,0.06)",
       }}
     >
       <div className="text-[13px] font-medium truncate leading-tight">

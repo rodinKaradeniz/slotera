@@ -13,9 +13,11 @@ let seeded: Promise<void> | null = null;
 function seedConversation(): Promise<void> {
   return (seeded ??= (async () => {
     const clients = await listClients();
-    const client = clients.find((c) => c.name.includes("Sofia"));
-    if (!client) return;
-    mock.set(client.id, mockData<Message[]>("conversation-messages"));
+    // The fixture is keyed by the client's first name.
+    for (const [name, messages] of Object.entries(mockData<Record<string, Message[]>>("conversation-messages"))) {
+      const client = clients.find((c) => c.name.startsWith(name));
+      if (client) mock.set(client.id, messages);
+    }
   })());
 }
 const submissions = new Map<string, { body: string; message: Message }>();
@@ -50,12 +52,21 @@ export async function listConversations(
         ) || a.id.localeCompare(b.id),
     );
   return {
-    items: all.slice(offset, offset + 25).map(({ id, messages }) => ({
-      clientId: id,
-      clientName: byId.get(id)!.name,
-      lastSequence: messages.length,
-      unreadCount: 0,
-    })),
+    items: all.slice(offset, offset + 25).map(({ id, messages }) => {
+      const last = messages.at(-1)!;
+      // Unread, as on the server: client messages after what the operator has read
+      // (by default, everything after the operator's own last reply).
+      const readThrough = reads.get(id) ?? Math.max(0, ...messages.filter((m) => m.senderKind === "operator").map((m) => m.sequence));
+      return {
+        clientId: id,
+        clientName: byId.get(id)!.name,
+        lastSequence: messages.length,
+        unreadCount: messages.filter((m) => m.senderKind === "client" && m.sequence > readThrough).length,
+        lastMessagePreview: last.body.replace(/\s+/g, " ").slice(0, 140),
+        lastMessageAt: last.createdAt,
+        lastMessageFrom: last.senderKind,
+      };
+    }),
     total: all.length,
     limit: 25,
     offset,

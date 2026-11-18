@@ -1,112 +1,5 @@
 {
   "todayISO": "2026-05-17T00:00:00.000Z",
-  "todaySchedule": [
-    {
-      "id": "ts-1",
-      "bookingId": "bkg-1001",
-      "time": "10:30",
-      "end": "12:00",
-      "client": "Mila Ozawa",
-      "company": "Kintsugi Studio",
-      "service": "Strategy Deep Dive",
-      "duration": "90m",
-      "status": "next",
-      "notes": "Wants to focus on Series A narrative."
-    },
-    {
-      "id": "ts-2",
-      "bookingId": "bkg-1002",
-      "time": "14:00",
-      "end": "15:00",
-      "client": "Sofia Marin",
-      "company": "Lambda Co",
-      "service": "Decision Sprint",
-      "duration": "60m",
-      "status": "upcoming"
-    },
-    {
-      "id": "ts-3",
-      "bookingId": "bkg-1005",
-      "time": "17:30",
-      "end": "18:00",
-      "client": "Amara Bello",
-      "company": "Studio ARC",
-      "service": "Discovery Call",
-      "duration": "30m",
-      "status": "upcoming"
-    },
-    {
-      "id": "ts-4",
-      "bookingId": "bkg-1004",
-      "time": "08:00",
-      "end": "09:30",
-      "client": "Helena Kreutzer",
-      "company": "Kreutzer GmbH",
-      "service": "Strategy Deep Dive",
-      "duration": "90m",
-      "status": "done"
-    }
-  ],
-  "weekStrip": [
-    {
-      "day": "Mon",
-      "date": 18,
-      "bookings": [
-        {
-          "label": "Deep Dive · 9:00"
-        }
-      ]
-    },
-    {
-      "day": "Tue",
-      "date": 19,
-      "bookings": [
-        {
-          "label": "Discovery · 11:00"
-        },
-        {
-          "label": "Workshop · 17:00"
-        }
-      ]
-    },
-    {
-      "day": "Wed",
-      "date": 20,
-      "bookings": [
-        {
-          "label": "Deep Dive · 11:00"
-        }
-      ]
-    },
-    {
-      "day": "Thu",
-      "date": 21,
-      "bookings": [
-        {
-          "label": "Sprint · 12:00"
-        }
-      ]
-    },
-    {
-      "day": "Fri",
-      "date": 22,
-      "bookings": [
-        {
-          "label": "Discovery · 14:00"
-        }
-      ]
-    },
-    {
-      "day": "Sat",
-      "date": 23,
-      "bookings": []
-    },
-    {
-      "day": "Sun",
-      "date": 24,
-      "bookings": []
-    }
-  ],
   "kpis": [
     {
       "id": "revenue",
@@ -159,9 +52,9 @@
     {
       "id": "clients",
       "label": "Clients booked this month",
-      "value": "0",
-      "delta": "−2.1%",
-      "trend": "down",
+      "value": "14",
+      "delta": "+16.7%",
+      "trend": "up",
       "spark": [
         8,
         7,

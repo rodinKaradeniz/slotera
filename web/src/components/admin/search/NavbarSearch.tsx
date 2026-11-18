@@ -113,7 +113,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
               e.preventDefault();
               onOpenPalette();
             }}
-            className="text-[11px] font-mono text-ink-4 hover:text-ink-2 px-1.5 py-0.5 rounded border border-line-soft"
+            className="text-[11px] font-mono text-ink-3 hover:text-ink-2 px-1.5 py-0.5 rounded border border-line-soft"
             aria-label={uiText("ui.open.command.palette")}
             title={uiText("ui.open.command.palette")}
           >

@@ -25,3 +25,13 @@ export function formatMoneyCompact(cents: number, currency: Currency = "GBP", la
     maximumFractionDigits: 1,
   }).format(cents / 100);
 }
+
+/** The currency's symbol ("£", "€", "$") for an amount field's prefix. */
+export function currencySymbol(currency: Currency, lang?: Lang): string {
+  const parts = new Intl.NumberFormat(localeForLang(lang ?? readLang()), {
+    style: "currency",
+    currency,
+    currencyDisplay: "narrowSymbol",
+  }).formatToParts(0);
+  return parts.find((part) => part.type === "currency")?.value ?? currency;
+}

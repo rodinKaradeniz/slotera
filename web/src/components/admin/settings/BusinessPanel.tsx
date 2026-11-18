@@ -40,9 +40,9 @@ export function BusinessPanel({
   };
   return (
     <PanelCard
-      title={uiText("ui.business.profile")}
       hint={uiText("ui.visible.on.your.public.booking.page")}
       onSave={save}
+      dirty={JSON.stringify(local) !== JSON.stringify(business)}
     >
       {edit.notice}
       <div className="grid sm:grid-cols-2 gap-4">

@@ -92,7 +92,7 @@ export function StepIndicator({ current, steps = STEPS }: Props) {
                 className="mt-3 text-[12px] whitespace-nowrap transition-colors duration-(--d-fade) ease-out"
                 style={{
                   color:
-                    i <= idx ? "var(--ink-2)" : "var(--ink-4)",
+                    i <= idx ? "var(--ink-2)" : "var(--ink-3)",
                   fontWeight: active ? 600 : 500,
                 }}
               >

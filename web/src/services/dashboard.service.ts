@@ -7,6 +7,11 @@ import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { formatMoney } from "@/lib/money";
 import { listBookings } from "./bookings.service";
+import { listSessions } from "./sessions.service";
+import { listClients } from "./clients.service";
+import { listServices } from "./services.service";
+import { getAvailabilitySettings } from "./settings.service";
+import { slotParts } from "@/lib/calendar";
 import type {
   DashboardData,
   DashboardScheduleItem,
@@ -159,28 +164,59 @@ export async function getDashboard(_lang: Lang = readLang()): Promise<DashboardD
     return mapSummary(summary);
   }
   await sleep(80);
-  const base = mockData<DashboardData>("dashboard");
-  const bookings = await listBookings();
-  const month = base.todayISO.slice(0, 7);
-  const anchor = new Date(base.todayISO);
-  const previous = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() - 1, 1))
-    .toISOString().slice(0, 7);
-  const countClients = (period: string) => new Set(bookings
-    .filter((booking) => booking.status !== "cancelled" && booking.createdAtISO.startsWith(period))
-    .map((booking) => booking.clientId)).size;
-  const clientsKpi: Kpi = {
-    id: "clients", label: translate(readLang(), "dashboard.clients"),
-    value: String(countClients(month)),
-    ...percentageChange(countClients(month), countClients(previous)), spark: [],
+  // The demo builds the schedule like the API summary: from the (date-shifted) demo
+  // sessions, their bookings and the workspace timezone, against the real clock.
+  const base = mockData<Omit<DashboardData, "todaySchedule" | "weekStrip">>("dashboard");
+  const [sessions, bookings, clients, services, availability] = await Promise.all([
+    listSessions(), listBookings(), listClients(), listServices(), getAvailabilitySettings(),
+  ]);
+  const timezone = availability.timezone;
+  const now = Date.now();
+  const today = slotParts(new Date(now).toISOString(), timezone).date;
+  const live = sessions
+    .filter((session) => session.status !== "cancelled")
+    .sort((a, b) => a.startISO.localeCompare(b.startISO));
+  const toDto = (session: (typeof live)[number]): DashboardSessionDto => {
+    const booking = bookings.find((item) => item.sessionId === session.id && item.status !== "cancelled");
+    const client = clients.find((item) => item.id === booking?.clientId);
+    return {
+      id: session.id,
+      bookingId: booking?.id ?? null,
+      startAt: session.startISO,
+      endAt: session.endISO,
+      clientName: client?.name ?? null,
+      clientCompany: client?.company ?? null,
+      clientEmail: client?.email ?? null,
+      serviceName: services.find((item) => item.id === session.serviceId)?.name ?? "",
+    };
   };
+  const upcoming = live.find((session) => Date.parse(session.endISO) > now);
+  const nextSession = upcoming ? mapSession(toDto(upcoming), timezone, "next") : undefined;
+  const todaySchedule = live
+    .filter((session) => slotParts(session.startISO, timezone).date === today)
+    .map((session) => mapSession(toDto(session), timezone,
+      session.id === upcoming?.id ? "next" : Date.parse(session.endISO) < now ? "past" : "upcoming"));
+  const weekStart = new Date(`${today}T00:00:00Z`);
+  weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
+  const weekEnd = new Date(weekStart.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const weekSessionCount = live.filter((session) => {
+    const day = slotParts(session.startISO, timezone).date;
+    return day >= weekStart.toISOString().slice(0, 10) && day < weekEnd;
+  }).length;
   return {
     ...base,
-    kpis: base.kpis.map((item) => item.id === "clients" ? clientsKpi : ({
+    todayISO: `${today}T00:00:00.000Z`,
+    timezone,
+    todaySchedule,
+    nextSession,
+    weekStrip: [],
+    weekSessionCount,
+    kpis: base.kpis.map((item) => ({
       ...item,
       label: translate(readLang(), item.id === "revenue" ? "dashboard.revenue"
-        : item.id === "bookings" ? "dashboard.bookings" : "dashboard.average"),
+        : item.id === "bookings" ? "dashboard.bookings"
+        : item.id === "clients" ? "dashboard.clients" : "dashboard.average"),
     })),
-
   };
 }
 

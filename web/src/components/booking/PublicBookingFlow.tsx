@@ -105,10 +105,12 @@ export function PublicBookingFlow() {
     };
   }, [serviceId]);
 
-  // Drop the Forms step when the chosen service has no attached forms.
+  // Drop the Forms step when the chosen service has no attached forms, and Billing for a
+  // free service (nothing is invoiced, and the server doesn't ask for an address).
+  const free = draft.service?.priceCents === 0;
   const activeSteps = React.useMemo(
-    () => STEPS.filter((s) => s.key !== "forms" || forms.length > 0),
-    [forms.length],
+    () => STEPS.filter((s) => (s.key !== "forms" || forms.length > 0) && (s.key !== "billing" || !free)),
+    [forms.length, free],
   );
 
   // Restore an unfinished draft once the browser's storage is readable.
@@ -257,7 +259,7 @@ export function PublicBookingFlow() {
             current={step}
             steps={activeSteps.map((s) => ({
               key: s.key,
-              label: t(`booking.step.${s.key}`),
+              label: s.key === "pay" && free ? t("booking.step.confirm") : t(`booking.step.${s.key}`),
             }))}
           />
         </div>

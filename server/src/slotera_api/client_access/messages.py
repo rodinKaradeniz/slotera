@@ -54,6 +54,10 @@ class ConversationSummary(StrictApiModel):
     client_name: str
     last_sequence: int
     unread_count: int
+    # The newest message, shortened for the list: who sent it, when, and its first words.
+    last_message_preview: str
+    last_message_at: datetime
+    last_message_from: Literal["client", "operator"]
 
 
 class ConversationPage(StrictApiModel):
@@ -145,6 +149,8 @@ async def conversations(
                     text("""
           SELECT c.client_id AS "clientId",cl.name AS "clientName",c.last_sequence AS 
 "lastSequence",
+            left(regexp_replace(latest.body, '\\s+', ' ', 'g'), 140) AS "lastMessagePreview",
+            latest.created_at AS "lastMessageAt",latest.sender_kind AS "lastMessageFrom",
             (SELECT count(*) FROM conversation_messages m WHERE m.workspace_id=c.workspace_id
              AND m.conversation_id=c.id AND m.sender_kind='client' AND 
 m.sequence>coalesce(r.last_read,0)) AS "unreadCount"

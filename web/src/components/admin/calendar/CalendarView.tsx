@@ -98,9 +98,8 @@ async function loadCalendar(startsFrom: string, startsBefore: string, signal?: A
 export function CalendarView() {
   const { t: uiText } = useI18n();
   const { openSessionDrawer } = useDrawers();
-  const [anchor, setAnchor] = React.useState(() =>
-    dataSource === "api" ? new Date() : new Date(2026, 4, 11),
-  );
+  // Demo data is shifted to the real today, so both modes open on this week.
+  const [anchor, setAnchor] = React.useState(() => new Date());
   const [view, setView] = React.useState<CalView>("week");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const timezone = useWorkspaceTimezone();

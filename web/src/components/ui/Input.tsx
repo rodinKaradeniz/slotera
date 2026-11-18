@@ -29,7 +29,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {prefix && <span className="text-ink-3 text-[13px]">{prefix}</span>}
         <input
           ref={ref}
-          className="min-w-0 flex-1 bg-transparent outline-none text-[14px] text-ink placeholder:text-ink-4"
+          className="min-w-0 flex-1 bg-transparent outline-none text-[14px] text-ink placeholder:text-ink-3"
           {...rest}
         />
         {suffix && <span className="text-ink-3 text-[13px]">{suffix}</span>}

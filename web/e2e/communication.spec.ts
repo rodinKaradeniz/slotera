@@ -45,7 +45,7 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
       await page.goto("/admin/messages");
       if (info.project.name === "mobile")
         await page.getByRole("button", { name: t("chat.conversations"), exact: true }).click();
-      await page.getByRole("button", { name: "Sofia Marin", exact: true }).click();
+      await page.getByRole("button", { name: /^Sofia Marin/ }).click();
       await expect(page.getByText("Hi Lena! Could we focus on the funding narrative in our next session?", { exact: true })).toBeVisible();
       await expect(page.getByText("That fits well. We will leave time to work through both.", { exact: true })).toBeVisible();
       mkdirSync("browser-artifacts", { recursive: true });

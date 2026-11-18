@@ -15,7 +15,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         rows={rows}
         className={cn(
           "w-full px-3 py-2.5 bg-surface border rounded-md text-[14px] text-ink outline-none",
-          "placeholder:text-ink-4 resize-y",
+          "placeholder:text-ink-3 resize-y",
           error ? "border-danger" : "border-line focus:border-ink-3",
           className,
         )}

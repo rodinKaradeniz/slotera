@@ -71,7 +71,7 @@ export function StepReview({ draft, onEdit }: Props) {
             onEdit={() => onEdit("forms")}
           />
         )}
-        <SummaryRow
+        {draft.service?.priceCents !== 0 && <SummaryRow
           title={t("booking.review.billing")}
           value={draft.billing.street || "—"}
           hint={
@@ -80,7 +80,7 @@ export function StepReview({ draft, onEdit }: Props) {
               : t(`booking.country.${country.code}`)
           }
           onEdit={() => onEdit("billing")}
-        />
+        />}
       </div>
 
       <ReceiptCard

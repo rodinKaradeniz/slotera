@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
+import { Icon } from "@/components/ui/Icon";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -71,6 +72,18 @@ export function BriefingCard({ clientId }: { clientId: string }) {
     } finally {
       setBusy(false);
     }
+  }
+  // With AI off, the briefing is an option rather than content: one quiet line.
+  if (status.data && !status.data.enabled) {
+    return (
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-ink-3">
+        <Icon name="ask" size={14} aria-hidden />
+        {t("ai.briefOff")}
+        <Link href="/admin/settings?section=ai" className="text-accent underline underline-offset-2">
+          {t("ai.enable")}
+        </Link>
+      </p>
+    );
   }
   return (
     <section className="space-y-3">

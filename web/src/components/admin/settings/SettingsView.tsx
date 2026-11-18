@@ -96,8 +96,7 @@ export function SettingsView() {
     <PageContainer>
       <div className="grid lg:grid-cols-[280px_1fr] gap-10 items-start">
         <aside className="flex flex-col lg:sticky lg:top-24">
-          <div className="eyebrow mb-3">{uiText("ui.workspace")}</div>
-          <h1 className="text-h1 text-ink">{uiText("ui.settings")}</h1>
+          <h1 className="text-h2 text-ink">{uiText("ui.settings")}</h1>
           <p className="text-body text-ink-2 mt-3 max-w-[28ch]">
             {uiText("ui.configure.your.booking.workflow.branding.and.notifications")}</p>
           <nav className="flex flex-col gap-1 mt-8">
@@ -125,15 +124,9 @@ export function SettingsView() {
 
         <section className="min-w-0">
           {activeMeta && (
-            <div className="mb-6">
-              <div className="eyebrow mb-2">{uiText("ui.settings")}</div>
-              <h2
-                className="font-serif text-ink"
-                style={{ fontSize: 28, fontWeight: 380, letterSpacing: "-0.015em" }}
-              >
-                {translateInterfaceLabel(labelLang, activeMeta.label)}
-              </h2>
-            </div>
+            <h2 className="text-h3 text-ink mb-5 lg:mt-2">
+              {translateInterfaceLabel(labelLang, activeMeta.label)}
+            </h2>
           )}
           {loadError && (
             <Card padded>
