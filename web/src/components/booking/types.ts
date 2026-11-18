@@ -26,13 +26,6 @@ export type BookingDraft = {
     city: string;
     state: string;
   };
-  payment: {
-    method: "card" | "manual";
-    cardNumber: string;
-    cardName: string;
-    cardExp: string;
-    cardCvc: string;
-  };
 };
 
 export const EMPTY_DRAFT: BookingDraft = {
@@ -57,13 +50,6 @@ export const EMPTY_DRAFT: BookingDraft = {
     zip: "",
     city: "",
     state: "",
-  },
-  payment: {
-    method: "card",
-    cardNumber: "",
-    cardName: "",
-    cardExp: "",
-    cardCvc: "",
   },
 };
 

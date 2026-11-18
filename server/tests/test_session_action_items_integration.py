@@ -60,11 +60,7 @@ async def test_operator_manages_session_action_items_without_public_visibility()
                 headers={
                     **_csrf_headers(client),
                     "If-Match": '"v'
-                    + str(
-                        (await client.get(f"/tasks/{action_id}"))
-                        .json()
-                        .get("version", 1)
-                    )
+                    + str((await client.get(f"/tasks/{action_id}")).json().get("version", 1))
                     + '"',
                 },
                 json={"status": "done"},
@@ -84,11 +80,7 @@ async def test_operator_manages_session_action_items_without_public_visibility()
                 headers={
                     **_csrf_headers(client),
                     "If-Match": '"v'
-                    + str(
-                        (await client.get(f"/tasks/{action_id}"))
-                        .json()
-                        .get("version", 1)
-                    )
+                    + str((await client.get(f"/tasks/{action_id}")).json().get("version", 1))
                     + '"',
                 },
             )

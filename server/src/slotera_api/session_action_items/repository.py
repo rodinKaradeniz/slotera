@@ -160,7 +160,9 @@ async def list_items_in_session(
         SessionActionItem.workspace_id == workspace_id,
         (SessionActionItem.session_id.is_(None))
         if general_only
-        else (SessionActionItem.session_id == session_id) if session_id is not None else true(),
+        else (SessionActionItem.session_id == session_id)
+        if session_id is not None
+        else true(),
         (SessionActionItem.status == status) if status is not None else true(),
     )
     items = list(
@@ -185,7 +187,5 @@ async def list_items_in_session(
             )
         ).all()
     )
-    total = await session.scalar(
-        select(func.count(SessionActionItem.id)).where(*conditions)
-    )
+    total = await session.scalar(select(func.count(SessionActionItem.id)).where(*conditions))
     return items, int(total or 0)

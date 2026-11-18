@@ -2,7 +2,6 @@ import { mockData } from "@/services/adapters/mock-data";
 
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
-import { listServices } from "./services.service";
 import type { DemoPersona } from "@/types/demo";
 import type { Service } from "@/types/service";
 import { NotImplementedError } from "./_errors";
@@ -11,35 +10,17 @@ import { listPublicBookingServices } from "./public-booking.service";
 const personas: DemoPersona[] = dataSource === "mock" ? mockData("demo-personas") : [] as DemoPersona[];
 
 /**
- * The standard (no-persona) booking page is the default consultant/coach/
- * instructor demo (see settings.business.displayName). It intentionally shows
- * only this curated, ICP-aligned set — a Discovery Call, a consultant Strategy
- * Session, a Coaching Session, and a group/instructor-led Workshop — NOT every
- * active service in the workspace. The persona providers (`?demo=<slug>`) get
- * their own curated subsets; the admin Services page still lists the full
- * (richer) mock set via `listServices()`. Curate here, never render-slice.
- */
-export const STANDARD_BOOKING_SERVICE_IDS = [
-  "svc-discovery",
-  "svc-deepdive",
-  "svc-sprint",
-  "svc-workshop",
-] as const;
-
-/**
- * Resolves the curated, ordered service list the public booking page should
- * show. With a persona, uses that persona's `serviceIds`; without one, uses the
- * default provider's curated standard set. This is the single resolver the
- * booking flow uses — it does not render-time slice "all active services".
+ * The services the public booking page offers: exactly what the server's catalogue
+ * returns (every active, publicly bookable service). A `?demo=<slug>` persona narrows
+ * that list to its own `serviceIds`.
  */
 export async function listBookingServices(
   persona: DemoPersona | null,
 ): Promise<Service[]> {
-  if (dataSource === "api") return listPublicBookingServices();
-  const active = (await listServices()).filter((s) => s.active);
-  const ids = persona ? persona.serviceIds : STANDARD_BOOKING_SERVICE_IDS;
-  return ids
-    .map((id) => active.find((s) => s.id === id))
+  const services = await listPublicBookingServices();
+  if (!persona) return services;
+  return persona.serviceIds
+    .map((id) => services.find((s) => s.id === id))
     .filter((s): s is Service => Boolean(s));
 }
 

@@ -29,7 +29,7 @@ Slotera's **first ICP is independent consultants, coaches, instructors, and smal
 - **Public/default surfaces should not try to speak to every vertical at once.** The standard `/booking` default and the public Demo Guide lead with consultant/coach/instructor. Specialised verticals (vet, therapist) may exist as flexible mock examples but are **not** promoted in the public positioning.
 - **Never claim Slotera is veterinary-clinic software, therapy practice-management software, healthcare software, or a medical-records/patient-management system. No medical/clinical/compliance claims.** Keep privacy/legal wording soft ("UK GDPR-aware", never "GDPR compliant" — see Landing copy).
 - Prefer non-clinical language: *client intake, pre-session questions, booking forms, session prep, client notes, customer booking page.*
-- **Standard `/booking` default story** is the curated consultant/coach/instructor set in `STANDARD_BOOKING_SERVICE_IDS` (`web/src/services/demo.service.ts`) — Discovery Call, Strategy Session, Coaching Session, Group Workshop. Keep it focused (3–5 services, 4 is the sweet spot) and curate it in the **resolver/data**, never via render-time slicing. Persona demos (`?demo=<slug>`) and the admin Services list can carry richer sets.
+- **Standard `/booking` default story** shows what the server's catalogue would: every active, publicly bookable service in the demo data (today Discovery Call, Strategy Session, Coaching Session, Group Workshop). Keep the story focused by curating `services.json`, never by filtering in the booking page. Persona demos (`?demo=<slug>`) narrow the list to their own `serviceIds`.
 - **Demo Guide personas** (`DemoGuidelinesModal.tsx` + `demo-personas.json`) lead with `consultant`, `coach`, `instructor`. Adjust labels/order/copy here freely; if reintroducing vet/therapist demos, keep them secondary and out of the main public pitch.
 
 ### Phase scope (important)
@@ -388,9 +388,9 @@ Public demo guide explains Slotera is a demo, sets data-is-mocked expectations, 
   default to GBP; never mix currencies inside one workspace.
 - **"UK GDPR-aware"** wording (or "Built with UK data protection workflows in mind"). Never claim "GDPR compliant".
 - Smooth anchor scrolling for `#features` / `#pricing` / `#faq` works via `<html data-scroll-behavior="smooth">` plus `globals.css`.
-- Hero collage is desktop/tablet only mini-UI cards — hide or simplify on mobile.
+- The hero shows real product screenshots (`HeroShots`, images in `web/public/landing/`): the dashboard with the client booking page over its corner on wide screens, the phone dashboard on small ones. Refresh them with `npm run ui:walk`; never redraw product UI with divs. Hero copy must not promise card payments until Stripe ships.
 - **Company behind Slotera is Merulio Ltd** (England and Wales, being incorporated). Slotera is the product brand everywhere in the UI; Merulio appears only in the footer copyright and the legal pages (`/terms`, `/privacy`, `/dpa`). Don't sprinkle the company name elsewhere.
-- **Footer** has a single `Legal` link that opens `PublicLegalModal` with three tabs: Imprint / Privacy / Terms. There are no separate `/imprint`, `/privacy`, `/terms` pages. Footer "Company" column is just `Contact` — no Blog or About.
+- **Legal pages are real routes:** `/terms`, `/privacy` and `/dpa`, rendered by `LegalPage` from the Markdown in `web/src/content/legal/`. The footer's `Legal` column links all three; sign-up, the auth shell, the booking footer and the booking `LegalModal` link `/terms` and `/privacy` (sign-up also `/dpa`). There is no imprint page yet. The footer's "Company" column has `Contact` (opens the contact modal) and `Support` (mailto), with no Blog or About.
 
 ### Public booking flow
 

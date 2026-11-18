@@ -130,6 +130,9 @@ export const en = {
   "ai.retention": "Chat history is kept for 30 days. Client erasure clears all workspace AI history and proposals. Disabling AI also removes its search index. Provider abuse-monitoring retention is separate from response storage.",
   "ai.enable": "Enable AI",
   "ai.disable": "Disable AI",
+  "ai.toast.enabled": "AI is on.",
+  "ai.toast.disabled": "AI is off.",
+  "ai.toast.failed": "The AI setting didn't change.",
   "ai.disabled": "Enable AI in Settings to use the assistant.",
   "ai.unavailable": "AI is not configured on this server.",
   "ai.simulated": "Local simulation: no external AI calls.",
@@ -141,7 +144,7 @@ export const en = {
   "ai.retry": "Try again",
   "ai.loading": "Preparing…",
   "ai.clientBrief": "Client briefing",
-  "ai.briefHint": "Generated only when requested; daily cycles renew at 9am workspace time.",
+  "ai.briefHint": "Generated only when you ask. Refresh it after new sessions or notes.",
   "ai.briefMe": "Brief me",
   "ai.newChat": "New chat",
   "ai.deleteChat": "Delete chat",
@@ -287,8 +290,12 @@ export const en = {
   // Landing — hero
   "landing.hero.eyebrow": "For independent consultants, coaches & instructors",
   "landing.hero.title": "Paid bookings, without the calendar chaos.",
+  "landing.hero.shot.dashboard": "The Slotera dashboard: the next call, today's schedule and the to-do list.",
+  "landing.hero.shot.booking": "The client booking page, listing the consultant's services and prices.",
+  "landing.hero.caption.dashboard": "Your workspace",
+  "landing.hero.caption.booking": "Your booking page, as clients see it",
   "landing.hero.subtitle":
-    "Slotera is a lightweight client workspace for independent experts. Take card or bank-transfer payments, send prep forms, bundle sessions into packages, and keep client context and follow-up in one place. No heavy CRM.",
+    "Slotera is a lightweight client workspace for independent experts. Take paid bookings with bank-transfer payment, send prep forms, bundle sessions into packages, and keep client context and follow-up in one place. No heavy CRM.",
 
   // Landing — logo wall
   "landing.logos.trustedBy":
@@ -474,7 +481,6 @@ export const en = {
   // Booking flow — buttons
   "booking.back": "Back",
   "booking.continue": "Continue",
-  "booking.payConfirm": "Pay and confirm",
   "booking.reservePay": "Reserve and pay",
   "booking.confirm": "Confirm booking",
 
@@ -496,6 +502,7 @@ export const en = {
 
   // Booking — date & time step
   "booking.datetime.availableTimes": "Available times",
+  "booking.datetime.noneThisMonth": "No open times this month. Try the next month.",
   "booking.datetime.pickDate": "Pick a date to see available times.",
   "booking.datetime.prevMonth": "Previous month",
   "booking.datetime.nextMonth": "Next month",
@@ -570,23 +577,15 @@ export const en = {
   "booking.receipt.manualInstructions": "Manual payment instructions",
   "booking.receipt.footerManual":
     "Manual payments require operator confirmation before your booking is final.",
-  "booking.receipt.footerCard": "Encrypted · PCI-DSS via Stripe (mocked)",
   "booking.receipt.footerReview":
     "You won't be charged until you confirm in the next step.",
 
   // Booking — payment step
-  "booking.payment.method": "Payment method",
-  "booking.payment.card": "Card",
   "booking.payment.manual": "Manual payment",
-  "booking.payment.cardholderName": "Cardholder name",
-  "booking.payment.cardNumber": "Card number",
-  "booking.payment.cardNumberHint":
-    "Use 4242 4242 4242 4242 for a mock success, or 4000 0000 0000 0002 for a mock failure.",
-  "booking.payment.expiration": "Expiration",
-  "booking.payment.cvc": "CVC",
   "booking.payment.instructions": "Payment instructions",
   "booking.payment.instructionsFallback":
     "Payment instructions will be shared after you confirm.",
+  "booking.payment.unavailable": "This provider isn't taking paid bookings online right now. Please contact them to book.",
   "booking.payment.pendingNote":
     "Your booking will be marked pending until the operator confirms receipt of payment.",
   "booking.service.approvalRequired": "Provider approval required",
@@ -605,17 +604,8 @@ export const en = {
   "booking.confirm.when": "When",
   "booking.confirm.where": "Where",
   "booking.confirm.attendee": "Attendee",
-  "booking.confirm.meetingLink": "Meeting link",
-  "booking.confirm.copyLink": "Copy meeting link",
-  "booking.confirm.copied": "Copied",
   "booking.confirm.bookAnother": "Book another session",
   "booking.confirm.manage": "Manage booking",
-  "booking.confirm.addCalendar.title": "Add to calendar",
-  "booking.confirm.addCalendar.body": "Google · Apple · Outlook · ICS",
-  "booking.confirm.invoice.title": "Download invoice",
-  "booking.confirm.invoice.body": "PDF, billing-ready",
-  "booking.confirm.forward.title": "Forward email",
-  "booking.confirm.forward.body": "Loop in a colleague",
 
   // Booking — failure page
   "booking.failure.title": "Payment declined.",
@@ -899,7 +889,6 @@ export const en = {
   "ui.new.booking": "New booking",
   "ui.new.session": "New session",
   "ui.quote": "Quote",
-  "ui.next.session": "Next session",
   "ui.fields": "Fields",
   "ui.new.form": "New form",
   "ui.featured": "Featured",
@@ -1271,11 +1260,6 @@ export const en = {
   "ui.logout": "Logout",
   "ui.spotted.a.bug.or.a.broken.flow.send.us.a.note.we.ll.take.a.look": "Spotted a bug or a broken flow? Send us a note and we'll take a look.",
   "ui.confirmed": "Confirmed",
-  "ui.revenue.7d": "Revenue · 7d",
-  "ui.may.2026": "May 2026",
-  "ui.today.3.bookings": "Today · 3 bookings",
-  "ui.receipt": "Receipt",
-  "ui.vat.20": "VAT 20%",
   "ui.couldn.t.load.this": "Couldn't load this",
   "ui.address.line.1": "Address line 1",
   "ui.street.and.number": "Street and number",

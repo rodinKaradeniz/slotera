@@ -1,7 +1,5 @@
 import { INTERFACE_KEYS } from "@/i18n/interface-keys";
 import { en, type Messages } from "@/i18n/messages/en";
-import { tr } from "@/i18n/messages/tr";
-import { de } from "@/i18n/messages/de";
 
 export type Lang = "en" | "tr" | "de";
 
@@ -24,7 +22,23 @@ export function localeForLang(lang: Lang): string {
   return LOCALES[lang];
 }
 
-const DICTS: Record<Lang, Partial<Messages>> = { en, tr, de };
+// English ships with every page and is the fallback. Turkish and German are each about
+// a third of the copy, so they load only for someone who uses them (see `loadLang`).
+const DICTS: Partial<Record<Lang, Partial<Messages>>> = { en };
+const LOADERS: Record<Exclude<Lang, "en">, () => Promise<Partial<Messages>>> = {
+  tr: () => import("@/i18n/messages/tr").then((module) => module.tr),
+  de: () => import("@/i18n/messages/de").then((module) => module.de),
+};
+
+export function isLangLoaded(lang: Lang): boolean {
+  return lang in DICTS;
+}
+
+/** Fetch a language's messages once; `translate` falls back to English until then. */
+export async function loadLang(lang: Lang): Promise<void> {
+  if (lang === "en" || isLangLoaded(lang)) return;
+  DICTS[lang] = await LOADERS[lang]();
+}
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -59,7 +73,7 @@ export function translate(
   key: keyof Messages,
   vars?: Record<string, string | number>,
 ): string {
-  const dict = DICTS[lang];
+  const dict = DICTS[lang] ?? en;
   let value = dict[key] ?? en[key] ?? (key as string);
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {

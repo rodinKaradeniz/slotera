@@ -3,18 +3,15 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
-import { buildMonthGrid, isAvailable, localDateKey, sameDay, slotParts } from "@/lib/calendar";
+import { buildMonthGrid, localDateKey, sameDay, slotParts } from "@/lib/calendar";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { localeForLang } from "@/lib/i18n";
 import type { Service } from "@/types/service";
-import { dataSource } from "@/lib/env";
 import {
   listPublicAvailability,
   type PublicAvailability,
 } from "@/services/public-booking.service";
-
-const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
 
 // Monday-first short weekday labels, derived from the active locale.
 function weekdayShorts(locale: string): string[] {
@@ -57,8 +54,9 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
   const [apiAvailability, setApiAvailability] =
     React.useState<PublicAvailability | null>(null);
 
+  // Both modes ask the same availability service: the API in production, the
+  // server's rules over demo data in the demo.
   React.useEffect(() => {
-    if (dataSource !== "api") return;
     const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
     const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
     let cancelled = false;
@@ -84,10 +82,8 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
     () => new Set(apiSlots.map((slot) => slot.date)),
     [apiSlots],
   );
-  const visibleTimes =
-    dataSource === "api"
-      ? apiSlots.filter((slot) => slot.date === date)
-      : TIME_SLOTS.map((slotTime) => ({ startAt: "", endAt: "", date: date ?? "", time: slotTime }));
+  const visibleTimes = apiSlots.filter((slot) => slot.date === date);
+  const monthIsEmpty = apiAvailability !== null && apiSlots.length === 0;
 
   const go = (months: number) => {
     const next = new Date(anchor);
@@ -98,8 +94,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
 
   const pickDate = (d: Date) => {
     const iso = localDateKey(d);
-    const available = dataSource === "api" ? availableDates.has(iso) : isAvailable(d);
-    if (d < today || !available) return;
+    if (d < today || !availableDates.has(iso)) return;
     onChange({ date: iso, time: null, startAt: null });
   };
 
@@ -108,7 +103,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
     onChange({
       date,
       time: slotTime,
-      startAt: dataSource === "api" ? slotStartAt : startAt,
+      startAt: slotStartAt,
     });
   };
 
@@ -144,8 +139,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
         <div className="grid grid-cols-7 gap-1 px-4 pb-4 flex-1 auto-rows-fr">
           {cells.map((c) => {
             const past = c.date < today;
-            const avail =
-              dataSource === "api" ? availableDates.has(localDateKey(c.date)) : isAvailable(c.date);
+            const avail = availableDates.has(localDateKey(c.date));
             const selected = !!selectedDate && sameDay(c.date, selectedDate);
             const disabled = past || !avail || !c.inMonth;
             return (
@@ -181,17 +175,16 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
         {!date ? (
           <div className="flex-1 flex items-center justify-center">
             <p className="text-small text-center max-w-[24ch]">
-              {t("booking.datetime.pickDate")}
+              {t(monthIsEmpty ? "booking.datetime.noneThisMonth" : "booking.datetime.pickDate")}
             </p>
           </div>
         ) : (
           <div className="list-rise grid grid-cols-2 gap-2 flex-1 auto-rows-fr">
             {visibleTimes.map((slot) => {
-              const active = time === slot.time &&
-                (dataSource !== "api" || startAt === slot.startAt);
+              const active = time === slot.time && startAt === slot.startAt;
               return (
                 <button
-                  key={slot.startAt || slot.time}
+                  key={slot.startAt}
                   type="button"
                   onClick={() => pickTime(slot.time, slot.startAt)}
                   className={cn(

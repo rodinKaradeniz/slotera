@@ -53,9 +53,7 @@ async def test_dashboard_summary_is_private_and_aggregates_open_action_items() -
                     **_csrf_headers(client),
                     "If-Match": '"v'
                     + str(
-                        (await client.get(f"/tasks/{action.json()['id']}"))
-                        .json()
-                        .get("version", 1)
+                        (await client.get(f"/tasks/{action.json()['id']}")).json().get("version", 1)
                     )
                     + '"',
                 },

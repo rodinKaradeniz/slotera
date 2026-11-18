@@ -75,13 +75,6 @@ export function Topbar({
         ))}
       </nav>
 
-      {showSearch && onOpenPalette && (
-        <NavbarSearch onOpenPalette={onOpenPalette} />
-      )}
-
-      <DemoGuideButton variant="ghost" className="hidden md:inline-flex" />
-
-      {right}
       {showSearch && (
         <>
           <Link
@@ -103,6 +96,14 @@ export function Topbar({
         </>
       )}
       {showNotifications && <NotificationsButton />}
+
+      {showSearch && onOpenPalette && (
+        <NavbarSearch onOpenPalette={onOpenPalette} />
+      )}
+
+      <DemoGuideButton variant="ghost" className="hidden md:inline-flex" />
+
+      {right}
     </header>
   );
 }

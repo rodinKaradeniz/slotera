@@ -6,7 +6,14 @@ import type { FormTemplate } from "@/types/form";
 import type { Currency } from "@/types/common";
 import type { Service } from "@/types/service";
 import { readSession } from "@/lib/session";
+import { dataSource } from "@/lib/env";
+import { sleep } from "@/lib/delay";
+import { availableSlots, bookingOutcome, isPubliclyBookable, paymentMethodFor, quoteFor } from "@/lib/public-booking-rules";
 import { NotFoundError } from "./_errors";
+import { listServices } from "./services.service";
+import { listSessions } from "./sessions.service";
+import { getAvailabilitySettings, getPaymentSettings } from "./settings.service";
+import { listFormsForService, saveFormResponse } from "./forms.service";
 
 type WorkspaceDto = components["schemas"]["PublicWorkspaceResponse"];
 type ServiceListDto = components["schemas"]["PublicServiceListResponse"];
@@ -49,9 +56,17 @@ export async function getPublicBookingWorkspace(
 }
 
 export async function listPublicBookingServices(
-  slug = resolveSlug(),
+  slug?: string,
 ): Promise<Service[]> {
-  const response = await apiRequest<ServiceListDto>(`${workspacePath(slug)}/services`);
+  if (dataSource === "mock") {
+    // The demo applies the server's catalogue rules: every active, publicly bookable
+    // service in creation order, priced with the same gross-inclusive quote.
+    const tax = await getPaymentSettings();
+    return (await listServices())
+      .filter(isPubliclyBookable)
+      .map((service) => ({ ...service, publicQuote: quoteFor(service.priceCents, tax) }));
+  }
+  const response = await apiRequest<ServiceListDto>(`${workspacePath(slug ?? resolveSlug())}/services`);
   return response.items.map((item) => ({
     id: item.id,
     name: item.name,
@@ -113,21 +128,32 @@ export async function listPublicAvailability(
   serviceId: string,
   startsOn: string,
   endsOn: string,
-  slug = resolveSlug(),
+  slug?: string,
 ): Promise<PublicAvailability> {
+  if (dataSource === "mock") {
+    const service = (await listPublicBookingServices()).find((item) => item.id === serviceId);
+    const policy = await getAvailabilitySettings();
+    if (!service) throw new NotFoundError("Service", serviceId);
+    return {
+      timezone: policy.timezone,
+      items: availableSlots(service, policy, await listSessions(), startsOn, endsOn, new Date()),
+    };
+  }
   const query = new URLSearchParams({ from: startsOn, to: endsOn });
   return apiRequest<AvailabilityDto>(
-    `${workspacePath(slug)}/services/${encodeURIComponent(serviceId)}/availability?${query}`,
+    `${workspacePath(slug ?? resolveSlug())}/services/${encodeURIComponent(serviceId)}/availability?${query}`,
   );
 }
 
 export async function createPublicBooking(
   draft: BookingDraft,
-  slug = resolveSlug(),
+  slug?: string,
 ): Promise<PublicBookingResult> {
   if (!draft.service || !draft.startAt) {
     throw new Error(translate(readLang(), "errors.slot"));
   }
+  if (dataSource === "mock") return createDemoBooking(draft, draft.service, draft.startAt);
+  slug ??= resolveSlug();
   const requiredForms = new Set((await listPublicServiceForms(draft.service.id, slug))
     .filter((form) => form.requiredBeforePayment).map((form) => form.id));
   const body: BookingCreateDto = {
@@ -167,6 +193,58 @@ export async function createPublicBooking(
     `${workspacePath(slug)}/bookings`,
     { method: "POST", body, idempotencyKey },
   );
+}
+
+/** The demo's booking command: the server's slot, payment and status rules, nothing stored. */
+async function createDemoBooking(draft: BookingDraft, chosen: Service, startAt: string): Promise<PublicBookingResult> {
+  const now = new Date();
+  const service = (await listPublicBookingServices()).find((item) => item.id === chosen.id);
+  const payments = await getPaymentSettings();
+  const day = startAt.slice(0, 10);
+  const slot = service && (await listPublicAvailability(service.id, day, day)).items
+    .find((item) => Date.parse(item.startAt) === Date.parse(startAt));
+  if (!service || !slot) throw new Error(translate(readLang(), "errors.slot"));
+  const paymentMethod = paymentMethodFor(service.priceCents, payments.manualPaymentEnabled);
+  if (!paymentMethod) throw new Error(translate(readLang(), "booking.payment.unavailable"));
+  await sleep(600);
+  const reference = `SLT-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const required = (await listFormsForService(service.id)).filter((form) => form.requiredBeforePayment);
+  await Promise.all(required.map((form) => saveFormResponse({
+    bookingId: reference,
+    formTemplateId: form.id,
+    answers: draft.formResponses[form.id] ?? [],
+  })));
+  const outcome = bookingOutcome(service, paymentMethod, slot.startAt, now);
+  const quote = service.publicQuote ?? quoteFor(service.priceCents, payments);
+  return {
+    id: crypto.randomUUID(),
+    reference,
+    ...outcome,
+    paymentMethod,
+    confirmationPolicy: service.confirmationPolicy,
+    sessionStartAt: slot.startAt,
+    sessionEndAt: slot.endAt,
+    sessionLocationType: service.locationType,
+    sessionLocation: service.location,
+    sessionAddress: service.locationType === "online" || !service.address ? null : {
+      ...service.address,
+      street2: service.address.street2 ?? null,
+      region: service.address.region ?? null,
+      notes: null,
+    },
+    // As on the server: the meeting link only once the booking is confirmed.
+    meetingUrl: outcome.status === "confirmed" ? service.meetingUrl ?? null : null,
+    quote: {
+      currency: service.currency,
+      grossAmountCents: quote.grossAmountCents,
+      netAmountCents: quote.netAmountCents,
+      taxAmountCents: quote.taxAmountCents,
+      rateBps: quote.rateBps,
+      label: quote.label ?? null,
+      jurisdiction: quote.jurisdiction ?? null,
+      treatment: quote.treatment,
+    },
+  };
 }
 
 // ── Customer booking link (API mode) ────────────────────────────────────────

@@ -44,10 +44,8 @@ export default function ConfirmationPage() {
   const locale = localeForLang(lang);
   const hydrated = useHydrated();
   const data = React.useMemo(() => (hydrated ? readStored() : null), [hydrated]);
-  const [copied, setCopied] = React.useState(false);
-
-  const meetingLink = data ? `https://meet.slotera.io/${data.ref.toLowerCase()}` : "";
-  const apiBooking = dataSource === "api" ? data?.booking : undefined;
+  // Both modes store the server-shaped booking result; the demo builds it with the server's rules.
+  const apiBooking = data?.booking;
   const isConfirmed = apiBooking?.status === "confirmed";
   const apiWhere = apiBooking
     ? apiBooking.sessionAddress
@@ -59,17 +57,6 @@ export default function ConfirmationPage() {
         })}`
       : apiBooking.sessionLocation
     : "";
-
-  const copy = async () => {
-    if (!meetingLink) return;
-    try {
-      await navigator.clipboard.writeText(meetingLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // ignore
-    }
-  };
 
   return (
     <BookingTheme slug={data?.slug} branding={data?.branding}><div className="min-h-screen flex flex-col">
@@ -131,9 +118,6 @@ export default function ConfirmationPage() {
                 label={t("booking.confirm.attendee")}
                 value={`${data.draft.customer.firstName} ${data.draft.customer.lastName}`.trim()}
               />
-              {dataSource === "mock" && (
-                <DetailLine label={t("booking.confirm.meetingLink")} value={meetingLink} />
-              )}
               {apiBooking && (
                 <DetailLine label={t("booking.confirm.where")} value={apiWhere || "—"} />
               )}
@@ -172,43 +156,22 @@ export default function ConfirmationPage() {
             </div>
           ) : null}
           <div className="flex flex-wrap justify-center gap-2 mt-8">
+            {/* In production the manage link arrives by email; the demo opens its sample page. */}
             {dataSource === "mock" && (
-              <>
-                <Button variant="primary" icon="copy" onClick={copy}>
-                  {copied ? t("booking.confirm.copied") : t("booking.confirm.copyLink")}
+              <Link href="/booking/manage/demo">
+                <Button variant="secondary" icon="eye">
+                  {t("booking.confirm.manage")}
                 </Button>
-                <Link href="/booking/manage/demo">
-                  <Button variant="secondary" icon="eye">
-                    {t("booking.confirm.manage")}
-                  </Button>
-                </Link>
-              </>
+              </Link>
             )}
             <Link href={data?.slug ? `/book/${data.slug}` : "/booking"}>
-              <Button variant={dataSource === "api" ? "primary" : "ghost"}>
+              <Button variant="primary">
                 {t("booking.confirm.bookAnother")}
               </Button>
             </Link>
           </div>
         </Card>
 
-        {dataSource === "mock" && <div className="grid sm:grid-cols-3 gap-3 mt-6">
-          <NextCard
-            icon="calendar"
-            title={t("booking.confirm.addCalendar.title")}
-            body={t("booking.confirm.addCalendar.body")}
-          />
-          <NextCard
-            icon="download"
-            title={t("booking.confirm.invoice.title")}
-            body={t("booking.confirm.invoice.body")}
-          />
-          <NextCard
-            icon="mail"
-            title={t("booking.confirm.forward.title")}
-            body={t("booking.confirm.forward.body")}
-          />
-        </div>}
       </main>
       <BookingFooter branded={data?.branded ?? true} />
     </div></BookingTheme>
@@ -232,25 +195,5 @@ function DetailLine({ label, value, href }: { label: string; value: string; href
         <div className="text-[14px] text-ink mt-0.5 break-all">{value}</div>
       )}
     </div>
-  );
-}
-
-function NextCard({
-  icon,
-  title,
-  body,
-}: {
-  icon: string;
-  title: string;
-  body: string;
-}) {
-  return (
-    <Card padded hover className="text-left">
-      <div className="w-9 h-9 rounded-md bg-paper-2 text-ink-2 flex items-center justify-center mb-3">
-        <Icon name={icon} size={16} />
-      </div>
-      <div className="text-[14px] font-medium text-ink">{title}</div>
-      <div className="text-small mt-0.5">{body}</div>
-    </Card>
   );
 }

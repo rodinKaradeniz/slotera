@@ -2,7 +2,7 @@ import * as React from "react";
 import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/cn";
 import { sanitizeNoteHtml } from "@/lib/sanitize-note-html";
-import { NOTE_PROSE } from "./NoteEditor";
+import { NOTE_PROSE } from "./note-prose";
 
 /**
  * Read-only renderer for an operator-only client note. API writes sanitize the

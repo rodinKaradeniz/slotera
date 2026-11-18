@@ -44,13 +44,6 @@ export function buildMonthGrid(anchor: Date): DayCell[] {
   });
 }
 
-export function isAvailable(date: Date): boolean {
-  const day = date.getDay();
-  if (day === 0 || day === 6) return false;
-  // pseudo-random: every weekday available except every 7th
-  return date.getDate() % 7 !== 3;
-}
-
 export function sessionOverlaps(
   candidate: { startISO: string; endISO: string; id?: string },
   existing: Array<Pick<SessionItem, "id" | "startISO" | "endISO" | "status">>,

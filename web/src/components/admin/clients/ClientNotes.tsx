@@ -18,7 +18,8 @@ import { LoadingRows } from "@/components/shared/LoadingRows";
 import { useToast } from "@/components/ui/Toast";
 import { fmtDate } from "@/lib/time";
 import { NoteContent } from "./NoteContent";
-import { NoteEditor } from "./NoteEditor";
+import dynamic from "next/dynamic";
+
 import {
   listClientNotePage,
   createClientNote,
@@ -26,6 +27,13 @@ import {
   deleteClientNote,
 } from "@/services/client-notes.service";
 import type { ClientNote } from "@/types/client-note";
+
+// The rich-text editor (Tiptap) is the client page's largest library and is only needed
+// once the note modal opens, so it loads then, in a box the size of the editor.
+const NoteEditor = dynamic(() => import("./NoteEditor").then((module) => module.NoteEditor), {
+  ssr: false,
+  loading: () => <div className="rounded-lg border border-line bg-surface min-h-[180px]" />,
+});
 
 export function ClientNotes({ clientId }: { clientId: string }) {
   const { t: uiText } = useI18n();

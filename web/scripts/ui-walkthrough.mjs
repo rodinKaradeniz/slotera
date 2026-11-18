@@ -2,6 +2,7 @@
 // caught mid-animation, phone widths and a Reduce Motion pass.
 //   npm run build && npm run start   (mock mode, port 3344)
 //   npm run ui:walk                  (screenshots land in web/ui-shots/, gitignored)
+// It also refreshes the landing hero images in web/public/landing/ (2x, committed).
 // UI_WALK_BASE and UI_WALK_OUT override the target and the output folder.
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -11,6 +12,7 @@ import { chromium } from "@playwright/test";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.UI_WALK_OUT || path.join(here, "..", "ui-shots");
 const BASE = process.env.UI_WALK_BASE || "http://127.0.0.1:3344";
+const HERO = path.join(here, "..", "public", "landing");
 mkdirSync(OUT, { recursive: true });
 
 const settle = (p, ms = 900) => p.waitForTimeout(ms);
@@ -202,6 +204,36 @@ async function step(label, fn) {
     await settle(mp, 500);
     await mp.screenshot({ path: `${OUT}/mobile-sheet.png` });
     console.log("shot mobile sheet");
+  });
+
+  // Landing hero: the same screens at 2x, on a fixed weekday morning so the greeting
+  // and "next call in 2h 14m" agree. Crops match HeroShots' width/height props (halved).
+  await step("hero images", async () => {
+    mkdirSync(HERO, { recursive: true });
+    const morning = new Date("2026-11-18T08:16:00");
+    const desk = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, storageState: await ctx.storageState() });
+    const dp = await desk.newPage();
+    await dp.clock.setFixedTime(morning);
+    await dp.goto(`${BASE}/admin/dashboard`, { waitUntil: "networkidle" });
+    await settle(dp);
+    await dp.getByRole("button", { name: /new to-do/i }).click();
+    const dialog = dp.getByRole("dialog");
+    await dialog.getByRole("textbox").first().fill("Send the March workshop recap");
+    await dialog.getByRole("textbox").nth(1).fill("Summarise the three decisions and who owns each follow-up.");
+    await dialog.getByRole("button", { name: /add to-do/i }).click();
+    await settle(dp, 1200);
+    await dp.mouse.move(0, 899);
+    await dp.screenshot({ path: path.join(HERO, "hero-dashboard.png"), clip: { x: 0, y: 0, width: 1424, height: 712 } });
+    await dp.goto(`${BASE}/booking`, { waitUntil: "networkidle" });
+    await settle(dp);
+    await dp.screenshot({ path: path.join(HERO, "hero-booking.png"), clip: { x: 778, y: 192, width: 472, height: 508 } });
+    const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, storageState: await ctx.storageState() });
+    const pp = await phone.newPage();
+    await pp.clock.setFixedTime(morning);
+    await pp.goto(`${BASE}/admin/dashboard`, { waitUntil: "networkidle" });
+    await settle(pp, 1200);
+    await pp.screenshot({ path: path.join(HERO, "hero-mobile.png"), clip: { x: 0, y: 0, width: 390, height: 700 } });
+    console.log("shot hero images");
   });
 
   // Reduce Motion: everything should be there at once

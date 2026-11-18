@@ -8,6 +8,8 @@ import { dataSource } from "@/lib/env";
 import { getLanguagePreference, saveLanguagePreference } from "@/services/preferences.service";
 import type { Messages } from "@/i18n/messages/en";
 import {
+  isLangLoaded,
+  loadLang,
   readLang,
   writeLang,
   translate,
@@ -40,7 +42,17 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const operatorSurface = pathname?.startsWith("/admin") || pathname?.startsWith("/superadmin") || false;
   const hydrated = useHydrated();
   const [chosen, setChosen] = React.useState<Lang | null>(null);
-  const lang = chosen ?? (hydrated ? readLang() : "en");
+  const wanted = chosen ?? (hydrated ? readLang() : "en");
+  // Turkish and German load on demand; until they arrive the page stays in English,
+  // exactly as it already does between the server render and hydration.
+  const [, setLoadedCount] = React.useState(0);
+  React.useEffect(() => {
+    if (isLangLoaded(wanted)) return;
+    let active = true;
+    loadLang(wanted).then(() => { if (active) setLoadedCount((count) => count + 1); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [wanted]);
+  const lang = isLangLoaded(wanted) ? wanted : "en";
 
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const userId = React.useSyncExternalStore(
@@ -60,17 +72,22 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     return () => { active = false; };
   }, [userId, operatorSurface]);
   const setLang = React.useCallback((next: Lang) => {
-    const previous = readLang();
-    const request = ++sequence.current;
-    setChosen(next); writeLang(next); setSaveError(null);
-    if (dataSource === "api" && operatorSurface && readSession()) {
-      saveLanguagePreference(next).catch(() => {
-        if (request === sequence.current) {
-          setChosen(previous); writeLang(previous);
-          setSaveError(translate(previous, "language.saveFailed"));
-        }
-      });
-    }
+    const apply = () => {
+      const previous = readLang();
+      const request = ++sequence.current;
+      setChosen(next); writeLang(next); setSaveError(null);
+      if (dataSource === "api" && operatorSurface && readSession()) {
+        saveLanguagePreference(next).catch(() => {
+          if (request === sequence.current) {
+            setChosen(previous); writeLang(previous);
+            setSaveError(translate(previous, "language.saveFailed"));
+          }
+        });
+      }
+    };
+    // Switch once the messages are here, so the page goes straight to the new language.
+    if (isLangLoaded(next)) apply();
+    else loadLang(next).then(apply).catch(() => undefined);
   }, [operatorSurface]);
 
   // The root layout renders lang="en"; keep the attribute in step with the chosen language.

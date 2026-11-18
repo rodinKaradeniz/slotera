@@ -604,6 +604,17 @@ Hand-rolled, no i18n library. `web/src/lib/i18n.ts` exposes `Lang = "en" | "tr" 
 source of truth; `tr.ts` and `de.ts` are `Partial<Messages>` and fall back to English
 per-key, then to the key itself.
 
+Only English ships with every page. `loadLang(lang)` fetches Turkish or German on first use
+(`I18nProvider` loads the saved language after hydration and switches once it arrives), and
+`translate` returns English until then. Never import `messages/tr` or `messages/de` directly;
+that would put both back into every page. Vitest preloads all languages in
+`web/src/test-setup.ts`.
+
+**Lazy-loaded libraries.** Recharts (`TrendPlot`, behind `TrendChart`) and Tiptap
+(`NoteEditor`, opened from the note modal) load through `next/dynamic` with a placeholder of
+the same size. Import shared constants from small modules (e.g. `note-prose.ts`), never from
+the lazy component's file, or the library comes back into the page bundle.
+
 Coverage is chrome and labels — most demo/mock body copy (provider names, service
 descriptions, seeded notes) is English-only by design.
 
@@ -693,11 +704,15 @@ Present tense — what exists in the working tree today.
   It shows only server-issued available slots, validates and snapshots required attached
   forms, and derives confirmation from the service approval policy plus free/manual
   payment state. The confirmation page reports the exact persisted pending gates and
-  queues receipt/confirmation email; mock card/package demonstrations remain outside that
+  queues receipt/confirmation email; mock package demonstrations remain outside that
   real transaction.
-- The service list on `/booking` is curated in `demo.service.ts`
-  (`STANDARD_BOOKING_SERVICE_IDS` → Discovery Call, Strategy Session, Coaching Session,
-  Group Workshop). Persona demos are reachable via `?demo=<slug>`.
+- The demo `/booking` runs the same flow through the same service calls. In mock mode,
+  `public-booking.service.ts` applies the server's rules from
+  `web/src/lib/public-booking-rules.ts` (bookable services, gross-inclusive tax quote,
+  open and scheduled slots, free/manual payment, booking status) to the demo data. Change
+  those rules together with `public_booking/repository.py` and `booking_financials.py`.
+  There is no card payment until Stripe lands, so `/booking/failure` is currently unreachable.
+  Persona demos (`?demo=<slug>`) narrow the service list to the persona's `serviceIds`.
 - When `settings.business.bookingPageEnabled === false` the route still returns 200 and
   renders `BookingsPausedCard` instead of the stepper.
 - `/booking/manage/demo` — a mocked, no-auth two-column customer **booking workspace**

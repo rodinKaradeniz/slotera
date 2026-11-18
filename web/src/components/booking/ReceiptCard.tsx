@@ -1,13 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 import { formatMoney } from "@/lib/money";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { localeForLang } from "@/lib/i18n";
-import { COUNTRIES } from "./types";
-import type { BookingDraft } from "./types";
+import { COUNTRIES, type BookingDraft } from "./types";
 
 type Props = {
   draft: BookingDraft;
@@ -15,11 +14,6 @@ type Props = {
   manualInstructions?: string | null;
   reference?: string | null;
   className?: string;
-};
-
-const METHOD_ICON: Record<BookingDraft["payment"]["method"], IconName> = {
-  card: "card",
-  manual: "wallet",
 };
 
 export function ReceiptCard({
@@ -32,21 +26,14 @@ export function ReceiptCard({
   const { t: uiText } = useI18n();
   const { t, lang } = useI18n();
   const locale = localeForLang(lang);
-  const methodLabel: Record<BookingDraft["payment"]["method"], string> = {
-    card: t("booking.payment.card"),
-    manual: t("booking.payment.manual"),
-  };
   const country =
     COUNTRIES.find((c) => c.code === draft.billing.country) ?? COUNTRIES[0];
+  // The server's quote: the price is gross and any fixed tax is already inside it.
   const serverQuote = draft.service?.publicQuote;
-  const subtotal = serverQuote?.netAmountCents ?? draft.service?.priceCents ?? 0;
-  const tax =
-    serverQuote?.taxAmountCents ?? Math.round(subtotal * country.vat);
-  const total = serverQuote?.grossAmountCents ?? subtotal + tax;
-  const taxLabel = serverQuote?.label ?? country.vatLabel;
-  const taxRate = serverQuote
-    ? serverQuote.rateBps / 100
-    : Math.round(country.vat * 100);
+  const total = serverQuote?.grossAmountCents ?? draft.service?.priceCents ?? 0;
+  const subtotal = serverQuote?.netAmountCents ?? total;
+  const tax = serverQuote?.taxAmountCents ?? 0;
+  const fixedTax = serverQuote?.treatment === "fixed" && serverQuote.rateBps > 0;
   const money = (amount: number) =>
     formatMoney(amount, draft.service?.currency ?? "GBP");
   const isFree = total === 0;
@@ -164,10 +151,12 @@ export function ReceiptCard({
           label={t("booking.receipt.subtotal")}
           value={subtotal === 0 ? t("common.free") : money(subtotal)}
         />
-        <Row
-          label={`${taxLabel} (${taxRate}%)`}
-          value={tax === 0 ? "—" : money(tax)}
-        />
+        {fixedTax && (
+          <Row
+            label={`${serverQuote.label ?? ""} (${serverQuote.rateBps / 100}%)`.trim()}
+            value={tax === 0 ? "—" : money(tax)}
+          />
+        )}
       </div>
 
       <DashedDivider />
@@ -192,13 +181,13 @@ export function ReceiptCard({
             <div className="text-[14px] text-ink">{uiText("ui.no.payment.required")}</div>
           ) : (
             <div className="flex items-center gap-2 text-[14px] text-ink">
-              <Icon name={METHOD_ICON[draft.payment.method]} size={14} />
-              {methodLabel[draft.payment.method]}
+              <Icon name="wallet" size={14} />
+              {t("booking.payment.manual")}
             </div>
           )}
         </ReceiptSection>
 
-        {!isFree && draft.payment.method === "manual" && manualInstructions && (
+        {!isFree && manualInstructions && (
           <div className="rounded-md bg-paper-2 border border-line-soft px-3 py-3">
             <div className="eyebrow mb-1.5">{t("booking.receipt.manualInstructions")}</div>
             <p className="text-small whitespace-pre-line text-ink">
@@ -214,9 +203,7 @@ export function ReceiptCard({
           {isFree
             ? uiText("ui.no.payment.required")
             : variant === "pay"
-            ? draft.payment.method === "manual"
-              ? t("booking.receipt.footerManual")
-              : t("booking.receipt.footerCard")
+            ? t("booking.receipt.footerManual")
             : t("booking.receipt.footerReview")}
         </span>
       </div>

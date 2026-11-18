@@ -102,7 +102,6 @@ class PublicBookingResult:
     meeting_url: str | None = None
 
 
-
 def _overlaps(
     left_start: datetime,
     left_end: datetime,
@@ -766,21 +765,36 @@ class PublicBookingRepository:
             session.add(booking)
             await session.flush()
             assignments = {form.id: uuid4() for form in forms}
-            session.add_all([
-                BookingFormSnapshot(
-                    id=assignments[form.id], workspace_id=workspace_id, booking_id=booking.id,
-                    form_template_id=form.id, name=form.name, description=form.description,
-                    fields=form.fields, required_before_payment=form.required_before_payment,
-                ) for form in forms
-            ])
+            session.add_all(
+                [
+                    BookingFormSnapshot(
+                        id=assignments[form.id],
+                        workspace_id=workspace_id,
+                        booking_id=booking.id,
+                        form_template_id=form.id,
+                        name=form.name,
+                        description=form.description,
+                        fields=form.fields,
+                        required_before_payment=form.required_before_payment,
+                    )
+                    for form in forms
+                ]
+            )
             await session.flush()
-            session.add_all([
-                BookingFormResponse(
-                    id=uuid4(), workspace_id=workspace_id, booking_id=booking.id,
-                    snapshot_id=assignments[form.id], form_template_id=form.id,
-                    form_name=form.name, answers=answers,
-                ) for form, answers in validated
-            ])
+            session.add_all(
+                [
+                    BookingFormResponse(
+                        id=uuid4(),
+                        workspace_id=workspace_id,
+                        booking_id=booking.id,
+                        snapshot_id=assignments[form.id],
+                        form_template_id=form.id,
+                        form_name=form.name,
+                        answers=answers,
+                    )
+                    for form, answers in validated
+                ]
+            )
             session.add(
                 PublicBookingIdempotency(
                     id=uuid4(),

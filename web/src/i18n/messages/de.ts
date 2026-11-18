@@ -125,6 +125,9 @@ export const de: Partial<Messages> = {
   "ai.retention": "Chatverläufe bleiben 30 Tage gespeichert. Eine Kundenlöschung entfernt alle KI-Verläufe und Vorschläge des Arbeitsbereichs. Deaktivieren entfernt auch den Suchindex. Die Aufbewahrung zur Missbrauchsüberwachung beim Anbieter ist davon getrennt.",
   "ai.enable": "KI aktivieren",
   "ai.disable": "KI deaktivieren",
+  "ai.toast.enabled": "KI ist aktiviert.",
+  "ai.toast.disabled": "KI ist deaktiviert.",
+  "ai.toast.failed": "Die KI-Einstellung wurde nicht geändert.",
   "ai.disabled": "Aktivieren Sie KI in den Einstellungen, um den Assistenten zu nutzen.",
   "ai.unavailable": "KI ist auf diesem Server nicht konfiguriert.",
   "ai.simulated": "Lokale Simulation – keine externen KI-Aufrufe.",
@@ -136,7 +139,7 @@ export const de: Partial<Messages> = {
   "ai.retry": "Erneut versuchen",
   "ai.loading": "Wird vorbereitet…",
   "ai.clientBrief": "Kundenübersicht",
-  "ai.briefHint": "Wird nur auf Anfrage erstellt; der Tageszyklus erneuert sich um 9 Uhr in der Arbeitsbereichszeitzone.",
+  "ai.briefHint": "Wird nur auf Anfrage erstellt. Aktualisieren Sie sie nach neuen Sitzungen oder Notizen.",
   "ai.briefMe": "Übersicht erstellen",
   "ai.newChat": "Neuer Chat",
   "ai.deleteChat": "Chat löschen",
@@ -278,8 +281,12 @@ export const de: Partial<Messages> = {
 
   "landing.hero.eyebrow": "Für unabhängige Beratende, Coaches & Trainer:innen",
   "landing.hero.title": "Bezahlte Buchungen, ohne Kalender-Chaos.",
+  "landing.hero.shot.dashboard": "Das Slotera-Dashboard: der nächste Termin, der heutige Ablauf und die Aufgabenliste.",
+  "landing.hero.shot.booking": "Die Buchungsseite für Klient:innen mit den Leistungen und Preisen.",
+  "landing.hero.caption.dashboard": "Ihr Workspace",
+  "landing.hero.caption.booking": "Ihre Buchungsseite aus Sicht der Klient:innen",
   "landing.hero.subtitle":
-    "Slotera ist ein schlanker Klienten-Workspace für unabhängige Expert:innen. Kassieren Sie per Karte oder Banküberweisung, versenden Sie Vorbereitungsformulare, bündeln Sie Sitzungen zu Paketen und behalten Sie Klienten-Kontext und Nachfassen an einem Ort. Kein schweres CRM.",
+    "Slotera ist ein schlanker Klienten-Workspace für unabhängige Expert:innen. Nehmen Sie bezahlte Buchungen per Banküberweisung an, versenden Sie Vorbereitungsformulare, bündeln Sie Sitzungen zu Paketen und behalten Sie Klienten-Kontext und Nachfassen an einem Ort. Kein schweres CRM.",
 
   "landing.logos.trustedBy":
     "Vertraut von über 1.200 unabhängigen Beratenden, Coaches und Trainer:innen in ganz Europa.",
@@ -446,7 +453,6 @@ export const de: Partial<Messages> = {
   "booking.step.pay": "Zahlen",
   "booking.back": "Zurück",
   "booking.continue": "Weiter",
-  "booking.payConfirm": "Bezahlen und bestätigen",
   "booking.reservePay": "Reservieren und zahlen",
   "booking.confirm": "Buchung bestätigen",
 
@@ -465,6 +471,7 @@ export const de: Partial<Messages> = {
   "booking.intro.title": "Strategieberater:in",
 
   "booking.datetime.availableTimes": "Verfügbare Zeiten",
+  "booking.datetime.noneThisMonth": "In diesem Monat sind keine Zeiten frei. Versuchen Sie den nächsten Monat.",
   "booking.datetime.pickDate": "Wählen Sie ein Datum, um verfügbare Zeiten zu sehen.",
   "booking.datetime.prevMonth": "Vorheriger Monat",
   "booking.datetime.nextMonth": "Nächster Monat",
@@ -532,22 +539,14 @@ export const de: Partial<Messages> = {
   "booking.receipt.manualInstructions": "Hinweise zur manuellen Zahlung",
   "booking.receipt.footerManual":
     "Bei manuellen Zahlungen ist eine Bestätigung des Anbieters erforderlich, bevor Ihre Buchung verbindlich ist.",
-  "booking.receipt.footerCard": "Verschlüsselt · PCI-DSS über Stripe (nachgebildet)",
   "booking.receipt.footerReview":
     "Es wird Ihnen nichts berechnet, bis Sie im nächsten Schritt bestätigen.",
 
-  "booking.payment.method": "Zahlungsart",
-  "booking.payment.card": "Karte",
   "booking.payment.manual": "Manuelle Zahlung",
-  "booking.payment.cardholderName": "Karteninhaber:in",
-  "booking.payment.cardNumber": "Kartennummer",
-  "booking.payment.cardNumberHint":
-    "Nutzen Sie 4242 4242 4242 4242 für einen simulierten Erfolg oder 4000 0000 0000 0002 für einen simulierten Fehler.",
-  "booking.payment.expiration": "Ablauf",
-  "booking.payment.cvc": "CVC",
   "booking.payment.instructions": "Zahlungshinweise",
   "booking.payment.instructionsFallback":
     "Die Zahlungshinweise werden nach Ihrer Bestätigung mitgeteilt.",
+  "booking.payment.unavailable": "Hier sind gerade keine kostenpflichtigen Online-Buchungen möglich. Bitte nehmen Sie direkt Kontakt auf.",
   "booking.payment.pendingNote":
     "Ihre Buchung bleibt ausstehend, bis der Anbieter den Zahlungseingang bestätigt.",
 
@@ -564,17 +563,8 @@ export const de: Partial<Messages> = {
   "booking.confirm.when": "Wann",
   "booking.confirm.where": "Wo",
   "booking.confirm.attendee": "Teilnehmer:in",
-  "booking.confirm.meetingLink": "Meeting-Link",
-  "booking.confirm.copyLink": "Meeting-Link kopieren",
-  "booking.confirm.copied": "Kopiert",
   "booking.confirm.bookAnother": "Weiteren Termin buchen",
   "booking.confirm.manage": "Buchung verwalten",
-  "booking.confirm.addCalendar.title": "Zum Kalender hinzufügen",
-  "booking.confirm.addCalendar.body": "Google · Apple · Outlook · ICS",
-  "booking.confirm.invoice.title": "Rechnung herunterladen",
-  "booking.confirm.invoice.body": "PDF, abrechnungsbereit",
-  "booking.confirm.forward.title": "E-Mail weiterleiten",
-  "booking.confirm.forward.body": "Kollegin oder Kollegen einbeziehen",
 
   "booking.failure.title": "Zahlung abgelehnt.",
   "booking.failure.body":
@@ -846,7 +836,6 @@ export const de: Partial<Messages> = {
   "ui.new.booking": "Neue Buchung",
   "ui.new.session": "Neue Sitzung",
   "ui.quote": "Zitat",
-  "ui.next.session": "Nächste Sitzung",
   "ui.fields": "Felder",
   "ui.new.form": "Neues Formular",
   "ui.featured": "Hervorgehoben",
@@ -1218,11 +1207,6 @@ export const de: Partial<Messages> = {
   "ui.logout": "Abmelden",
   "ui.spotted.a.bug.or.a.broken.flow.send.us.a.note.we.ll.take.a.look": "Einen Fehler entdeckt? Schreiben Sie uns, wir sehen es uns an.",
   "ui.confirmed": "Bestätigt",
-  "ui.revenue.7d": "Umsatz · 7 Tage",
-  "ui.may.2026": "Mai 2026",
-  "ui.today.3.bookings": "Heute · 3 Buchungen",
-  "ui.receipt": "Beleg",
-  "ui.vat.20": "MwSt. 20%",
   "ui.couldn.t.load.this": "Konnte nicht geladen werden",
   "ui.address.line.1": "Adresszeile 1",
   "ui.street.and.number": "Straße und Hausnummer",

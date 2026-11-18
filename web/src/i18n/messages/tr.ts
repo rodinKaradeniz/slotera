@@ -125,6 +125,9 @@ export const tr: Partial<Messages> = {
   "ai.retention": "Sohbet geçmişi 30 gün saklanır. Danışan silme işlemi çalışma alanının tüm yapay zekâ geçmişini ve önerilerini temizler. Devre dışı bırakma arama dizinini de kaldırır. Sağlayıcının kötüye kullanım izleme saklama süresi yanıt depolamasından ayrıdır.",
   "ai.enable": "Yapay zekâyı etkinleştir",
   "ai.disable": "Yapay zekâyı kapat",
+  "ai.toast.enabled": "Yapay zekâ açıldı.",
+  "ai.toast.disabled": "Yapay zekâ kapatıldı.",
+  "ai.toast.failed": "Yapay zekâ ayarı değiştirilemedi.",
   "ai.disabled": "Asistanı kullanmak için Ayarlar’dan yapay zekâyı etkinleştirin.",
   "ai.unavailable": "Bu sunucuda yapay zekâ yapılandırılmamış.",
   "ai.simulated": "Yerel simülasyon: harici yapay zekâ çağrısı yapılmaz.",
@@ -136,7 +139,7 @@ export const tr: Partial<Messages> = {
   "ai.retry": "Tekrar dene",
   "ai.loading": "Hazırlanıyor…",
   "ai.clientBrief": "Danışan özeti",
-  "ai.briefHint": "Yalnızca istendiğinde hazırlanır; günlük döngü çalışma alanı saatine göre 09.00’da yenilenir.",
+  "ai.briefHint": "Yalnızca istediğinizde oluşturulur. Yeni seanslardan veya notlardan sonra yenileyin.",
   "ai.briefMe": "Özet hazırla",
   "ai.newChat": "Yeni sohbet",
   "ai.deleteChat": "Sohbeti sil",
@@ -278,8 +281,12 @@ export const tr: Partial<Messages> = {
 
   "landing.hero.eyebrow": "Bağımsız danışmanlar, koçlar ve eğitmenler için",
   "landing.hero.title": "Takvim karmaşası olmadan, ücretli rezervasyonlar.",
+  "landing.hero.shot.dashboard": "Slotera paneli: sıradaki görüşme, bugünün programı ve yapılacaklar listesi.",
+  "landing.hero.shot.booking": "Danışanların gördüğü rezervasyon sayfası: hizmetler ve fiyatlar.",
+  "landing.hero.caption.dashboard": "Çalışma alanınız",
+  "landing.hero.caption.booking": "Danışanlarınızın gördüğü rezervasyon sayfanız",
   "landing.hero.subtitle":
-    "Slotera, bağımsız uzmanlar için hafif bir müşteri çalışma alanıdır. Kartla veya banka havalesiyle ödeme alın, hazırlık formları gönderin, seansları paketler hâlinde sunun ve müşteri bağlamı ile takibi tek yerde tutun. Ağır bir CRM değil.",
+    "Slotera, bağımsız uzmanlar için hafif bir müşteri çalışma alanıdır. Banka havalesiyle ücretli rezervasyon alın, hazırlık formları gönderin, seansları paketler hâlinde sunun ve müşteri bağlamı ile takibi tek yerde tutun. Ağır bir CRM değil.",
 
   "landing.logos.trustedBy":
     "Avrupa genelinde 1.200'den fazla bağımsız danışman, koç ve eğitmen tarafından tercih ediliyor.",
@@ -446,7 +453,6 @@ export const tr: Partial<Messages> = {
   "booking.step.pay": "Ödeme",
   "booking.back": "Geri",
   "booking.continue": "Devam",
-  "booking.payConfirm": "Öde ve onayla",
   "booking.reservePay": "Rezerve et ve öde",
   "booking.confirm": "Rezervasyonu onayla",
 
@@ -465,6 +471,7 @@ export const tr: Partial<Messages> = {
   "booking.intro.title": "Strateji danışmanı",
 
   "booking.datetime.availableTimes": "Uygun saatler",
+  "booking.datetime.noneThisMonth": "Bu ay uygun saat yok. Sonraki ayı deneyin.",
   "booking.datetime.pickDate": "Uygun saatleri görmek için bir tarih seçin.",
   "booking.datetime.prevMonth": "Önceki ay",
   "booking.datetime.nextMonth": "Sonraki ay",
@@ -532,22 +539,14 @@ export const tr: Partial<Messages> = {
   "booking.receipt.manualInstructions": "Manuel ödeme talimatları",
   "booking.receipt.footerManual":
     "Manuel ödemelerde rezervasyonunuz kesinleşmeden önce sağlayıcının onayı gerekir.",
-  "booking.receipt.footerCard": "Şifrelenmiş · Stripe ile PCI-DSS (taklit)",
   "booking.receipt.footerReview":
     "Bir sonraki adımda onaylayana kadar herhangi bir ücret alınmaz.",
 
-  "booking.payment.method": "Ödeme yöntemi",
-  "booking.payment.card": "Kart",
   "booking.payment.manual": "Manuel ödeme",
-  "booking.payment.cardholderName": "Kart sahibinin adı",
-  "booking.payment.cardNumber": "Kart numarası",
-  "booking.payment.cardNumberHint":
-    "Taklit başarı için 4242 4242 4242 4242, taklit hata için 4000 0000 0000 0002 kullanın.",
-  "booking.payment.expiration": "Son kullanma",
-  "booking.payment.cvc": "CVC",
   "booking.payment.instructions": "Ödeme talimatları",
   "booking.payment.instructionsFallback":
     "Ödeme talimatları siz onayladıktan sonra paylaşılacaktır.",
+  "booking.payment.unavailable": "Bu sağlayıcı şu anda ücretli çevrim içi rezervasyon almıyor. Rezervasyon için lütfen kendisiyle iletişime geçin.",
   "booking.payment.pendingNote":
     "Sağlayıcı ödemeyi aldığını onaylayana kadar rezervasyonunuz beklemede olarak işaretlenecektir.",
 
@@ -564,17 +563,8 @@ export const tr: Partial<Messages> = {
   "booking.confirm.when": "Ne zaman",
   "booking.confirm.where": "Nerede",
   "booking.confirm.attendee": "Katılımcı",
-  "booking.confirm.meetingLink": "Toplantı bağlantısı",
-  "booking.confirm.copyLink": "Toplantı bağlantısını kopyala",
-  "booking.confirm.copied": "Kopyalandı",
   "booking.confirm.bookAnother": "Başka bir seans rezerve et",
   "booking.confirm.manage": "Rezervasyonu yönet",
-  "booking.confirm.addCalendar.title": "Takvime ekle",
-  "booking.confirm.addCalendar.body": "Google · Apple · Outlook · ICS",
-  "booking.confirm.invoice.title": "Faturayı indir",
-  "booking.confirm.invoice.body": "PDF, faturaya hazır",
-  "booking.confirm.forward.title": "E-postayı ilet",
-  "booking.confirm.forward.body": "Bir meslektaşınızı dahil edin",
 
   "booking.failure.title": "Ödeme reddedildi.",
   "booking.failure.body":
@@ -846,7 +836,6 @@ export const tr: Partial<Messages> = {
   "ui.new.booking": "Yeni rezervasyon",
   "ui.new.session": "Yeni seans",
   "ui.quote": "Alıntı",
-  "ui.next.session": "Sonraki seans",
   "ui.fields": "Alanlar",
   "ui.new.form": "Yeni form",
   "ui.featured": "Öne çıkan",
@@ -1218,11 +1207,6 @@ export const tr: Partial<Messages> = {
   "ui.logout": "Çıkış yap",
   "ui.spotted.a.bug.or.a.broken.flow.send.us.a.note.we.ll.take.a.look": "Bir hata veya çalışmayan işlem mi gördünüz? Bize yazın, inceleyelim.",
   "ui.confirmed": "Onaylandı",
-  "ui.revenue.7d": "Gelir · 7 gün",
-  "ui.may.2026": "Mayıs 2026",
-  "ui.today.3.bookings": "Bugün · 3 rezervasyon",
-  "ui.receipt": "Makbuz",
-  "ui.vat.20": "KDV %20",
   "ui.couldn.t.load.this": "Yüklenemedi",
   "ui.address.line.1": "Adres satırı 1",
   "ui.street.and.number": "Sokak ve numara",

@@ -5,6 +5,7 @@ import { UsageBar } from "@/components/chat/UsageBar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 import {
   RecoverableError,
   toError,
@@ -18,6 +19,7 @@ import {
 } from "@/services/assistant.service";
 export function AISettings() {
   const { t } = useI18n();
+  const { toast } = useToast();
   const load = useLoad(
     React.useCallback((signal?: AbortSignal) => getAIStatus(signal), []),
   );
@@ -37,13 +39,21 @@ export function AISettings() {
     if (busy || !load.data) return;
     setBusy(true);
     setError(null);
+    const enabling = !load.data.enabled;
     try {
       if (review === "clear") await clearAIHistory();
-      else await configureAI(!load.data.enabled, load.data.revision);
+      else {
+        await configureAI(enabling, load.data.revision);
+        toast.success(t(enabling ? "ai.toast.enabled" : "ai.toast.disabled"));
+      }
       setReview(null);
       load.reload();
     } catch (e) {
-      setError(toError(e));
+      if (review === "toggle") {
+        // The toast reports the failure; the dialog closes so the unchanged state is visible.
+        toast.error(t("ai.toast.failed"), { description: toError(e).message });
+        setReview(null);
+      } else setError(toError(e));
       load.reload();
     } finally {
       setBusy(false);

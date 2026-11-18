@@ -2316,3 +2316,63 @@ walkthrough to run unsandboxed. The script now lives in the repo as `npm run ui:
 the agent run it means listing that command under `sandbox.excludedCommands` in the
 developer's Claude Code settings.
 
+## 2026-11-18 — Demo booking page follows the server's rules
+
+The demo `/booking` had drifted from `/book/{slug}`. It showed a hard-coded list of service
+ids (so a service created in the demo never appeared), offered eight fixed times on made-up
+weekdays, took card payments with a fake "card ending 0002 fails" path, added VAT for the
+client's billing country on top of the price, and confirmed every booking with a made-up
+meeting link. The server lists every active, publicly bookable service, computes slots from
+working hours, interval, buffers, notice, advance limit, blackouts and existing sessions (or
+the operator's scheduled sessions with seats left), accepts only free or manual payment, treats
+the price as tax-inclusive at the operator's fixed rate, and leaves a booking pending for
+approval or payment.
+
+The demo now calls the same service functions as API mode; their mock branches apply those
+rules from `web/src/lib/public-booking-rules.ts` (unit-tested against the server's cases) and
+return a server-shaped booking result, so the stepper and confirmation page have one path.
+The API payment step also no longer falls back to a card form when manual payment is off; it
+says paid bookings are not available, which matches the server's rejection. Because the demo
+sessions are dated May 2026, the demo workshop currently shows no open times, as the real
+page would. `lib/card.ts` stays for the future Stripe forms; `/booking/failure` is unreachable
+until then.
+
+Also in this round: AI settings shows a toast when AI is turned on or off (or the change
+fails), the assistant, messages and notifications icons sit left of the search, and AI moved
+to the bottom of the settings menu.
+
+## 2026-11-18 — Smaller page bundles, ruff format, legal rule
+
+Measured first-load JavaScript per route from the build's client manifests (gzip). Three costs
+stood out: all three languages shipped to every page (about 61 KB gzip of Turkish and German
+that a visitor never uses), Recharts (103 KB) on the dashboard, and Tiptap (128 KB) on client
+detail, pulled in even for reading notes because `NoteContent` imported a style constant from
+`NoteEditor`. Turkish and German now load on demand, the chart plot and the note editor load
+through `next/dynamic`, and the prose styles moved to `note-prose.ts`.
+
+| Route | Before | After |
+|---|---|---|
+| `/admin/clients/[id]` | 522 KB | 338 KB |
+| `/admin/dashboard` | 491 KB | 335 KB |
+| other admin pages | ~388 KB | ~327 KB |
+| public, booking and auth pages | ~345 KB | ~284 KB |
+
+The remaining shared base is React, the Next runtime and Sentry (no Session Replay); menus,
+drawers and the palette are too small to be worth deferring.
+
+`ruff format` was applied to the five backend files that had drifted (formatting only;
+mypy and the isolated tests unchanged). PRODUCT.md's footer rule described a legal modal and
+no legal pages; it now describes the real `/terms`, `/privacy` and `/dpa` routes.
+
+## 2026-11-18 — Real screenshots in the landing hero
+
+The hero's div-built product collage (a recognisable generated-landing pattern, which also
+showed VAT added on top of a price, unlike the server's tax-inclusive quote) is replaced by
+real captures: the dashboard in a plain frame with the client booking page over its corner,
+and the phone dashboard on small screens. The images live in `web/public/landing/` and are
+served through `next/image`; `npm run ui:walk` recaptures them at 2x with a fixed 08:16 clock
+so the greeting and "next call in 2h 14m" agree. The first set was cropped from 1x
+walkthrough shots. The hero subtitle no longer promises card payments. The client briefing
+hint still described the removed 9am daily cycle; it now says briefings are made on request
+and should be refreshed after new sessions or notes.
+

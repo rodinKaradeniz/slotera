@@ -23,13 +23,12 @@ import {
 import { BookingsPausedCard } from "@/components/booking/BookingsPausedCard";
 import { EMPTY_DRAFT, type BookingDraft } from "@/components/booking/types";
 import { getSettings } from "@/services/settings.service";
-import { listFormsForService, saveFormResponse } from "@/services/forms.service";
+import { listFormsForService } from "@/services/forms.service";
 import { getPersonaSync } from "@/services/demo.service";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { SettingsData } from "@/types/settings";
 import type { FormTemplate } from "@/types/form";
 import type { DemoPersona } from "@/types/demo";
-import { dataSource } from "@/lib/env";
 import {
   createPublicBooking,
   currentPublicWorkspaceSlug,
@@ -54,7 +53,6 @@ function readDraft(): BookingDraft | null {
       formResponses: parsed.formResponses ?? {},
       customer: { ...EMPTY_DRAFT.customer, ...(parsed.customer ?? {}) },
       billing: { ...EMPTY_DRAFT.billing, ...(parsed.billing ?? {}) },
-      payment: { ...EMPTY_DRAFT.payment, ...(parsed.payment ?? {}) },
     };
   } catch {
     return null;
@@ -142,8 +140,7 @@ export function PublicBookingFlow() {
       case "service":
         return !!draft.service;
       case "time":
-        return !!draft.date && !!draft.time &&
-          (dataSource === "mock" || !!draft.startAt);
+        return !!draft.date && !!draft.time && !!draft.startAt;
       case "details":
         return (
           draft.customer.firstName.trim() &&
@@ -162,12 +159,8 @@ export function PublicBookingFlow() {
       case "review":
         return true;
       case "pay":
-        return (
-          draft.service?.priceCents === 0 ||
-          (draft.payment.method !== "card") ||
-          (draft.payment.cardNumber.replace(/\s/g, "").length >= 12 &&
-            draft.payment.cardName.trim().length > 1)
-        );
+        // The server accepts free bookings, or manual payment when the operator allows it.
+        return draft.service?.priceCents === 0 || settings?.payments.manualPaymentEnabled === true;
       default:
         return false;
     }
@@ -191,67 +184,31 @@ export function PublicBookingFlow() {
   const submit = async () => {
     setError(null);
     setSubmitting(true);
-    if (dataSource === "api") {
-      try {
-        const booking = await createPublicBooking(draft);
-        window.sessionStorage.setItem(
-          "slotera.booking.last",
-          JSON.stringify({
-            ref: booking.reference,
-            draft,
-            booking,
-            slug: currentPublicWorkspaceSlug(),
-            providerName: settings?.business.displayName,
-            branded: settings?.business.showPlatformBranding ?? true,
-            branding: settings?.branding,
-          }),
-        );
-        window.sessionStorage.removeItem(DRAFT_KEY);
-        router.push("/booking/confirmation");
-      } catch (submitError) {
-        setError(
-          submitError instanceof Error
-            ? submitError.message
-            : uiText("ui.the.booking.could.not.be.completed"),
-        );
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
-    await new Promise((r) => setTimeout(r, 900));
-    const raw = draft.payment.cardNumber.replace(/\s/g, "");
-    const failing = raw.endsWith("0002");
-    setSubmitting(false);
-    if (failing) {
-      router.push("/booking/failure");
-      return;
-    }
-    const ref = `SLT-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-    // Best-effort mock persistence of form answers against the booking ref.
     try {
-      await Promise.all(
-        forms.map((form) =>
-          saveFormResponse({
-            bookingId: ref,
-            formTemplateId: form.id,
-            answers: draft.formResponses[form.id] ?? [],
-          }),
-        ),
-      );
-    } catch {
-      // ignore — mock only
-    }
-    try {
+      const booking = await createPublicBooking(draft);
       window.sessionStorage.setItem(
         "slotera.booking.last",
-        JSON.stringify({ ref, draft }),
+        JSON.stringify({
+          ref: booking.reference,
+          draft,
+          booking,
+          slug: currentPublicWorkspaceSlug(),
+          providerName: settings?.business.displayName,
+          branded: settings?.business.showPlatformBranding ?? true,
+          branding: settings?.branding,
+        }),
       );
       window.sessionStorage.removeItem(DRAFT_KEY);
-    } catch {
-      // ignore
+      router.push("/booking/confirmation");
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : uiText("ui.the.booking.could.not.be.completed"),
+      );
+    } finally {
+      setSubmitting(false);
     }
-    router.push("/booking/confirmation");
   };
 
   // While settings are loading, render a quiet placeholder rather than the
@@ -357,11 +314,7 @@ export function PublicBookingFlow() {
             />
           )}
           {step === "pay" && (
-            <StepPayment
-              draft={draft}
-              payment={draft.payment}
-              onChange={(payment) => setDraft({ ...draft, payment })}
-            />
+            <StepPayment draft={draft} />
           )}
         </TabPanel>
 
@@ -390,9 +343,7 @@ export function PublicBookingFlow() {
             {step === "pay"
               ? !draft.service?.priceCents
                 ? t("booking.confirm")
-                : draft.payment.method === "manual"
-                  ? t("booking.reservePay")
-                  : t("booking.payConfirm")
+                : t("booking.reservePay")
               : t("booking.continue")}
           </Button>
         </div>
