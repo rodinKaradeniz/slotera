@@ -7,6 +7,7 @@ import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
+import { syncDemoBookings } from "@/lib/demo-bookings";
 import type { Client, ClientInput } from "@/types/client";
 import { ApiRequestError, NotFoundError, NotImplementedError } from "./_errors";
 
@@ -17,6 +18,15 @@ type ClientPatchDto = components["schemas"]["ClientPatch"];
 
 let mock: Client[] = dataSource === "mock" ? mockData("clients") : [] as Client[];
 mock = mock.map((item) => ({...item, version: item.version ?? 1}));
+// Demo bookings add a new client, or count towards the existing one with that email.
+const demoSeen = new Set<string>();
+if (dataSource === "mock") syncDemoBookings((records) => {
+  for (const { booking, client } of records.filter((record) => !demoSeen.has(record.booking.id)).reverse()) {
+    demoSeen.add(booking.id);
+    if (client && !mock.some((item) => item.id === client.id)) mock = [client, ...mock];
+    else mock = mock.map((item) => item.id === booking.clientId ? {...item, totalBookings: item.totalBookings + 1} : item);
+  }
+});
 
 function mapClient(client: ClientDto): Client {
   return {

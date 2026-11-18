@@ -672,5 +672,8 @@ agreed final integration-verification stage; no new architecture work is deferre
 - **~~Task completion.~~ DONE 2026-11-18.** `Checkbox` (role `checkbox`, 32px hit area) draws
   its tick in and erases it quickly; the dashboard to-do uses it.
 - **~~Row removal.~~ DONE 2026-11-18.** `useLeavingRows` + `.row-shell`: a removed row fades
-  aside while its space closes (to-do, session tasks, client notes). Saved locations and other
-  lists still drop rows in one frame.
+  aside while its space closes (to-do, session tasks, client notes, saved locations). Still
+  instant: the assistant's chat history (its paged list empties while it reloads, so leaving
+  rows would flash) and catalog cards (removed behind a closing drawer, in a grid).
+- **~~Demo bookings reach the demo admin.~~ DONE 2026-11-18.** Browser-only, through
+  `lib/demo-bookings.ts`; nothing is sent anywhere.

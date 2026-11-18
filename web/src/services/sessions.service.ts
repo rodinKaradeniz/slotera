@@ -5,6 +5,7 @@ import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
+import { syncDemoBookings } from "@/lib/demo-bookings";
 import { verifiedMetadata } from "@/api/query-cache";
 import { isoWeekdayInTimezone, sessionOverlaps } from "@/lib/calendar";
 import type { SessionItem, SessionInput } from "@/types/session";
@@ -20,6 +21,18 @@ export type SessionUpdateScope = "this" | "this_and_following";
 
 let mock: SessionItem[] = dataSource === "mock" ? mockData("sessions") : [] as SessionItem[];
 mock = mock.map((item) => ({...item, version: item.version ?? 1}));
+// Demo bookings add their own session (open services) or take a seat in an existing one.
+const demoSeen = new Set<string>();
+if (dataSource === "mock") syncDemoBookings((records) => {
+  for (const { booking, session } of records.filter((record) => !demoSeen.has(record.booking.id)).reverse()) {
+    demoSeen.add(booking.id);
+    if (session) {
+      if (!mock.some((item) => item.id === session.id)) mock = [...mock, session];
+    } else {
+      mock = mock.map((item) => item.id === booking.sessionId ? {...item, bookedCount: item.bookedCount + 1} : item);
+    }
+  }
+});
 
 function mapAddress(address: AddressDto) {
   return {

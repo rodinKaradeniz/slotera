@@ -2427,3 +2427,15 @@ Applied every recommendation from the screenshot critique.
   show two of them under the copy. The captions (one of which overlapped its image) are gone.
   The walkthrough captures each card as an element at 2x.
 
+## 2026-11-18 — Demo bookings show up in the demo admin
+
+- **Browser-only, no server.** The demo admin opens the booking page in a new tab, so the
+  mock stores' in-memory arrays could not carry a booking across. `createDemoBooking` now
+  saves the booking (plus a new client, matched by email otherwise, and its own session for
+  open services, or a seat in the existing session for scheduled ones) under the
+  `slotera.demoBookings` `localStorage` key. The bookings, sessions and clients stores merge
+  those records at load and on the other tab's `storage` event, and `DATA_CHANGED` refreshes
+  open pages, so the booking appears in Bookings, the calendar, Clients and the dashboard.
+  A server-backed demo was rejected: it would cost money to run, need abuse protection, and
+  mix strangers' bookings together.
+- **Saved locations** now leave through `useLeavingRows` like the other lists.

@@ -19,6 +19,7 @@ import {
   type BusinessSettings,
 } from "@/services/settings.service";
 import { EMPTY_ADDRESS, type WorkspaceLocation } from "@/types/address";
+import { useLeavingRows } from "@/lib/use-leaving-rows";
 
 /* ──────────────────────────────────────────────────────────────────────────
    LocationsCard — workspace's saved studios/offices.
@@ -36,6 +37,7 @@ export function LocationsCard({
   const { t: uiText } = useI18n();
   const { toast } = useToast();
   const locations = business.locations ?? [];
+  const locationRows = useLeavingRows(locations, (location) => location.id);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState<WorkspaceLocation | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -151,7 +153,7 @@ export function LocationsCard({
       )}
 
       <div className="flex flex-col">
-        {locations.map((loc) => {
+        {locationRows.map(({ item: loc, leaving }) => {
           const editing = editingId === loc.id;
           if (editing && draft) {
             return (
@@ -166,10 +168,8 @@ export function LocationsCard({
             );
           }
           return (
-            <div
-              key={loc.id}
-              className="flex items-center gap-3 py-3 border-b border-line-soft last:border-b-0"
-            >
+            <div key={loc.id} className="row-shell group/row" data-state={leaving ? "closed" : "open"} inert={leaving}>
+            <div className="flex items-center gap-3 py-3 border-b border-line-soft group-last/row:border-b-0">
               <span className="w-9 h-9 rounded-md bg-paper-2 text-ink-2 flex items-center justify-center shrink-0">
                 <Icon name="map-pin" size={16} />
               </span>
@@ -195,6 +195,7 @@ export function LocationsCard({
                 onClick={() => setPendingDelete(loc)}
                 disabled={!!editingId}
               />
+            </div>
             </div>
           );
         })}

@@ -7,6 +7,7 @@ import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
+import { syncDemoBookings } from "@/lib/demo-bookings";
 import { createClient, getClient, searchClients } from "./clients.service";
 import { getSession, updateSession } from "./sessions.service";
 import { getService } from "./services.service";
@@ -21,6 +22,10 @@ type OperatorBookingCreateDto = components["schemas"]["OperatorBookingCreate"];
 type BookingMoveDto = components["schemas"]["BookingMoveCommand"];
 
 let mock: Booking[] = dataSource === "mock" ? mockData("bookings") : [] as Booking[];
+if (dataSource === "mock") syncDemoBookings((records) => {
+  const known = new Set(mock.map((item) => item.id));
+  mock = [...records.map((record) => record.booking).filter((item) => !known.has(item.id)), ...mock];
+});
 
 function mapBooking(booking: BookingDto): Booking {
   return {

@@ -515,6 +515,10 @@ them: `I18nProvider` → `ToastProvider` → `DemoGuideProvider`.
   provider; its single `NewWorkspaceDrawer` is mounted locally per view.
 - **Demo guide** — one shared modal instance; auto-open is landing-only and gated on
   `sessionStorage`.
+- **Demo bookings** — in mock mode, a booking made on the demo booking page is saved under
+  the `slotera.demoBookings` `localStorage` key (owner: `web/src/lib/demo-bookings.ts`, last
+  20 kept). The bookings, sessions and clients mock stores merge it at load and on the
+  cross-tab `storage` event, then `DATA_CHANGED` refreshes open admin pages. No server.
 
 ### Styling
 

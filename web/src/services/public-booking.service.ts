@@ -12,6 +12,10 @@ import { availableSlots, bookingOutcome, isPubliclyBookable, paymentMethodFor, q
 import { NotFoundError } from "./_errors";
 import { listServices } from "./services.service";
 import { listSessions } from "./sessions.service";
+import { listClients } from "./clients.service";
+import { saveDemoBooking } from "@/lib/demo-bookings";
+import type { Client } from "@/types/client";
+import type { SessionItem } from "@/types/session";
 import { getAvailabilitySettings, getPaymentSettings } from "./settings.service";
 import { listFormsForService, saveFormResponse } from "./forms.service";
 
@@ -217,8 +221,10 @@ async function createDemoBooking(draft: BookingDraft, chosen: Service, startAt: 
   })));
   const outcome = bookingOutcome(service, paymentMethod, slot.startAt, now);
   const quote = service.publicQuote ?? quoteFor(service.priceCents, payments);
+  const id = crypto.randomUUID();
+  await recordDemoBooking(draft, service, slot, { id, reference, paymentMethod, outcome, quote, now });
   return {
-    id: crypto.randomUUID(),
+    id,
     reference,
     ...outcome,
     paymentMethod,
@@ -246,6 +252,93 @@ async function createDemoBooking(draft: BookingDraft, chosen: Service, startAt: 
       treatment: quote.treatment,
     },
   };
+}
+
+/** Keeps the demo booking so the demo admin (in its own tab) lists it too; see `lib/demo-bookings`. */
+async function recordDemoBooking(
+  draft: BookingDraft,
+  service: Service,
+  slot: { startAt: string; endAt: string },
+  made: {
+    id: string;
+    reference: string;
+    paymentMethod: "free" | "manual";
+    outcome: ReturnType<typeof bookingOutcome>;
+    quote: { grossAmountCents: number; netAmountCents: number; taxAmountCents: number; rateBps?: number | null; label?: string | null; treatment: "none" | "fixed" };
+    now: Date;
+  },
+): Promise<void> {
+  const nowISO = made.now.toISOString();
+  const { customer } = draft;
+  const name = `${customer.firstName} ${customer.lastName}`.trim();
+  const existingClient = (await listClients()).find((item) => item.email.toLowerCase() === customer.email.trim().toLowerCase());
+  const client: Client | null = existingClient ? null : {
+    version: 1,
+    id: `cli-demo-${made.id}`,
+    name,
+    email: customer.email.trim(),
+    phone: customer.phone || undefined,
+    company: customer.company || undefined,
+    tag: "new",
+    joinedISO: nowISO,
+    totalBookings: 1,
+    completedBookings: 0,
+    cancelledBookings: 0,
+    totalSpentCents: 0,
+  };
+  const existingSession = service.bookingMode === "scheduled"
+    ? (await listSessions()).find((item) => item.serviceId === service.id && Date.parse(item.startISO) === Date.parse(slot.startAt))
+    : undefined;
+  const session: SessionItem | null = existingSession ? null : {
+    version: 1,
+    id: `ses-demo-${made.id}`,
+    serviceId: service.id,
+    startISO: slot.startAt,
+    endISO: slot.endAt,
+    capacity: 1,
+    bookedCount: 1,
+    status: "scheduled",
+    locationType: service.locationType,
+    location: service.location,
+    address: service.locationType === "online" ? undefined : service.address,
+    recurring: "one-off",
+  };
+  saveDemoBooking({
+    client,
+    session,
+    booking: {
+      id: made.id,
+      reference: made.reference,
+      sessionId: existingSession?.id ?? session!.id,
+      clientId: existingClient?.id ?? client!.id,
+      emailContact: customer.email.trim(),
+      language: readLang(),
+      status: made.outcome.status,
+      paymentStatus: made.outcome.paymentStatus,
+      paymentMethod: made.paymentMethod,
+      confirmationPolicy: service.confirmationPolicy,
+      approvalStatus: made.outcome.approvalStatus,
+      pendingReasons: made.outcome.pendingReasons,
+      amountCents: made.quote.grossAmountCents,
+      netAmountCents: made.quote.netAmountCents,
+      taxAmountCents: made.quote.taxAmountCents,
+      taxTreatment: made.quote.treatment,
+      taxRateBps: made.quote.rateBps ?? undefined,
+      taxLabel: made.quote.label ?? undefined,
+      currency: service.currency,
+      paymentDueAtISO: made.outcome.paymentDueAt ?? undefined,
+      customer: {
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email.trim(),
+        phone: customer.phone || undefined,
+        company: customer.company || undefined,
+      },
+      termsAcceptedAtISO: nowISO,
+      notes: customer.notes || undefined,
+      createdAtISO: nowISO,
+    },
+  });
 }
 
 // ── Customer booking link (API mode) ────────────────────────────────────────
