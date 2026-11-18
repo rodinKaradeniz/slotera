@@ -22,7 +22,6 @@ export function FAQ() {
   return (
     <Section>
       <SectionHeader
-        eyebrow={t("landing.faq.eyebrow")}
         title={t("landing.faq.title")}
         maxTitleWidth="44rem"
       />

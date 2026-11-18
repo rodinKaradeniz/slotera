@@ -24,7 +24,7 @@ export function Pill({ tone = "neutral", icon, children, className }: PillProps)
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-[11.5px] font-medium",
+        "inline-flex items-center self-center shrink-0 leading-none gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium",
         TONE_STYLES[tone],
         className,
       )}

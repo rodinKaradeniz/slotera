@@ -5,6 +5,7 @@ import { ApiRequestError } from "@/services/_errors";
 import { localeForLang } from "@/lib/i18n";
 import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
 import { getActionItem } from "@/services/session-action-items.service";
+import { useLeavingRows } from "@/lib/use-leaving-rows";
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -97,6 +98,7 @@ export function SessionActionItems({
       }),
     [items],
   );
+  const rows = useLeavingRows(sorted, (item) => item.id);
 
   const add = async () => {
     const title = draft.title.trim();
@@ -245,15 +247,14 @@ export function SessionActionItems({
           {uiText("ui.no.action.items.yet.add.the.first.task.below")}
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {sorted.map((item) => {
+        <ul className="list-rise flex flex-col">
+          {rows.map(({ item, leaving }) => {
             const isEditing = editingId === item.id;
             const done = item.status === "done";
             return (
-              <li
-                key={item.id}
-                className="rounded-md border border-line-soft bg-surface px-3 py-2.5"
-              >
+              <li key={item.id} className="row-shell" data-state={leaving ? "closed" : "open"} inert={leaving}>
+              <div className="pb-2">
+              <div className="rounded-md border border-line-soft bg-surface px-3 py-2.5">
                 {isEditing ? (
                   <div className="flex flex-col gap-2.5">
                     <Input
@@ -381,6 +382,8 @@ export function SessionActionItems({
                     </div>
                   </div>
                 )}
+              </div>
+              </div>
               </li>
             );
           })}

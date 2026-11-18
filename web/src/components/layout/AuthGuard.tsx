@@ -69,7 +69,7 @@ export function AuthGuard({ children, requireRole }: Props) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8">
+      <div className="loading-delay min-h-screen flex items-center justify-center p-8">
         <div className="flex flex-col gap-3 w-72">
           <Skeleton h={28} />
           <Skeleton h={20} />

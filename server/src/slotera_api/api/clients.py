@@ -108,11 +108,16 @@ async def list_clients(
             dbsession=session,
             contactable=contactable,
         )
+        as_of = datetime.now(UTC)
+        states = await repository.state_counts(
+            operator.workspace_id, search, contactable, session, as_of
+        )
         stats = await repository.client_stats(
-            operator.workspace_id, [item.id for item in items], dbsession=session
+            operator.workspace_id, [item.id for item in items], dbsession=session, as_of=as_of
         )
     _private(response)
     return ClientListResponse(
+        states=states,
         items=[_client_response(item, stats.get(item.id)) for item in items],
         total=total,
         limit=limit,

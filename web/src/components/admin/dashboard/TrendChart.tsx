@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { SegGroup } from "@/components/ui/SegGroup";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, formatMoneyCompact } from "@/lib/money";
 import type { Currency } from "@/types/common";
 import type { TrendPoint } from "@/types/dashboard";
 
@@ -42,7 +42,7 @@ function ChartTooltip({
   const v = payload[0].value;
   return (
     <div className="bg-ink text-paper rounded-md shadow-3 px-3 py-2 min-w-[140px]">
-      <div className="text-[10px] uppercase tracking-wider text-paper/60 font-mono">
+      <div className="text-[11px] text-paper/60">
         {uiText("ui.day")}{pt.d}
       </div>
       <div
@@ -143,14 +143,15 @@ export function TrendChart({ data, currency = "GBP" }: Props) {
             <YAxis
               tickLine={false}
               axisLine={false}
-              width={48}
+              width={52}
               tick={{
                 fill: "var(--ink-3)",
                 fontSize: 11,
                 fontFamily: "var(--font-mono)",
               }}
+              // Compact amounts ("£1k"): full ones ("£1,000.00") were cut off by the axis.
               tickFormatter={(v: number) =>
-                metric === "revenue" ? formatMoney(v * 100, currency) : `${v}`
+                metric === "revenue" ? formatMoneyCompact(v * 100, currency) : `${v}`
               }
             />
             <Tooltip

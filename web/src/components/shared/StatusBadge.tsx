@@ -21,6 +21,13 @@ type Props =
 
 export function StatusBadge(props: Props) {
   const { lang: labelLang } = useI18n();
+  // A status that changes while on screen (approved, marked paid) swells once.
+  const [prev, setPrev] = React.useState(props.status);
+  const [changed, setChanged] = React.useState(false);
+  if (props.status !== prev) {
+    setPrev(props.status);
+    setChanged(true);
+  }
   const meta =
     props.kind === "booking"
       ? BOOKING_STATUS[props.status]
@@ -28,7 +35,7 @@ export function StatusBadge(props: Props) {
         ? PAY_STATUS[props.status]
         : CLIENT_TAGS[props.status];
   return (
-    <Pill tone={meta.tone} icon={meta.icon}>
+    <Pill key={props.status} tone={meta.tone} icon={meta.icon} className={changed ? "swell" : undefined}>
       {translateInterfaceLabel(labelLang, meta.label)}
     </Pill>
   );

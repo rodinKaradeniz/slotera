@@ -2,6 +2,36 @@ import type { Messages } from "./en";
 
 /** Turkish — demo-grade translations. Missing keys fall back to English. */
 export const tr: Partial<Messages> = {
+  "counts.services.one": "{count} hizmet",
+  "counts.services.many": "{count} hizmet",
+  "counts.packages.one": "{count} paket",
+  "counts.packages.many": "{count} paket",
+  "counts.forms.one": "{count} form",
+  "counts.forms.many": "{count} form",
+  "counts.clients.one": "{count} danışan",
+  "counts.clients.many": "{count} danışan",
+  "today.summary": "Gününüze kısa bir bakış",
+  "ai.command.task.delete": "Yapılacak işi kaldır",
+  "todo.removeEffect": "Bu yapılacak iş, onaydan sonra kalıcı olarak kaldırılacak.",
+  "ask.title": "Slotera’ya sor",
+  "ask.placeholder": "Slotera’ya sor…",
+  "ask.noChats": "Henüz konuşma yok",
+  "ask.historyHint": "Konuşmalarınız burada görünecek.",
+  "ask.options": "Konuşma seçenekleri",
+  "ask.usage": "Günlük yapay zekâ kullanımı · %{percent}",
+  "ask.preparing": "Çalışma alanınız arama için hazırlanıyor…",
+
+  "chat.conversations": "Konuşmalar",
+  "chat.copy": "Mesajı kopyala",
+  "chat.copied": "Kopyalandı",
+  "chat.copyFailed": "Kopyalanamadı; kopyalamak için metni seçin.",
+  "chat.edit": "Düzenle ve dallandır",
+  "chat.stop": "Yanıtı durdur",
+  "chat.stopped": "Yanıt durduruldu.",
+  "chat.branchHint": "Bu düzenleme yeni bir konuşma dalı oluşturur; önceki geçmiş ve onaylanmış işlemler korunur.",
+  "chat.disclaimer": "Slotera hata yapabilir. Önemli bilgileri kontrol edin.",
+  "chat.indexBudget": "Dizinleme tokenları: {used} / {limit}",
+
   "ai.field.active": "Etkin",
   "ai.field.address": "Adres",
   "ai.field.bookingMode": "Rezervasyon biçimi",
@@ -97,7 +127,7 @@ export const tr: Partial<Messages> = {
   "ai.disable": "Yapay zekâyı kapat",
   "ai.disabled": "Asistanı kullanmak için Ayarlar’dan yapay zekâyı etkinleştirin.",
   "ai.unavailable": "Bu sunucuda yapay zekâ yapılandırılmamış.",
-  "ai.simulated": "Yerel simülasyon — harici yapay zekâ çağrısı yapılmaz.",
+  "ai.simulated": "Yerel simülasyon: harici yapay zekâ çağrısı yapılmaz.",
   "ai.clear": "Yapay zekâ geçmişini temizle",
   "ai.usage": "Bugünkü yanıtlar: {used} / en fazla {limit}",
   "ai.tokens": "Ayrılan belirteç bütçesi: {used} / {limit}",
@@ -105,7 +135,6 @@ export const tr: Partial<Messages> = {
   "ai.refresh": "Özeti yenile",
   "ai.retry": "Tekrar dene",
   "ai.loading": "Hazırlanıyor…",
-  "ai.dailyBrief": "Günlük özet",
   "ai.clientBrief": "Danışan özeti",
   "ai.briefHint": "Yalnızca istendiğinde hazırlanır; günlük döngü çalışma alanı saatine göre 09.00’da yenilenir.",
   "ai.briefMe": "Özet hazırla",
@@ -250,33 +279,26 @@ export const tr: Partial<Messages> = {
   "landing.hero.eyebrow": "Bağımsız danışmanlar, koçlar ve eğitmenler için",
   "landing.hero.title": "Takvim karmaşası olmadan, ücretli rezervasyonlar.",
   "landing.hero.subtitle":
-    "Slotera, bağımsız uzmanlar için hafif bir müşteri çalışma alanıdır — kartla veya banka havalesiyle ödeme alın, hazırlık formları gönderin, seansları paketler hâlinde sunun ve müşteri bağlamı ile takibi tek yerde tutun. Ağır bir CRM değil.",
-  "landing.hero.badge.noCard": "Kredi kartı gerekmez",
-  "landing.hero.badge.cancel": "İstediğiniz zaman iptal edin",
-  "landing.hero.badge.gdpr": "UK GDPR'a duyarlı",
+    "Slotera, bağımsız uzmanlar için hafif bir müşteri çalışma alanıdır. Kartla veya banka havalesiyle ödeme alın, hazırlık formları gönderin, seansları paketler hâlinde sunun ve müşteri bağlamı ile takibi tek yerde tutun. Ağır bir CRM değil.",
 
   "landing.logos.trustedBy":
     "Avrupa genelinde 1.200'den fazla bağımsız danışman, koç ve eğitmen tarafından tercih ediliyor.",
-
-  "landing.how.eyebrow": "Nasıl çalışır",
   "landing.how.title":
     "Bir öğleden sonrada e-posta trafiğinden gerçek bir rezervasyon akışına geçin.",
   "landing.how.step1.title": "Hizmetlerinizi tanımlayın",
   "landing.how.step1.body":
-    "Sunduğunuz hizmetleri süre, kapasite ve fiyatla ekleyin — birebir ya da grup. Seansları çok seanslı paketler halinde gruplayın ve seanstan önce bağlam gerektiğinde bilgi formları ekleyin.",
+    "Sunduğunuz hizmetleri süre, kapasite ve fiyatla ekleyin: birebir ya da grup. Seansları çok seanslı paketler halinde gruplayın ve seanstan önce bağlam gerektiğinde bilgi formları ekleyin.",
   "landing.how.step2.title": "Tek bir rezervasyon bağlantısı paylaşın",
   "landing.how.step2.body":
     "Müşteriler bir saat seçer, seans öncesi sorularınızı yanıtlar ve kartla ya da banka havalesiyle öder. Hesap gerekmez.",
   "landing.how.step3.title": "Seansı yürütün, bağlantıda kalın",
   "landing.how.step3.body":
     "Yeni rezervasyonlar panelinize düşer. Müşteriler hazırlanmak, size mesaj atmak veya değişiklik talep etmek için bir rezervasyon sayfası alır.",
-
-  "landing.features.eyebrow": "Özellikler",
   "landing.features.title":
     "Bağımsız bir uzmanın ihtiyacı olan her şey. Fazlası değil.",
   "landing.features.bookings.title": "Ücretli rezervasyonlar",
   "landing.features.bookings.body":
-    "Müşteriler rezervasyon yaparken ödemeyi alın — kartla veya manuel banka havalesiyle, seçim sizin. Net makbuzlar, tablo uğraşı yok.",
+    "Müşteriler rezervasyon yaparken ödemeyi alın: kartla veya manuel banka havalesiyle, seçim sizin. Net makbuzlar, tablo uğraşı yok.",
   "landing.features.forms.title": "Müşteri bilgi ve hazırlık formları",
   "landing.features.forms.body":
     "Seanstan önce ihtiyacınız olan bağlamı toplayın. Önemli soruları ödeme öncesi zorunlu ya da sonrasında isteğe bağlı yapın.",
@@ -288,12 +310,10 @@ export const tr: Partial<Messages> = {
     "Kapasiteli ve kalan kontenjanlı birebir ya da grup seansları. Takviminizdeki çakışmalar çakışma olarak işaretlenir.",
   "landing.features.languages.title": "Çok dilli rezervasyon",
   "landing.features.languages.body":
-    "Müşterileriniz İngilizce, Türkçe veya Almanca rezervasyon yapabilir — tüm akış onların diline uyar.",
+    "Müşterileriniz İngilizce, Türkçe veya Almanca rezervasyon yapabilir; tüm akış onların diline uyar.",
   "landing.features.workspace.title": "Hafif bir müşteri çalışma alanı",
   "landing.features.workspace.body":
-    "Rezervasyonlar, müşteriler, paketler ve müşteri notları için sade bir yönetim — işinizi yürütmek için tasarlandı, ağır bir CRM değil.",
-
-  "landing.demoStrip.eyebrow": "İş başında görün",
+    "Rezervasyonlar, müşteriler, paketler ve müşteri notları için sade bir yönetim. İşinizi yürütmek için tasarlandı, ağır bir CRM değil.",
   "landing.demoStrip.title": "Gerçek bir rezervasyon akışını deneyin. Kayıt gerekmez.",
 
   "landing.testimonials.eyebrow": "Görüşler",
@@ -305,8 +325,6 @@ export const tr: Partial<Messages> = {
     "Rezervasyon sayfası sitemin bir parçası gibi görünüyor. Müşteriler geçişi fark bile etmiyor.",
   "landing.testimonials.q3":
     "Kapasiteli ve bekleme listeli grup atölyeleri için bir CRM gerekirdi. Artık iki tıkla hallediliyor.",
-
-  "landing.pricing.eyebrow": "Fiyatlandırma",
   "landing.pricing.title": "İki plan. İkisini de 30 gün ücretsiz deneyin.",
   "landing.pricing.monthly": "Aylık",
   "landing.pricing.yearly": "Yıllık",
@@ -329,8 +347,6 @@ export const tr: Partial<Messages> = {
   "landing.pricing.p2": "Öncelikli destek",
   "landing.pricing.p3": "WhatsApp hatırlatmaları ve değişiklikler (yakında)",
   "landing.pricing.note": "30 gün ücretsiz deneme, kart gerekmez. Ödeme başına kesinti yalnızca kartlı ödemelere, Stripe'ın işlem ücretine ek olarak uygulanır; banka havalelerinden hiçbir kesinti alınmaz.",
-
-  "landing.faq.eyebrow": "SSS",
   "landing.faq.title": "Sık sorulan sorular.",
   "landing.faq.q1.q": "Müşterilerimin hesap açması gerekir mi?",
   "landing.faq.q1.a":
@@ -352,8 +368,6 @@ export const tr: Partial<Messages> = {
   "landing.faq.q6.q": "Bir müşteri iptal ederse ne olur?",
   "landing.faq.q6.a":
     "Danışanlar belirlediğiniz son tarihe kadar (varsayılan 24 saat) kendileri iptal edebilir veya erteleyebilir. Sonrasında sizinle iletişime geçerler. İadeleri doğrudan siz yaparsınız.",
-
-  "landing.finalCta.eyebrow": "Slotera'yı deneyin",
   "landing.finalCta.title": "Boş saat kovalamayı bırakın.",
   "landing.finalCta.body": "Rezervasyon sayfanızı 10 dakikadan kısa sürede yayına alın. 30 gün ücretsiz deneme, kredi kartı gerekmez.",
   // Pilot waitlist (/pilot, real app)
@@ -389,7 +403,7 @@ export const tr: Partial<Messages> = {
   "pilot.rateLimited": "Çok fazla deneme. Lütfen daha sonra tekrar deneyin.",
 
   "footer.tagline":
-    "Slotera; bağımsız danışmanlar, koçlar ve eğitmenler için hafif bir müşteri çalışma alanıdır — ücretli rezervasyonlar, hazırlık formları, paketler ve takip; ağır bir CRM olmadan.",
+    "Slotera; bağımsız danışmanlar, koçlar ve eğitmenler için hafif bir müşteri çalışma alanıdır: ücretli rezervasyonlar, hazırlık formları, paketler ve takip; ağır bir CRM olmadan.",
   "footer.col.product": "Ürün",
   "footer.col.company": "Şirket",
   "footer.link.support": "Destek",
@@ -406,7 +420,7 @@ export const tr: Partial<Messages> = {
   "contact.eyebrow": "İletişim",
   "contact.title": "Bize ulaşın",
   "contact.description":
-    "İş talepleri, geliştirme sorunları, özellik istekleri — bize yazın, en kısa sürede dönelim.",
+    "İş talepleri, geliştirme sorunları, özellik istekleri: bize yazın, en kısa sürede dönelim.",
   "contact.send": "Mesaj gönder",
   "contact.field.name": "Ad",
   "contact.field.email": "E-posta",
@@ -419,9 +433,9 @@ export const tr: Partial<Messages> = {
   "contact.message.placeholder": "Aklınızdakini bizimle paylaşın…",
   "contact.success.title": "Mesaj gönderildi.",
   "contact.success.body":
-    "Bize ulaştığınız için teşekkürler — bir ekip arkadaşımız bir iş günü içinde yanıtlayacak. (Bu, taklit bir onaydır — aslında hiçbir şey gönderilmedi.)",
+    "Bize ulaştığınız için teşekkürler. Bir ekip arkadaşımız bir iş günü içinde yanıtlayacak. (Bu, taklit bir onaydır; aslında hiçbir şey gönderilmedi.)",
   "contact.success.bodyPersist":
-    "Teşekkürler — Slotera bir iş günü içinde size ulaşacak.",
+    "Teşekkürler. Slotera bir iş günü içinde size ulaşacak.",
 
   "booking.step.service": "Hizmet",
   "booking.step.time": "Zaman",
@@ -470,7 +484,7 @@ export const tr: Partial<Messages> = {
   "booking.legal.tab.provider": "Sağlayıcı Rezervasyon Koşulları",
   "booking.legal.tab.platform": "Slotera Koşulları ve Gizlilik",
   "booking.legal.defaultProviderTerms":
-    "Bu sağlayıcı özel rezervasyon koşulları belirlememiş. Standart iptal ve iade koşulları geçerlidir — sorularınız için lütfen doğrudan sağlayıcıyla iletişime geçin.",
+    "Bu sağlayıcı özel rezervasyon koşulları belirlememiş. Standart iptal ve iade koşulları geçerlidir. Sorularınız için lütfen doğrudan sağlayıcıyla iletişime geçin.",
   "booking.legal.termsHeading": "Koşullar",
   "booking.legal.privacyHeading": "Gizlilik",
 
@@ -484,7 +498,7 @@ export const tr: Partial<Messages> = {
   "booking.packages.viewOptions": "Paket seçeneklerini gör",
   "booking.packages.modalTitle": "Paket seçenekleri",
   "booking.packages.modalBody":
-    "Bu paketler bu seansı içerir. Paket satın alma bu demoda yer almıyor — devam etmek için tek bir seans rezerve edin.",
+    "Bu paketler bu seansı içerir. Paket satın alma bu demoda yer almıyor. Devam etmek için tek bir seans rezerve edin.",
   "booking.packages.featured": "Öne çıkan",
   "booking.packages.sessionsSuffix": "seans",
 
@@ -614,7 +628,7 @@ export const tr: Partial<Messages> = {
   "system.maintenance.eyebrow": "Planlı bakım",
   "system.maintenance.title": "Birazdan döneceğiz.",
   "system.maintenance.body":
-    "Slotera güncelleniyor. Rezervasyonlarınız ve verileriniz güvende — lütfen birkaç dakika sonra tekrar deneyin.",
+    "Slotera güncelleniyor. Rezervasyonlarınız ve verileriniz güvende. Lütfen birkaç dakika sonra tekrar deneyin.",
   "system.maintenance.retry": "Tekrar dene",
 
   "booking.paused.title": "Rezervasyonlar duraklatıldı",
@@ -626,7 +640,7 @@ export const tr: Partial<Messages> = {
   "bookingManage.badge": "Demo",
   "bookingManage.title": "Rezervasyonunuz",
   "bookingManage.subtitle":
-    "Müşterilerinizin rezervasyondan sonra görebileceklerinin bir önizlemesi — ayrıntıları inceleyin, isteğe bağlı formları doldurun, rezervasyonu yönetin ve iletişimde kalın. Bu, taklit verilerle hazırlanmış bir demodur.",
+    "Müşterilerinizin rezervasyondan sonra görebileceklerinin bir önizlemesi: ayrıntıları inceleyin, isteğe bağlı formları doldurun, rezervasyonu yönetin ve iletişimde kalın. Bu, taklit verilerle hazırlanmış bir demodur.",
   "bookingManage.tabsLabel": "Rezervasyon bölümleri",
   "bookingManage.tab.info": "Rezervasyon bilgisi",
   "bookingManage.tab.manage": "Rezervasyonu yönet",
@@ -634,11 +648,11 @@ export const tr: Partial<Messages> = {
   "bookingManage.tab.payment": "Ödeme",
   "bookingManage.tab.package": "Paket",
   "bookingManage.status.confirmed": "Onaylandı",
-  "bookingManage.location.online": "Çevrimiçi — toplantı bağlantısı e-postayla gönderildi",
+  "bookingManage.location.online": "Çevrimiçi, toplantı bağlantısı e-postayla gönderildi",
   "bookingManage.reminder":
     "Seansınızdan 24 saat önce bir hatırlatma alacaksınız.",
   "bookingManage.disclaimer":
-    "Bu bir demo sayfasıdır. Müşterilerin hesabı yoktur — üretimde bu sayfa, e-postayla gönderilen güvenli bir rezervasyon bağlantısından açılırdı.",
+    "Bu bir demo sayfasıdır. Müşterilerin hesabı yoktur. Üretimde bu sayfa, e-postayla gönderilen güvenli bir rezervasyon bağlantısından açılırdı.",
   "bookingManage.back": "Rezervasyon sayfasına dön",
   "bookingManage.backHome": "Ana sayfaya dön",
   "bookingManage.info.title": "Rezervasyon bilgisi",
@@ -648,7 +662,7 @@ export const tr: Partial<Messages> = {
   "bookingManage.info.location": "Konum",
   "bookingManage.info.reference": "Rezervasyon referansı",
   "bookingManage.info.context.none":
-    "Her şey hazır — seansınızdan önce tamamlamanız gereken bir şey yok.",
+    "Her şey hazır. Seansınızdan önce tamamlamanız gereken bir şey yok.",
   "bookingManage.info.context.one":
     "Seansınızdan önce tamamlanacak 1 isteğe bağlı form var.",
   "bookingManage.info.context.many":
@@ -659,7 +673,7 @@ export const tr: Partial<Messages> = {
   "bookingManage.message.placeholder": "Sağlayıcıya kısa bir mesaj yazın…",
   "bookingManage.message.send": "Mesaj gönder",
   "bookingManage.message.sent": "Mesaj gönderildi",
-  "bookingManage.message.sentDesc": "Teşekkürler — sağlayıcı size dönecek (taklit).",
+  "bookingManage.message.sentDesc": "Teşekkürler. Sağlayıcı size dönecek (taklit).",
   "bookingManage.manage.title": "Rezervasyonu yönet",
   "bookingManage.manage.note":
     "Bir değişiklik mi gerekiyor? Bir talep gönderin, sağlayıcınız sizinle iletişime geçsin.",
@@ -667,14 +681,14 @@ export const tr: Partial<Messages> = {
   "bookingManage.actions.cancel": "İptal talep et",
   "bookingManage.reschedule.title": "Yeniden planlama talep edin",
   "bookingManage.reschedule.body":
-    "Farklı bir saat istediğinizi sağlayıcıya ileteceğiz. Yeni bir saati onaylamak için sizinle iletişime geçecekler. (Taklit — aslında hiçbir şey gönderilmez.)",
+    "Farklı bir saat istediğinizi sağlayıcıya ileteceğiz. Yeni bir saati onaylamak için sizinle iletişime geçecekler. (Taklit: aslında hiçbir şey gönderilmez.)",
   "bookingManage.reschedule.confirm": "Yeniden planlama talep et",
   "bookingManage.reschedule.sent": "Yeniden planlama talep edildi",
   "bookingManage.reschedule.sentDesc":
     "Sağlayıcı yeni bir saat için sizinle iletişime geçecek (taklit).",
   "bookingManage.cancel.title": "İptal talep edin",
   "bookingManage.cancel.body":
-    "İptal etmek istediğinizi sağlayıcıya ileteceğiz. Olası iade, iptal politikalarına tabidir. (Taklit — aslında hiçbir şey iptal edilmez.)",
+    "İptal etmek istediğinizi sağlayıcıya ileteceğiz. Olası iade, iptal politikalarına tabidir. (Taklit: aslında hiçbir şey iptal edilmez.)",
   "bookingManage.cancel.confirm": "İptal talep et",
   "bookingManage.cancel.sent": "İptal talep edildi",
   "bookingManage.cancel.sentDesc":
@@ -690,7 +704,7 @@ export const tr: Partial<Messages> = {
   "bookingManage.forms.view": "Görüntüle",
   "bookingManage.forms.save": "Formu kaydet",
   "bookingManage.forms.saved": "Form kaydedildi",
-  "bookingManage.forms.savedDesc": "Teşekkürler — yanıtlarınız kaydedildi (taklit).",
+  "bookingManage.forms.savedDesc": "Teşekkürler. Yanıtlarınız kaydedildi (taklit).",
   "bookingManage.forms.readonlyNote":
     "Bu formu ödemeden önce doldurdunuz. Yanıtlarınız salt okunurdur.",
   "bookingManage.form.intake.name": "Tanışma anketi",
@@ -734,7 +748,7 @@ export const tr: Partial<Messages> = {
   "demoGuide.disclaimer":
     "Bu, Slotera'nın ana rezervasyon ve yönetim akışlarını gösteren bir demo sürümüdür. Ürün geliştirilirken bazı özellikler taklittir.",
   "demoGuide.youCanTry": "Şunları deneyebilirsiniz:",
-  "demoGuide.step.dashboard.title": "Hizmet sağlayıcının tarafını görün — yönetim paneli",
+  "demoGuide.step.dashboard.title": "Hizmet sağlayıcının tarafını görün: yönetim paneli",
   "demoGuide.step.dashboard.body":
     "Rezervasyonları, hizmetleri ve formları yönetmek, takvimi ve ayarları keşfetmek için sağlayıcının çalışma alanına geçin.",
   "demoGuide.step.dashboard.cta": "Yönetim panelini aç",
@@ -807,7 +821,6 @@ export const tr: Partial<Messages> = {
   "ui.back.to.sign.in": "Girişe dön",
   "ui.workspace.name": "Çalışma alanı adı",
   "ui.clients": "Müşteriler",
-  "ui.catalog": "Katalog",
   "ui.services": "Hizmetler",
   "ui.close.workspace": "Çalışma alanını kapat",
   "ui.remove": "Kaldır",
@@ -909,7 +922,7 @@ export const tr: Partial<Messages> = {
   "ui.no.account.yet": "Henüz hesabınız yok mu?",
   "ui.skip.for.now": "Şimdilik atla",
   "ui.welcome": "Hoş geldiniz,",
-  "ui.here.s.what.we.ll.do.together.you.can.skip.at.any.time.and.come.back.later.from.the.dashbo": "— birlikte yapacaklarımız bunlar. İstediğiniz zaman atlayabilir ve daha sonra panelden devam edebilirsiniz.",
+  "ui.here.s.what.we.ll.do.together.you.can.skip.at.any.time.and.come.back.later.from.the.dashbo": "Birlikte yapacaklarımız bunlar. İstediğiniz zaman atlayabilir ve daha sonra panelden devam edebilirsiniz.",
   "ui.show.clients.custom.instructions.bank.transfer.interac.etc.at.checkout.bookings.stay.pendi": "Ödeme sırasında müşterilere özel talimatlar gösterin (banka havalesi vb.). Ödeme aldığınızı onaylayana kadar rezervasyonlar beklemede kalır. Ücretsiz hizmetlerde ödeme kurulumu gerekmez.",
   "ui.card.payments.are.coming.soon.you.ll.be.able.to.connect.them.from.settings.client.payments": "Kart ödemeleri yakında geliyor. Ayarlar → Müşteri Ödemeleri bölümünden bağlayabileceksiniz.",
   "ui.your.workspace.is.ready": "Çalışma alanınız hazır",
@@ -948,7 +961,6 @@ export const tr: Partial<Messages> = {
   "ui.update.password": "Şifreyi güncelle",
   "ui.something.went.wrong": "Bir sorun oluştu.",
   "ui.the.problem.has.been.reported.please.try.again": "Sorun bildirildi. Lütfen tekrar deneyin.",
-  "ui.operations": "İşlemler",
   "ui.all.client.bookings.across.1.1.calls.group.classes.and.workshops": "Bireysel görüşme, grup dersi ve atölyelerdeki tüm müşteri rezervasyonları.",
   "ui.export": "Dışa aktar",
   "ui.search.by.client.service.or.id": "Müşteri, hizmet veya kimliğe göre ara",
@@ -959,7 +971,6 @@ export const tr: Partial<Messages> = {
   "ui.no.bookings.in.this.status": "Bu durumda rezervasyon yok.",
   "ui.show.more": "Daha fazla göster (",
   "ui.hidden": "gizli)",
-  "ui.schedule": "Takvim",
   "ui.today": "Bugün",
   "ui.more": "daha fazla",
   "ui.spent": "Harcama",
@@ -980,7 +991,6 @@ export const tr: Partial<Messages> = {
   "ui.their.name.contact.details.billing.addresses.notes.form.answers.and.booking.links.are.remo": "Adı, iletişim bilgileri, fatura adresleri, notları, form yanıtları ve rezervasyon bağlantıları kalıcı olarak kaldırılır. Rezervasyon tutarları ve ödeme durumu kayıtlarınız için korunur. Bu işlem geri alınamaz.",
   "ui.type.the.client.s.email.to.confirm": "Onaylamak için müşterinin e-postasını yazın",
   "ui.erase.permanently": "Kalıcı olarak anonimleştir",
-  "ui.directory": "Dizin",
   "ui.everyone.who.has.booked.with.you.with.lifetime.spend.and.activity": "Toplam harcama ve etkinlikleriyle rezervasyon yapan tüm müşterileriniz.",
   "ui.export.csv": "CSV dışa aktar",
   "ui.add.client": "Müşteri ekle",
@@ -1785,4 +1795,32 @@ export const tr: Partial<Messages> = {
   "editing.reload": "Son sürümü incele",
   "editing.discard": "Son kaydedilen sürüm yüklensin mi? Kaydedilmemiş taslağınız değiştirilecek.",
   "editing.load": "Son sürümü yükle",
+  "empty.services.title": "Henüz hizmet yok",
+  "empty.services.body": "Hizmet, müşterilerin rezerve ettiği şeydir: bir ad, bir süre ve bir fiyat. Rezervasyon sayfanızı açmak için ilkini ekleyin.",
+  "empty.packages.title": "Henüz paket yok",
+  "empty.packages.body": "Hizmetlerinizin seanslarını bir pakette toplayarak birlikte sunun.",
+  "empty.forms.title": "Henüz form yok",
+  "empty.forms.body": "Formlar seanstan önce ihtiyacınız olanı toplar. Bir form oluşturun, ardından bir hizmete ekleyin.",
+  "empty.clients.title": "Henüz müşteri yok",
+  "empty.clients.body": "Müşteriler rezervasyon yaptıklarında burada görünür. Kendiniz de ekleyebilirsiniz.",
+  "empty.filtered.title": "Eşleşen sonuç yok",
+  "empty.filtered.body": "Başka bir arama deneyin veya filtreleri temizleyin.",
+  "ui.now.at": "Şu an, {time}",
+  "dashboard.kpi.increase": "geçen aya göre {value} artış",
+  "dashboard.kpi.decrease": "geçen aya göre {value} düşüş",
+  "dashboard.kpi.flat": "Geçen aya göre değişiklik yok",
+  "notifications.see.all": "Tüm bildirimleri gör",
+  "notifications.open.page": "Bildirimleri aç",
+  "notifications.retention": "Müşterilerinizden gelen rezervasyonlar, ödemeler ve değişiklikler. Okunan bildirimler 30 gün, okunmayanlar 90 gün sonra silinir.",
+  "notifications.unread.count": "{count} okunmamış",
+  "notifications.empty.body": "Yeni rezervasyonlar, ödemeler ve müşteri değişiklikleri burada görünür.",
+  "notifications.end": "Son 90 güne ait her şey bu kadar.",
+  "dashboard.nextCall": "Sıradaki görüşmeniz",
+  "todo.new": "Yeni yapılacak",
+  "todo.new.short": "Yeni",
+  "todo.add.button": "Ekle",
+  "todo.field.title": "Başlık",
+  "todo.field.description": "Açıklama",
+  "todo.expand": "Açıklamanın tamamını göster",
+  "todo.collapse": "Daha az göster",
 };

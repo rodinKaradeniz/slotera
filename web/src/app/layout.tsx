@@ -8,7 +8,7 @@ import "./fonts/fonts.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Slotera — Booking software for consultants & coaches",
+  title: "Slotera: booking software for consultants & coaches",
   description:
     "Paid booking and session management for individual service providers.",
 };

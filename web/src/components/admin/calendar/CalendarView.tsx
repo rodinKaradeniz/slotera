@@ -6,6 +6,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { SegGroup } from "@/components/ui/SegGroup";
+import { TabPanel } from "@/components/ui/Tabs";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { plural } from "@/lib/text";
@@ -181,7 +182,6 @@ export function CalendarView() {
   return (
     <PageContainer width="wide">
       <PageHeader
-        eyebrow={uiText("ui.schedule")}
         title={titleFor(view, anchor)}
         description={description}
         meta={meta}
@@ -239,6 +239,7 @@ export function CalendarView() {
       <div className="mb-6" />
 
       {error && <LoadError message={error} onRetry={reload} />}
+      <TabPanel value={view} order={["day", "week", "month"]}>
       {view === "day" && (
         <DayGrid
           anchor={anchor}
@@ -262,6 +263,7 @@ export function CalendarView() {
           onSelect={(id) => (id ? openSessionFor(id) : setSelectedId(null))}
         />
       )}
+      </TabPanel>
     </PageContainer>
   );
 }

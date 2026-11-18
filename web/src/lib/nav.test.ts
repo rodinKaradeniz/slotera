@@ -32,6 +32,8 @@ describe("API-mode operator navigation", () => {
     const nav = await loadNav("api");
     expect(nav.isNavRoute("operator_admin", "/admin/packages")).toBe(true);
     expect(nav.isNavRoute("operator_admin", "/admin/calendar")).toBe(true);
+    expect(nav.isNavRoute("operator_admin", "/admin/notifications")).toBe(true);
+    expect(nav.isNavRoute("superadmin", "/admin/notifications")).toBe(false);
   });
 });
 

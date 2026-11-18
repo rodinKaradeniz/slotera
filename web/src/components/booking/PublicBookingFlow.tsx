@@ -1,5 +1,6 @@
 "use client";
 
+import { TabPanel } from "@/components/ui/Tabs";
 import * as React from "react";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useRouter } from "next/navigation";
@@ -304,7 +305,11 @@ export function PublicBookingFlow() {
           />
         </div>
 
-        <div className="fade-in flex flex-col min-h-[clamp(420px,60vh,640px)] [&>*]:flex-1">
+        <TabPanel
+          value={step}
+          order={activeSteps.map((s) => s.key)}
+          className="flex flex-col min-h-[clamp(420px,60vh,640px)] [&>*]:flex-1"
+        >
           {step === "service" && (
             <StepService
               selected={draft.service}
@@ -358,7 +363,7 @@ export function PublicBookingFlow() {
               onChange={(payment) => setDraft({ ...draft, payment })}
             />
           )}
-        </div>
+        </TabPanel>
 
         {error && (
           <div className="mt-6 text-small text-danger">{error}</div>

@@ -63,7 +63,7 @@ Stripe and external calendar integrations remain later).
 
 ## Consultant assistant (local API)
 
-Operator **Assistant**, **Dashboard → Brief me**, **Clients → Brief me**, and **Settings → AI**
+Operator **Ask Slotera**, **Clients → Brief me**, and **Settings → AI**
 are implemented behind explicit workspace opt-in on both plans. Server-managed OpenAI routing,
 structured responses and embeddings sit behind a local provider interface; `SLOTERA_AI_PROVIDER=local`
 is an explicit offline simulation. AI is disabled by default. PostgreSQL uses the pgvector
@@ -283,7 +283,7 @@ web/
     app/               App Router routes, route groups, layouts, global CSS
     api/               shared HTTP/CSRF client + generated OpenAPI document/types
     components/        UI, shared, layout, drawer, admin, booking, and public components
-    data/mock/         21 JSON fixtures — the entire frontend data set
+    data/mock/         15 JSON fixtures — the entire frontend data set
     i18n/messages/     complete EN/TR/DE interface dictionaries with English fallback
     lib/               pure helpers and client storage/env owners
     services/          16 service modules — the only frontend path to data
@@ -335,8 +335,8 @@ export async function listThings(): Promise<T[]> {
 - Errors are `NotImplementedError` or `NotFoundError` from `web/src/services/_errors.ts`;
   components surface `err.message`, usually through `toast.error(...)`.
 - Mock services compose related records through services where needed (dashboard facts,
-  task worklist and client conversations); components never join full collections in API
-  mode. API dashboard summary and worklist use coherent bounded server read models.
+  general to-do list and client conversations); components never join full collections in API
+  mode. API dashboard summary and task lists use bounded server read models.
 
 Current services: `auth`, `billing`, `bookings`, `client-notes`, `clients`, `dashboard`,
 `demo`, `forms`, `notifications`, `packages`, `platform`, `services`,
@@ -383,7 +383,12 @@ implemented HTTP surface is deliberately limited to:
 - `GET/POST /clients/{client_id}/notes` plus note `PATCH/DELETE` — private operator
   client context, allow-list sanitised before persistence;
 - `GET /notifications` and `POST /notifications/mark-all-read` — structured, user-
-  targeted operator notifications and read acknowledgement;
+  targeted operator notifications and read acknowledgement; newest first, keyset-paged with
+  `before`/`beforeId` (the last item's `occurredAt`/`id`) and a `hasMore` flag.
+  `slotera-maintenance` runs `slotera_notification_retention()`: read notifications go after
+  30 days, unread ones after 90. The bell shows the latest 7 and links to
+  `/admin/notifications`, which loads the next 20 once the reader passes the middle of the
+  loaded list;
 - `GET/POST /platform/workspaces` plus item `GET` — global-superadmin-only, display-safe
   workspace directory/detail projections and one audited initial-provisioning command;
 - item `POST` suspend/reactivate commands — global-superadmin-only operational controls
@@ -527,6 +532,34 @@ Tailwind v4 with tokens declared in `web/src/app/globals.css`:
 - Element-selector resets (`button`, `input`, `textarea`, `select`, `a`) are wrapped in
   `@layer base` — mandatory, see HISTORY.md.
 - `<html>` carries `data-scroll-behavior="smooth"`; do not remove it.
+- **Motion** has one source: `web/src/lib/motion.ts`, mirrored as `--ease-*` / `--d-*` custom
+  properties in `globals.css` (`motion.test.ts` fails if they drift). One ease-out curve, one
+  sheet curve, 120 to 380 ms, no bounce, exits at 80% of their entrance, every rule behind
+  `prefers-reduced-motion`. Never write a literal duration or curve at a call site: use
+  `duration-(--d-fade) ease-out` or the shared classes.
+- **Shared motion mechanisms** (no per-page animation code): `usePresence(open, exitMs)`
+  (`web/src/lib/use-presence.ts`) keeps an overlay mounted through its exit, with
+  `data-state` driving `.modal-*`, `.drawer-*`, `.popover` (set `origin-*` at the trigger
+  edge), `.collapse-grid` (grid-rows disclosure) and `.toast-shell`; while closing it is
+  `inert`/`aria-hidden`. `.press` gives buttons a 0.97 press. Route templates wrap each
+  admin/superadmin page in `ScreenEnter`: the first visit to a screen in a session rises
+  its sections in (`slotera.seen`, owned by `web/src/lib/motion-session.ts`), revisits fade.
+  `.list-rise` on a list root staggers its rows; `.loading-delay` hides a loader for its
+  first 250 ms; `Tabs`/`SegGroup` slide one indicator (`useSlidingIndicator`) and `TabPanel`
+  cross-fades tab content; `CountUp` counts a KPI once; the landing page uses `ScrollReveal`.
+  The command palette deliberately has no animation (keyboard, many times a day).
+- **Row exits and growing rows:** `useLeavingRows` (`web/src/lib/use-leaving-rows.ts`) keeps a
+  removed row in a `.row-shell` while it fades aside and its space closes (to-do, session
+  tasks, client notes); `useHeightTransition` animates a block whose content grows (an
+  expanded to-do). `Checkbox` draws its tick.
+- **Phones:** below 768px the sidebar is a sheet from the left, opened from the top bar's
+  sidebar button, closed on navigation, Escape or the backdrop.
+- **Visual review:** `npm run ui:walk` (`web/scripts/ui-walkthrough.mjs`) captures every operator
+  route, overlays mid-animation, phone widths and a Reduce Motion pass into `web/ui-shots/`
+  (gitignored) from a running mock build on :3344. Chromium needs to run outside the agent
+  sandbox; see `docs/HISTORY.md` 2026-11-18.
+- **Labels** (`.eyebrow`) are sentence case in the body face. Don't put kicker text above
+  list-page titles; a detail page names its kind ("Booking", "Client") above the title.
 
 The visual target is warm cream paper, deep forest accent, generous spacing, no
 enterprise density. When something looks wrong on several pages, fix the shared primitive
@@ -1135,9 +1168,9 @@ Operator Messages and Clients → client → Messages open the same client conve
 Service editing exposes separately saved follow-up rules; completed booking details show
 reviewed follow-up send/skip and safe delivery status. Maintenance queues follow-ups and
 9am workspace-local unread digests; live provider delivery remains an operational check.
-Dashboard To-do and Calendar share versioned private tasks; `/tasks` and `/tasks/{id}`
+Dashboard To-do shows general tasks only, while Calendar retains session tasks; `/tasks` and `/tasks/{id}`
 are canonical task resources, with contextual session list/create routes retained.
-`GET /dashboard/worklist` reads bounded tasks and source-action counts in one snapshot.
+`GET /tasks?general_only=true` reads the dashboard checklist; the old composite worklist endpoint is removed.
 
 Communication models live in `db/client_models.py`, client auth/messages in `client_access/`,
 and shared typed form validation in `form_validation.py`. Credential and digest bookkeeping
@@ -1151,3 +1184,43 @@ Communication verification: 143 frontend, 108 isolated backend and 100 PostgreSQ
 transport generation, fixture-checked mock/API builds and empty migrations/schema agreement
 pass. Local read p95 is 82.14 ms with five readers. Seven moderate upstream development-tool
 advisories remain (zero high/critical); Python audit is clean. Local showcase data is reset.
+
+Assistant presentation includes optimistic questions, post-validation progressive reveal,
+copy controls, durable Stop and history-preserving edited branches. Messages use directional
+bubbles and top-scroll history loading; AI settings show standard-sized text and one daily usage percentage.
+See `docs/HISTORY.md` for cancellation, branching and clipboard behavior.
+
+Ask Slotera now has centered empty states, automatically loaded history, row-menu deletion,
+and first-response short titles; operator header shortcuts open Ask/Messages. Usage is a
+single daily percentage. The seed includes four already-read messages with Sofia.
+
+
+### Simple dashboard checklist (2026-11-17)
+
+Dashboard To-do has one title input (Enter to add) and checkboxes. Completed rows stay checked;
+older rows load on scroll. It excludes session tasks and system-action cards, with no status
+tabs, due dates, descriptions or per-row edit/delete controls. Ask Slotera can add items and
+propose removing a general to-do through the existing reviewed, versioned and idempotent
+command flow. Session tasks cannot be removed through AI. No schema change/reset is needed.
+
+
+### Dashboard and communication polish — 2026-11-17
+
+*(Superseded 2026-11-18: the daily briefing was removed; the dashboard now shows "Your next
+call", a separate "Today's schedule" card and the to-do, see the 2026-11-18 entry.)* KPI
+comparisons show percentages only; an undefined comparison against a zero baseline is omitted
+rather than invented.
+Messages has no large page title or visible composer label; the input retains its accessible
+name. The send arrow sits inside the composer, aligned bottom-right. Conversation lists load
+more on scroll, and message history loads automatically at the top. Booking rows center their
+cells, and shared pills use their natural compact line height instead of stretching to a row.
+
+
+### Briefing and settings refinement (2026-11-17)
+
+AI threads persist chat/daily/client kind; generated briefings never appear in chat listings.
+The mutable initial schema includes this discriminator, requiring a local reset for existing
+pre-production databases. Today uses only dated highlights and an icon refresh. Services,
+packages, forms and clients return full-result state aggregates for named count summaries.
+Business Profile now includes Branding; Notifications replaces the Emails settings label.
+The message composer is single-line. No mobile push integration was added.

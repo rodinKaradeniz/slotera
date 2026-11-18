@@ -1,5 +1,7 @@
 import * as React from "react";
 import {
+  MessageCircle,
+  ArrowUp,
   ArrowRight,
   ArrowLeft,
   Check,
@@ -63,6 +65,8 @@ import {
 } from "lucide-react";
 
 const REGISTRY: Record<string, LucideIcon> = {
+  ask: MessageCircle,
+  "arrow-up": ArrowUp,
   "arrow-right": ArrowRight,
   "arrow-left": ArrowLeft,
   check: Check,

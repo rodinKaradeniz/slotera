@@ -12,7 +12,7 @@
     "id": "act-002",
     "sessionId": "ses-001",
     "title": "Bring your current pricing notes",
-    "description": "We'll work through your pricing model together — have your latest numbers ready.",
+    "description": "We'll work through your pricing model together, so have your latest numbers ready.",
     "status": "todo",
     "dueDate": "2026-05-16",
     "createdAtISO": "2026-05-10T09:05:00.000Z",
@@ -76,7 +76,7 @@
     "id": "act-103",
     "sessionId": "ses-demo",
     "title": "Book the follow-up session after your strategy call",
-    "description": "Optional — many clients pair this with a follow-up to keep momentum.",
+    "description": "Optional. Many clients pair this with a follow-up to keep momentum.",
     "status": "todo",
     "createdAtISO": "2026-05-01T09:02:00.000Z",
     "updatedAtISO": "2026-05-01T09:02:00.000Z"

@@ -234,14 +234,16 @@ async def facts(
         ),
         (
             "task",
-            "Open private tasks",
+            "Private tasks (open or matching the request)",
             "/admin/dashboard",
             (
                 "SELECT id,title,status,due_date,session_id,version FROM "
-                "session_action_items t WHERE workspace_id=:w AND status='todo' AND "
+                "session_action_items t WHERE workspace_id=:w AND (status='todo' OR "
+                "lower(title) LIKE ANY(CAST(:patterns AS text[]))) AND "
                 "(CAST(:client AS uuid) IS NULL OR EXISTS(SELECT 1 FROM bookings b "
                 "WHERE b.workspace_id=t.workspace_id AND b.session_id=t.session_id "
                 "AND b.client_id=:client)) ORDER BY "
+                "CASE WHEN lower(title) LIKE ANY(CAST(:patterns AS text[])) THEN 0 ELSE 1 END, "
                 "due_date NULLS LAST,id LIMIT 25"
             ),
         ),

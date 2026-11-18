@@ -30,7 +30,7 @@ export class ApiRequestError extends Error {
   ) {
     const lang = readLang();
     const keys: Record<string, MessageKey> = {
-      ai_quota_exceeded:"ai.quota", ai_context_changed:"editing.stale", ai_refresh_wait:"ai.refreshWait", ai_busy:"ai.busy", ai_clarification_required:"ai.clarify", ai_provider_unavailable:"ai.failed", ai_unavailable:"ai.unavailable",
+      ai_cancelled:"chat.stopped", ai_quota_exceeded:"ai.quota", ai_context_changed:"editing.stale", ai_refresh_wait:"ai.refreshWait", ai_busy:"ai.busy", ai_clarification_required:"ai.clarify", ai_provider_unavailable:"ai.failed", ai_unavailable:"ai.unavailable",
       client_authentication_required: "errors.session", csrf_validation_failed: "errors.session",
       booking_email_in_progress: "booking.emails.sendingConflict", followup_form_in_use: "followup.formUsed",
       followup_not_ready: "followup.notReady", followup_handled: "followup.handled",

@@ -155,7 +155,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
                 onClick={() => pickDate(c.date)}
                 disabled={disabled}
                 className={cn(
-                  "relative flex flex-col items-center justify-center min-h-12 rounded-md text-[14px] transition-colors",
+                  "press relative flex flex-col items-center justify-center min-h-12 rounded-md text-[14px] tabular-nums",
                   c.inMonth ? "text-ink" : "text-ink-4",
                   selected && "bg-accent text-white",
                   !selected && !disabled && "hover:bg-paper-2",
@@ -185,7 +185,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2 flex-1 auto-rows-fr">
+          <div className="list-rise grid grid-cols-2 gap-2 flex-1 auto-rows-fr">
             {visibleTimes.map((slot) => {
               const active = time === slot.time &&
                 (dataSource !== "api" || startAt === slot.startAt);
@@ -195,7 +195,7 @@ export function StepDateTime({ service, date, time, startAt, onChange }: Props) 
                   type="button"
                   onClick={() => pickTime(slot.time, slot.startAt)}
                   className={cn(
-                    "min-h-11 rounded-md border text-[14px] font-medium transition-colors",
+                    "press min-h-11 rounded-md border text-[14px] font-medium tabular-nums",
                     active
                       ? "bg-accent text-white border-accent"
                       : "bg-surface text-ink border-line hover:border-ink-3",

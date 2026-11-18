@@ -73,7 +73,7 @@ npm ci --prefix web
 
 Open `http://localhost:3344/login`; use `hello@slotera.io` / `slotera-local-only`.
 
-1. Dashboard → To-do → type a task → Add → check it → Completed: the task moves tabs.
+1. Dashboard → To-do → type a title → Enter → check it: the row stays checked, without tabs.
 2. Calendar → a session → Notes & Actions → add a task: Dashboard shows the same task;
    completing it in either place updates the other after navigation/refresh.
 3. Clients → Sofia Marin → Messages → send text: Messages shows the same conversation.
@@ -118,3 +118,8 @@ No approved feature is intentionally left as foundation-only work.
 
 Final privacy regressions also prove a waiting client-preference write cannot restore erased
 context, and workspace closure permanently revokes client credentials even after reactivation.
+
+
+The 2026-11-17 simplification supersedes the original combined worklist: dashboard To-do now
+shows general title-only tasks, with no system-action rows or session-task manager. Calendar
+keeps its existing controls. Ask Slotera supports reviewed removal of general to-dos only.

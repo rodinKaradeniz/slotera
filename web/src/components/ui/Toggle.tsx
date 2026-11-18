@@ -38,7 +38,7 @@ export function Toggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative inline-flex items-center rounded-full transition-colors shrink-0",
+        "relative inline-flex items-center rounded-full transition-colors duration-(--d-fade) ease-out shrink-0",
         checked ? "bg-accent" : "bg-line",
         disabled && "opacity-60 cursor-not-allowed",
         className,
@@ -47,7 +47,7 @@ export function Toggle({
       {...rest}
     >
       <span
-        className="block rounded-full bg-white shadow-1 transition-transform"
+        className="block rounded-full bg-white shadow-1 transition-transform duration-(--d-fade) ease-out motion-reduce:transition-none"
         style={{
           width: dims.knob,
           height: dims.knob,

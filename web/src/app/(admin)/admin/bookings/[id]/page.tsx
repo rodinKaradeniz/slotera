@@ -184,7 +184,7 @@ export default function BookingDetailPage() {
               }
               meta={
                 <span className="inline-flex items-center gap-2 flex-wrap">
-                  <span className="font-mono uppercase tracking-widest text-micro">
+                  <span className="font-mono text-micro">
                     {booking.reference ?? booking.id}
                   </span>
                   <span aria-hidden>·</span>

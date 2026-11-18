@@ -88,3 +88,36 @@ it("preserves a failed draft and its idempotency key until explicit retry", asyn
   );
   expect((input as HTMLTextAreaElement).value).toBe("");
 });
+
+it("loads earlier messages when the top is reached and preserves chronological order", async () => {
+  const message = (sequence: number) => ({
+    id: String(sequence),
+    sequence,
+    body: `Synthetic history ${sequence}`,
+    senderKind: "client" as const,
+    createdAt: "2026-11-17T12:00:00Z",
+  });
+  vi.mocked(listMessages)
+    .mockResolvedValueOnce({
+      ...page,
+      limit: 2,
+      items: [message(3), message(4)],
+    })
+    .mockResolvedValueOnce({
+      ...page,
+      limit: 2,
+      items: [message(1), message(2)],
+    });
+  const view = render(
+    <I18nProvider>
+      <ConversationThread clientId="synthetic" />
+    </I18nProvider>,
+  );
+  await screen.findByText("Synthetic history 4");
+  fireEvent.scroll(view.container.querySelector(".overlay-scroll-viewport")!);
+  await screen.findByText("Synthetic history 1");
+  expect(vi.mocked(listMessages).mock.calls[1][1]?.before).toBe(3);
+  expect(
+    screen.getAllByText(/Synthetic history/).map((node) => node.textContent),
+  ).toEqual([1, 2, 3, 4].map((n) => `Synthetic history ${n}`));
+});

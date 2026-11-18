@@ -244,21 +244,45 @@ async def test_indexing_is_tenant_scoped_and_source_changes_remove_old_vectors(a
         assert await session.scalar(text("SELECT count(*) FROM ai_documents")) == 0
 
 
+async def _client(staff) -> str:
+    response = await staff.post(
+        "/clients",
+        headers=csrf(staff),
+        json={"name": "Synthetic briefing client", "email": f"ai-{uuid4()}@example.com"},
+    )
+    assert response.status_code == 201, response.text
+    return str(response.json()["id"])
+
+
 async def test_briefing_cache_and_refresh_are_not_extra_generations(ai):
     staff, _, _, _ = ai
     await enable(staff)
-    one = await staff.post("/ai/briefings/daily", headers=csrf(staff), json={"language": "de"})
+    path = f"/ai/briefings/client?clientId={await _client(staff)}"
+    one = await staff.post(path, headers=csrf(staff), json={"language": "de"})
     assert one.status_code == 200, one.text
     before = (await staff.get("/ai/status")).json()["dailyAnswers"]
-    two = await staff.post("/ai/briefings/daily", headers=csrf(staff), json={"language": "de"})
+    two = await staff.post(path, headers=csrf(staff), json={"language": "de"})
     assert two.json()["id"] == one.json()["id"]
     assert (await staff.get("/ai/status")).json()["dailyAnswers"] == before
-    refresh = await staff.post(
-        "/ai/briefings/daily", headers=csrf(staff), json={"language": "de", "refresh": True}
-    )
+    refresh = await staff.post(path, headers=csrf(staff), json={"language": "de", "refresh": True})
     assert refresh.status_code == 429
-    switched = await staff.post("/ai/briefings/daily", headers=csrf(staff), json={"language": "tr"})
+    switched = await staff.post(path, headers=csrf(staff), json={"language": "tr"})
     assert switched.status_code == 429
+
+
+async def test_workspace_daily_briefings_no_longer_exist(ai):
+    staff, _, _, _ = ai
+    await enable(staff)
+    generated = await staff.post(
+        "/ai/briefings/daily", headers=csrf(staff), json={"language": "en"}
+    )
+    assert generated.status_code == 422
+    read = await staff.get("/ai/briefings/daily")
+    assert read.status_code == 422
+    missing_client = await staff.post(
+        "/ai/briefings/client", headers=csrf(staff), json={"language": "en"}
+    )
+    assert missing_client.status_code == 422
 
 
 async def test_disabled_context_discards_inflight_generation_and_cannot_reappear(ai, monkeypatch):
@@ -539,3 +563,247 @@ async def test_foreign_workspace_vectors_are_unreadable_and_unwritable(ai):
     finally:
         async with owner.transaction() as session:
             await session.execute(text("DELETE FROM workspaces WHERE id=:id"), {"id": wid})
+
+
+@pytest.mark.parametrize("late", [False, True])
+async def test_stop_prevents_late_answers_and_releases_answer_allowance(ai, monkeypatch, late):
+    staff, _, _, _ = ai
+    await enable(staff)
+    identifier = await thread(staff)
+    entered = asyncio.Event()
+    original = LocalProvider.answer
+
+    async def waiting(self, *args, **kwargs):
+        entered.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            if late:
+                return await original(self, *args, **kwargs)
+            raise
+
+    monkeypatch.setattr(LocalProvider, "answer", waiting)
+    headers = csrf(staff)
+    pending = asyncio.create_task(turn(staff, identifier, "Synthetic stopped question", headers))
+    await asyncio.wait_for(entered.wait(), 10)
+    stopped = await staff.post(
+        f"/ai/threads/{identifier}/stop",
+        headers=csrf(staff),
+        json={
+            "key": headers["Idempotency-Key"],
+            "prompt": "Synthetic stopped question",
+            "language": "en",
+        },
+    )
+    assert stopped.status_code == 204
+    assert (await pending).status_code == 409
+    rows = (await staff.get(f"/ai/threads/{identifier}/turns")).json()["items"]
+    assert rows[0]["errorCode"] == "ai_cancelled"
+    assert rows[0]["answer"] == ""
+    assert (await staff.get("/ai/status")).json()["dailyAnswers"] == 0
+
+
+async def test_stop_before_generation_is_durable_and_uses_no_provider(ai, monkeypatch):
+    staff, _, _, _ = ai
+    await enable(staff)
+    identifier = await thread(staff)
+    headers = csrf(staff)
+    result = await staff.post(
+        f"/ai/threads/{identifier}/stop",
+        headers=csrf(staff),
+        json={
+            "key": headers["Idempotency-Key"],
+            "prompt": "Synthetic early stop",
+            "language": "en",
+        },
+    )
+    assert result.status_code == 204
+
+    async def forbidden(*args, **kwargs):
+        pytest.fail("Stopped request reached provider")
+
+    monkeypatch.setattr(LocalProvider, "route", forbidden)
+    result = await turn(staff, identifier, "Synthetic early stop", headers)
+    assert result.status_code == 200
+    assert result.json()["errorCode"] == "ai_cancelled"
+    assert (await staff.get("/ai/status")).json()["dailyAnswers"] == 0
+
+
+async def test_edit_branch_preserves_original_actions_and_copies_no_proposals(ai):
+    staff, outsider, _, _ = ai
+    await enable(staff)
+    identifier = await thread(staff)
+    first = (await turn(staff, identifier, "Add task Synthetic branch task")).json()
+    confirmed = await staff.post(
+        f"/ai/proposals/{first['id']}/confirm",
+        headers=csrf(staff),
+        json={"proposalHash": first["proposal"]["hash"]},
+    )
+    assert confirmed.status_code == 200
+    second = (await turn(staff, identifier, "Synthetic second question")).json()
+    new_id = str(uuid4())
+    payload = {"threadId": new_id, "turnId": second["id"], "title": "Synthetic branch edit"}
+    assert (
+        await outsider.post(f"/ai/threads/{identifier}/branch", json=payload)
+    ).status_code == 401
+    result = await staff.post(f"/ai/threads/{identifier}/branch", headers=csrf(staff), json=payload)
+    assert result.status_code == 200, result.text
+    assert (
+        await staff.post(f"/ai/threads/{identifier}/branch", headers=csrf(staff), json=payload)
+    ).status_code == 200
+    old = (await staff.get(f"/ai/threads/{identifier}/turns")).json()["items"]
+    new = (await staff.get(f"/ai/threads/{new_id}/turns")).json()["items"]
+    assert len(old) == 2 and len(new) == 1
+    assert old[0]["proposal"]["status"] == "executed"
+    assert new[0]["proposal"] is None
+    assert (
+        await staff.post(f"/ai/threads/{uuid4()}/branch", headers=csrf(staff), json=payload)
+    ).status_code == 404
+
+
+async def test_first_answer_titles_the_thread_once_without_an_extra_generation(ai, monkeypatch):
+    staff, _, _, _ = ai
+    await enable(staff)
+    identifier = await thread(staff)
+    original = LocalProvider.answer
+    calls = 0
+
+    async def titled(self, *args, **kwargs):
+        nonlocal calls
+        calls += 1
+        result = await original(self, *args, **kwargs)
+        return result.model_copy(
+            update={"conversation_title": "Short first title" if calls == 1 else "Do not replace"}
+        )
+
+    monkeypatch.setattr(LocalProvider, "answer", titled)
+    assert (
+        await turn(staff, identifier, "A first request with a longer explanation")
+    ).status_code == 200
+    assert (await turn(staff, identifier, "Second request")).status_code == 200
+    rows = (await staff.get("/ai/threads")).json()["items"]
+    assert next(row["title"] for row in rows if row["id"] == identifier) == "Short first title"
+    assert calls == 2
+
+
+@pytest.mark.parametrize("stale", [False, True])
+async def test_reviewed_general_todo_removal_is_versioned_and_idempotent(ai, stale):
+    staff, _, _, _ = ai
+    await enable(staff)
+    identifier = await thread(staff)
+    created = (
+        await staff.post("/tasks", headers=csrf(staff), json={"title": "Synthetic remove me"})
+    ).json()
+    preview = await turn(staff, identifier, "Remove task Synthetic remove me")
+    assert preview.status_code == 200, preview.text
+    data = preview.json()
+    assert data["proposal"]["action"]["name"] == "task.delete"
+    assert (await staff.get(f"/tasks/{created['id']}")).status_code == 200
+    if stale:
+        assert (
+            await staff.patch(
+                f"/tasks/{created['id']}",
+                headers={**csrf(staff), "If-Match": f'"v{created["version"]}"'},
+                json={"title": "Synthetic changed"},
+            )
+        ).status_code == 200
+    headers = csrf(staff)
+    for _ in range(2):
+        response = await staff.post(
+            f"/ai/proposals/{data['id']}/confirm",
+            headers=headers,
+            json={"proposalHash": data["proposal"]["hash"]},
+        )
+        assert response.status_code == (409 if stale else 200), response.text
+    assert (await staff.get(f"/tasks/{created['id']}")).status_code == (200 if stale else 404)
+
+
+async def test_dashboard_todos_exclude_session_tasks_and_ai_cannot_remove_those(ai):
+    staff, _, owner, _ = ai
+    await enable(staff)
+    identifier = await thread(staff)
+    session_id = (await staff.get("/sessions?limit=1")).json()["items"][0]["id"]
+    session_task = (
+        await staff.post(
+            f"/sessions/{session_id}/action-items",
+            headers=csrf(staff),
+            json={"title": "Synthetic session task"},
+        )
+    ).json()
+    todo = (
+        await staff.post("/tasks", headers=csrf(staff), json={"title": "Synthetic simple todo"})
+    ).json()
+    listing = (await staff.get("/tasks?general_only=true&limit=1")).json()
+    assert listing["limit"] == 1 and len(listing["items"]) <= 1
+    all_general = (await staff.get("/tasks?general_only=true&limit=100")).json()
+    assert todo["id"] in {item["id"] for item in all_general["items"]}
+    assert all(item["sessionId"] is None for item in all_general["items"])
+    assert (await staff.get(f"/tasks?general_only=true&session_id={session_id}")).status_code == 422
+    foreign_workspace, foreign_task = uuid4(), uuid4()
+    async with owner.transaction() as session:
+        await session.execute(
+            text("INSERT INTO workspaces(id,name,slug) VALUES(:id,'Synthetic separate',:slug)"),
+            {"id": foreign_workspace, "slug": "synthetic-" + foreign_workspace.hex},
+        )
+        await session.execute(
+            text(
+                "INSERT INTO session_action_items(id,workspace_id,title) "
+                "VALUES(:id,:w,'Synthetic foreign task')"
+            ),
+            {"id": foreign_task, "w": foreign_workspace},
+        )
+    try:
+        for item_id in (session_task["id"], str(foreign_task)):
+            result = await turn(
+                staff,
+                identifier,
+                "/action "
+                + json.dumps(
+                    {"name": "task.delete", "resource_id": item_id, "arguments_json": "{}"}
+                ),
+            )
+            assert result.status_code == 422, result.text
+        assert (await staff.get(f"/tasks/{session_task['id']}")).status_code == 200
+        assert (await staff.get(f"/tasks/{foreign_task}")).status_code == 404
+    finally:
+        async with owner.transaction() as session:
+            await session.execute(
+                text("DELETE FROM workspaces WHERE id=:id"), {"id": foreign_workspace}
+            )
+
+
+async def test_generated_briefings_are_not_chat_history(ai):
+    staff, _, _, _ = ai
+    await enable(staff)
+    briefing = await staff.post(
+        f"/ai/briefings/client?clientId={await _client(staff)}",
+        headers=csrf(staff),
+        json={"language": "en", "refresh": False},
+    )
+    assert briefing.status_code == 200, briefing.text
+    assert (await staff.get("/ai/threads")).json()["total"] == 0
+    chat = await thread(staff)
+    history = (await staff.get("/ai/threads?limit=1")).json()
+    assert history["total"] == 1
+    assert history["items"][0]["id"] == chat
+
+
+@pytest.mark.parametrize(
+    "path", ["/services/summaries", "/forms/summaries", "/packages/summaries", "/clients"]
+)
+async def test_directory_state_counts_do_not_depend_on_the_page(ai, path):
+    staff, _, _, _ = ai
+    first = (await staff.get(path, params={"limit": 1})).json()
+    beyond = (await staff.get(path, params={"limit": 1, "offset": 1000000})).json()
+    assert sum(first["states"].values()) == first["total"]
+    assert beyond["items"] == []
+    assert beyond["states"] == first["states"]
+    empty = (await staff.get(path, params={"search": str(uuid4())})).json()
+    assert empty["total"] == 0 and empty["states"] == {}
+    if path == "/clients":
+        all_rows = (await staff.get(path, params={"limit": 200})).json()
+        assert all_rows["total"] <= 200
+        expected = {}
+        for row in all_rows["items"]:
+            expected[row["tag"]] = expected.get(row["tag"], 0) + 1
+        assert all_rows["states"] == expected

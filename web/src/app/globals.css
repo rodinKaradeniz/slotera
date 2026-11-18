@@ -37,6 +37,35 @@
   --r-md: 6px;
   --r-lg: 10px;
 
+  /* motion: mirrors web/src/lib/motion.ts (motion.test.ts keeps them in step).
+     One ease-out curve, one sheet curve; exits take 80% of their entrance. */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --press-scale: 0.97;
+  --d-press: 120ms;
+  --d-fade: 180ms;
+  --d-collapse: 200ms;
+  --d-sheet: 250ms;
+  --d-sheet-out: 200ms;
+  --d-popover-in: 200ms;
+  --d-popover-out: 160ms;
+  --popover-from: 0.95;
+  --d-swap: 160ms;
+  --d-rows: 260ms;
+  --stagger-rows: 30ms;
+  --rise-rows: 6px;
+  --d-knob: 260ms;
+  --d-pulse: 360ms;
+  --d-tab: 260ms;
+  --shift-tab: 12px;
+  --d-entrance: 380ms;
+  --stagger-entrance: 70ms;
+  --rise-entrance: 8px;
+  --loading-delay: 250ms;
+  --d-reveal: 900ms;
+  --stagger-reveal: 90ms;
+  --rise-reveal: 14px;
+
   /* shadow values live in @theme below so Tailwind generates utilities */
 }
 
@@ -143,7 +172,9 @@ html, body {
   .text-h1 { font-family: var(--font-serif); font-weight: 360; font-size: clamp(34px, 3.5vw, 44px); line-height: 1.06; letter-spacing: -0.02em; }
   .text-h2 { font-family: var(--font-serif); font-weight: 380; font-size: clamp(26px, 2.6vw, 32px); line-height: 1.1; letter-spacing: -0.015em; }
   .text-h3 { font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
-  .eyebrow { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+  /* A quiet label that names what follows (a date, "Next session", "Booking"). Sentence
+     case in the body face: the spaced mono capitals it replaced read as a template. */
+  .eyebrow { font-family: var(--font-sans); font-size: 13px; font-weight: 500; letter-spacing: 0; color: var(--ink-3); }
   .text-body  { font-size: 15px; line-height: 1.55; color: var(--ink-2); }
   .text-body-lg { font-size: 17px; line-height: 1.55; color: var(--ink-2); }
   .text-small { font-size: 13px; line-height: 1.5; color: var(--ink-3); }
@@ -152,16 +183,37 @@ html, body {
 
 /* ── keyframes ──────────────────────────────────────────────── */
 @keyframes slIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(var(--rise-entrance)); }
+  to { opacity: 1; transform: none; }
+}
+/* Rises from `--rise` to the element's own resting state. Used with fill-mode
+   `backwards`, so nothing (no lingering transform) remains once it has settled. */
+@keyframes slRise {
+  from { opacity: 0; transform: translateY(var(--rise, 8px)); }
+}
+@keyframes slSlide {
+  from { opacity: 0; transform: translateX(var(--shift, 0px)); }
+}
+@keyframes slSwell {
+  50% { transform: scale(1.06); }
+}
+@keyframes slDrawPath {
+  from { stroke-dashoffset: 24; }
+}
+@keyframes slSwap {
+  from { opacity: 0; transform: scale(0.85); }
+}
+@keyframes slFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes slPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
-@keyframes slShimmer {
-  from { background-position: -400px 0; }
-  to { background-position: 400px 0; }
+@keyframes slBreathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 @keyframes slCheck {
   from { stroke-dashoffset: 60; }
@@ -183,50 +235,285 @@ html, body {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
-@keyframes slToastIn {
-  from { opacity: 0; transform: translateX(16px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes slToastOut {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(16px); }
+
+/* Arrivals that have no exit (a step, a revealed answer). Under Reduce Motion: a fade. */
+.fade-in { animation: slIn var(--d-entrance) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { animation-name: slFade; }
 }
 
-.fade-in { animation: slIn 0.4s cubic-bezier(.2,.7,.2,1) both; }
-
-/* ── toast animation ──────────────────────────────────────────────────────
-   ToastViewport drives these via `data-state="open"|"closed"` so dismiss
-   can animate too. Top-right on every breakpoint.
+/* ── shared motion mechanisms ─────────────────────────────────────────────
+   Components set `data-state="open"|"closed"` (via usePresence) and these rules
+   do the moving. Each transition is declared on the state it leads to, so the
+   open rule carries the entrance timing and the base rule the (faster) exit.
+   Layered as components so a call site's utilities (e.g. origin-top-right) win.
    ─────────────────────────────────────────────────────────────────────── */
-.toast-item {
-  animation: slToastIn 220ms cubic-bezier(.2,.7,.2,1) both;
+@layer components {
+  /* Buttons and other pressables: a small, quick press. Colours still ease. */
+  .press {
+    transition-property: transform, color, background-color, border-color, box-shadow, opacity;
+    transition-duration: var(--d-press);
+    transition-timing-function: var(--ease-out);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .press:active:not(:disabled) { transform: scale(var(--press-scale)); }
+  }
+
+  /* Dialog: the backdrop fades on its own; the panel settles from just under full size. */
+  .modal-backdrop {
+    opacity: 0;
+    transition: opacity var(--d-sheet-out) var(--ease-out);
+  }
+  .modal-backdrop[data-state="open"] { opacity: 1; transition-duration: var(--d-sheet); }
+  .modal-panel {
+    opacity: 0;
+    transform: scale(0.96);
+    transition:
+      opacity var(--d-sheet-out) var(--ease-out),
+      transform var(--d-sheet-out) var(--ease-sheet);
+  }
+  .modal-panel[data-state="open"] {
+    opacity: 1;
+    transform: none;
+    transition-duration: var(--d-sheet);
+  }
+
+  /* Menus and dropdowns grow from their trigger's edge (set origin-* at the call site). */
+  .popover {
+    opacity: 0;
+    transform: scale(var(--popover-from));
+    transition:
+      opacity var(--d-popover-out) var(--ease-out),
+      transform var(--d-popover-out) var(--ease-out);
+  }
+  .popover[data-state="open"] {
+    opacity: 1;
+    transform: none;
+    transition-duration: var(--d-popover-in);
+  }
+
+  /* Disclosure: the wrapper's single row grows from 0fr to 1fr, never animating height. */
+  .collapse-grid {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--d-collapse) var(--ease-out);
+  }
+  .collapse-grid[data-state="open"] { grid-template-rows: 1fr; }
+  .collapse-grid > * {
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity var(--d-fade) var(--ease-out);
+  }
+  .collapse-grid[data-state="open"] > * { opacity: 1; }
+
+  /* Toasts: transitions (not keyframes) so a burst of toasts retargets smoothly. The
+     shell collapses when one leaves, so the others glide into its place. */
+  .toast-shell {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows var(--d-collapse) var(--ease-out);
+  }
+  .toast-shell[data-state="closed"] { grid-template-rows: 0fr; }
+  .toast-shell > * { min-height: 0; }
+  .toast-item {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--d-sheet) var(--ease-out),
+      transform var(--d-sheet) var(--ease-out);
+    @starting-style { opacity: 0; transform: translateX(16px); }
+  }
+  .toast-shell[data-state="closed"] .toast-item {
+    opacity: 0;
+    transform: translateX(16px);
+    transition-duration: var(--d-sheet-out);
+  }
+
+  /* Checkbox tick: drawn in along its stroke when checked, erased quickly when cleared. */
+  .check-tick path {
+    stroke-dasharray: 22;
+    stroke-dashoffset: 22;
+    transition: stroke-dashoffset var(--d-press) var(--ease-out);
+  }
+  .check[aria-checked="true"] .check-tick path {
+    stroke-dashoffset: 0;
+    transition-duration: var(--d-entrance);
+  }
+
+  /* A list row leaving (useLeavingRows): it fades and slips aside while its space
+     closes, so the rows below glide up instead of jumping. */
+  .row-shell {
+    display: grid;
+    /* minmax(0, 1fr) lets truncated text inside a row shrink instead of widening the row. */
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    transition: grid-template-rows var(--d-collapse) var(--ease-out);
+  }
+  .row-shell > * {
+    min-height: 0;
+    transition:
+      opacity var(--d-fade) var(--ease-out),
+      transform var(--d-fade) var(--ease-out);
+  }
+  .row-shell[data-state="closed"] { grid-template-rows: 0fr; }
+  .row-shell[data-state="closed"] > * {
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(var(--shift-tab));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .row-shell,
+    .row-shell > * { transition: none; }
+    .check-tick path { transition: none; }
+    .modal-panel,
+    .modal-panel[data-state="open"],
+    .popover,
+    .popover[data-state="open"],
+    .toast-item,
+    .toast-shell[data-state="closed"] .toast-item { transform: none; }
+    .collapse-grid,
+    .toast-shell { transition: none; }
+  }
 }
-.toast-item[data-state="closed"] {
-  animation: slToastOut 180ms cubic-bezier(.4,0,.6,1) both;
+
+/* ── screens, lists and loading ────────────────────────────────────────────
+   No per-page code: ScreenEnter (route template) sets `data-enter`, lists opt in
+   with `.list-rise`, loaders with `.loading-delay`. All entrances use fill-mode
+   `backwards`, so the resting state is the element's own styles: with motion
+   off or a failed script, everything is simply there.
+   ─────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  /* First visit to a screen this session: sections rise into place, top to bottom. */
+  .screen[data-enter="first"] > * > * {
+    --rise: var(--rise-entrance);
+    animation: slRise var(--d-entrance) var(--ease-out) backwards;
+  }
+  .screen[data-enter="first"] > * > :nth-child(2) { animation-delay: calc(var(--stagger-entrance) * 1); }
+  .screen[data-enter="first"] > * > :nth-child(3) { animation-delay: calc(var(--stagger-entrance) * 2); }
+  .screen[data-enter="first"] > * > :nth-child(4) { animation-delay: calc(var(--stagger-entrance) * 3); }
+  .screen[data-enter="first"] > * > :nth-child(5) { animation-delay: calc(var(--stagger-entrance) * 4); }
+  .screen[data-enter="first"] > * > :nth-child(6) { animation-delay: calc(var(--stagger-entrance) * 5); }
+  .screen[data-enter="first"] > * > :nth-child(7) { animation-delay: calc(var(--stagger-entrance) * 6); }
+  .screen[data-enter="first"] > * > :nth-child(8) { animation-delay: calc(var(--stagger-entrance) * 7); }
+  .screen[data-enter="first"] > * > :nth-child(9) { animation-delay: calc(var(--stagger-entrance) * 8); }
+  .screen[data-enter="first"] > * > :nth-child(10) { animation-delay: calc(var(--stagger-entrance) * 9); }
+  .screen[data-enter="first"] > * > :nth-child(11) { animation-delay: calc(var(--stagger-entrance) * 10); }
+  .screen[data-enter="first"] > * > :nth-child(12) { animation-delay: calc(var(--stagger-entrance) * 11); }
+  .screen[data-enter="first"] > * > :nth-child(13) { animation-delay: calc(var(--stagger-entrance) * 12); }
+  .screen[data-enter="first"] > * > :nth-child(n + 14) { animation-delay: calc(var(--stagger-entrance) * 13); }
+
+  /* A revisit: a quiet fade, no choreography. */
+  .screen[data-enter="again"] > * > * {
+    animation: slFade var(--d-tab) var(--ease-out) backwards;
+  }
+
+  /* Rows of one list arriving together; a row added later rises on its own. */
+  .list-rise > * {
+    --rise: var(--rise-rows);
+    animation: slRise var(--d-rows) var(--ease-out) backwards;
+  }
+  .list-rise > :nth-child(2) { animation-delay: calc(var(--stagger-rows) * 1); }
+  .list-rise > :nth-child(3) { animation-delay: calc(var(--stagger-rows) * 2); }
+  .list-rise > :nth-child(4) { animation-delay: calc(var(--stagger-rows) * 3); }
+  .list-rise > :nth-child(5) { animation-delay: calc(var(--stagger-rows) * 4); }
+  .list-rise > :nth-child(6) { animation-delay: calc(var(--stagger-rows) * 5); }
+  .list-rise > :nth-child(7) { animation-delay: calc(var(--stagger-rows) * 6); }
+  .list-rise > :nth-child(8) { animation-delay: calc(var(--stagger-rows) * 7); }
+  .list-rise > :nth-child(9) { animation-delay: calc(var(--stagger-rows) * 8); }
+  .list-rise > :nth-child(n + 10) { animation-delay: calc(var(--stagger-rows) * 9); }
+
+  /* Tab or step content: a cross-fade with a short slide towards the one chosen.
+     Set `--shift` to a signed distance (see tabShift in lib/motion.ts). */
+  .tab-panel { animation: slSlide var(--d-tab) var(--ease-out) backwards; }
+
+  /* A value just confirmed (a status that changed) swells once and settles. */
+  .swell { animation: slSwell var(--d-pulse) var(--ease-out); }
+
+  /* One state giving way to another (a selected slot, an icon). */
+  .swap-in { animation: slSwap var(--d-swap) var(--ease-out) backwards; }
+
+  /* A finished thing draws its check rather than popping in (Lucide's check is ~23 units). */
+  .draw-check path {
+    stroke-dasharray: 24;
+    animation: slDrawPath var(--d-entrance) var(--ease-out) var(--d-swap) backwards;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .toast-item,
-  .toast-item[data-state="closed"] { animation: none; }
+  .tab-panel { animation: slFade var(--d-fade) var(--ease-out) backwards; }
+}
+
+/* Marketing scroll reveals (ScrollReveal): slower and softer than the app, once each. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal-state="waiting"] {
+    opacity: 0;
+    transform: translateY(var(--rise-reveal));
+  }
+  [data-reveal-state="shown"] {
+    transition:
+      opacity var(--d-reveal) var(--ease-out),
+      transform var(--d-reveal) var(--ease-out);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+}
+
+@media print {
+  [data-reveal-state] { opacity: 1 !important; transform: none !important; }
+}
+
+/* A loader stays invisible briefly, so a quick load shows no flash. */
+.loading-delay { animation: slFade var(--d-fade) var(--ease-out) var(--loading-delay) backwards; }
+
+/* One indicator (pill or line) slides to the chosen segment or tab. Its position
+   comes from `--x` / `--w`, set by useSlidingIndicator. */
+.slide-indicator {
+  position: absolute;
+  left: 0;
+  width: var(--w, 0px);
+  transform: translateX(var(--x, 0px));
+  transition:
+    transform var(--d-knob) var(--ease-out),
+    width var(--d-knob) var(--ease-out);
+}
+.slide-indicator[data-ready="false"] { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .slide-indicator { transition: none; }
 }
 
 /* ── drawer / side-sheet animation ─────────────────────────────────────────
    DrawerShell drives these via a `data-state="open"|"closed"` attribute so
    both enter and exit can animate. Right side on desktop, bottom sheet on
-   mobile. Kept off the shared `.fade-in` utility — that one is used by
-   Modal/Accordion/Notifications and intentionally fades, not slides.
+   mobile. Enter on the sheet curve; leave a little faster.
    ─────────────────────────────────────────────────────────────────────── */
 .drawer-backdrop {
   opacity: 0;
-  transition: opacity 220ms ease-out;
+  transition: opacity var(--d-sheet-out) var(--ease-out);
 }
-.drawer-backdrop[data-state="open"] { opacity: 1; }
+.drawer-backdrop[data-state="open"] { opacity: 1; transition-duration: var(--d-sheet); }
 
 .drawer-panel {
   transform: translate3d(100%, 0, 0);
-  transition: transform 320ms cubic-bezier(.32,.72,0,1);
-  will-change: transform;
+  transition: transform var(--d-sheet-out) var(--ease-sheet);
 }
-.drawer-panel[data-state="open"] { transform: translate3d(0, 0, 0); }
+.drawer-panel[data-state="open"] {
+  transform: translate3d(0, 0, 0);
+  transition-duration: var(--d-sheet);
+}
+
+/* Phones: the sidebar as a sheet from the left (AppShell). */
+.nav-sheet {
+  transform: translate3d(-100%, 0, 0);
+  transition: transform var(--d-sheet-out) var(--ease-sheet);
+}
+.nav-sheet[data-state="open"] {
+  transform: translate3d(0, 0, 0);
+  transition-duration: var(--d-sheet);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-sheet,
+  .nav-sheet[data-state="open"] { transform: none; transition: none; }
+}
 
 @media (max-width: 640px) {
   .drawer-panel {
@@ -236,8 +523,9 @@ html, body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .drawer-backdrop,
-  .drawer-panel {
+  .drawer-panel,
+  .drawer-panel[data-state="open"] {
+    transform: none;
     transition: none;
   }
 }

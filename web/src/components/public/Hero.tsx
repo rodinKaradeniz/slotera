@@ -3,7 +3,6 @@
 import * as React from "react";
 import { dataSource } from "@/lib/env";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
 import { Section } from "./Section";
 import { HeroCollage } from "./HeroCollage";
 import { SignupCta } from "./SignupCta";
@@ -30,20 +29,6 @@ export function Hero() {
               {t("landing.cta.tryDemo")}
             </Button>
           )}
-        </div>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 text-small">
-          <span className="inline-flex items-center gap-1.5">
-            <Icon name="check" size={14} className="text-success" />
-            {t("landing.hero.badge.noCard")}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Icon name="check" size={14} className="text-success" />
-            {t("landing.hero.badge.cancel")}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Icon name="shield" size={14} className="text-success" />
-            {t("landing.hero.badge.gdpr")}
-          </span>
         </div>
       </div>
 

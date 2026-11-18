@@ -14,14 +14,9 @@ export function DemoStrip() {
   return (
     <section className="my-6">
       <div className="max-w-[1200px] mx-auto px-6">
-        <div className="rounded-lg p-10 sm:p-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 bg-ink text-paper shadow-3">
+        {/* A tonal band in the page's own palette, not a near-black slab in a cream page. */}
+        <div className="rounded-lg p-10 sm:p-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 bg-accent-soft text-accent-ink border border-[rgba(61,90,61,0.18)]">
           <div className="max-w-2xl">
-            <div
-              className="font-mono text-[11px] uppercase mb-3 opacity-70"
-              style={{ letterSpacing: "0.14em" }}
-            >
-              {t("landing.demoStrip.eyebrow")}
-            </div>
             <h2
               className="font-serif"
               style={{

@@ -105,6 +105,7 @@ async def run() -> int:
                 {"base": settings.public_web_base_url},
             )
             await session.execute(text("SELECT slotera_ai_cleanup()"))
+            notifications = await session.scalar(text("SELECT slotera_notification_retention()"))
             client_credentials = await session.scalar(
                 text("SELECT public.slotera_client_auth_maintenance()")
             )
@@ -114,7 +115,8 @@ async def run() -> int:
         # go in the message.
         logger.info(
             "maintenance_completed auth_rows=%s reminders=%s series_sessions=%s "
-            "workspaces_purged=%s followups=%s digests=%s client_credentials=%s",
+            "workspaces_purged=%s followups=%s digests=%s client_credentials=%s "
+            "notifications_expired=%s",
             cleaned,
             reminders,
             sessions,
@@ -122,6 +124,7 @@ async def run() -> int:
             followups,
             digests,
             client_credentials,
+            notifications,
         )
         return (
             cleaned
@@ -129,6 +132,7 @@ async def run() -> int:
             + followups
             + (digests or 0)
             + (client_credentials or 0)
+            + (notifications or 0)
             + sessions
             + purged
         )

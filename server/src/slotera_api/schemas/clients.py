@@ -66,6 +66,7 @@ class ClientResponse(ApiModel):
 
 
 class ClientListResponse(ApiModel):
+    states: dict[str, int]
     items: list[ClientResponse]
     total: int
     limit: int

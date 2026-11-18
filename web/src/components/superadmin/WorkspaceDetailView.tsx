@@ -43,7 +43,7 @@ export function WorkspaceDetailView({ id }: { id: string }) {
   if (notFound) {
     return (
       <PageContainer>
-        <PageHeader eyebrow={uiText("ui.platform")} title={uiText("ui.workspace.not.found")} />
+        <PageHeader title={uiText("ui.workspace.not.found")} />
         <Button variant="secondary" onClick={() => router.push("/superadmin/workspaces")}>
           {uiText("ui.all.workspaces")}</Button>
       </PageContainer>

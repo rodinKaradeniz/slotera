@@ -13,7 +13,7 @@ import { DrawerShell } from "@/components/ui/DrawerShell";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Tabs } from "@/components/ui/Tabs";
+import { TabPanel, Tabs } from "@/components/ui/Tabs";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -411,6 +411,7 @@ export function SessionDrawer({
         </div>
       )}
 
+      <TabPanel value={tab} order={["details", "notes", "attendance"]}>
       {tab === "notes" && initial ? (
         <div className="flex flex-col gap-6">
           <div>
@@ -602,6 +603,7 @@ export function SessionDrawer({
         )}
       </fieldset>
       )}
+      </TabPanel>
 
       <ConfirmDialog
         open={review !== null}

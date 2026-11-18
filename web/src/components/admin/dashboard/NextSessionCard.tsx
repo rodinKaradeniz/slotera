@@ -17,12 +17,13 @@ import { localeForLang } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { dataSource } from "@/lib/env";
 import { MoveBookingDialog } from "@/components/admin/bookings/MoveBookingDialog";
+import { clockIn } from "@/lib/calendar";
+import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
 
 const EVENT_STYLE = { bg: "#E7EDE3", fg: "#2A3F2A" };
 
 type Props = {
   item?: DashboardScheduleItem;
-  schedule: DashboardScheduleItem[];
   /** Called after the booking was moved, so the dashboard can reload. */
   onChanged?: () => void;
 };
@@ -49,6 +50,35 @@ function totalBookedHours(items: DashboardScheduleItem[]): number {
 }
 
 type HoverInfo = { item: DashboardScheduleItem; x: number; y: number };
+
+const subscribeMinute = (onChange: () => void) => {
+  const id = window.setInterval(onChange, 30_000);
+  return () => window.clearInterval(id);
+};
+const currentMinute = () => Math.floor(Date.now() / 60_000);
+const noMinute = () => null;
+
+/** Today's "now" on the rail, in the workspace's timezone; glides as the minutes pass. */
+function NowMarker({ startMin, endMin }: { startMin: number; endMin: number }) {
+  const { t: uiText } = useI18n();
+  const timezone = useWorkspaceTimezone();
+  const minute = React.useSyncExternalStore(subscribeMinute, currentMinute, noMinute);
+  if (minute === null) return null;
+  const clock = clockIn(new Date(minute * 60_000).toISOString(), timezone);
+  const at = pct(toMinutes(clock), startMin, endMin);
+  if (at < 0 || at > 100) return null;
+  // A full-width layer moved by a transform (never animating `left`), clipped to the rail.
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" role="img" aria-label={uiText("ui.now.at", { time: clock })}>
+      <div
+        className="absolute inset-0 transition-transform duration-(--d-entrance) ease-out motion-reduce:transition-none"
+        style={{ transform: `translateX(${at}%)` }}
+      >
+        <span className="absolute left-0 top-0 bottom-0 w-0.5 rounded-full bg-accent" />
+      </div>
+    </div>
+  );
+}
 
 function ScheduleRail({
   items,
@@ -81,6 +111,7 @@ function ScheduleRail({
             background: "var(--line-soft)",
           }}
         />
+        <NowMarker startMin={startMin} endMin={endMin} />
         {items.map((it) => {
           const left = pct(toMinutes(it.time), startMin, endMin);
           const width = pct(toMinutes(it.end), startMin, endMin) - left;
@@ -119,7 +150,7 @@ function ScheduleRail({
               }}
               aria-label={uiText("ui.session.accessible", { service: it.service, time: it.time, client: it.client })}
               className={cn(
-                "absolute rounded-sm transition-all",
+                "absolute rounded-sm transition-[opacity,box-shadow,background-color] duration-(--d-fade) ease-out",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
               )}
               style={{
@@ -177,9 +208,31 @@ function HoverBadge({ info }: { info: HoverInfo }) {
   );
 }
 
-export function NextSessionCard({ item, schedule, onChanged }: Props) {
-  const { t: uiText, lang } = useI18n();
+/** Today's sessions on a rail, with a "now" marker. Sits under "Your next call". */
+export function ScheduleCard({ schedule }: { schedule: DashboardScheduleItem[] }) {
+  const { t: uiText } = useI18n();
   const [hover, setHover] = React.useState<HoverInfo | null>(null);
+  const hours = totalBookedHours(schedule);
+  return (
+    <Card padded={false} className="min-w-0 flex flex-col">
+      <CardHead
+        title={uiText("ui.today.s.schedule")}
+        right={
+          <span className="text-micro text-ink-3 tabular-nums">
+            {schedule.length} {uiText("ui.sessions")} · {hours} {uiText("ui.h.booked")}
+          </span>
+        }
+      />
+      <div className="relative px-6 pt-5 pb-4">
+        <ScheduleRail items={schedule} onHover={setHover} />
+        {hover && <HoverBadge info={hover} />}
+      </div>
+    </Card>
+  );
+}
+
+export function NextSessionCard({ item, onChanged }: Props) {
+  const { t: uiText, lang } = useI18n();
   const { openBookingDrawer } = useDrawers();
   const [loaded, setLoaded] = React.useState<Booking | null>(null);
   const [moving, setMoving] = React.useState(false);
@@ -198,8 +251,8 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
 
   if (!item) {
     return (
-      <Card padded={false} className="min-w-0 h-full min-h-[320px] flex flex-col bg-gradient-to-br from-accent-soft via-surface to-paper-2">
-        <CardHead title={uiText("ui.next.session")} />
+      <Card padded={false} className="min-w-0 flex flex-col">
+        <CardHead title={uiText("dashboard.nextCall")} />
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-10 text-center">
           <span className="flex items-center justify-center rounded-2xl bg-accent-soft p-4 text-accent border border-accent/15">
             <Icon name="calendar-days" size={32} />
@@ -215,7 +268,6 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
   }
 
   const style = EVENT_STYLE;
-  const hours = totalBookedHours(schedule);
 
   const openView = () => {
     if (booking) openBookingDrawer({ initial: booking, mode: "view" });
@@ -227,30 +279,9 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
 
   return (
     <>
-    <Card padded={false} className="relative h-full flex flex-col overflow-hidden">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2"
-        style={{ top: -180, width: 0, height: 0 }}
-      >
-        {[460, 320, 200].map((d, i) => (
-          <span
-            key={d}
-            className="absolute rounded-full"
-            style={{
-              width: d,
-              height: d,
-              left: -d / 2,
-              top: -d / 2,
-              border: "1px solid var(--accent)",
-              opacity: 0.14 + i * 0.06,
-            }}
-          />
-        ))}
-      </div>
-
+    <Card padded={false} className="relative flex flex-col overflow-hidden">
       <CardHead
-        title={uiText("ui.next.session")}
+        title={uiText("dashboard.nextCall")}
         right={dataSource === "mock" ? <Pill tone="accent" icon="clock">{uiText("dashboard.demoCountdown")}</Pill> : undefined}
       />
       <div className="relative flex-1 flex flex-col">
@@ -266,7 +297,8 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
             {item.startISO && <>{new Intl.DateTimeFormat(localeForLang(lang), {weekday: "short", day: "numeric", month: "short", timeZone: item.timezone}).format(new Date(item.startISO))} · </>}{item.time} – {item.end} · {item.duration}
           </div>
 
-          <div className="mt-4 flex items-stretch gap-5">
+          {/* Phones: the time sits above the client, so the name keeps its width. */}
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-5">
             <div
               className="font-serif text-ink flex-shrink-0"
               style={{
@@ -280,7 +312,7 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
             </div>
             <div
               aria-hidden
-              className="w-px self-stretch"
+              className="hidden sm:block w-px self-stretch"
               style={{ background: "var(--line-soft)" }}
             />
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -321,17 +353,6 @@ export function NextSessionCard({ item, schedule, onChanged }: Props) {
           </div>
         </div>
 
-        <div className="relative mt-auto border-t border-line-soft px-6 pt-4 pb-4 bg-surface-warm/60">
-          <div className="flex items-baseline justify-between mb-3">
-            <div className="text-small text-ink-2 font-medium">{uiText("ui.today.s.schedule")}</div>
-            <div className="text-micro font-mono text-ink-3 uppercase tracking-widest">
-              {schedule.length} {" "}{uiText("ui.sessions")} · {hours} {uiText("ui.h.booked")}</div>
-          </div>
-          <div className="relative">
-            <ScheduleRail items={schedule} onHover={setHover} />
-            {hover && <HoverBadge info={hover} />}
-          </div>
-        </div>
       </div>
     </Card>
     <MoveBookingDialog

@@ -105,7 +105,6 @@ export function InquiriesView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow={uiText("ui.platform")}
         title={uiText("ui.inquiries")}
         description={uiText("ui.incoming.contact.support.and.business.messages.pro.upgrade.requests.from.operators.land.he")}
         meta={
@@ -143,7 +142,7 @@ export function InquiriesView() {
           body="Try clearing the filters above."
         />
       ) : (
-        <Card padded={false}>
+        <Card padded={false} className="list-rise">
           {filtered.map((i) => (
             <InquiryRow key={i.id} inquiry={i} onClick={() => handleOpen(i)} />
           ))}

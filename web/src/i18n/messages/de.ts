@@ -2,6 +2,36 @@ import type { Messages } from "./en";
 
 /** German — demo-grade translations. Missing keys fall back to English. */
 export const de: Partial<Messages> = {
+  "counts.services.one": "{count} Leistung",
+  "counts.services.many": "{count} Leistungen",
+  "counts.packages.one": "{count} Paket",
+  "counts.packages.many": "{count} Pakete",
+  "counts.forms.one": "{count} Formular",
+  "counts.forms.many": "{count} Formulare",
+  "counts.clients.one": "{count} Kunde",
+  "counts.clients.many": "{count} Kunden",
+  "today.summary": "Ihr Tag auf einen Blick",
+  "ai.command.task.delete": "Aufgabe entfernen",
+  "todo.removeEffect": "Diese Aufgabe wird nach der Bestätigung dauerhaft entfernt.",
+  "ask.title": "Slotera fragen",
+  "ask.placeholder": "Slotera fragen…",
+  "ask.noChats": "Noch keine Gespräche",
+  "ask.historyHint": "Ihre Gespräche erscheinen hier.",
+  "ask.options": "Gesprächsoptionen",
+  "ask.usage": "Tägliche KI-Nutzung · {percent}%",
+  "ask.preparing": "Ihr Arbeitsbereich wird für die Suche vorbereitet…",
+
+  "chat.conversations": "Gespräche",
+  "chat.copy": "Nachricht kopieren",
+  "chat.copied": "Kopiert",
+  "chat.copyFailed": "Kopieren fehlgeschlagen; bitte den Text auswählen.",
+  "chat.edit": "Bearbeiten und verzweigen",
+  "chat.stop": "Antwort stoppen",
+  "chat.stopped": "Antwort gestoppt.",
+  "chat.branchHint": "Diese Änderung erstellt einen neuen Gesprächszweig; Verlauf und bestätigte Aktionen bleiben erhalten.",
+  "chat.disclaimer": "Slotera kann Fehler machen. Prüfen Sie wichtige Informationen.",
+  "chat.indexBudget": "Indexierungstoken: {used} / {limit}",
+
   "ai.field.active": "Aktiv",
   "ai.field.address": "Adresse",
   "ai.field.bookingMode": "Buchungsmodus",
@@ -105,7 +135,6 @@ export const de: Partial<Messages> = {
   "ai.refresh": "Briefing aktualisieren",
   "ai.retry": "Erneut versuchen",
   "ai.loading": "Wird vorbereitet…",
-  "ai.dailyBrief": "Tagesübersicht",
   "ai.clientBrief": "Kundenübersicht",
   "ai.briefHint": "Wird nur auf Anfrage erstellt; der Tageszyklus erneuert sich um 9 Uhr in der Arbeitsbereichszeitzone.",
   "ai.briefMe": "Übersicht erstellen",
@@ -250,33 +279,26 @@ export const de: Partial<Messages> = {
   "landing.hero.eyebrow": "Für unabhängige Beratende, Coaches & Trainer:innen",
   "landing.hero.title": "Bezahlte Buchungen, ohne Kalender-Chaos.",
   "landing.hero.subtitle":
-    "Slotera ist ein schlanker Klienten-Workspace für unabhängige Expert:innen — kassieren Sie per Karte oder Banküberweisung, versenden Sie Vorbereitungsformulare, bündeln Sie Sitzungen zu Paketen und behalten Sie Klienten-Kontext und Nachfassen an einem Ort. Kein schweres CRM.",
-  "landing.hero.badge.noCard": "Keine Kreditkarte nötig",
-  "landing.hero.badge.cancel": "Jederzeit kündbar",
-  "landing.hero.badge.gdpr": "UK-DSGVO-bewusst",
+    "Slotera ist ein schlanker Klienten-Workspace für unabhängige Expert:innen. Kassieren Sie per Karte oder Banküberweisung, versenden Sie Vorbereitungsformulare, bündeln Sie Sitzungen zu Paketen und behalten Sie Klienten-Kontext und Nachfassen an einem Ort. Kein schweres CRM.",
 
   "landing.logos.trustedBy":
     "Vertraut von über 1.200 unabhängigen Beratenden, Coaches und Trainer:innen in ganz Europa.",
-
-  "landing.how.eyebrow": "So funktioniert's",
   "landing.how.title":
     "Vom E-Mail-Hin-und-Her zu einem echten Buchungsablauf an einem Nachmittag.",
   "landing.how.step1.title": "Leistungen einrichten",
   "landing.how.step1.body":
-    "Legen Sie Ihre Leistungen mit Dauer, Kapazität und Preis an — 1:1 oder Gruppe. Bündeln Sie Sitzungen zu mehrteiligen Paketen und hängen Sie Formulare an, wenn Sie vor dem Termin Kontext brauchen.",
+    "Legen Sie Ihre Leistungen mit Dauer, Kapazität und Preis an, 1:1 oder Gruppe. Bündeln Sie Sitzungen zu mehrteiligen Paketen und hängen Sie Formulare an, wenn Sie vor dem Termin Kontext brauchen.",
   "landing.how.step2.title": "Einen Buchungslink teilen",
   "landing.how.step2.body":
     "Kunden wählen einen Termin, beantworten Ihre Fragen vor der Sitzung und zahlen per Karte oder Überweisung. Kein Konto nötig.",
   "landing.how.step3.title": "Termin durchführen, in Verbindung bleiben",
   "landing.how.step3.body":
     "Neue Buchungen landen in Ihrem Dashboard. Kunden erhalten eine Buchungsseite, um sich vorzubereiten, Ihnen zu schreiben oder eine Änderung anzufragen.",
-
-  "landing.features.eyebrow": "Funktionen",
   "landing.features.title":
     "Alles, was eine unabhängige Expertin oder ein Experte braucht. Nichts, was nicht gebraucht wird.",
   "landing.features.bookings.title": "Bezahlte Buchungen",
   "landing.features.bookings.body":
-    "Kassieren Sie, wenn Kunden buchen — per Karte oder manueller Banküberweisung, Ihre Wahl. Klare Belege, kein Tabellen-Gefummel.",
+    "Kassieren Sie, wenn Kunden buchen: per Karte oder manueller Banküberweisung, Ihre Wahl. Klare Belege, kein Tabellen-Gefummel.",
   "landing.features.forms.title": "Intake- & Vorbereitungsformulare",
   "landing.features.forms.body":
     "Sammeln Sie den nötigen Kontext vor einem Termin. Machen Sie wichtige Fragen vor der Zahlung verpflichtend oder danach optional.",
@@ -288,12 +310,10 @@ export const de: Partial<Messages> = {
     "1:1- oder Gruppentermine mit Kapazität und freien Plätzen. Überschneidungen in Ihrem Kalender werden als Konflikt markiert.",
   "landing.features.languages.title": "Mehrsprachige Buchung",
   "landing.features.languages.body":
-    "Ihre Kunden können auf Englisch, Türkisch oder Deutsch buchen — der gesamte Ablauf folgt ihrer Sprache.",
+    "Ihre Kunden können auf Englisch, Türkisch oder Deutsch buchen, und der gesamte Ablauf folgt ihrer Sprache.",
   "landing.features.workspace.title": "Ein schlanker Klienten-Workspace",
   "landing.features.workspace.body":
-    "Eine fokussierte Verwaltung für Buchungen, Kunden, Pakete und Kundennotizen — für Ihren Arbeitsalltag gemacht, kein schweres CRM.",
-
-  "landing.demoStrip.eyebrow": "In Aktion erleben",
+    "Eine fokussierte Verwaltung für Buchungen, Kunden, Pakete und Kundennotizen, für Ihren Arbeitsalltag gemacht, kein schweres CRM.",
   "landing.demoStrip.title": "Testen Sie einen echten Buchungsablauf. Ohne Anmeldung.",
 
   "landing.testimonials.eyebrow": "Stimmen",
@@ -305,8 +325,6 @@ export const de: Partial<Messages> = {
     "Die Buchungsseite wirkt wie Teil meiner Website. Kunden merken den Übergang gar nicht.",
   "landing.testimonials.q3":
     "Für Gruppen-Workshops mit Kapazität und Wartelisten brauchte man früher ein CRM. Jetzt sind es zwei Klicks.",
-
-  "landing.pricing.eyebrow": "Preise",
   "landing.pricing.title": "Zwei Tarife. Beide 30 Tage kostenlos testen.",
   "landing.pricing.monthly": "Monatlich",
   "landing.pricing.yearly": "Jährlich",
@@ -329,8 +347,6 @@ export const de: Partial<Messages> = {
   "landing.pricing.p2": "Bevorzugter Support",
   "landing.pricing.p3": "WhatsApp-Erinnerungen und -Änderungen (demnächst)",
   "landing.pricing.note": "30 Tage kostenlos testen, keine Karte nötig. Der Anteil pro Zahlung gilt nur für Kartenzahlungen, zusätzlich zur Bearbeitungsgebühr von Stripe; Banküberweisungen sind immer gebührenfrei.",
-
-  "landing.faq.eyebrow": "FAQ",
   "landing.faq.title": "Häufige Fragen.",
   "landing.faq.q1.q": "Brauchen meine Kunden ein Konto?",
   "landing.faq.q1.a":
@@ -352,8 +368,6 @@ export const de: Partial<Messages> = {
   "landing.faq.q6.q": "Was passiert, wenn ein Kunde storniert?",
   "landing.faq.q6.a":
     "Kund:innen können bis zu der von Ihnen festgelegten Frist (standardmäßig 24 Stunden) selbst stornieren oder verschieben. Danach wenden sie sich an Sie. Erstattungen wickeln Sie direkt ab.",
-
-  "landing.finalCta.eyebrow": "Slotera testen",
   "landing.finalCta.title": "Schluss mit der Termin-Jagd.",
   "landing.finalCta.body": "Ihre Buchungsseite ist in unter 10 Minuten live. 30 Tage kostenlos testen, keine Kreditkarte nötig.",
   // Pilot waitlist (/pilot, real app)
@@ -389,7 +403,7 @@ export const de: Partial<Messages> = {
   "pilot.rateLimited": "Zu viele Versuche. Bitte versuchen Sie es später erneut.",
 
   "footer.tagline":
-    "Slotera ist ein schlanker Klienten-Workspace für unabhängige Beratende, Coaches und Trainer:innen — bezahlte Buchungen, Vorbereitungsformulare, Pakete und Nachfassen, ohne schweres CRM.",
+    "Slotera ist ein schlanker Klienten-Workspace für unabhängige Beratende, Coaches und Trainer:innen: bezahlte Buchungen, Vorbereitungsformulare, Pakete und Nachfassen, ohne schweres CRM.",
   "footer.col.product": "Produkt",
   "footer.col.company": "Unternehmen",
   "footer.link.support": "Support",
@@ -406,7 +420,7 @@ export const de: Partial<Messages> = {
   "contact.eyebrow": "Kontakt",
   "contact.title": "Kontakt aufnehmen",
   "contact.description":
-    "Geschäftliche Anfragen, technische Probleme, Funktionswünsche — schreiben Sie uns, wir melden uns.",
+    "Geschäftliche Anfragen, technische Probleme, Funktionswünsche: schreiben Sie uns, wir melden uns.",
   "contact.send": "Nachricht senden",
   "contact.field.name": "Name",
   "contact.field.email": "E-Mail",
@@ -419,9 +433,9 @@ export const de: Partial<Messages> = {
   "contact.message.placeholder": "Erzählen Sie uns, worum es geht…",
   "contact.success.title": "Nachricht gesendet.",
   "contact.success.body":
-    "Danke für Ihre Nachricht — ein Teammitglied antwortet innerhalb eines Werktags. (Dies ist eine nachgebildete Bestätigung — es wurde nichts tatsächlich gesendet.)",
+    "Danke für Ihre Nachricht. Ein Teammitglied antwortet innerhalb eines Werktags. (Dies ist eine nachgebildete Bestätigung; es wurde nichts tatsächlich gesendet.)",
   "contact.success.bodyPersist":
-    "Danke — Slotera meldet sich innerhalb eines Werktags bei Ihnen.",
+    "Danke. Slotera meldet sich innerhalb eines Werktags bei Ihnen.",
 
   "booking.step.service": "Leistung",
   "booking.step.time": "Zeit",
@@ -470,7 +484,7 @@ export const de: Partial<Messages> = {
   "booking.legal.tab.provider": "Buchungsbedingungen des Anbieters",
   "booking.legal.tab.platform": "Slotera-Bedingungen & Datenschutz",
   "booking.legal.defaultProviderTerms":
-    "Dieser Anbieter hat keine eigenen Buchungsbedingungen festgelegt. Es gelten übliche Storno- und Erstattungsregelungen — bei Fragen wenden Sie sich bitte direkt an den Anbieter.",
+    "Dieser Anbieter hat keine eigenen Buchungsbedingungen festgelegt. Es gelten übliche Storno- und Erstattungsregelungen. Bei Fragen wenden Sie sich bitte direkt an den Anbieter.",
   "booking.legal.termsHeading": "Bedingungen",
   "booking.legal.privacyHeading": "Datenschutz",
 
@@ -484,7 +498,7 @@ export const de: Partial<Messages> = {
   "booking.packages.viewOptions": "Paketoptionen ansehen",
   "booking.packages.modalTitle": "Paketoptionen",
   "booking.packages.modalBody":
-    "Diese Pakete enthalten diese Sitzung. Der Paketkauf ist nicht Teil dieser Demo — buchen Sie eine einzelne Sitzung, um fortzufahren.",
+    "Diese Pakete enthalten diese Sitzung. Der Paketkauf ist nicht Teil dieser Demo. Buchen Sie eine einzelne Sitzung, um fortzufahren.",
   "booking.packages.featured": "Empfohlen",
   "booking.packages.sessionsSuffix": "Sitzungen",
 
@@ -614,7 +628,7 @@ export const de: Partial<Messages> = {
   "system.maintenance.eyebrow": "Geplante Wartung",
   "system.maintenance.title": "Wir sind gleich zurück.",
   "system.maintenance.body":
-    "Slotera wird gerade aktualisiert. Ihre Buchungen und Daten sind sicher — bitte versuchen Sie es in ein paar Minuten erneut.",
+    "Slotera wird gerade aktualisiert. Ihre Buchungen und Daten sind sicher. Bitte versuchen Sie es in ein paar Minuten erneut.",
   "system.maintenance.retry": "Erneut versuchen",
 
   "booking.paused.title": "Buchungen sind pausiert",
@@ -626,7 +640,7 @@ export const de: Partial<Messages> = {
   "bookingManage.badge": "Demo",
   "bookingManage.title": "Ihre Buchung",
   "bookingManage.subtitle":
-    "Eine Vorschau dessen, was Ihre Kunden nach der Buchung sehen könnten — Details prüfen, optionale Formulare ausfüllen, die Buchung verwalten und in Kontakt bleiben. Dies ist eine Demo mit nachgebildeten Daten.",
+    "Eine Vorschau dessen, was Ihre Kunden nach der Buchung sehen könnten: Details prüfen, optionale Formulare ausfüllen, die Buchung verwalten und in Kontakt bleiben. Dies ist eine Demo mit nachgebildeten Daten.",
   "bookingManage.tabsLabel": "Buchungsbereiche",
   "bookingManage.tab.info": "Buchungsinfo",
   "bookingManage.tab.manage": "Buchung verwalten",
@@ -634,11 +648,11 @@ export const de: Partial<Messages> = {
   "bookingManage.tab.payment": "Zahlung",
   "bookingManage.tab.package": "Paket",
   "bookingManage.status.confirmed": "Bestätigt",
-  "bookingManage.location.online": "Online — Meeting-Link per E-Mail gesendet",
+  "bookingManage.location.online": "Online, Meeting-Link per E-Mail gesendet",
   "bookingManage.reminder":
     "Sie erhalten 24 Stunden vor Ihrer Sitzung eine Erinnerung.",
   "bookingManage.disclaimer":
-    "Dies ist eine Demo-Seite. Kunden haben keine Konten — in der Produktion würde diese Seite über einen sicheren, per E-Mail gesendeten Buchungslink geöffnet.",
+    "Dies ist eine Demo-Seite. Kunden haben keine Konten. In der Produktion würde diese Seite über einen sicheren, per E-Mail gesendeten Buchungslink geöffnet.",
   "bookingManage.back": "Zurück zur Buchungsseite",
   "bookingManage.backHome": "Zurück zur Startseite",
   "bookingManage.info.title": "Buchungsinfo",
@@ -648,7 +662,7 @@ export const de: Partial<Messages> = {
   "bookingManage.info.location": "Ort",
   "bookingManage.info.reference": "Buchungsreferenz",
   "bookingManage.info.context.none":
-    "Alles erledigt — vor Ihrer Sitzung ist nichts mehr zu tun.",
+    "Alles erledigt. Vor Ihrer Sitzung ist nichts mehr zu tun.",
   "bookingManage.info.context.one":
     "1 optionales Formular vor Ihrer Sitzung auszufüllen.",
   "bookingManage.info.context.many":
@@ -659,7 +673,7 @@ export const de: Partial<Messages> = {
   "bookingManage.message.placeholder": "Schreiben Sie dem Anbieter eine kurze Nachricht…",
   "bookingManage.message.send": "Nachricht senden",
   "bookingManage.message.sent": "Nachricht gesendet",
-  "bookingManage.message.sentDesc": "Danke — der Anbieter meldet sich bei Ihnen (nachgebildet).",
+  "bookingManage.message.sentDesc": "Danke. Der Anbieter meldet sich bei Ihnen (nachgebildet).",
   "bookingManage.manage.title": "Buchung verwalten",
   "bookingManage.manage.note":
     "Möchten Sie etwas ändern? Senden Sie eine Anfrage und Ihr Anbieter meldet sich.",
@@ -667,14 +681,14 @@ export const de: Partial<Messages> = {
   "bookingManage.actions.cancel": "Stornierung anfragen",
   "bookingManage.reschedule.title": "Verschiebung anfragen",
   "bookingManage.reschedule.body":
-    "Wir teilen dem Anbieter mit, dass Sie eine andere Zeit wünschen. Er meldet sich, um einen neuen Termin zu bestätigen. (Nachgebildet — es wird nichts tatsächlich gesendet.)",
+    "Wir teilen dem Anbieter mit, dass Sie eine andere Zeit wünschen. Er meldet sich, um einen neuen Termin zu bestätigen. (Nachgebildet: es wird nichts tatsächlich gesendet.)",
   "bookingManage.reschedule.confirm": "Verschiebung anfragen",
   "bookingManage.reschedule.sent": "Verschiebung angefragt",
   "bookingManage.reschedule.sentDesc":
     "Der Anbieter meldet sich wegen einer neuen Zeit (nachgebildet).",
   "bookingManage.cancel.title": "Stornierung anfragen",
   "bookingManage.cancel.body":
-    "Wir teilen dem Anbieter mit, dass Sie stornieren möchten. Eine etwaige Erstattung richtet sich nach seiner Stornorichtlinie. (Nachgebildet — es wird nichts tatsächlich storniert.)",
+    "Wir teilen dem Anbieter mit, dass Sie stornieren möchten. Eine etwaige Erstattung richtet sich nach seiner Stornorichtlinie. (Nachgebildet: es wird nichts tatsächlich storniert.)",
   "bookingManage.cancel.confirm": "Stornierung anfragen",
   "bookingManage.cancel.sent": "Stornierung angefragt",
   "bookingManage.cancel.sentDesc":
@@ -690,7 +704,7 @@ export const de: Partial<Messages> = {
   "bookingManage.forms.view": "Ansehen",
   "bookingManage.forms.save": "Formular speichern",
   "bookingManage.forms.saved": "Formular gespeichert",
-  "bookingManage.forms.savedDesc": "Danke — Ihre Antworten wurden gespeichert (nachgebildet).",
+  "bookingManage.forms.savedDesc": "Danke. Ihre Antworten wurden gespeichert (nachgebildet).",
   "bookingManage.forms.readonlyNote":
     "Sie haben dieses Formular vor der Zahlung ausgefüllt. Ihre Antworten sind schreibgeschützt.",
   "bookingManage.form.intake.name": "Discovery-Fragebogen",
@@ -734,7 +748,7 @@ export const de: Partial<Messages> = {
   "demoGuide.disclaimer":
     "Dies ist eine Demoversion von Slotera, die die wichtigsten Buchungs- und Admin-Abläufe zeigt. Einige Funktionen sind nachgebildet, während das Produkt noch entwickelt wird.",
   "demoGuide.youCanTry": "Sie können Folgendes ausprobieren:",
-  "demoGuide.step.dashboard.title": "Die Anbieterseite ansehen — das Admin-Dashboard",
+  "demoGuide.step.dashboard.title": "Die Anbieterseite ansehen: das Admin-Dashboard",
   "demoGuide.step.dashboard.body":
     "Schlüpfen Sie in den Arbeitsbereich des Anbieters, um Buchungen, Leistungen und Formulare zu verwalten und Kalender und Einstellungen zu erkunden.",
   "demoGuide.step.dashboard.cta": "Admin-Dashboard öffnen",
@@ -807,7 +821,6 @@ export const de: Partial<Messages> = {
   "ui.back.to.sign.in": "Zurück zur Anmeldung",
   "ui.workspace.name": "Name des Arbeitsbereichs",
   "ui.clients": "Kunden",
-  "ui.catalog": "Katalog",
   "ui.services": "Leistungen",
   "ui.close.workspace": "Arbeitsbereich schließen",
   "ui.remove": "Entfernen",
@@ -909,7 +922,7 @@ export const de: Partial<Messages> = {
   "ui.no.account.yet": "Noch kein Konto?",
   "ui.skip.for.now": "Vorerst überspringen",
   "ui.welcome": "Willkommen,",
-  "ui.here.s.what.we.ll.do.together.you.can.skip.at.any.time.and.come.back.later.from.the.dashbo": "— das richten wir gemeinsam ein. Sie können jederzeit überspringen und später im Dashboard fortfahren.",
+  "ui.here.s.what.we.ll.do.together.you.can.skip.at.any.time.and.come.back.later.from.the.dashbo": "Das richten wir gemeinsam ein. Sie können jederzeit überspringen und später im Dashboard fortfahren.",
   "ui.show.clients.custom.instructions.bank.transfer.interac.etc.at.checkout.bookings.stay.pendi": "Zeigen Sie beim Buchen eigene Zahlungsanweisungen an (Überweisung usw.). Buchungen bleiben bis zur Bestätigung des Zahlungseingangs ausstehend. Kostenlose Leistungen benötigen keine Zahlungseinrichtung.",
   "ui.card.payments.are.coming.soon.you.ll.be.able.to.connect.them.from.settings.client.payments": "Kartenzahlungen kommen bald. Sie können diese unter Einstellungen → Kundenzahlungen verbinden.",
   "ui.your.workspace.is.ready": "Ihr Arbeitsbereich ist bereit",
@@ -948,7 +961,6 @@ export const de: Partial<Messages> = {
   "ui.update.password": "Passwort aktualisieren",
   "ui.something.went.wrong": "Ein Fehler ist aufgetreten.",
   "ui.the.problem.has.been.reported.please.try.again": "Das Problem wurde gemeldet. Bitte versuchen Sie es erneut.",
-  "ui.operations": "Verwaltung",
   "ui.all.client.bookings.across.1.1.calls.group.classes.and.workshops": "Alle Kundenbuchungen für Einzelgespräche, Gruppenkurse und Workshops.",
   "ui.export": "Exportieren",
   "ui.search.by.client.service.or.id": "Nach Kunde, Leistung oder ID suchen",
@@ -959,7 +971,6 @@ export const de: Partial<Messages> = {
   "ui.no.bookings.in.this.status": "Keine Buchungen mit diesem Status.",
   "ui.show.more": "Mehr anzeigen (",
   "ui.hidden": "ausgeblendet)",
-  "ui.schedule": "Zeitplan",
   "ui.today": "Heute",
   "ui.more": "weitere",
   "ui.spent": "Ausgaben",
@@ -980,7 +991,6 @@ export const de: Partial<Messages> = {
   "ui.their.name.contact.details.billing.addresses.notes.form.answers.and.booking.links.are.remo": "Name, Kontaktdaten, Rechnungsadressen, Notizen, Formularantworten und Buchungslinks werden dauerhaft entfernt. Buchungsbeträge und Zahlungsstatus bleiben erhalten. Dies kann nicht rückgängig gemacht werden.",
   "ui.type.the.client.s.email.to.confirm": "E-Mail des Kunden zur Bestätigung eingeben",
   "ui.erase.permanently": "Dauerhaft anonymisieren",
-  "ui.directory": "Verzeichnis",
   "ui.everyone.who.has.booked.with.you.with.lifetime.spend.and.activity": "Alle Kunden mit Buchungen, Gesamtausgaben und Aktivität.",
   "ui.export.csv": "CSV exportieren",
   "ui.add.client": "Kunden hinzufügen",
@@ -1785,4 +1795,32 @@ export const de: Partial<Messages> = {
   "editing.reload": "Aktuelle Version prüfen",
   "editing.discard": "Aktuelle gespeicherte Version laden? Ihr ungespeicherter Entwurf wird ersetzt.",
   "editing.load": "Aktuelle Version laden",
+  "empty.services.title": "Noch keine Leistungen",
+  "empty.services.body": "Eine Leistung ist das, was Kunden buchen: ein Name, eine Dauer und ein Preis. Legen Sie die erste an, um Ihre Buchungsseite zu öffnen.",
+  "empty.packages.title": "Noch keine Pakete",
+  "empty.packages.body": "Fassen Sie Termine Ihrer Leistungen zu einem Paket zusammen, um sie gemeinsam anzubieten.",
+  "empty.forms.title": "Noch keine Formulare",
+  "empty.forms.body": "Formulare sammeln, was Sie vor einem Termin wissen müssen. Legen Sie eines an und verknüpfen Sie es mit einer Leistung.",
+  "empty.clients.title": "Noch keine Kunden",
+  "empty.clients.body": "Kunden erscheinen hier, sobald sie buchen. Sie können auch selbst welche hinzufügen.",
+  "empty.filtered.title": "Keine Treffer",
+  "empty.filtered.body": "Versuchen Sie eine andere Suche oder setzen Sie die Filter zurück.",
+  "ui.now.at": "Jetzt, {time}",
+  "dashboard.kpi.increase": "{value} mehr als im Vormonat",
+  "dashboard.kpi.decrease": "{value} weniger als im Vormonat",
+  "dashboard.kpi.flat": "Unverändert zum Vormonat",
+  "notifications.see.all": "Alle Benachrichtigungen",
+  "notifications.open.page": "Benachrichtigungen öffnen",
+  "notifications.retention": "Buchungen, Zahlungen und Änderungen Ihrer Kunden. Gelesene Benachrichtigungen werden nach 30 Tagen gelöscht, ungelesene nach 90.",
+  "notifications.unread.count": "{count} ungelesen",
+  "notifications.empty.body": "Neue Buchungen, Zahlungen und Änderungen von Kunden erscheinen hier.",
+  "notifications.end": "Das ist alles aus den letzten 90 Tagen.",
+  "dashboard.nextCall": "Ihr nächster Termin",
+  "todo.new": "Neue Aufgabe",
+  "todo.new.short": "Neu",
+  "todo.add.button": "Aufgabe hinzufügen",
+  "todo.field.title": "Titel",
+  "todo.field.description": "Beschreibung",
+  "todo.expand": "Ganze Beschreibung anzeigen",
+  "todo.collapse": "Weniger anzeigen",
 };

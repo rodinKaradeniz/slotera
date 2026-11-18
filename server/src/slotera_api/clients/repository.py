@@ -7,7 +7,7 @@ from hashlib import sha256
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, func, or_, select, text, update
+from sqlalchemy import case, delete, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -112,13 +112,59 @@ class ClientsRepository:
             )
             return clients, int(total or 0)
 
+    async def state_counts(
+        self,
+        workspace_id: UUID,
+        search: str | None,
+        contactable: bool,
+        session: AsyncSession,
+        as_of: datetime,
+    ) -> dict[str, int]:
+        live = (
+            select(Booking.id)
+            .where(
+                Booking.workspace_id == workspace_id,
+                Booking.client_id == Client.id,
+                Booking.status != BookingStatus.CANCELLED,
+            )
+            .correlate(Client)
+        )
+        recent = live.join(
+            Session,
+            (Session.workspace_id == Booking.workspace_id) & (Session.id == Booking.session_id),
+        ).where(Session.start_at >= as_of - timedelta(days=ACTIVE_WINDOW_DAYS))
+        tag = case((recent.exists(), "active"), (live.exists(), "dormant"), else_="new")
+        query = select(tag.label("tag")).where(Client.workspace_id == workspace_id)
+        if contactable:
+            query = query.where(Client.erased_at.is_(None))
+        if search:
+            pattern = (
+                "%" + search.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+            )
+            query = query.where(
+                or_(
+                    Client.name.ilike(pattern, escape="!"),
+                    Client.email.ilike(pattern, escape="!"),
+                    Client.company.ilike(pattern, escape="!"),
+                )
+            )
+        rows = query.subquery()
+        counts = (
+            await session.execute(select(rows.c.tag, func.count()).group_by(rows.c.tag))
+        ).all()
+        return {str(key): int(value) for key, value in counts}
+
     async def client_stats(
-        self, workspace_id: UUID, client_ids: Sequence[UUID], dbsession: AsyncSession | None = None
+        self,
+        workspace_id: UUID,
+        client_ids: Sequence[UUID],
+        dbsession: AsyncSession | None = None,
+        as_of: datetime | None = None,
     ) -> dict[UUID, ClientStats]:
         """Booking totals per client. Clients without bookings are simply absent."""
         if not client_ids:
             return {}
-        recent = datetime.now(UTC) - timedelta(days=ACTIVE_WINDOW_DAYS)
+        recent = (as_of or datetime.now(UTC)) - timedelta(days=ACTIVE_WINDOW_DAYS)
         live = Booking.status != BookingStatus.CANCELLED
         async with _read_session(self.database, workspace_id, dbsession) as session:
             rows = await session.execute(

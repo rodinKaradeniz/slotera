@@ -1,9 +1,11 @@
 "use client";
 import * as React from "react";
+import { copyText } from "@/lib/clipboard";
 import Link from "next/link";
 import { en, type MessageKey } from "@/i18n/messages/en";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/Button";
+import { ProgressiveText } from "@/components/chat/ProgressiveText";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
@@ -18,11 +20,18 @@ import {
 export function AnswerCard({
   turn,
   onChange,
+  animate = false,
+  chat = false,
 }: {
   turn: AITurn;
+  animate?: boolean;
+  chat?: boolean;
   onChange?: (turn: AITurn) => void;
 }) {
   const { t, lang } = useI18n();
+  const [copyState, setCopyState] = React.useState<
+    "ready" | "copied" | "failed"
+  >("ready");
   const [review, setReview] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
@@ -83,6 +92,7 @@ export function AnswerCard({
     (proposal?.action as { name?: string })?.name ?? "",
   );
   const actionLabel = `ai.command.${actionName}`;
+  const effects = actionName === "task.delete" ? "todo.removeEffect" : "ai.effects";
   async function confirm() {
     if (busy) return;
     setBusy(true);
@@ -103,13 +113,40 @@ export function AnswerCard({
     }
   }
   return (
-    <Card className="min-w-0 space-y-3">
-      <p className="text-micro text-ink-3">
-        {new Intl.DateTimeFormat(lang, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(turn.createdAt))}
-      </p>
+    <Card
+      className={
+        chat
+          ? "group min-w-0 space-y-3 border-0 bg-transparent shadow-none p-1"
+          : "group min-w-0 space-y-3"
+      }
+    >
+      <div className="flex items-center justify-between gap-2 text-micro text-ink-3">
+        <p>
+          {new Intl.DateTimeFormat(lang, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(new Date(turn.createdAt))}
+        </p>
+        {turn.answer && (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon="copy"
+            className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+            aria-label={t(copyState === "copied" ? "chat.copied" : "chat.copy")}
+            onClick={() => {
+              void copyText(turn.answer)
+                .then(() => setCopyState("copied"))
+                .catch(() => setCopyState("failed"));
+            }}
+          />
+        )}
+      </div>
+      {copyState === "failed" && (
+        <p role="status" className="text-small">
+          {t("chat.copyFailed")}
+        </p>
+      )}
       {turn.status === "pending" ? (
         <Button
           onClick={() => {
@@ -121,9 +158,11 @@ export function AnswerCard({
           {t("ai.recover")}
         </Button>
       ) : turn.status === "failed" ? (
-        <p role="alert">{t("ai.failed")}</p>
+        <p role="status">
+          {t(turn.errorCode === "ai_cancelled" ? "chat.stopped" : "ai.failed")}
+        </p>
       ) : (
-        <p className="whitespace-pre-wrap break-words">{turn.answer}</p>
+        <ProgressiveText text={turn.answer} animate={animate} />
       )}
       <RecoverableError error={error} />
       <div className="flex flex-wrap gap-3">
@@ -214,7 +253,7 @@ export function AnswerCard({
               )}
             </p>
           )}
-          <p className="text-small">{t("ai.effects")}</p>
+          <p className="text-small">{t(effects)}</p>
           <Button
             disabled={proposal.status === "executed" || busy || !!error}
             onClick={() => setReview(true)}
@@ -229,7 +268,8 @@ export function AnswerCard({
         onConfirm={confirm}
         busy={busy}
         title={t("ai.confirm")}
-        description={t("ai.effects")}
+        destructive={actionName === "task.delete"}
+        description={t(effects)}
         confirmLabel={t("ai.confirm")}
       />
     </Card>

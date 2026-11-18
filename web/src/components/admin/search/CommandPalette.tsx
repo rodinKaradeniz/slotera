@@ -78,7 +78,8 @@ export function CommandPalette({ open, onClose }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8 fade-in"
+      // Opened from the keyboard many times a day: it appears at once, with no animation.
+      className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
       role="dialog"
       aria-modal="true"
       aria-label={uiText("ui.command.palette")}

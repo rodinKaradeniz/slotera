@@ -497,16 +497,16 @@ async def test_client_access_fails_closed_and_credentials_are_separate(communica
     assert (await customer.get("/client/conversation/messages")).status_code == 401
 
 
-async def test_dashboard_worklist_uses_shared_tasks_and_reviewed_versions(communication):
+async def test_dashboard_todos_use_shared_tasks_and_reviewed_versions(communication):
     operator, customer, _ = communication
     title = f"Synthetic task {uuid4()}"
     created = await operator.post("/tasks", headers=staff_headers(operator), json={"title": title})
     assert created.status_code == 201
     task = created.json()
     assert task["sessionId"] is None
-    worklist = await operator.get("/dashboard/worklist?limit=25&status=todo")
+    worklist = await operator.get("/tasks?general_only=true&limit=25&status=todo")
     assert worklist.status_code == 200
-    assert worklist.json()["unreadNotifications"] >= 0
+    assert all(item["sessionId"] is None for item in worklist.json()["items"])
     # A bounded search-free task read and the dashboard expose the same resource.
     assert (await operator.get(f"/tasks/{task['id']}")).json() == task
     changed = await operator.patch(
@@ -524,7 +524,7 @@ async def test_dashboard_worklist_uses_shared_tasks_and_reviewed_versions(commun
     assert stale.json()["error"]["code"] == "resource_stale"
     assert any(
         item["id"] == task["id"]
-        for item in (await operator.get("/dashboard/worklist?status=done")).json()["items"]
+        for item in (await operator.get("/tasks?general_only=true&status=done")).json()["items"]
     )
     assert (await customer.get("/tasks")).status_code == 401
 

@@ -337,7 +337,7 @@ const STEP_COPY: { title: string; subtitle: string }[] = [
   {
     title: "Create your first service",
     subtitle:
-      "What do clients book from you? You can add more later — this is just the starting point.",
+      "What do clients book from you? You can add more later. This is just the starting point.",
   },
   {
     title: "Set your availability",
@@ -425,7 +425,7 @@ function IntroPane({ operatorName }: { operatorName: string }) {
   return (
     <div className="flex flex-col gap-5">
       <p className="text-body text-ink-2 max-w-xl">
-        Hi {operatorName} {uiText("ui.here.s.what.we.ll.do.together.you.can.skip.at.any.time.and.come.back.later.from.the.dashbo")}</p>
+        Hi {operatorName}.{" "}{uiText("ui.here.s.what.we.ll.do.together.you.can.skip.at.any.time.and.come.back.later.from.the.dashbo")}</p>
       <ol className="flex flex-col gap-3">
         {items.map((it, i) => (
           <li

@@ -21,10 +21,11 @@ class SessionActionItemsRepository:
         limit: int = 25,
         offset: int = 0,
         status: SessionActionItemStatus | None = None,
+        general_only: bool = False,
     ) -> tuple[list[SessionActionItem], int] | None:
         async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
             return await list_items_in_session(
-                session, workspace_id, session_id, limit, offset, status
+                session, workspace_id, session_id, limit, offset, status, general_only
             )
 
     async def create_item(
@@ -145,6 +146,7 @@ async def list_items_in_session(
     limit: int = 25,
     offset: int = 0,
     status: SessionActionItemStatus | None = None,
+    general_only: bool = False,
 ) -> tuple[list[SessionActionItem], int] | None:
     exists = await session.scalar(
         select(Session.id).where(
@@ -154,19 +156,20 @@ async def list_items_in_session(
     )
     if session_id is not None and exists is None:
         return None
+    conditions = (
+        SessionActionItem.workspace_id == workspace_id,
+        (SessionActionItem.session_id.is_(None))
+        if general_only
+        else (SessionActionItem.session_id == session_id) if session_id is not None else true(),
+        (SessionActionItem.status == status) if status is not None else true(),
+    )
     items = list(
         (
             await session.scalars(
                 select(SessionActionItem)
                 .limit(limit)
                 .offset(offset)
-                .where(
-                    SessionActionItem.workspace_id == workspace_id,
-                    (SessionActionItem.session_id == session_id)
-                    if session_id is not None
-                    else true(),
-                    (SessionActionItem.status == status) if status is not None else true(),
-                )
+                .where(*conditions)
                 .order_by(
                     case(
                         (
@@ -183,10 +186,6 @@ async def list_items_in_session(
         ).all()
     )
     total = await session.scalar(
-        select(func.count(SessionActionItem.id)).where(
-            SessionActionItem.workspace_id == workspace_id,
-            (SessionActionItem.session_id == session_id) if session_id is not None else true(),
-            (SessionActionItem.status == status) if status is not None else true(),
-        )
+        select(func.count(SessionActionItem.id)).where(*conditions)
     )
     return items, int(total or 0)

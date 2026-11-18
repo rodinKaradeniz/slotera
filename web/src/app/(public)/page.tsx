@@ -8,6 +8,7 @@ import { Pricing } from "@/components/public/Pricing";
 import { FAQ } from "@/components/public/FAQ";
 import { FinalCTA } from "@/components/public/FinalCTA";
 import { DemoGuideAutoOpen } from "@/components/public/DemoGuideProvider";
+import { ScrollReveal } from "@/components/public/ScrollReveal";
 
 export default function LandingPage() {
   return (
@@ -26,6 +27,7 @@ export default function LandingPage() {
       {/* Auto-opens the shared Demo Guide modal once per session. The modal
           instance + visible triggers live in DemoGuideProvider / PublicNav. */}
       <DemoGuideAutoOpen />
+      <ScrollReveal />
     </>
   );
 }

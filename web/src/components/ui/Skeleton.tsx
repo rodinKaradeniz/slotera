@@ -15,10 +15,9 @@ export function Skeleton({ w = "100%", h = 14, className, style }: SkeletonProps
       style={{
         width: typeof w === "number" ? `${w}px` : w,
         height: typeof h === "number" ? `${h}px` : h,
-        background:
-          "linear-gradient(90deg, var(--paper-2) 0%, var(--surface-warm) 50%, var(--paper-2) 100%)",
-        backgroundSize: "800px 100%",
-        animation: "slShimmer 1.4s linear infinite",
+        background: "var(--paper-2)",
+        // A slow breathe rather than a moving shine: loading should be calm, not busy.
+        animation: "slBreathe 1.6s ease-in-out infinite",
         ...style,
       }}
     />

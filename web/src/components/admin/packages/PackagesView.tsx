@@ -1,4 +1,5 @@
 "use client";
+import { collectionMeta } from "@/lib/collection-meta";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import { useToast } from "@/components/ui/Toast";
@@ -14,6 +15,7 @@ import { Input } from "@/components/ui/Input";
 import { SegGroup } from "@/components/ui/SegGroup";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { PackageCard } from "./PackageCard";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { Pagination } from "@/components/shared/Pagination";
 import { getPackage, listPackagePage } from "@/services/packages.service";
@@ -21,7 +23,7 @@ import { getPackage, listPackagePage } from "@/services/packages.service";
 type StatusFilter = "all" | "active" | "inactive";
 
 export function PackagesView() {
-  const { t: uiText } = useI18n();
+  const { t: uiText, lang } = useI18n();
   const { toast } = useToast();
   const { openPackageDrawer } = useDrawers();
   const [query, setQuery] = React.useState("");
@@ -38,10 +40,9 @@ export function PackagesView() {
     <PageContainer>
       {error && <LoadError message={error} onRetry={refresh} />}
       <PageHeader
-        eyebrow={uiText("ui.catalog")}
         title={uiText("ui.packages")}
         description={uiText("ui.multi.session.offers.ordered.bundles.of.your.services.presentational.for.now.clients.still")}
-        meta={page ? String(page.total) : uiText("ui.loading")}
+        meta={page ? collectionMeta("packages", page.states ?? {}, lang) : uiText("ui.loading")}
         actions={
           <Button
             variant="primary"
@@ -75,8 +76,14 @@ export function PackagesView() {
 
       {!items ? (
         <LoadingRows count={4} />
+      ) : filtered.length === 0 ? (
+        query.trim() || status !== "all" ? (
+          <EmptyState icon="search" title={uiText("empty.filtered.title")} body={uiText("empty.filtered.body")} />
+        ) : (
+          <EmptyState icon="package" title={uiText("empty.packages.title")} body={uiText("empty.packages.body")} />
+        )
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="list-rise grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((p) => (
             <PackageCard
               key={p.id}

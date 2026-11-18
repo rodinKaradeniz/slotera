@@ -5,6 +5,8 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
+import { motion } from "@/lib/motion";
+import { usePresence } from "@/lib/use-presence";
 import { useSearch, type SearchResult } from "@/lib/search";
 import { SearchResultsList, flattenGroups } from "./SearchResultsList";
 
@@ -67,6 +69,7 @@ export function NavbarSearch({ onOpenPalette }: Props) {
   };
 
   const open = focused && query.trim().length > 0;
+  const dropdown = usePresence(open, motion.popover.out);
 
   return (
     <div
@@ -119,9 +122,12 @@ export function NavbarSearch({ onOpenPalette }: Props) {
         )}
       </div>
 
-      {open && (
+      {dropdown.rendered && (
         <div
-          className="absolute left-0 right-0 mt-2 bg-surface border border-line rounded-md shadow-3 max-h-[60vh] overflow-y-auto z-30"
+          data-state={dropdown.state}
+          inert={dropdown.closing}
+          aria-hidden={dropdown.closing || undefined}
+          className="popover origin-top absolute left-0 right-0 mt-2 bg-surface border border-line rounded-md shadow-3 max-h-[60vh] overflow-y-auto z-30"
           onMouseDown={(e) => e.preventDefault()}
         >
           <SearchResultsList

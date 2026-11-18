@@ -12,6 +12,8 @@ let enabled = false,
 let threads: AIThread[] = [];
 let turns: AITurn[] = [];
 const replays = new Map<string, AITurn>();
+const titledThreads = new Set<string>();
+const briefingThreads = new Set<string>();
 const options = { cache: false };
 export async function getAIStatus(signal?: AbortSignal): Promise<AIStatus> {
   if (dataSource === "api")
@@ -25,7 +27,7 @@ export async function getAIStatus(signal?: AbortSignal): Promise<AIStatus> {
     pending: 0,
     failed: 0,
     indexed: 8,
-    dailyAnswers: turns.length,
+    dailyAnswers: turns.filter((turn) => turn.status === "completed").length,
     dailyTokens: 0,
     indexingTokens: 0,
     answerLimit: 50,
@@ -55,6 +57,8 @@ export async function configureAI(
     threads = [];
     turns = [];
     replays.clear();
+    titledThreads.clear();
+    briefingThreads.clear();
   }
   return getAIStatus();
 }
@@ -64,6 +68,8 @@ export async function clearAIHistory(): Promise<void> {
   threads = [];
   turns = [];
   replays.clear();
+  titledThreads.clear();
+  briefingThreads.clear();
 }
 export async function listAIThreads(
   offset = 0,
@@ -75,8 +81,8 @@ export async function listAIThreads(
       signal,
     });
   return {
-    items: threads.slice(offset, offset + 25),
-    total: threads.length,
+    items: threads.filter((t) => !briefingThreads.has(t.id)).slice(offset, offset + 25),
+    total: threads.filter((t) => !briefingThreads.has(t.id)).length,
     limit: 25,
     offset,
   };
@@ -102,6 +108,7 @@ export async function deleteAIThread(id: string): Promise<void> {
       method: "DELETE",
       csrf: true,
     });
+  briefingThreads.delete(id);
   threads = threads.filter((t) => t.id !== id);
   turns = turns.filter((t) => t.threadId !== id);
 }
@@ -159,20 +166,25 @@ export async function generateAITurn(
     errorCode: null,
     createdAt: new Date().toISOString(),
   };
+  if (!titledThreads.has(id)) {
+    const thread = threads.find((thread) => thread.id === id);
+    if (thread) thread.title = prompt.trim().split(/\s+/).slice(0, 5).join(" ");
+    titledThreads.add(id);
+  }
   turns = [...turns, row];
   replays.set(key, row);
   return row;
 }
+/** A client briefing: one per client, cached and refreshed on request. */
 export async function generateBriefing(
-  kind: "daily" | "client",
+  clientId: string,
   language: Lang,
   key: string,
   refresh = false,
-  clientId?: string,
 ): Promise<AITurn> {
   if (dataSource === "api")
     return apiRequest<AITurn, components["schemas"]["BriefInput"]>(
-      `/ai/briefings/${kind}${clientId ? `?clientId=${encodeURIComponent(clientId)}` : ""}`,
+      `/ai/briefings/client?clientId=${encodeURIComponent(clientId)}`,
       {
         method: "POST",
         csrf: true,
@@ -180,7 +192,8 @@ export async function generateBriefing(
         body: { language, refresh },
       },
     );
-  const t = await createAIThread(clientId ?? "daily", "Briefing");
+  const t = await createAIThread(clientId, "Briefing");
+  briefingThreads.add(t.id);
   return generateAITurn(t.id, "Briefing", language, key);
 }
 export async function recoverAI(id: string): Promise<AITurn> {
@@ -209,18 +222,86 @@ export async function confirmAI(
 }
 
 export async function getBriefing(
-  kind: "daily" | "client",
-  clientId?: string,
+  clientId: string,
   signal?: AbortSignal,
 ): Promise<AITurn | null> {
   if (dataSource === "api")
     return apiRequest<AITurn | null>(
-      `/ai/briefings/${kind}${clientId ? `?clientId=${encodeURIComponent(clientId)}` : ""}`,
+      `/ai/briefings/client?clientId=${encodeURIComponent(clientId)}`,
       { ...options, signal },
     );
-  return turns.findLast((t) => t.threadId === (clientId ?? "daily")) ?? null;
+  return turns.findLast((t) => t.threadId === clientId) ?? null;
 }
 export async function retryAIIndex(): Promise<void> {
   if (dataSource === "api")
     return apiRequest<void>("/ai/index/retry", { method: "POST", csrf: true });
+}
+
+export async function stopAITurn(
+  id: string,
+  key: string,
+  prompt: string,
+  language: Lang,
+): Promise<void> {
+  if (dataSource === "api")
+    return apiRequest<void, components["schemas"]["StopInput"]>(
+      `/ai/threads/${encodeURIComponent(id)}/stop`,
+      { method: "POST", csrf: true, body: { key, prompt, language } },
+    );
+  const row = replays.get(key);
+  if (row && row.prompt !== prompt) throw new Error("The request changed");
+  if (row?.status === "completed") return;
+  if (row) {
+    row.status = "failed";
+    row.errorCode = "ai_cancelled";
+    return;
+  }
+  if (!threads.some((thread) => thread.id === id))
+    throw new Error("Conversation not found");
+  const stopped: AITurn = {
+    id: crypto.randomUUID(),
+    threadId: id,
+    prompt,
+    language,
+    answer: "",
+    status: "failed",
+    errorCode: "ai_cancelled",
+    createdAt: new Date().toISOString(),
+    proposal: null,
+    citations: [],
+  };
+  turns = [...turns, stopped];
+  replays.set(key, stopped);
+}
+export async function branchAIThread(
+  id: string,
+  turnId: string,
+  newId: string,
+  title: string,
+): Promise<AIThread> {
+  if (dataSource === "api")
+    return apiRequest<AIThread, components["schemas"]["BranchInput"]>(
+      `/ai/threads/${encodeURIComponent(id)}/branch`,
+      { method: "POST", csrf: true, body: { turnId, threadId: newId, title } },
+    );
+  const source = turns.find((row) => row.id === turnId && row.threadId === id);
+  if (!source) throw new Error("Conversation not found");
+  const thread = await createAIThread(newId, title);
+  const history = turns.filter((row) => row.threadId === id);
+  if (!turns.some((row) => row.threadId === newId))
+    turns = [
+      ...turns,
+      ...history
+        .slice(
+          0,
+          history.findIndex((row) => row.id === source.id),
+        )
+        .map((row) => ({
+          ...row,
+          id: crypto.randomUUID(),
+          threadId: newId,
+          proposal: null,
+        })),
+    ];
+  return thread;
 }

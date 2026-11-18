@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { translate, type Lang } from "../src/lib/i18n";
 const api = "http://localhost:8011";
@@ -53,11 +54,31 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
         page.getByRole("button", { name: t("ai.disable"), exact: true }),
       ).toBeVisible();
     }
+    await expect(page.getByRole("progressbar")).toHaveCount(1);
+    await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuemax","100");
+    if (lang === "en") {
+      await page.getByRole("progressbar").scrollIntoViewIfNeeded();
+      mkdirSync("browser-artifacts", { recursive: true });
+      await page.screenshot({path: `browser-artifacts/usage-${info.project.name}.png`});
+    }
     fixture("index-ai");
     await page.goto("/admin/assistant");
     await expect(
       page.getByText(t("ai.simulated"), { exact: true }),
     ).toBeVisible();
+    if (
+      (await (await page.request.get(`${api}/ai/threads`)).json()).total === 0
+    ) {
+      if (info.project.name === "mobile") await page.getByRole("button", {name: t("chat.conversations"), exact: true}).click();
+      await expect(
+        page.getByText(t("ask.noChats"), { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: t("ask.title"), exact: true }),
+      ).toBeVisible();
+      if (info.project.name === "mobile") await page.getByRole("button", {name: t("chat.conversations"), exact: true}).click();
+    }
+    if(lang==="en"){mkdirSync("browser-artifacts",{recursive:true});await page.screenshot({path:`browser-artifacts/ask-empty-${info.project.name}.png`});}
     const title = `Synthetic AI ${info.project.name} ${lang}`;
     await page
       .getByRole("textbox", { name: t("ai.question"), exact: true })
@@ -80,34 +101,90 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
     await expect(
       page.getByRole("button", { name: t("ai.executed"), exact: true }),
     ).toBeDisabled();
+    const conversation = (
+      await (await page.request.get(`${api}/ai/threads`)).json()
+    ).items[0];
     await page.reload();
+    if (info.project.name === "mobile")
+      await page
+        .getByRole("button", { name: t("chat.conversations"), exact: true })
+        .click();
     await page
-      .getByRole("button", { name: `Add task ${title}`, exact: true })
+      .locator(`[data-thread-id="${conversation.id}"]`)
+      .getByRole("button", { name: conversation.title, exact: true })
       .click();
     await expect(
       page.getByText(`Add task ${title}`, { exact: true }),
-    ).toHaveCount(2);
+    ).toHaveCount(1);
+    const revised = `Synthetic revised ${info.project.name} ${lang}`;
+    await page
+      .getByRole("button", { name: t("chat.edit"), exact: true })
+      .click();
+    await page
+      .getByRole("textbox", { name: t("ai.question"), exact: true })
+      .fill(revised);
+    await page.getByRole("button", { name: t("ai.send"), exact: true }).click();
+    await expect(page.getByRole("button", { name: t("ai.send"), exact: true })).toBeVisible();
+    await expect(page.getByText(revised, { exact: true })).toHaveCount(2);
+    await expect(
+      page.locator(`[data-thread-id="${conversation.id}"]`),
+    ).toHaveCount(1);
+    await expect(
+      page.getByText(t("chat.disclaimer"), { exact: true }),
+    ).toBeVisible();
+    await expect(page.locator("p[aria-busy=true]")).toHaveCount(0);
+    if (lang === "en") {
+      mkdirSync("browser-artifacts", { recursive: true });
+      await page.screenshot({
+        path: `browser-artifacts/assistant-${info.project.name}.png`,
+      });
+    }
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/ai/threads/*/turns", async (route) => {
+      await held;
+      await route.continue();
+    });
+    try {
+      await page
+        .getByRole("textbox", { name: t("ai.question"), exact: true })
+        .fill(`Synthetic stopped ${lang}`);
+      await page
+        .getByRole("button", { name: t("ai.send"), exact: true })
+        .click();
+      const cancelled = page.waitForResponse((response) =>
+        response.url().endsWith("/stop"),
+      );
+      await page
+        .getByRole("button", { name: t("chat.stop"), exact: true })
+        .click();
+      expect((await cancelled).status()).toBe(204);
+    } finally {
+      release();
+    }
+    await expect(
+      page.getByText(t("chat.stopped"), { exact: true }),
+    ).toBeVisible();
+    await page.unroute("**/ai/threads/*/turns");
     await page.goto("/admin/dashboard");
     await expect(page.getByText(title, { exact: true })).toBeVisible();
-    await expect(
-      page
-        .getByRole("button", { name: t("ai.briefMe"), exact: true })
-        .or(page.getByRole("button", { name: t("ai.refresh"), exact: true })),
-    ).toBeVisible();
-    const cached = await (
-      await page.request.get(`${api}/ai/briefings/daily`)
-    ).json();
-    if (!cached)
-      await page
-        .getByRole("button", { name: t("ai.briefMe"), exact: true })
-        .click();
-    await expect(
-      page.getByRole("button", { name: t("ai.refresh"), exact: true }),
-    ).toBeVisible();
-    await page.reload();
-    await expect(
-      page.getByRole("button", { name: t("ai.refresh"), exact: true }),
-    ).toBeVisible();
+    // The workspace-wide daily brief was removed: the dashboard shows the next call only.
+    await expect(page.getByText(t("dashboard.nextCall"), { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: t("ai.briefMe"), exact: true })).toHaveCount(0);
+    expect((await page.request.get(`${api}/ai/briefings/daily`)).status()).toBe(422);
+    if (lang === "en") await page.screenshot({path: `browser-artifacts/today-${info.project.name}.png`});
+    await page.goto("/admin/assistant");
+    await page.getByRole("textbox", { name: t("ai.question"), exact: true }).fill(`Remove task ${title}`);
+    await page.getByRole("button", { name: t("ai.send"), exact: true }).click();
+    await expect(page.getByRole("heading", { name: t("ai.proposed"), exact: true })).toBeVisible();
+    await page.getByRole("button", { name: t("ai.review"), exact: true }).click();
+    await expect(page.getByRole("dialog").getByText(t("todo.removeEffect"), { exact: true })).toBeVisible();
+    await page.getByRole("dialog").getByRole("button", { name: t("ai.confirm"), exact: true }).click();
+    await expect(page.getByRole("button", { name: t("ai.executed"), exact: true })).toBeDisabled();
+    await page.goto("/admin/dashboard");
+    await expect(page.getByRole("checkbox", { name: title, exact: true })).toHaveCount(0);
     const clients = await (
       await page.request.get(`${api}/clients?search=Sofia&limit=5`)
     ).json();
@@ -128,6 +205,24 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
         .click();
     await expect(
       page.getByRole("button", { name: t("ai.refresh"), exact: true }),
+    ).toBeVisible();
+    await page.goto("/admin/assistant");
+    if (info.project.name === "mobile")
+      await page
+        .getByRole("button", { name: t("chat.conversations"), exact: true })
+        .click();
+    await page
+      .locator(`[data-thread-id="${conversation.id}"]`)
+      .click({ button: "right" });
+    await page
+      .getByRole("menuitem", { name: t("ai.deleteChat"), exact: true })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: t("ui.cancel"), exact: true })
+      .click();
+    await expect(
+      page.locator(`[data-thread-id="${conversation.id}"]`),
     ).toBeVisible();
     expect(
       await page.evaluate(

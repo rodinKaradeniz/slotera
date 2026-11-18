@@ -41,6 +41,16 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
       headers: await headers(page),
       data: { language: lang },
     });
+    if (lang === "en") {
+      await page.goto("/admin/messages");
+      if (info.project.name === "mobile")
+        await page.getByRole("button", { name: t("chat.conversations"), exact: true }).click();
+      await page.getByRole("button", { name: "Sofia Marin", exact: true }).click();
+      await expect(page.getByText("Hi Lena! Could we focus on the funding narrative in our next session?", { exact: true })).toBeVisible();
+      await expect(page.getByText("That fits well. We will leave time to work through both.", { exact: true })).toBeVisible();
+      mkdirSync("browser-artifacts", { recursive: true });
+      await page.screenshot({path: `browser-artifacts/sample-messages-${info.project.name}.png`});
+    }
     const label = `Communication ${info.project.name} ${lang}`;
     const email = `communication-${info.project.name}-${lang}@example.com`;
     const client = await (
@@ -181,6 +191,15 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
       await expect(
         page.getByText(`Consultant ${lang}`, { exact: true }),
       ).toBeVisible();
+      await expect(
+        page.getByLabel(t("messages.message"), { exact: true }),
+      ).toHaveValue("");
+      if (lang === "en") {
+        mkdirSync("browser-artifacts", { recursive: true });
+        await page.screenshot({
+          path: `browser-artifacts/messages-${info.project.name}.png`,
+        });
+      }
       await customer
         .getByRole("button", { name: t("ui.refresh"), exact: true })
         .click();
@@ -251,36 +270,21 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
         customer.getByText(t("forms.corrections"), { exact: true }),
       ).toBeVisible();
       await page.goto("/admin/dashboard");
-      await page
-        .getByPlaceholder(t("ui.add.an.action.item"), { exact: true })
-        .fill(label);
-      await page
-        .getByRole("button", { name: t("ui.add"), exact: true })
-        .click();
-      const task = page
-        .locator("div")
-        .filter({ has: page.getByText(label, { exact: true }) })
-        .filter({
-          has: page.getByRole("button", {
-            name: t("ui.mark.as.done"),
-            exact: true,
-          }),
-        })
-        .last();
-      await expect(page.getByText(label, { exact: true })).toBeVisible();
-      const tasks = await (await page.request.get(`${api}/tasks`)).json();
-      const created = tasks.items.find(
-        (item: { title: string }) => item.title === label,
-      );
-      expect(created.sessionId).toBeNull();
-      await task
-        .getByRole("button", { name: t("ui.mark.as.done"), exact: true })
-        .click();
-      await expect(page.getByText(label, { exact: true })).toBeHidden();
-      await page
-        .getByRole("button", { name: t("todo.completed"), exact: true })
-        .click();
-      await expect(page.getByText(label, { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: t("todo.new"), exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: t("todo.new"), exact: true });
+      await dialog.getByRole("textbox", { name: t("todo.field.title") }).fill(label);
+      await dialog.getByRole("button", { name: t("todo.add.button"), exact: true }).click();
+      await expect(dialog).toHaveCount(0);
+      const checkbox = page.getByRole("checkbox", { name: label, exact: true });
+      await expect(checkbox).not.toBeChecked();
+      const tasks = await (await page.request.get(`${api}/tasks?general_only=true`)).json();
+      expect(tasks.items.find((item: { title: string }) => item.title === label).sessionId).toBeNull();
+      await checkbox.click();
+      await expect(checkbox).toBeChecked();
+      await page.reload();
+      await expect(page.getByRole("checkbox", { name: label, exact: true })).toBeChecked();
+      await expect(page.getByLabel(t("todo.title"), {exact: true}).locator("input[type=date]")).toHaveCount(0);
+      if (lang === "en") await page.screenshot({path: `browser-artifacts/todo-${info.project.name}.png`});
       expect(
         await customer.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,

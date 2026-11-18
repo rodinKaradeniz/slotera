@@ -1,4 +1,5 @@
 "use client";
+import { collectionMeta } from "@/lib/collection-meta";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import { useToast } from "@/components/ui/Toast";
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/Input";
 import { SegGroup } from "@/components/ui/SegGroup";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { FormCard } from "./FormCard";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { useLoad } from "@/lib/use-load";
 import { LoadError } from "@/components/shared/LoadError";
@@ -21,7 +23,7 @@ import { getForm, listFormPage } from "@/services/forms.service";
 type StatusFilter = "all" | "active" | "inactive";
 
 export function FormsView() {
-  const { t: uiText } = useI18n();
+  const { t: uiText, lang } = useI18n();
   const { toast } = useToast();
   const { openFormDrawer } = useDrawers();
   const [query, setQuery] = React.useState("");
@@ -35,10 +37,9 @@ export function FormsView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow={uiText("ui.catalog")}
         title={uiText("ui.forms")}
         description={uiText("ui.reusable.intake.questions.and.acknowledgements.you.attach.to.services")}
-        meta={page ? String(page.total) : uiText("ui.loading")}
+        meta={page ? collectionMeta("forms", page.states ?? {}, lang) : uiText("ui.loading")}
         actions={
           <Button
             variant="primary"
@@ -73,8 +74,14 @@ export function FormsView() {
       {error && <LoadError message={error} onRetry={refresh} />}
       {!forms ? (
         <LoadingRows count={4} />
+      ) : filtered.length === 0 ? (
+        query.trim() || status !== "all" ? (
+          <EmptyState icon="search" title={uiText("empty.filtered.title")} body={uiText("empty.filtered.body")} />
+        ) : (
+          <EmptyState icon="file" title={uiText("empty.forms.title")} body={uiText("empty.forms.body")} />
+        )
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="list-rise grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((f) => (
             <FormCard
               key={f.id}

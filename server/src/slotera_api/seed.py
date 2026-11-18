@@ -23,8 +23,11 @@ from slotera_api.db.models import (
     BookingFormSnapshot,
     BookingStatus,
     Client,
+    ClientConversation,
     ClientNote,
     ConfirmationPolicy,
+    ConversationMessage,
+    ConversationRead,
     FormStatus,
     FormTemplate,
     FormTemplateService,
@@ -173,7 +176,7 @@ DEMO_LOCATIONS = (
         "region": "Berlin",
         "postal_code": "10178",
         "country": "DE",
-        "notes": "Buzzer for 'Hartmann Strategy' — second floor, glass door on the left.",
+        "notes": "Buzzer for 'Hartmann Strategy', second floor, glass door on the left.",
     },
     {
         "id": _seed_id("location:hartmann-strategy:kreuzberg"),
@@ -231,7 +234,7 @@ DEMO_SERVICES = (
         "key": "workshop",
         "name": "Group Workshop",
         "description": (
-            "Small-group, expert-led workshop — hands-on and capped for real interaction."
+            "Small-group, expert-led workshop, hands-on and capped for real interaction."
         ),
         "duration_min": 120,
         "price_cents": 18000,
@@ -245,7 +248,7 @@ DEMO_SERVICES = (
             "region": "Berlin",
             "postal_code": "10178",
             "country": "DE",
-            "notes": "Buzzer for the studio — second floor, glass door on the left.",
+            "notes": "Buzzer for the studio, second floor, glass door on the left.",
         },
         "booking_mode": "scheduled",
         "confirmation_policy": "operator_approval",
@@ -659,6 +662,60 @@ def _seed_showcase_context(
                     "updated_at": now,
                 },
             )
+    sample_client = _seed_id("client:hartmann-strategy:sofia-marin")
+    person = session.get(Client, sample_client)
+    if (
+        person
+        and person.erased_at is None
+        and session.get(ClientConversation, sample_client) is None
+    ):
+        session.add(
+            ClientConversation(
+                id=sample_client,
+                workspace_id=workspace_id,
+                client_id=sample_client,
+                last_sequence=4,
+            )
+        )
+        session.flush()
+        for number, (sender, body) in enumerate(
+            (
+                ("client", "Hi Lena! Could we focus on the funding narrative in our next session?"),
+                ("operator", "Absolutely, Sofia. Please bring your current pitch outline."),
+                (
+                    "client",
+                    "Great, I will. I would also like to discuss our next milestone.",
+                ),
+                ("operator", "That fits well. We will leave time to work through both."),
+            ),
+            1,
+        ):
+            session.add(
+                ConversationMessage(
+                    id=_seed_id(f"sample-message:{number}"),
+                    workspace_id=workspace_id,
+                    conversation_id=sample_client,
+                    sequence=number,
+                    sender_kind=sender,
+                    sender_key=f"client:{sample_client}"
+                    if sender == "client"
+                    else f"operator:{DEMO_SEED.operator.id}",
+                    submission_id=_seed_id(f"sample-message-submission:{number}"),
+                    body=body,
+                    created_at=now - timedelta(hours=1, minutes=20 - number * 5),
+                )
+            )
+        for actor in (f"client:{sample_client}", f"operator:{DEMO_SEED.operator.id}"):
+            session.add(
+                ConversationRead(
+                    workspace_id=workspace_id,
+                    conversation_id=sample_client,
+                    actor_key=actor,
+                    last_read=4,
+                    last_digest=4,
+                )
+            )
+        context_count += 7
     for key, session_key, title, status in (
         ("prepare", "upcoming", "Review the client's intake answers", SessionActionItemStatus.TODO),
         ("follow-up", "completed", "Record session summary", SessionActionItemStatus.DONE),

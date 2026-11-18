@@ -35,7 +35,7 @@ class FormsRepository:
 
     async def list_page(
         self, workspace_id: UUID, search: str, status: str | None, limit: int, offset: int
-    ) -> tuple[list[FormTemplate], int, dict[UUID, list[UUID]]]:
+    ) -> tuple[list[FormTemplate], int, dict[UUID, list[UUID]], dict[str, int]]:
         predicate = FormTemplate.workspace_id == workspace_id
         if search.strip():
             pattern = (
@@ -44,9 +44,18 @@ class FormsRepository:
             predicate &= FormTemplate.name.ilike(
                 pattern, escape="!"
             ) | FormTemplate.description.ilike(pattern, escape="!")
+        state_predicate = predicate
         if status:
             predicate &= FormTemplate.status == status
         async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
+            state_rows = (
+                await session.execute(
+                    select(FormTemplate.status, func.count())
+                    .where(state_predicate)
+                    .group_by(FormTemplate.status)
+                )
+            ).all()
+            states = {str(key.value): int(value) for key, value in state_rows}
             total = int(
                 await session.scalar(select(func.count(FormTemplate.id)).where(predicate)) or 0
             )
@@ -73,7 +82,7 @@ class FormsRepository:
                 )
                 for form_id, service_id in rows:
                     attachments.setdefault(form_id, []).append(service_id)
-            return items, total, attachments
+            return items, total, attachments, states
 
     async def attachments(self, workspace_id: UUID, form_id: UUID) -> list[UUID]:
         async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:

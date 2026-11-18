@@ -42,11 +42,12 @@ export function StepIndicator({ current, steps = STEPS }: Props) {
           style={{ top: DOT / 2 - 1, height: 2 }}
         />
         <div
-          className="absolute left-0 bg-accent rounded-full transition-[width] duration-500"
+          // Grows along the track with a transform (never animating width).
+          className="absolute left-0 right-0 bg-accent rounded-full origin-left transition-transform duration-(--d-entrance) ease-out motion-reduce:transition-none"
           style={{
             top: DOT / 2 - 1,
             height: 2,
-            width: idx > 0 ? `${(idx / (steps.length - 1)) * 100}%` : 0,
+            transform: `scaleX(${idx > 0 ? idx / (steps.length - 1) : 0})`,
           }}
         />
         {steps.map((s, i) => {
@@ -59,7 +60,7 @@ export function StepIndicator({ current, steps = STEPS }: Props) {
               style={{ width: 1 }}
             >
               <span
-                className="rounded-full flex items-center justify-center relative z-10"
+                className="rounded-full flex items-center justify-center relative z-10 transition-[background-color,box-shadow] duration-(--d-fade) ease-out"
                 style={{
                   width: DOT,
                   height: DOT,
@@ -79,7 +80,7 @@ export function StepIndicator({ current, steps = STEPS }: Props) {
                   color: "white",
                 }}
               >
-                {done && <Icon name="check" size={10} strokeWidth={3} />}
+                {done && <Icon name="check" size={10} strokeWidth={3} className="swap-in" />}
                 {active && (
                   <span
                     className="rounded-full bg-white"
@@ -88,7 +89,7 @@ export function StepIndicator({ current, steps = STEPS }: Props) {
                 )}
               </span>
               <span
-                className="mt-3 text-[11px] uppercase tracking-[0.04em] font-mono whitespace-nowrap"
+                className="mt-3 text-[12px] whitespace-nowrap transition-colors duration-(--d-fade) ease-out"
                 style={{
                   color:
                     i <= idx ? "var(--ink-2)" : "var(--ink-4)",

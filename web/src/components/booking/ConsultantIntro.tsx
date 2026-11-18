@@ -36,7 +36,7 @@ export function ConsultantIntro({
     bioOverride ??
     settings?.business.bio ??
     (demo
-      ? "I work with founders on hard strategic decisions — pricing, positioning, and the messy choices between them. Most clients come to me before a fundraise, a pivot, or a launch."
+      ? "I work with founders on hard strategic decisions: pricing, positioning, and the messy choices between them. Most clients come to me before a fundraise, a pivot, or a launch."
       : "");
 
   const initials = name

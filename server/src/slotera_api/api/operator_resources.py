@@ -500,9 +500,19 @@ async def list_service_summaries(
     if search.strip():
         escaped = search.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_")
         predicate &= Service.name.ilike(f"%{escaped}%", escape="!")
+    state_predicate = predicate
     if active is not None:
         predicate &= Service.active == active
     async with database.tenant_transaction(operator.workspace_id, repeatable_read=True) as session:
+        state_rows = (
+            await session.execute(
+                select(Service.active, func.count()).where(state_predicate).group_by(Service.active)
+            )
+        ).all()
+        states = {
+            ("active" if key else "inactive") if isinstance(key, bool) else str(key): int(value)
+            for key, value in state_rows
+        }
         total = int(await session.scalar(select(func.count(Service.id)).where(predicate)) or 0)
         rows = (
             (
@@ -530,7 +540,7 @@ async def list_service_summaries(
         )
         items = [ServiceSummary.model_validate(row) for row in rows]
     _private(response)
-    return ServiceSummaryPage(items=items, total=total, limit=limit, offset=offset)
+    return ServiceSummaryPage(states=states, items=items, total=total, limit=limit, offset=offset)
 
 
 @services_router.get("/{service_id}", response_model=ServiceResponse, operation_id="getService")

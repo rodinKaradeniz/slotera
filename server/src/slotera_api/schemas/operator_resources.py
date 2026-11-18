@@ -268,6 +268,7 @@ class ServiceSummary(ApiModel):
 
 
 class ServiceSummaryPage(ApiModel):
+    states: dict[str, int]
     items: list[ServiceSummary]
     total: int
     limit: int

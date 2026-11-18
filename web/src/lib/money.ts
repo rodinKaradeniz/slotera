@@ -15,3 +15,13 @@ export function formatMoney(cents: number, currency: Currency = "GBP", lang?: La
 export function gbp(cents: number): string {
   return formatMoney(cents, "GBP");
 }
+
+/** A short amount for chart axes and tight spaces: "£1.2k", "£750", in whole units. */
+export function formatMoneyCompact(cents: number, currency: Currency = "GBP", lang?: Lang): string {
+  return new Intl.NumberFormat(localeForLang(lang ?? readLang()), {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(cents / 100);
+}

@@ -8,6 +8,36 @@
  * every seeded string.
  */
 export const en = {
+  "counts.services.one": "{count} service",
+  "counts.services.many": "{count} services",
+  "counts.packages.one": "{count} package",
+  "counts.packages.many": "{count} packages",
+  "counts.forms.one": "{count} form",
+  "counts.forms.many": "{count} forms",
+  "counts.clients.one": "{count} client",
+  "counts.clients.many": "{count} clients",
+  "today.summary": "Your day at a glance",
+  "ai.command.task.delete": "Remove to-do",
+  "todo.removeEffect": "This to-do will be permanently removed after confirmation.",
+  "ask.title": "Ask Slotera",
+  "ask.placeholder": "Ask Slotera…",
+  "ask.noChats": "No conversations yet",
+  "ask.historyHint": "Your conversations will appear here.",
+  "ask.options": "Conversation options",
+  "ask.usage": "Daily AI usage · {percent}%",
+  "ask.preparing": "Preparing your workspace for search…",
+
+  "chat.conversations": "Conversations",
+  "chat.copy": "Copy message",
+  "chat.copied": "Copied",
+  "chat.copyFailed": "Could not copy; select the text to copy it.",
+  "chat.edit": "Edit and branch",
+  "chat.stop": "Stop generation",
+  "chat.stopped": "Response stopped.",
+  "chat.branchHint": "Sending this edit creates a new conversation branch; original history and confirmed actions stay unchanged.",
+  "chat.disclaimer": "Slotera can make mistakes. Check important information.",
+  "chat.indexBudget": "Indexing tokens: {used} / {limit}",
+
   "ai.field.active": "Active",
   "ai.field.address": "Address",
   "ai.field.bookingMode": "Booking mode",
@@ -102,7 +132,7 @@ export const en = {
   "ai.disable": "Disable AI",
   "ai.disabled": "Enable AI in Settings to use the assistant.",
   "ai.unavailable": "AI is not configured on this server.",
-  "ai.simulated": "Local simulation — no external AI calls.",
+  "ai.simulated": "Local simulation: no external AI calls.",
   "ai.clear": "Clear AI history",
   "ai.usage": "Answers today: {used} / {limit} maximum",
   "ai.tokens": "Reserved token budget: {used} / {limit}",
@@ -110,7 +140,6 @@ export const en = {
   "ai.refresh": "Refresh briefing",
   "ai.retry": "Try again",
   "ai.loading": "Preparing…",
-  "ai.dailyBrief": "Daily briefing",
   "ai.clientBrief": "Client briefing",
   "ai.briefHint": "Generated only when requested; daily cycles renew at 9am workspace time.",
   "ai.briefMe": "Brief me",
@@ -259,22 +288,18 @@ export const en = {
   "landing.hero.eyebrow": "For independent consultants, coaches & instructors",
   "landing.hero.title": "Paid bookings, without the calendar chaos.",
   "landing.hero.subtitle":
-    "Slotera is a lightweight client workspace for independent experts — take card or bank-transfer payments, send prep forms, bundle sessions into packages, and keep client context and follow-up in one place. No heavy CRM.",
-  "landing.hero.badge.noCard": "No credit card required",
-  "landing.hero.badge.cancel": "Cancel anytime",
-  "landing.hero.badge.gdpr": "UK GDPR-aware",
+    "Slotera is a lightweight client workspace for independent experts. Take card or bank-transfer payments, send prep forms, bundle sessions into packages, and keep client context and follow-up in one place. No heavy CRM.",
 
   // Landing — logo wall
   "landing.logos.trustedBy":
     "Trusted by 1,200+ independent advisors, coaches and instructors across Europe.",
 
   // Landing — how it works
-  "landing.how.eyebrow": "How it works",
   "landing.how.title":
     "Go from inbox tag-team to a real booking flow in an afternoon.",
   "landing.how.step1.title": "Set up your services",
   "landing.how.step1.body":
-    "Add the services you offer with duration, capacity and price — 1:1 or group. Bundle sessions into multi-session packages, and attach intake forms where you need context before the session.",
+    "Add the services you offer with duration, capacity and price, 1:1 or group. Bundle sessions into multi-session packages, and attach intake forms where you need context before the session.",
   "landing.how.step2.title": "Share one booking link",
   "landing.how.step2.body":
     "Clients pick a time, answer your pre-session questions, and pay by card or bank transfer. No account needed.",
@@ -283,12 +308,11 @@ export const en = {
     "New bookings land in your dashboard. Clients get a booking page to prep, message you, or request a change.",
 
   // Landing — features
-  "landing.features.eyebrow": "Features",
   "landing.features.title":
     "Everything an independent expert needs. Nothing they don't.",
   "landing.features.bookings.title": "Paid bookings",
   "landing.features.bookings.body":
-    "Take payment when clients book — card or manual bank transfer, your choice. Clear receipts, no spreadsheet wrangling.",
+    "Take payment when clients book: card or manual bank transfer, your choice. Clear receipts, no spreadsheet wrangling.",
   "landing.features.forms.title": "Client intake & prep forms",
   "landing.features.forms.body":
     "Collect the context you need before a session. Make key questions required before payment, or optional afterwards.",
@@ -300,13 +324,12 @@ export const en = {
     "1:1 or group sessions with capacity and spots-left. Overlaps on your calendar are flagged as conflicts.",
   "landing.features.languages.title": "Multilingual booking",
   "landing.features.languages.body":
-    "Your clients can book in English, Turkish or German — the whole flow follows their language.",
+    "Your clients can book in English, Turkish or German, and the whole flow follows their language.",
   "landing.features.workspace.title": "A lightweight client workspace",
   "landing.features.workspace.body":
-    "A focused admin for bookings, clients, packages and client notes — built to run your practice, not a heavy CRM.",
+    "A focused admin for bookings, clients, packages and client notes, built to run your practice, not a heavy CRM.",
 
   // Landing — demo strip
-  "landing.demoStrip.eyebrow": "See it in action",
   "landing.demoStrip.title": "Try a real booking flow. No sign-up needed.",
 
   // Landing — testimonials
@@ -321,7 +344,6 @@ export const en = {
     "Group workshops with capacity and waitlists used to need a CRM. Now it's two clicks.",
 
   // Landing — pricing
-  "landing.pricing.eyebrow": "Pricing",
   "landing.pricing.title": "Two plans. Try either free for 30 days.",
   "landing.pricing.monthly": "Monthly",
   "landing.pricing.yearly": "Yearly",
@@ -346,7 +368,6 @@ export const en = {
   "landing.pricing.note": "30-day free trial, no card needed. The per-payment cut applies to card payments only, on top of Stripe's processing fee; bank transfers are never charged.",
 
   // Landing — FAQ
-  "landing.faq.eyebrow": "FAQ",
   "landing.faq.title": "Common questions.",
   "landing.faq.q1.q": "Do my clients need an account?",
   "landing.faq.q1.a":
@@ -370,7 +391,6 @@ export const en = {
     "Clients can cancel or reschedule themselves until the cutoff you set (24 hours by default). After that they contact you. You handle any refund directly.",
 
   // Landing — final CTA
-  "landing.finalCta.eyebrow": "Try Slotera",
   "landing.finalCta.title": "Stop chasing slots.",
   "landing.finalCta.body": "Spin up your booking page in under 10 minutes. 30-day free trial, no credit card required.",
   // Pilot waitlist (/pilot, real app)
@@ -407,7 +427,7 @@ export const en = {
 
   // Footer
   "footer.tagline":
-    "Slotera is a lightweight client workspace for independent consultants, coaches and instructors — paid bookings, prep forms, packages and follow-up, without a heavy CRM.",
+    "Slotera is a lightweight client workspace for independent consultants, coaches and instructors: paid bookings, prep forms, packages and follow-up, without a heavy CRM.",
   "footer.col.product": "Product",
   "footer.col.company": "Company",
   "footer.link.support": "Support",
@@ -426,7 +446,7 @@ export const en = {
   "contact.eyebrow": "Contact",
   "contact.title": "Get in touch",
   "contact.description":
-    "Business inquiries, development issues, feature requests — drop us a line and we'll get back to you.",
+    "Business inquiries, development issues, feature requests: drop us a line and we'll get back to you.",
   "contact.send": "Send message",
   "contact.field.name": "Name",
   "contact.field.email": "Email",
@@ -439,9 +459,9 @@ export const en = {
   "contact.message.placeholder": "Tell us what's on your mind…",
   "contact.success.title": "Message sent.",
   "contact.success.body":
-    "Thanks for reaching out — a teammate will reply within one business day. (This is a mocked confirmation — nothing was actually sent.)",
+    "Thanks for reaching out. A teammate will reply within one business day. (This is a mocked confirmation; nothing was actually sent.)",
   "contact.success.bodyPersist":
-    "Thanks — Slotera will reach out within one business day.",
+    "Thanks. Slotera will reach out within one business day.",
 
   // Booking flow — step labels
   "booking.step.service": "Service",
@@ -497,7 +517,7 @@ export const en = {
   "booking.legal.tab.provider": "Provider Booking Terms",
   "booking.legal.tab.platform": "Slotera Terms & Privacy",
   "booking.legal.defaultProviderTerms":
-    "This provider hasn't set custom booking terms. Standard cancellation and refund expectations apply — please contact the provider directly with any questions.",
+    "This provider hasn't set custom booking terms. Standard cancellation and refund expectations apply. Please contact the provider directly with any questions.",
   "booking.legal.termsHeading": "Terms",
   "booking.legal.privacyHeading": "Privacy",
 
@@ -513,7 +533,7 @@ export const en = {
   "booking.packages.viewOptions": "View package options",
   "booking.packages.modalTitle": "Package options",
   "booking.packages.modalBody":
-    "These packages include this session. Buying a package isn't part of this demo — book a single session to continue.",
+    "These packages include this session. Buying a package isn't part of this demo, so book a single session to continue.",
   "booking.packages.featured": "Featured",
   "booking.packages.sessionsSuffix": "sessions",
 
@@ -652,7 +672,7 @@ export const en = {
   "system.maintenance.eyebrow": "Scheduled maintenance",
   "system.maintenance.title": "We'll be right back.",
   "system.maintenance.body":
-    "Slotera is being updated. Your bookings and data are safe — please check back in a few minutes.",
+    "Slotera is being updated. Your bookings and data are safe. Please check back in a few minutes.",
   "system.maintenance.retry": "Try again",
 
   // Booking — paused card
@@ -665,7 +685,7 @@ export const en = {
   "bookingManage.badge": "Demo",
   "bookingManage.title": "Your booking",
   "bookingManage.subtitle":
-    "A preview of what your clients could see after booking — review the details, complete optional forms, manage the booking, and stay in touch. This is a demo with mocked data.",
+    "A preview of what your clients could see after booking: review the details, complete optional forms, manage the booking, and stay in touch. This is a demo with mocked data.",
   "bookingManage.tabsLabel": "Booking sections",
   "bookingManage.tab.info": "Booking info",
   "bookingManage.tab.manage": "Manage booking",
@@ -673,11 +693,11 @@ export const en = {
   "bookingManage.tab.payment": "Payment",
   "bookingManage.tab.package": "Package",
   "bookingManage.status.confirmed": "Confirmed",
-  "bookingManage.location.online": "Online — meeting link sent by email",
+  "bookingManage.location.online": "Online, meeting link sent by email",
   "bookingManage.reminder":
     "You'll receive a reminder 24 hours before your session.",
   "bookingManage.disclaimer":
-    "This is a demo page. Customers don't have accounts — in production this page would open from a secure booking link sent by email.",
+    "This is a demo page. Customers don't have accounts. In production this page would open from a secure booking link sent by email.",
   "bookingManage.back": "Back to booking page",
   "bookingManage.backHome": "Back to home",
   // Booking info tab
@@ -688,7 +708,7 @@ export const en = {
   "bookingManage.info.location": "Location",
   "bookingManage.info.reference": "Booking reference",
   "bookingManage.info.context.none":
-    "You're all set — nothing to complete before your session.",
+    "You're all set. Nothing to complete before your session.",
   "bookingManage.info.context.one":
     "1 optional form to complete before your session.",
   "bookingManage.info.context.many":
@@ -700,7 +720,7 @@ export const en = {
   "bookingManage.message.placeholder": "Write a short message to the provider…",
   "bookingManage.message.send": "Send message",
   "bookingManage.message.sent": "Message sent",
-  "bookingManage.message.sentDesc": "Thanks — the provider will get back to you (mocked).",
+  "bookingManage.message.sentDesc": "Thanks. The provider will get back to you (mocked).",
   "bookingManage.manage.title": "Manage booking",
   "bookingManage.manage.note":
     "Need to make a change? Send a request and your provider will follow up.",
@@ -708,14 +728,14 @@ export const en = {
   "bookingManage.actions.cancel": "Request cancellation",
   "bookingManage.reschedule.title": "Request a reschedule",
   "bookingManage.reschedule.body":
-    "We'll let the provider know you'd like a different time. They'll follow up to confirm a new slot. (Mocked — nothing is actually sent.)",
+    "We'll let the provider know you'd like a different time. They'll follow up to confirm a new slot. (Mocked: nothing is actually sent.)",
   "bookingManage.reschedule.confirm": "Request reschedule",
   "bookingManage.reschedule.sent": "Reschedule requested",
   "bookingManage.reschedule.sentDesc":
     "The provider will follow up about a new time (mocked).",
   "bookingManage.cancel.title": "Request a cancellation",
   "bookingManage.cancel.body":
-    "We'll let the provider know you'd like to cancel. Any refund follows their cancellation policy. (Mocked — nothing is actually cancelled.)",
+    "We'll let the provider know you'd like to cancel. Any refund follows their cancellation policy. (Mocked: nothing is actually cancelled.)",
   "bookingManage.cancel.confirm": "Request cancellation",
   "bookingManage.cancel.sent": "Cancellation requested",
   "bookingManage.cancel.sentDesc":
@@ -732,7 +752,7 @@ export const en = {
   "bookingManage.forms.view": "View",
   "bookingManage.forms.save": "Save form",
   "bookingManage.forms.saved": "Form saved",
-  "bookingManage.forms.savedDesc": "Thanks — your answers were saved (mocked).",
+  "bookingManage.forms.savedDesc": "Thanks. Your answers were saved (mocked).",
   "bookingManage.forms.readonlyNote":
     "You completed this form before payment. Your answers are read-only.",
   "bookingManage.form.intake.name": "Discovery questionnaire",
@@ -781,7 +801,7 @@ export const en = {
   "demoGuide.disclaimer":
     "This is a demo version of Slotera, built to showcase the main booking and admin workflows. Some features are mocked while the product is still in progress.",
   "demoGuide.youCanTry": "You can try:",
-  "demoGuide.step.dashboard.title": "See the operator's side — the admin dashboard",
+  "demoGuide.step.dashboard.title": "See the operator's side: the admin dashboard",
   "demoGuide.step.dashboard.body":
     "Step into the provider's workspace to manage bookings, services, and forms, and explore the calendar and settings.",
   "demoGuide.step.dashboard.cta": "Open admin dashboard",
@@ -799,7 +819,7 @@ export const en = {
   "demoGuide.step.manage.cta": "Open booking page",
   "demoGuide.noteLabel": "Note:",
   "demoGuide.note":
-    "This is a demo environment, so some flows use mocked data while the product is still in progress. If anything looks off, you spot a bug or a broken flow, have a business inquiry or feature request, or would like to book time to discuss Slotera — feel free to reach out.",
+    "This is a demo environment, so some flows use mocked data while the product is still in progress. If anything looks off, you spot a bug or a broken flow, have a business inquiry or feature request, or would like to book time to discuss Slotera, feel free to reach out.",
   "demoGuide.contact": "Contact us",
   "demoGuide.createAccount": "Create account instead",
   "demoGuide.close": "Close",
@@ -854,7 +874,6 @@ export const en = {
   "ui.back.to.sign.in": "Back to sign in",
   "ui.workspace.name": "Workspace name",
   "ui.clients": "Clients",
-  "ui.catalog": "Catalog",
   "ui.services": "Services",
   "ui.close.workspace": "Close workspace",
   "ui.remove": "Remove",
@@ -956,7 +975,7 @@ export const en = {
   "ui.no.account.yet": "No account yet?",
   "ui.skip.for.now": "Skip for now",
   "ui.welcome": "Welcome,",
-  "ui.here.s.what.we.ll.do.together.you.can.skip.at.any.time.and.come.back.later.from.the.dashbo": "— here's what we'll do together. You can skip at any time and come back later from the dashboard.",
+  "ui.here.s.what.we.ll.do.together.you.can.skip.at.any.time.and.come.back.later.from.the.dashbo": "Here's what we'll do together. You can skip at any time and come back later from the dashboard.",
   "ui.show.clients.custom.instructions.bank.transfer.interac.etc.at.checkout.bookings.stay.pendi": "Show clients custom instructions (bank transfer, Interac, etc.) at checkout. Bookings stay pending until you confirm receipt. Free services need no payment setup.",
   "ui.card.payments.are.coming.soon.you.ll.be.able.to.connect.them.from.settings.client.payments": "Card payments are coming soon. You'll be able to connect them from Settings → Client Payments.",
   "ui.your.workspace.is.ready": "Your workspace is ready",
@@ -995,7 +1014,6 @@ export const en = {
   "ui.update.password": "Update password",
   "ui.something.went.wrong": "Something went wrong.",
   "ui.the.problem.has.been.reported.please.try.again": "The problem has been reported. Please try again.",
-  "ui.operations": "Operations",
   "ui.all.client.bookings.across.1.1.calls.group.classes.and.workshops": "All client bookings across 1:1 calls, group classes and workshops.",
   "ui.export": "Export",
   "ui.search.by.client.service.or.id": "Search by client, service, or ID",
@@ -1006,7 +1024,6 @@ export const en = {
   "ui.no.bookings.in.this.status": "No bookings in this status.",
   "ui.show.more": "Show more (",
   "ui.hidden": "hidden)",
-  "ui.schedule": "Schedule",
   "ui.today": "Today",
   "ui.more": "more",
   "ui.spent": "Spent",
@@ -1018,7 +1035,7 @@ export const en = {
   "ui.e.g.prefers.morning.sessions": "e.g. Prefers morning sessions",
   "ui.note": "Note",
   "ui.write.a.note.about.this.client": "Write a note about this client…",
-  "ui.format.visually.as.you.type.bold.italic.headings.lists.and.quotes.notes.are.internal.and.n": "Format visually as you type — bold, italic, headings, lists, and quotes. Notes are internal and never shown to clients.",
+  "ui.format.visually.as.you.type.bold.italic.headings.lists.and.quotes.notes.are.internal.and.n": "Format visually as you type: bold, italic, headings, lists, and quotes. Notes are internal and never shown to clients.",
   "ui.delete.note": "Delete note?",
   "ui.delete": "Delete",
   "ui.download.data": "Download data",
@@ -1027,7 +1044,6 @@ export const en = {
   "ui.their.name.contact.details.billing.addresses.notes.form.answers.and.booking.links.are.remo": "Their name, contact details, billing addresses, notes, form answers and booking links are removed permanently. Booking amounts and payment status stay for your records. This can't be undone.",
   "ui.type.the.client.s.email.to.confirm": "Type the client's email to confirm",
   "ui.erase.permanently": "Erase permanently",
-  "ui.directory": "Directory",
   "ui.everyone.who.has.booked.with.you.with.lifetime.spend.and.activity": "Everyone who has booked with you, with lifetime spend and activity.",
   "ui.export.csv": "Export CSV",
   "ui.add.client": "Add client",
@@ -1062,7 +1078,7 @@ export const en = {
   "ui.search.forms.by.name": "Search forms by name",
   "ui.includes": "Includes",
   "ui.packages": "Packages",
-  "ui.multi.session.offers.ordered.bundles.of.your.services.presentational.for.now.clients.still": "Multi-session offers — ordered bundles of your services. Presentational for now; clients still book individual sessions.",
+  "ui.multi.session.offers.ordered.bundles.of.your.services.presentational.for.now.clients.still": "Multi-session offers: ordered bundles of your services. Presentational for now; clients still book individual sessions.",
   "ui.search.packages": "Search packages",
   "ui.command.palette": "Command palette",
   "ui.search.bookings.clients.services.sessions": "Search bookings, clients, services, sessions…",
@@ -1077,7 +1093,7 @@ export const en = {
   "ui.searching": "Searching…",
   "ui.no.results.for": "No results for",
   "ui.duration": "Duration",
-  "ui.the.templates.clients.can.book.duration.pricing.and.capacity": "The templates clients can book — duration, pricing and capacity.",
+  "ui.the.templates.clients.can.book.duration.pricing.and.capacity": "The templates clients can book: duration, pricing and capacity.",
   "ui.contact.us.to.change.the.email.you.sign.in.with": "Contact us to change the email you sign in with.",
   "ui.current.password": "Current password",
   "ui.at.least.10.characters": "At least 10 characters.",
@@ -1149,7 +1165,7 @@ export const en = {
   "ui.save.the.places.you.regularly.host.sessions.then.attach.them.to.a.session.in.one.click": "Save the places you regularly host sessions, then attach them to a session in one click.",
   "ui.add.location": "Add location",
   "ui.no.saved.locations.yet.add.one.to.reuse.it.across.sessions": "No saved locations yet. Add one to reuse it across sessions.",
-  "ui.sessions.that.already.use.this.location.keep.their.address.only.the.saved.entry.is.removed": "Sessions that already use this location keep their address — only the saved entry is removed.",
+  "ui.sessions.that.already.use.this.location.keep.their.address.only.the.saved.entry.is.removed": "Sessions that already use this location keep their address. Only the saved entry is removed.",
   "ui.delete.location": "Delete location",
   "ui.location.name": "Location name",
   "ui.e.g.mitte.studio": "e.g. Mitte Studio",
@@ -1217,7 +1233,7 @@ export const en = {
   "ui.this.permanently.removes.the.service.existing.sessions.and.bookings.stay.on.your.calendar.": "This permanently removes the service. Existing sessions and bookings stay on your calendar but new clients can't book it.",
   "ui.delete.service": "Delete service",
   "ui.action.items": "Action items",
-  "ui.track.pre.post.session.tasks.visible.to.client.flags.an.item.for.a.future.client.facing.su": "Track pre/post-session tasks. “Visible to client” flags an item for a future client-facing surface — it stays admin-only for now.",
+  "ui.track.pre.post.session.tasks.visible.to.client.flags.an.item.for.a.future.client.facing.su": "Track pre/post-session tasks. “Visible to client” flags an item for a future client-facing surface; it stays admin-only for now.",
   "ui.no.action.items.yet.add.the.first.task.below": "No action items yet. Add the first task below.",
   "ui.task.title": "Task title",
   "ui.description.optional": "Description (optional)",
@@ -1253,7 +1269,7 @@ export const en = {
   "ui.account.menu": "Account menu",
   "ui.view.page": "View page",
   "ui.logout": "Logout",
-  "ui.spotted.a.bug.or.a.broken.flow.send.us.a.note.we.ll.take.a.look": "Spotted a bug or a broken flow? Send us a note — we'll take a look.",
+  "ui.spotted.a.bug.or.a.broken.flow.send.us.a.note.we.ll.take.a.look": "Spotted a bug or a broken flow? Send us a note and we'll take a look.",
   "ui.confirmed": "Confirmed",
   "ui.revenue.7d": "Revenue · 7d",
   "ui.may.2026": "May 2026",
@@ -1270,7 +1286,7 @@ export const en = {
   "ui.country": "Country",
   "ui.postal.code": "Postal code",
   "ui.access.notes": "Access notes",
-  "ui.buzzer.floor.parking.anything.attendees.need.to.know.to.find.you": "Buzzer, floor, parking — anything attendees need to know to find you.",
+  "ui.buzzer.floor.parking.anything.attendees.need.to.know.to.find.you": "Buzzer, floor, parking: anything attendees need to know to find you.",
   "ui.quick.fill.from.saved.location": "Quick fill from saved location",
   "ui.save.this.service.first.then.attach.intake.forms.to.it": "Save this service first, then attach intake forms to it.",
   "ui.clients.booking.this.service.complete.these.forms.before.payment": "Required forms appear during booking; optional forms are completed afterwards through the booking-management link.",
@@ -1832,6 +1848,34 @@ export const en = {
   "editing.reload": "Review latest version",
   "editing.discard": "Load the latest saved version? This replaces your unsaved draft.",
   "editing.load": "Load latest version",
+  "empty.services.title": "No services yet",
+  "empty.services.body": "A service is what clients book: a name, a length and a price. Add your first one to open your booking page.",
+  "empty.packages.title": "No packages yet",
+  "empty.packages.body": "Bundle sessions of your services into a package to offer them together.",
+  "empty.forms.title": "No forms yet",
+  "empty.forms.body": "Forms collect what you need before a session. Create one, then attach it to a service.",
+  "empty.clients.title": "No clients yet",
+  "empty.clients.body": "Clients appear here when they book. You can also add one yourself.",
+  "empty.filtered.title": "Nothing matches",
+  "empty.filtered.body": "Try another search, or clear the filters.",
+  "ui.now.at": "Now, {time}",
+  "dashboard.kpi.increase": "{value} increase from last month",
+  "dashboard.kpi.decrease": "{value} decrease from last month",
+  "dashboard.kpi.flat": "No change from last month",
+  "notifications.see.all": "See all notifications",
+  "notifications.open.page": "Open notifications",
+  "notifications.retention": "Bookings, payments and changes from your clients. Read notifications are cleared after 30 days, unread ones after 90.",
+  "notifications.unread.count": "{count} unread",
+  "notifications.empty.body": "New bookings, payments and changes from clients will show up here.",
+  "notifications.end": "That's everything from the last 90 days.",
+  "dashboard.nextCall": "Your next call",
+  "todo.new": "New to-do",
+  "todo.new.short": "New",
+  "todo.add.button": "Add to-do",
+  "todo.field.title": "Title",
+  "todo.field.description": "Description",
+  "todo.expand": "Show the full description",
+  "todo.collapse": "Show less",
 } as const;
 
 export type MessageKey = keyof typeof en;

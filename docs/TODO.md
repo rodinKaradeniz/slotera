@@ -651,10 +651,27 @@ agreed final integration-verification stage; no new architecture work is deferre
   separate expiring email-link sessions, without staff memberships or standalone registration.
 - **~~Client/consultant messaging and daily unread digests.~~ DONE.** Immutable bounded
   plain-text conversations, reviewed access, local outbox and opt-out preferences.
-- **~~Dashboard To-do.~~ DONE.** General and session tasks use the same revisioned records;
-  live billing/message/notification actions resolve through their source.
+- **~~Dashboard To-do.~~ DONE; simplified 2026-11-17.** One title input and checkboxes show only general tasks; AI supports reviewed add/remove. Session tasks remain in Calendar; automatic dashboard action cards and advanced controls are disabled by product decision.
 - **~~Dependency, CSP and startup hardening.~~ DONE locally.** Production nonce policy,
   compatible upgrades, owned process cleanup and occupied-port errors; seven moderate
   upstream TypeScript-ESLint/Minimatch advisories remain without forced overrides.
-- **~~Consultant AI assistant.~~ DONE locally.** Opt-in hybrid retrieval, reviewed actions, client/daily briefings, privacy cleanup and bounded provider usage; see `PASS2_ASSISTANT.md`.
+- **~~Consultant AI assistant.~~ DONE locally.** Opt-in hybrid retrieval, reviewed actions, client briefings (the daily briefing was removed 2026-11-18), privacy cleanup and bounded provider usage; see `PASS2_ASSISTANT.md`.
 - **Voice and video** remain future scope; live OpenAI quality/delivery/cost checks remain in final integration verification.
+
+- **Advanced dashboard worklist is disabled (2026-11-17).** Reintroducing system-action
+  cards, session-task management or extra checklist controls requires a new product decision;
+  the current dashboard deliberately remains a plain general to-do list.
+
+- **Mobile notification preferences** belong under Settings → Notifications when the native
+  app and its push-delivery channel are implemented; this pass only renames the settings section.
+
+## Calm motion and de-templating follow-ups — 2026-11-18
+
+- **Landing hero collage.** `HeroCollage` is still product UI drawn with divs, the most
+  recognisable generated-landing pattern. Replace it with real captures of the operator app
+  (dashboard, booking flow) once screenshots can be taken outside the agent sandbox.
+- **~~Task completion.~~ DONE 2026-11-18.** `Checkbox` (role `checkbox`, 32px hit area) draws
+  its tick in and erases it quickly; the dashboard to-do uses it.
+- **~~Row removal.~~ DONE 2026-11-18.** `useLeavingRows` + `.row-shell`: a removed row fades
+  aside while its space closes (to-do, session tasks, client notes). Saved locations and other
+  lists still drop rows in one frame.

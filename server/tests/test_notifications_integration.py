@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -279,3 +279,104 @@ async def test_runtime_can_only_update_notification_read_state() -> None:
         "can_update_read_at": True,
         "can_update_payload": False,
     }
+
+
+@pytest.mark.integration
+async def test_notification_pages_are_stable_and_complete() -> None:
+    owner = Database(get_migration_settings().migration_database_url)
+    application = Database(get_settings().database_url)
+    created = [uuid4() for _ in range(23)]
+    # Two share a timestamp so the id tie-break is exercised at a page boundary.
+    base = datetime(2031, 1, 1, tzinfo=UTC)
+    try:
+        await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
+        async with owner.transaction() as session:
+            session.add_all(
+                [
+                    Notification(
+                        id=identifier,
+                        workspace_id=DEMO_SEED.workspace.id,
+                        recipient_user_id=DEMO_SEED.operator.id,
+                        kind="session_starting",
+                        payload={"startsAt": "2031-01-01T10:00:00Z"},
+                        occurred_at=base.replace(minute=min(index, 10)),
+                    )
+                    for index, identifier in enumerate(created)
+                ]
+            )
+        app = create_app(database=application)
+        seen: list[str] = []
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await _login(client, workspace_id=DEMO_SEED.workspace.id)
+            page = (await client.get("/notifications", params={"limit": 10})).json()
+            seen += [item["id"] for item in page["items"]]
+            while page["hasMore"]:
+                last = page["items"][-1]
+                page = (
+                    await client.get(
+                        "/notifications",
+                        params={"limit": 10, "before": last["occurredAt"], "beforeId": last["id"]},
+                    )
+                ).json()
+                seen += [item["id"] for item in page["items"]]
+            half_cursor = await client.get("/notifications", params={"before": base.isoformat()})
+        assert len(seen) == len(set(seen))
+        assert {str(identifier) for identifier in created} <= set(seen)
+        assert half_cursor.status_code == 422
+    finally:
+        async with owner.transaction() as session:
+            await session.execute(
+                text("DELETE FROM notifications WHERE id = ANY(:ids)"), {"ids": created}
+            )
+        await application.dispose()
+        await owner.dispose()
+
+
+@pytest.mark.integration
+async def test_retention_removes_old_read_and_very_old_unread_notifications() -> None:
+    owner = Database(get_migration_settings().migration_database_url)
+    application = Database(get_settings().database_url)
+    now = datetime.now(UTC)
+    read_old, unread_month, unread_old, read_recent = (uuid4() for _ in range(4))
+    rows = {
+        read_old: (now - timedelta(days=31), now - timedelta(days=30)),
+        unread_month: (now - timedelta(days=45), None),
+        unread_old: (now - timedelta(days=91), None),
+        read_recent: (now - timedelta(days=5), now - timedelta(days=4)),
+    }
+    try:
+        await import_demo_seed(owner, demo_password=DEMO_PASSWORD)
+        async with owner.transaction() as session:
+            session.add_all(
+                [
+                    Notification(
+                        id=identifier,
+                        workspace_id=DEMO_SEED.workspace.id,
+                        recipient_user_id=DEMO_SEED.operator.id,
+                        kind="session_starting",
+                        payload={"startsAt": "2031-01-01T10:00:00Z"},
+                        occurred_at=occurred,
+                        read_at=read,
+                    )
+                    for identifier, (occurred, read) in rows.items()
+                ]
+            )
+        async with application.transaction() as session:
+            await session.execute(text("SELECT slotera_notification_retention()"))
+        async with owner.transaction() as session:
+            left = set(
+                (
+                    await session.scalars(
+                        text("SELECT id FROM notifications WHERE id = ANY(:ids)"),
+                        {"ids": list(rows)},
+                    )
+                ).all()
+            )
+        assert left == {unread_month, read_recent}
+    finally:
+        async with owner.transaction() as session:
+            await session.execute(
+                text("DELETE FROM notifications WHERE id = ANY(:ids)"), {"ids": list(rows)}
+            )
+        await application.dispose()
+        await owner.dispose()

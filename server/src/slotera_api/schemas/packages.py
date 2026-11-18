@@ -70,6 +70,7 @@ class PackageSummary(ApiModel):
 
 
 class PackageSummaryPage(ApiModel):
+    states: dict[str, int]
     items: list[PackageSummary]
     total: int
     limit: int

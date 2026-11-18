@@ -144,7 +144,6 @@ function MockBookingsView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow={uiText("ui.operations")}
         title={uiText("ui.bookings")}
         description={uiText("ui.all.client.bookings.across.1.1.calls.group.classes.and.workshops")}
         meta={
@@ -217,7 +216,7 @@ function MockBookingsView() {
       ) : !bookings ? (
         <LoadingRows count={4} />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="list-rise flex flex-col gap-3">
           {STATUS_ORDER.map((s, i) => (
             <StatusAccordion
               key={s}

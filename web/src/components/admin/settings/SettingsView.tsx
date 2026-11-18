@@ -29,28 +29,26 @@ import { ApiAccountPanel, AccountPanel } from "./AccountPanels";
 type SectionId =
   | "ai"
   | "business"
-  | "branding"
   | "payments"
   | "billing"
   | "calendar"
-  | "emails"
+  | "notifications"
   | "account";
 
 const NAV: { id: SectionId; label: string; icon: IconName }[] = [
-  { id: "ai", label: "AI", icon: "sparkle" },
   { id: "business", label: "Business Profile",        icon: "briefcase" },
-  { id: "branding", label: "Branding",                icon: "sparkle" },
   { id: "payments", label: "Client Payments",         icon: "card" },
   { id: "billing",  label: "Billing & Subscription",  icon: "wallet" },
   { id: "calendar", label: "Calendar",                icon: "calendar" },
-  { id: "emails",   label: "Emails",                  icon: "mail" },
+  { id: "notifications", label: "Notifications", icon: "bell" },
   { id: "account",  label: "Account",                 icon: "user" },
+  { id: "ai", label: "AI", icon: "ask" },
 ];
 
 export function SettingsView() {
   const { t: uiText, lang: labelLang } = useI18n();
   const params=useSearchParams();
-  const [section, setSection] = React.useState<SectionId>(()=>NAV.some(n=>n.id===params.get("section"))?params.get("section") as SectionId:"business");
+  const [section, setSection] = React.useState<SectionId>(() => NAV.some(n => n.id === params.get("section")) ? params.get("section") as SectionId : "business");
   const [data, setData] = React.useState<SettingsData | null>(null);
   const [business, setBusiness] = React.useState<BusinessSettings | null>(null);
   const [availability, setAvailability] = React.useState<AvailabilitySettings | null>(null);
@@ -67,7 +65,7 @@ export function SettingsView() {
     const load = async () => {
       try {
         if (dataSource === "api") {
-          if (["business", "emails"].includes(section)) setBusiness(await getBusinessSettings());
+          if (["business", "notifications"].includes(section)) setBusiness(await getBusinessSettings());
           if (section === "calendar") setAvailability(await getAvailabilitySettings());
           if (section === "payments") setPaymentSettings(await getPaymentSettings());
           setLoadError(null);
@@ -86,7 +84,7 @@ export function SettingsView() {
   // Platform billing is a real-app concern; the mock demo never shows it.
   const visibleNav = dataSource === "api"
     ? NAV.filter((item) =>
-        ["business", "branding", "payments", "billing", "calendar", "emails", "account", "ai"].includes(item.id)
+        ["business", "payments", "billing", "calendar", "notifications", "account", "ai"].includes(item.id)
       )
     : NAV.filter((item) => item.id !== "billing");
   const activeMeta = visibleNav.find((n) => n.id === section);
@@ -143,7 +141,7 @@ export function SettingsView() {
               <Button variant="secondary" onClick={() => setReadAttempt((value) => value + 1)}>{uiText("forms.retry")}</Button>
             </Card>
           )}
-          {(dataSource === "api" ? (["business", "emails"].includes(section) && !business) || (section === "calendar" && !availability) || (section === "payments" && !paymentSettings) : !business || !data) ? (
+          {(dataSource === "api" ? (["business", "notifications"].includes(section) && !business) || (section === "calendar" && !availability) || (section === "payments" && !paymentSettings) : !business || !data) ? (
             !loadError && <LoadingRows count={2} />
           ) : (
             <div className="flex flex-col gap-6">
@@ -151,11 +149,11 @@ export function SettingsView() {
               {section === "business" && (
                 <>
                   <BusinessPanel business={business!} onChange={handleBusinessChange} />
+                  {dataSource === "api" && <ApiBrandingPanel />}
+                  {data && <BrandingPanel data={data} onChange={setData} />}
                   <LocationsCard business={business!} onChange={handleBusinessChange} />
                 </>
               )}
-              {section === "branding" && dataSource === "api" && <ApiBrandingPanel />}
-              {section === "branding" && data && <BrandingPanel data={data} onChange={setData} />}
               {section === "payments" && data && <PaymentsPanel data={data} onChange={setData} />}
               {section === "payments" && dataSource === "api" && paymentSettings && (
                 <ApiPaymentsPanel
@@ -173,10 +171,10 @@ export function SettingsView() {
               {section === "calendar" && dataSource === "mock" && data && (
                 <CalendarPanel data={data} onChange={setData} />
               )}
-              {section === "emails" && dataSource === "api" && (
+              {section === "notifications" && dataSource === "api" && (
                 <ApiEmailsPanel business={business!} onChange={handleBusinessChange} />
               )}
-              {section === "emails" && dataSource === "mock" && data && (
+              {section === "notifications" && dataSource === "mock" && data && (
                 <EmailsPanel data={data} onChange={setData} />
               )}
               {section === "account" && dataSource === "api" && <ApiAccountPanel />}

@@ -58,6 +58,12 @@ REGISTRY: dict[str, tuple[type[BaseModel] | None, Any, Any, str]] = {
         SessionActionItem,
         "item_id",
     ),
+    "task.delete": (
+        None,
+        session_action_items.delete_session_action_item,
+        SessionActionItem,
+        "item_id",
+    ),
     "service.create": (ServiceCreate, operator_resources.create_service, Service, "service_id"),
     "service.update": (ServicePatch, operator_resources.update_service, Service, "service_id"),
     "package.create": (PackageInput, packages.create_package, ServicePackage, "package_id"),
@@ -186,6 +192,8 @@ async def prepare(
         if item is None or (isinstance(item, Client) and item.erased_at):
             raise invalid("The selected record is not available.")
         before = snapshot(item)
+        if action.name == "task.delete" and item.session_id is not None:
+            raise invalid("Only general to-do items can be removed through the assistant.")
     elif action.resource_id is not None:
         raise invalid("Creation must not replace an existing record.")
     # References never rely on model-generated ownership claims.

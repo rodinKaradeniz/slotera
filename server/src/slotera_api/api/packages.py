@@ -104,8 +104,20 @@ async def list_package_summaries(
             predicate &= ServicePackage.name.ilike(
                 f"%{escaped}%", escape="!"
             ) | ServicePackage.description.ilike(f"%{escaped}%", escape="!")
+        state_predicate = predicate
         if status:
             predicate &= ServicePackage.status == status
+        state_rows = (
+            await session.execute(
+                select(ServicePackage.status, func.count())
+                .where(state_predicate)
+                .group_by(ServicePackage.status)
+            )
+        ).all()
+        states = {
+            ("active" if key else "inactive") if isinstance(key, bool) else str(key): int(value)
+            for key, value in state_rows
+        }
         total = int(
             await session.scalar(select(func.count(ServicePackage.id)).where(predicate)) or 0
         )
@@ -152,7 +164,7 @@ async def list_package_summaries(
             for item in rows
         ]
     response.headers["Cache-Control"] = "no-store"
-    return PackageSummaryPage(items=items, total=total, limit=limit, offset=offset)
+    return PackageSummaryPage(states=states, items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/{package_id}", response_model=PackageView, operation_id="getPackage")

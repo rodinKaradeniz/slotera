@@ -6,6 +6,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 
 import { useReviewedEdit } from "@/components/shared/use-reviewed-edit";
 import { getClientNote } from "@/services/client-notes.service";
+import { useLeavingRows } from "@/lib/use-leaving-rows";
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -30,6 +31,7 @@ export function ClientNotes({ clientId }: { clientId: string }) {
   const { t: uiText } = useI18n();
   const { toast } = useToast();
   const [notes, setNotes] = React.useState<ClientNote[] | null>(null);
+  const noteRows = useLeavingRows(notes ?? [], (note) => note.id);
   const [reload, setReload] = React.useState(0);
 
   // Add / edit modal
@@ -153,12 +155,11 @@ export function ClientNotes({ clientId }: { clientId: string }) {
           <div className="text-small text-ink-3 border border-dashed border-line rounded-lg px-5 py-8 text-center">
             {uiText("ui.no.notes.yet.add.context.you.want.to.remember.before.future.sessions")}</div>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {notes.map((note) => (
-              <li
-                key={note.id}
-                className="rounded-lg border border-line-soft bg-surface p-4"
-              >
+          <ul className="list-rise flex flex-col">
+            {noteRows.map(({ item: note, leaving }) => (
+              <li key={note.id} className="row-shell" data-state={leaving ? "closed" : "open"} inert={leaving}>
+              <div className="pb-3">
+              <div className="rounded-lg border border-line-soft bg-surface p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="text-[15px] font-medium text-ink">
@@ -188,6 +189,8 @@ export function ClientNotes({ clientId }: { clientId: string }) {
                     ? uiText("ui.note.updated", { date: fmtDate(new Date(note.updatedAtISO), "short") })
                     : uiText("ui.note.added", { date: fmtDate(new Date(note.createdAtISO), "short") })}
                 </div>
+              </div>
+              </div>
               </li>
             ))}
           </ul>

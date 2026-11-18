@@ -28,18 +28,12 @@ const SIZES: Record<Size, string> = {
 };
 
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    "bg-accent text-white hover:bg-accent-hover hover:-translate-y-px transition-all shadow-1",
-  secondary:
-    "bg-surface text-ink border border-line hover:border-ink-3 transition-colors",
-  ghost:
-    "bg-transparent text-ink hover:bg-[rgba(31,31,26,0.04)] transition-colors",
-  dark:
-    "bg-ink text-paper hover:bg-ink-2 transition-colors",
-  outline:
-    "bg-transparent text-ink border border-ink hover:bg-ink hover:text-paper transition-colors",
-  danger:
-    "bg-danger text-white hover:opacity-90 transition-opacity",
+  primary: "bg-accent text-white hover:bg-accent-hover shadow-1",
+  secondary: "bg-surface text-ink border border-line hover:border-ink-3",
+  ghost: "bg-transparent text-ink hover:bg-[rgba(31,31,26,0.04)]",
+  dark: "bg-ink text-paper hover:bg-ink-2",
+  outline: "bg-transparent text-ink border border-ink hover:bg-ink hover:text-paper",
+  danger: "bg-danger text-white hover:opacity-90",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -65,7 +59,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-md font-medium select-none",
+          "press inline-flex items-center justify-center gap-2 rounded-md font-medium select-none",
           "disabled:opacity-60 disabled:pointer-events-none",
           SIZES[size],
           VARIANTS[variant],

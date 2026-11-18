@@ -11,6 +11,7 @@ from slotera_api.auth.dependencies import (
     OperatorWorkspaceDependency,
 )
 from slotera_api.db.models import Notification, NotificationKind
+from slotera_api.errors import ApiError
 from slotera_api.operator_resources.notifications_repository import NotificationsRepository
 from slotera_api.schemas.notifications import (
     BookingCancelledNotification,
@@ -95,16 +96,24 @@ async def list_notifications(
     operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    before: Annotated[datetime | None, Query()] = None,
+    before_id: Annotated[UUID | None, Query(alias="beforeId")] = None,
 ) -> NotificationListResponse:
-    notifications, unread_count = await NotificationsRepository(database).list_for_principal(
-        operator.workspace_id,
-        operator.user_id,
-        limit=limit,
-    )
+    if (before is None) != (before_id is None):
+        raise ApiError(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            code="notification_cursor_invalid",
+            message="Send before and beforeId together.",
+        )
+    cursor = (before, before_id) if before is not None and before_id is not None else None
+    notifications, unread_count, has_more = await NotificationsRepository(
+        database
+    ).list_for_principal(operator.workspace_id, operator.user_id, limit=limit, before=cursor)
     response.headers["Cache-Control"] = "no-store"
     return NotificationListResponse(
         items=[_notification_response(notification) for notification in notifications],
         unread_count=unread_count,
+        has_more=has_more,
     )
 
 

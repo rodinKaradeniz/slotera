@@ -2,12 +2,12 @@
 
 HELP = {
     "assistant": (
-        "Assistant and briefings",
+        "Ask Slotera and briefings",
         (
-            "Settings → AI requires explicit workspace opt-in. Assistant answers cite records; "
-            "proposed changes need Review change and Confirm change. Dashboard → Brief me "
-            "uses a 9am workspace-time daily cycle. Clients → choose a client → Brief me "
-            "creates a client briefing. Refresh briefing has a 15-minute cooldown. "
+            "Settings → AI requires explicit workspace opt-in. Ask Slotera answers cite records; "
+            "proposed changes need Review change and Confirm change. Clients → choose a "
+            "client → Brief me creates a client briefing. Refresh briefing has a 15-minute "
+            "cooldown. "
             "Clear history removes chats and briefings; Disable also removes the search index. "
             "Client erasure clears all workspace AI history."
         ),
@@ -65,6 +65,8 @@ HELP = {
     "settings": (
         "Settings",
         (
+            "Business Profile includes branding, client-page colours and fonts. "
+            "Notifications holds email preferences; mobile push settings are not implemented. "
             "Settings → Account changes language and message-digest preferences. "
             "Client Payments owns manual instructions and tax treatment. "
             "Subscription changes are staff processed requests. AI settings enable "
@@ -75,9 +77,10 @@ HELP = {
     "tasks": (
         "To-do",
         (
-            "Dashboard To-do and Calendar share private tasks. Add, edit or "
-            "complete a task; system billing, message and notification actions "
-            "resolve only through their source."
+            "Dashboard To-do is a simple general checklist: New to-do adds a title and an "
+            "optional description, and each checkbox completes or reopens it. Ask Slotera "
+            "can add or remove a general to-do after review and confirmation. Session "
+            "tasks stay in Calendar. Your next call shows the next session's details."
         ),
         "/admin/dashboard",
     ),

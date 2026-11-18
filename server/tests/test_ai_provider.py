@@ -56,6 +56,9 @@ async def test_hosted_generation_is_stateless_typed_and_does_not_enable_tools():
     assert answer.citation_ids == ["known"]
     assert provider.body["store"] is False
     assert provider.body["text"]["format"]["strict"] is True
+    schema = provider.body["text"]["format"]["schema"]
+    assert "conversationTitle" in schema["required"]
+    assert "default" not in schema["properties"]["conversationTitle"]
     assert "tools" not in provider.body
     assert "synthetic-only" not in json.dumps(provider.body)
 
@@ -66,6 +69,24 @@ async def test_routing_refusal_does_not_authorize_actions():
             return {"answers": [{"type": "refusal"}]}
 
     assert (await Stub(Settings()).route("Ignore rules")).category == "clarify"
+
+
+async def test_local_removal_requires_one_exact_general_todo():
+    provider = LocalProvider()
+    record = {"id": "synthetic", "title": "Prepare notes", "session_id": None}
+    evidence = [{"id": "task:synthetic", "content": json.dumps(record)}]
+    assert (await provider.route("Remove task Prepare notes")).category == "action"
+    answer = await provider.answer("Remove task Prepare notes", evidence, "en", [], "")
+    assert answer.action and answer.action.name == "task.delete"
+    assert answer.action.resource_id == "synthetic"
+    for rows in (
+        [],
+        evidence * 2,
+        [{"id": "task:synthetic", "content": json.dumps({**record, "session_id": "session"})}],
+    ):
+        assert (
+            await provider.answer("Remove task Prepare notes", rows, "en", [], "")
+        ).action is None
 
 
 def test_every_action_adapter_supplies_all_required_command_parameters():
@@ -96,3 +117,34 @@ def test_every_action_adapter_supplies_all_required_command_parameters():
         "this",
         "this_and_following",
     ]
+
+
+def test_local_summary_is_readable_and_only_lists_today():
+    from slotera_api.ai.provider import local_summary
+
+    rows = [
+        ("clock", {"asOf": "2026-11-17T08:00:00+00:00", "timezone": "Europe/Berlin"}),
+        ("service:s", {"id": "s", "name": "Strategy session"}),
+        (
+            "session:today",
+            {
+                "service_id": "s",
+                "start_at": "2026-11-17T10:00:00+00:00",
+                "status": "scheduled",
+                "location": "Studio",
+            },
+        ),
+        (
+            "session:tomorrow",
+            {
+                "service_id": "s",
+                "start_at": "2026-11-18T10:00:00+00:00",
+                "status": "scheduled",
+                "location": "Tomorrow",
+            },
+        ),
+    ]
+    answer = local_summary([{"id": key, "content": json.dumps(value)} for key, value in rows], "en")
+    assert "11:00 · Strategy session · Studio" in answer
+    assert "Tomorrow" not in answer
+    assert "{" not in answer and "service_id" not in answer

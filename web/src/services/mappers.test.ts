@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { mapInquiry, mapPlatformOverview, mapPlatformWorkspace } from "./platform.service";
 import { apiCurrency } from "./_currency";
 import { ApiRequestError } from "./_errors";
-import { billingAction } from "./dashboard.service";
 
 describe("platform DTO mappers", () => {
   it("maps the overview's generated 30D field names", () => {
@@ -75,21 +74,5 @@ describe("apiCurrency", () => {
   it("accepts supported currencies and rejects others loudly", () => {
     expect(apiCurrency("GBP")).toBe("GBP");
     expect(() => apiCurrency("TRY")).toThrow(ApiRequestError);
-  });
-});
-
-describe("billingAction", () => {
-  const now = new Date("2026-10-11T12:00:00Z");
-  it("stays quiet early in the trial and once paid", () => {
-    expect(billingAction("2026-11-01T00:00:00Z", null, now)).toBeNull();
-    expect(billingAction("2026-10-01T00:00:00Z", "2026-11-11", now)).toBeNull();
-  });
-  it("warns in the last week and after the trial", () => {
-    expect(billingAction("2026-10-14T12:00:00Z", null, now)?.label).toBe(
-      "Your free trial ends in 3 days",
-    );
-    expect(billingAction("2026-10-01T00:00:00Z", null, now)?.label).toBe(
-      "Your free trial has ended",
-    );
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { UsageBar } from "@/components/chat/UsageBar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -19,6 +20,15 @@ export function AISettings() {
   const { t } = useI18n();
   const load = useLoad(
     React.useCallback((signal?: AbortSignal) => getAIStatus(signal), []),
+  );
+  const usagePercent = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        ((load.data?.dailyTokens ?? 0) / (load.data?.tokenLimit ?? 1)) * 100,
+      ),
+    ),
   );
   const [error, setError] = React.useState<Error | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -40,8 +50,8 @@ export function AISettings() {
     }
   }
   return (
-    <Card className="space-y-4">
-      <h2 className="text-h2">{t("ai.settings")}</h2>
+    <Card className="space-y-4 text-body">
+      <h2 className="text-h3">{t("ai.settings")}</h2>
       <p>{t("ai.disclosure")}</p>
       <p>{t("ai.retention")}</p>
       <RecoverableError error={error} />
@@ -51,25 +61,14 @@ export function AISettings() {
         <>
           {!load.data.available && <p role="status">{t("ai.unavailable")}</p>}
           {load.data.simulated && <p>{t("ai.simulated")}</p>}
-          <p>
-            {t("ai.usage", {
-              used: load.data.dailyAnswers,
-              limit: load.data.answerLimit,
-            })}
-          </p>
-          <p>
-            {t("ai.tokens", {
-              used: load.data.dailyTokens,
-              limit: load.data.tokenLimit,
-            })}
-          </p>
-          <p>
-            {t("ai.indexing", {
-              indexed: load.data.indexed,
-              pending: load.data.pending,
-              failed: load.data.failed,
-            })}
-          </p>
+          <UsageBar
+            label={t("ask.usage", { percent: usagePercent })}
+            used={usagePercent}
+            limit={100}
+          />
+          {load.data.pending > 0 && (
+            <p className="text-small">{t("ask.preparing")}</p>
+          )}
           {load.data.failed > 0 && (
             <Button
               onClick={() => {
@@ -96,7 +95,7 @@ export function AISettings() {
               {t("ai.clear")}
             </Button>
             <Button variant="ghost" onClick={load.reload}>
-              {t("ai.refresh")}
+              {t("ui.refresh")}
             </Button>
           </div>
         </>

@@ -7,6 +7,8 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { BookingThemeContext } from "@/components/booking/BookingTheme";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useDialogFocus } from "@/lib/use-dialog-focus";
+import { usePresence } from "@/lib/use-presence";
+import { exitMs, motion } from "@/lib/motion";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
@@ -46,6 +48,7 @@ export function Modal({
   useScrollLock(open);
   const dialogRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
+  const { rendered, state, closing } = usePresence(open, exitMs(motion.sheet));
   useDialogFocus(open && mounted, dialogRef);
 
   React.useEffect(() => {
@@ -59,7 +62,7 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!mounted || !open) return null;
+  if (!mounted || !rendered) return null;
 
   const hasBody =
     children !== undefined &&
@@ -73,18 +76,23 @@ export function Modal({
       style={theme}
       ref={dialogRef}
       tabIndex={-1}
-      className="booking-theme fixed inset-0 z-50 flex items-center justify-center p-4 fade-in outline-none"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={title ? titleId : undefined}
+      className="booking-theme fixed inset-0 z-50 flex items-center justify-center p-4 outline-none"
+      // While leaving, the dialog is only a picture of itself: not a dialog, not focusable.
+      role={closing ? undefined : "dialog"}
+      aria-modal={closing ? undefined : true}
+      aria-labelledby={title && !closing ? titleId : undefined}
+      inert={closing}
+      aria-hidden={closing || undefined}
     >
       <div
-        className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
+        data-state={state}
+        className="modal-backdrop absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
         onClick={onClose}
       />
       <div
+        data-state={state}
         className={cn(
-          "relative w-full bg-surface border border-line rounded-lg shadow-3 flex flex-col max-h-[88vh]",
+          "modal-panel relative w-full bg-surface border border-line rounded-lg shadow-3 flex flex-col max-h-[88vh]",
           SIZES[size],
           className,
         )}

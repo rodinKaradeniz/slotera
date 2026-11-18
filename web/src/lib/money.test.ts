@@ -20,3 +20,9 @@ describe("formatMoney", () => {
     }
   });
 });
+
+it("shortens amounts for chart axes", async () => {
+  const { formatMoneyCompact } = await import("./money");
+  expect(formatMoneyCompact(100000, "GBP", "en")).toBe("£1k");
+  expect(formatMoneyCompact(75000, "GBP", "en")).toBe("£750");
+});

@@ -51,7 +51,6 @@ export function Pricing() {
   return (
     <Section id="pricing">
       <SectionHeader
-        eyebrow={t("landing.pricing.eyebrow")}
         title={t("landing.pricing.title")}
         maxTitleWidth="44rem"
       />

@@ -234,9 +234,10 @@ export async function serviceOptionsForIds(ids: string[]): Promise<ServiceOption
 
 export async function listServicePage(filters: import("@/types/page").ListFilter, signal?: AbortSignal): Promise<import("@/types/page").Page<Service>> {
   if (dataSource === "mock") {
-    const items = mock.filter((item) => (!filters.search || item.name.toLowerCase().includes(filters.search.toLowerCase())) && (filters.status === undefined || filters.status === "all" || (item.active ? "active" : "inactive") === filters.status));
+    const items = mock.filter((item) => (!filters.search || item.name.toLowerCase().includes(filters.search.trim().toLowerCase())) && (filters.status === undefined || filters.status === "all" || (item.active ? "active" : "inactive") === filters.status));
+    const states = mock.filter((item) => !filters.search || item.name.toLowerCase().includes(filters.search.trim().toLowerCase())).reduce<Record<string, number>>((counts, item) => { const state = item.active ? "active" : "inactive"; counts[state] = (counts[state] ?? 0) + 1; return counts; }, {});
     const offset = filters.offset ?? 0;
-    return {items: items.slice(offset, offset + 25), total: items.length, limit: 25, offset};
+    return {states, items: items.slice(offset, offset + 25), total: items.length, limit: 25, offset};
   }
   const params = new URLSearchParams({search: filters.search ?? "", limit: "25", offset: String(filters.offset ?? 0)});
   if (filters.status && filters.status !== "all") params.set("active", String(filters.status === "active"));

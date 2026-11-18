@@ -76,8 +76,8 @@ export default function ConfirmationPage() {
       <BookingTopBar consultantName={data?.providerName} />
       <main className="flex-1 max-w-[820px] mx-auto w-full px-6 pt-12 pb-12">
         <Card padded className="text-center">
-          <div className="mx-auto w-16 h-16 rounded-full bg-accent-soft text-accent flex items-center justify-center mb-5">
-            <Icon name="check" size={28} strokeWidth={2.5} />
+          <div className="swap-in mx-auto w-16 h-16 rounded-full bg-accent-soft text-accent flex items-center justify-center mb-5">
+            <Icon name="check" size={28} strokeWidth={2.5} className="draw-check" />
           </div>
           <h1 className="text-h2 text-ink">
             {apiBooking && !isConfirmed

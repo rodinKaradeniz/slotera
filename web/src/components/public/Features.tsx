@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Card } from "@/components/ui/Card";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Section } from "./Section";
@@ -22,21 +21,26 @@ export function Features() {
   return (
     <Section id="features">
       <SectionHeader
-        eyebrow={t("landing.features.eyebrow")}
         title={t("landing.features.title")}
         maxTitleWidth="44rem"
       />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* A list, not a grid of identical cards: each row names the feature on the
+          left and says what it does on the right. */}
+      <dl className="border-t border-line">
         {FEATURES.map((f) => (
-          <Card key={f.titleKey}>
-            <span className="inline-flex w-10 h-10 rounded-md bg-accent-soft text-accent items-center justify-center">
-              <Icon name={f.icon} size={20} />
-            </span>
-            <h3 className="text-h3 mt-4">{t(f.titleKey)}</h3>
-            <p className="text-body mt-2 text-ink-3">{t(f.bodyKey)}</p>
-          </Card>
+          <div
+            key={f.titleKey}
+            data-reveal
+            className="grid gap-2 py-7 border-b border-line md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] md:gap-10"
+          >
+            <dt className="flex items-baseline gap-3">
+              <Icon name={f.icon} size={18} className="relative top-0.5 shrink-0 text-accent" />
+              <span className="text-h3 text-ink">{t(f.titleKey)}</span>
+            </dt>
+            <dd className="text-body text-ink-2 max-w-[60ch]">{t(f.bodyKey)}</dd>
+          </div>
         ))}
-      </div>
+      </dl>
     </Section>
   );
 }

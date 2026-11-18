@@ -159,6 +159,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/ai/threads/{identifier}/branch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Branch Thread */
+        post: operations["branchAIThread"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ai/threads/{identifier}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop Turn */
+        post: operations["stopAITurn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ai/threads/{identifier}/turns": {
         parameters: {
             query?: never;
@@ -978,23 +1012,6 @@ export interface paths {
         };
         /** Get Dashboard Summary */
         get: operations["getDashboardSummary"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/dashboard/worklist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Worklist */
-        get: operations["getDashboardWorklist"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2681,6 +2698,21 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** BranchInput */
+        BranchInput: {
+            /**
+             * Threadid
+             * Format: uuid
+             */
+            threadId: string;
+            /** Title */
+            title: string;
+            /**
+             * Turnid
+             * Format: uuid
+             */
+            turnId: string;
+        };
         /** Branding */
         Branding: {
             /**
@@ -3066,6 +3098,10 @@ export interface components {
             limit: number;
             /** Offset */
             offset: number;
+            /** States */
+            states: {
+                [key: string]: number;
+            };
             /** Total */
             total: number;
         };
@@ -3462,6 +3498,10 @@ export interface components {
             limit: number;
             /** Offset */
             offset: number;
+            /** States */
+            states: {
+                [key: string]: number;
+            };
             /** Total */
             total: number;
         };
@@ -3731,6 +3771,8 @@ export interface components {
         };
         /** NotificationListResponse */
         NotificationListResponse: {
+            /** Hasmore */
+            hasMore: boolean;
             /** Items */
             items: (components["schemas"]["BookingPendingNotification"] | components["schemas"]["BookingConfirmedNotification"] | components["schemas"]["PaymentPendingNotification"] | components["schemas"]["SessionStartingNotification"] | components["schemas"]["RescheduleRequestedNotification"] | components["schemas"]["BookingCancelledNotification"])[];
             /** Unreadcount */
@@ -3863,6 +3905,10 @@ export interface components {
             limit: number;
             /** Offset */
             offset: number;
+            /** States */
+            states: {
+                [key: string]: number;
+            };
             /** Total */
             total: number;
         };
@@ -5026,6 +5072,10 @@ export interface components {
             limit: number;
             /** Offset */
             offset: number;
+            /** States */
+            states: {
+                [key: string]: number;
+            };
             /** Total */
             total: number;
         };
@@ -5325,6 +5375,18 @@ export interface components {
             /** Slug */
             slug: string;
         };
+        /** StopInput */
+        StopInput: {
+            /** Key */
+            key: string;
+            /**
+             * Language
+             * @enum {string}
+             */
+            language: "en" | "tr" | "de";
+            /** Prompt */
+            prompt: string;
+        };
         /** TaskCreate */
         TaskCreate: {
             /** Description */
@@ -5447,28 +5509,6 @@ export interface components {
             /** Error Type */
             type: string;
         };
-        /** WorklistResponse */
-        WorklistResponse: {
-            /** Items */
-            items: components["schemas"]["SessionActionItemResponse"][];
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-            /** Paidthrough */
-            paidThrough: string | null;
-            /** Total */
-            total: number;
-            /**
-             * Trialendsat
-             * Format: date-time
-             */
-            trialEndsAt: string;
-            /** Unreadmessages */
-            unreadMessages: number;
-            /** Unreadnotifications */
-            unreadNotifications: number;
-        };
         /**
          * WorkspaceBillingResponse
          * @description The operator's own plan plus the full price list, for Settings → Billing.
@@ -5576,7 +5616,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                kind: "daily" | "client";
+                kind: "client";
             };
             cookie?: never;
         };
@@ -5611,7 +5651,7 @@ export interface operations {
                 "Idempotency-Key": string;
             };
             path: {
-                kind: "daily" | "client";
+                kind: "client";
             };
             cookie?: never;
         };
@@ -5873,6 +5913,74 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    branchAIThread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BranchInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThreadView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stopAITurn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StopInput"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {
@@ -7770,39 +7878,6 @@ export interface operations {
             };
         };
     };
-    getDashboardWorklist: {
-        parameters: {
-            query?: {
-                status?: components["schemas"]["SessionActionItemStatus"];
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorklistResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     listForms: {
         parameters: {
             query?: {
@@ -8056,6 +8131,8 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                before?: string | null;
+                beforeId?: string | null;
             };
             header?: never;
             path?: never;
@@ -10239,6 +10316,7 @@ export interface operations {
             query?: {
                 session_id?: string | null;
                 status?: components["schemas"]["SessionActionItemStatus"] | null;
+                general_only?: boolean;
                 limit?: number;
                 offset?: number;
             };

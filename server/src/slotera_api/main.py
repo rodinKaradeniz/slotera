@@ -30,7 +30,6 @@ from slotera_api.api.public_booking_manage import router as public_booking_manag
 from slotera_api.api.scheduling import availability_router, sessions_router
 from slotera_api.api.search import router as search_router
 from slotera_api.api.session_action_items import router as session_action_items_router
-from slotera_api.api.worklist import router as worklist_router
 from slotera_api.api.workspace_data import router as workspace_data_router
 from slotera_api.auth.service import AuthServiceProtocol, create_auth_service
 from slotera_api.client_access.api import router as client_access_router
@@ -121,7 +120,6 @@ def create_app(
     app.include_router(availability_router)
     app.include_router(sessions_router)
     app.include_router(session_action_items_router)
-    app.include_router(worklist_router)
     return app
 
 

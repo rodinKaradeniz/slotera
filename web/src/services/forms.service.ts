@@ -189,9 +189,10 @@ export async function saveFormResponse(
 
 export async function listFormPage(filters: import("@/types/page").ListFilter, signal?: AbortSignal): Promise<import("@/types/page").Page<import("@/types/form").FormSummary>> {
   if (dataSource === "mock") {
-    const items = mock.filter((item) => (!filters.search || item.name.toLowerCase().includes(filters.search.toLowerCase())) && (filters.status === undefined || filters.status === "all" || item.status === filters.status));
+    const items = mock.filter((item) => (!filters.search || item.name.toLowerCase().includes(filters.search.trim().toLowerCase())) && (filters.status === undefined || filters.status === "all" || item.status === filters.status));
+    const states = mock.filter((item) => !filters.search || item.name.toLowerCase().includes(filters.search.trim().toLowerCase())).reduce<Record<string, number>>((counts, item) => { const state = item.status; counts[state] = (counts[state] ?? 0) + 1; return counts; }, {});
     const offset = filters.offset ?? 0;
-    return {items: items.slice(offset, offset + 25).map((item) => ({id: item.id, name: item.name, description: item.description, status: item.status, fieldCount: item.fields.length, attachedServiceCount: item.attachedServiceIds.length})), total: items.length, limit: 25, offset};
+    return {states, items: items.slice(offset, offset + 25).map((item) => ({id: item.id, name: item.name, description: item.description, status: item.status, fieldCount: item.fields.length, attachedServiceCount: item.attachedServiceIds.length})), total: items.length, limit: 25, offset};
   }
   const params = new URLSearchParams({search: filters.search ?? "", limit: "25", offset: String(filters.offset ?? 0)});
   if (filters.status && filters.status !== "all") params.set("status", filters.status);

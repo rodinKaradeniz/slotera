@@ -38,7 +38,6 @@ export function WorkspacesView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow={uiText("ui.platform")}
         title={uiText("ui.workspaces")}
         description={uiText("ui.provision.and.browse.workspaces.their.plan.and.operating.facts")}
         meta={items ? `${page?.total ?? 0} workspaces` : undefined}

@@ -33,6 +33,13 @@ from slotera_api.errors import ApiError
 from slotera_api.identity import hash_opaque_token
 
 logger = logging.getLogger("slotera.ai")
+running_generations: dict[tuple[UUID, UUID, str], asyncio.Task[Any]] = {}
+
+
+def turn_fingerprint(thread: UUID, prompt: str, language: str) -> str:
+    return hashlib.sha256(
+        json.dumps([thread, prompt, language, "None", False], default=str).encode()
+    ).hexdigest()
 
 
 def fail(code: str, message: str, status: int = 409) -> ApiError:
@@ -230,7 +237,6 @@ class AssistantService:
             assert workspace_row
             timezone = workspace_row.timezone
             local = datetime.now(ZoneInfo(timezone))
-            cycle = (local - timedelta(hours=9)).date().isoformat()
             if client_id and not await session.scalar(
                 select(Client.id).where(
                     Client.workspace_id == workspace,
@@ -239,7 +245,9 @@ class AssistantService:
                 )
             ):
                 raise fail("client_not_found", "Client was not found.", 404)
-            scope = "client:" + str(client_id) if client_id else "daily"
+            if briefing and not client_id:
+                raise fail("ai_client_required", "Choose a client.", 422)
+            scope = "client:" + str(client_id)
             if briefing:
                 cached = await session.scalar(
                     select(AIBriefing).where(
@@ -248,7 +256,7 @@ class AssistantService:
                         AIBriefing.scope == scope,
                     )
                 )
-                if cached and (briefing != "daily" or cached.cycle == cycle):
+                if cached:
                     if not refresh and cached.language == language:
                         item = await session.get(AITurn, cached.turn_id)
                         if item:
@@ -269,23 +277,24 @@ class AssistantService:
             if not thread:
                 if not briefing:
                     raise fail("ai_thread_not_found", "Conversation was not found.", 404)
-                title = {"en": "Daily briefing", "tr": "Günlük özet", "de": "Tagesbriefing"}[
-                    language
-                ]
-                if client_id:
-                    name = await session.scalar(
-                        select(Client.name).where(
-                            Client.workspace_id == workspace, Client.id == client_id
-                        )
+                name = await session.scalar(
+                    select(Client.name).where(
+                        Client.workspace_id == workspace, Client.id == client_id
                     )
-                    prefix = {
-                        "en": "Client briefing",
-                        "tr": "Danışan özeti",
-                        "de": "Kundenbriefing",
-                    }[language]
-                    title = prefix + " — " + str(name)
+                )
+                prefix = {
+                    "en": "Client briefing",
+                    "tr": "Danışan özeti",
+                    "de": "Kundenbriefing",
+                }[language]
+                title = prefix + ": " + str(name)
                 thread = AIThread(
-                    id=thread_id, workspace_id=workspace, actor_id=actor, title=title[:120]
+                    id=thread_id,
+                    workspace_id=workspace,
+                    actor_id=actor,
+                    title=title[:120],
+                    title_generated=True,
+                    kind="client",
                 )
                 session.add(thread)
                 await session.flush()
@@ -368,7 +377,18 @@ class AssistantService:
             await session.flush()
         met = {"calls": 0, "reported": 0, "tokens": 0}
         met_token = metrics.set(met)
+        task = asyncio.current_task()
+        if task:
+            running_generations[(workspace, actor, key)] = task
         try:
+            async with self.database.tenant_transaction(workspace) as session:
+                status = await session.scalar(
+                    select(AITurn.status).where(
+                        AITurn.workspace_id == workspace, AITurn.id == identifier
+                    )
+                )
+                if status != "pending":
+                    raise fail("ai_cancelled", "Generation was stopped.")
             provider = self.provider or create_provider(self.settings)
             async with asyncio.timeout(65):
                 route = await provider.route(prompt)
@@ -448,6 +468,14 @@ class AssistantService:
                     raise fail(
                         "ai_context_changed", "Private context changed; start a new request."
                     )
+                if row.status != "pending":
+                    raise fail("ai_cancelled", "Generation was stopped.")
+                if answer.conversation_title and not briefing:
+                    conversation = await session.get(AIThread, row.thread_id)
+                    title = " ".join(answer.conversation_title.split())[:80]
+                    if conversation and not conversation.title_generated and title:
+                        conversation.title = title
+                        conversation.title_generated = True
                 row.answer = answer.text
                 row.status = "completed"
                 row.citations = [
@@ -470,18 +498,17 @@ class AssistantService:
                     await session.execute(
                         text(
                             "INSERT INTO "
-                            "ai_briefings(id,workspace_id,actor_id,scope,cycle,"
+                            "ai_briefings(id,workspace_id,actor_id,scope,"
                             "language,turn_id) "
-                            "VALUES(gen_random_uuid(),:w,:a,:scope,:cycle,:lang,:turn) ON "
+                            "VALUES(gen_random_uuid(),:w,:a,:scope,:lang,:turn) ON "
                             "CONFLICT(workspace_id,actor_id,scope) DO UPDATE SET "
-                            "cycle=EXCLUDED.cycle,language=EXCLUDED.language"
+                            "language=EXCLUDED.language"
                             ",turn_id=EXCLUDED.turn_id,generated_at=now()"
                         ),
                         {
                             "w": workspace,
                             "a": actor,
                             "scope": scope,
-                            "cycle": cycle,
                             "lang": language,
                             "turn": identifier,
                         },
@@ -515,7 +542,9 @@ class AssistantService:
                 },
             )
             return row
-        except Exception as exc:
+        except (Exception, asyncio.CancelledError) as exc:
+            if isinstance(exc, asyncio.CancelledError):
+                exc = fail("ai_cancelled", "Generation was stopped.")
             code = exc.code if isinstance(exc, ApiError) else "ai_provider_unavailable"
             async with self.database.tenant_transaction(
                 workspace, scheduling_write=True
@@ -543,7 +572,7 @@ class AssistantService:
                 },
             )
             if isinstance(exc, ApiError):
-                raise
+                raise exc
             raise fail(
                 "ai_provider_unavailable",
                 "AI could not finish this request; retry explicitly.",
@@ -551,4 +580,5 @@ class AssistantService:
             ) from None
 
         finally:
+            running_generations.pop((workspace, actor, key), None)
             metrics.reset(met_token)

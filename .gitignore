@@ -57,4 +57,5 @@ notes.txt
 
 # Local browser checks (safe CI artifacts are uploaded explicitly).
 web/test-results/
+web/ui-shots/
 web/browser-artifacts/

@@ -97,8 +97,7 @@ export function Greeting({ firstName, subtitle }: Props) {
       day: "numeric",
       month: "long",
       year: "numeric",
-    })
-    .toUpperCase();
+    });
 
   return (
     <>
@@ -107,12 +106,7 @@ export function Greeting({ firstName, subtitle }: Props) {
           <div className="eyebrow mb-3">{dateStr}</div>
           <h1 className="text-h1 text-ink">
             {timeGreeting(date)}
-            {firstName ? (
-              <>
-                ,{" "}
-                <span className="font-serif italic text-accent">{firstName}</span>
-              </>
-            ) : null}
+            {firstName ? `, ${firstName}` : null}
             .
           </h1>
           {subtitle && (

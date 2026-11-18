@@ -1,0 +1,30 @@
+[
+  {
+    "id": "sample-message-0",
+    "sequence": 1,
+    "senderKind": "client",
+    "body": "Hi Lena! Could we focus on the funding narrative in our next session?",
+    "createdAt": "2026-11-09T09:00:00Z"
+  },
+  {
+    "id": "sample-message-1",
+    "sequence": 2,
+    "senderKind": "operator",
+    "body": "Absolutely, Sofia. Please bring your current pitch outline.",
+    "createdAt": "2026-11-09T09:05:00Z"
+  },
+  {
+    "id": "sample-message-2",
+    "sequence": 3,
+    "senderKind": "client",
+    "body": "Great, I will. I would also like to discuss our next milestone.",
+    "createdAt": "2026-11-09T09:10:00Z"
+  },
+  {
+    "id": "sample-message-3",
+    "sequence": 4,
+    "senderKind": "operator",
+    "body": "That fits well. We will leave time to work through both.",
+    "createdAt": "2026-11-09T09:15:00Z"
+  }
+]

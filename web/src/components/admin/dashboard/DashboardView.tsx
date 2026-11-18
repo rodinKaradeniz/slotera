@@ -1,6 +1,5 @@
 "use client";
 
-import {BriefingCard} from "@/components/assistant/BriefingCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { readLang, translate } from "@/lib/i18n";
 import * as React from "react";
@@ -8,8 +7,8 @@ import { useHydrated } from "@/lib/use-hydrated";
 import { Greeting, spell } from "./Greeting";
 import { KpiTile } from "./KpiTile";
 import { TrendChart } from "./TrendChart";
-import { NextSessionCard } from "./NextSessionCard";
-import { PendingActions } from "./PendingActions";
+import { NextSessionCard, ScheduleCard } from "./NextSessionCard";
+import { TodoList } from "./TodoList";
 import { currentSession } from "@/services/auth.service";
 import { getDashboard } from "@/services/dashboard.service";
 import { LoadingRows } from "@/components/shared/LoadingRows";
@@ -41,7 +40,6 @@ export function DashboardView() {
   return (
     <PageContainer>
       <Greeting firstName={firstName} subtitle={subtitle} />
-      <div className="mb-6"><BriefingCard /></div>
 
       {error ? (
         <LoadError message={error} onRetry={reload} />
@@ -49,16 +47,15 @@ export function DashboardView() {
         <LoadingRows count={3} />
       ) : (
         <div className="flex flex-col gap-6">
+          {/* The left column (next call, then today's schedule) sets the row's height; the
+              to-do fills the same height beside it and scrolls inside. */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-            <div className="min-w-0 lg:col-span-2">
-              <NextSessionCard
-                item={next}
-                schedule={data.todaySchedule}
-                onChanged={reload}
-              />
+            <div className="min-w-0 lg:col-span-2 flex flex-col gap-6">
+              <NextSessionCard item={next} onChanged={reload} />
+              <ScheduleCard schedule={data.todaySchedule} />
             </div>
-            <div className="min-w-0 lg:col-span-1">
-              <PendingActions items={data.pendingActions} />
+            <div className="min-w-0 lg:col-span-1 lg:relative">
+              <TodoList className="lg:absolute lg:inset-0" />
             </div>
           </div>
 

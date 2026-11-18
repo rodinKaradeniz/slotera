@@ -39,7 +39,7 @@ export function Field({
             {required && <span className="text-danger ml-0.5">*</span>}
           </span>
           {optional && (
-            <span className="text-[11px] text-ink-3 font-mono uppercase tracking-wider">
+            <span className="text-[12px] text-ink-3">
               {uiText("ui.optional")}</span>
           )}
         </Heading>

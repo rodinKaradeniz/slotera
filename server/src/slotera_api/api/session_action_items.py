@@ -181,11 +181,16 @@ async def list_tasks(
     database: DatabaseDependency,
     session_id: UUID | None = None,
     status: SessionActionItemStatus | None = None,
+    general_only: bool = False,
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> SessionActionItemListResponse:
+    if general_only and session_id is not None:
+        raise ApiError(
+            status_code=422, code="invalid_filters", message="Choose general or session tasks."
+        )
     result = await SessionActionItemsRepository(database).list_items(
-        operator.workspace_id, session_id, limit, offset, status
+        operator.workspace_id, session_id, limit, offset, status, general_only
     )
     if result is None:
         raise _session_not_found()

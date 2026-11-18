@@ -16,7 +16,8 @@ import {
 } from "@/services/assistant.service";
 import { useLoad } from "@/lib/use-load";
 import { AnswerCard } from "./AnswerCard";
-export function BriefingCard({ clientId }: { clientId?: string }) {
+/** A client briefing, generated on request from the client page. */
+export function BriefingCard({ clientId }: { clientId: string }) {
   const { t, lang } = useI18n();
   const status = useLoad(
     React.useCallback((signal?: AbortSignal) => getAIStatus(signal), []),
@@ -34,7 +35,7 @@ export function BriefingCard({ clientId }: { clientId?: string }) {
       async (signal?: AbortSignal) => ({
         epoch,
         turn: status.data?.enabled
-          ? await getBriefing(clientId ? "client" : "daily", clientId, signal)
+          ? await getBriefing(clientId, signal)
           : null,
       }),
       [clientId, status.data?.enabled, epoch],
@@ -62,13 +63,7 @@ export function BriefingCard({ clientId }: { clientId?: string }) {
       retry.current = { key: crypto.randomUUID(), lang, refresh };
     try {
       setTurn(
-        await generateBriefing(
-          clientId ? "client" : "daily",
-          lang,
-          retry.current.key,
-          refresh,
-          clientId,
-        ),
+        await generateBriefing(clientId, lang, retry.current.key, refresh),
       );
       retry.current = null;
     } catch (e) {
@@ -82,7 +77,7 @@ export function BriefingCard({ clientId }: { clientId?: string }) {
       <Card className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-h3">
-            {t(clientId ? "ai.clientBrief" : "ai.dailyBrief")}
+            {t("ai.clientBrief")}
           </h2>
           <p className="text-small">{t("ai.briefHint")}</p>
         </div>

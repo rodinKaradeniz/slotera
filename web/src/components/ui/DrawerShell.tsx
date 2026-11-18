@@ -10,6 +10,8 @@ import { Icon } from "./Icon";
 import { cn } from "@/lib/cn";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useDialogFocus } from "@/lib/use-dialog-focus";
+import { usePresence } from "@/lib/use-presence";
+import { exitMs, motion } from "@/lib/motion";
 
 type DrawerProps = {
   open: boolean;
@@ -20,8 +22,6 @@ type DrawerProps = {
   footer?: React.ReactNode;
   className?: string;
 };
-
-const EXIT_DURATION_MS = 320;
 
 export function DrawerShell({
   open,
@@ -38,31 +38,7 @@ export function DrawerShell({
   useScrollLock(open);
   const dialogRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
-  // `rendered` keeps the drawer in the DOM through its exit animation; `entered` flips
-  // two frames after mounting so the enter transition runs.
-  const [rendered, setRendered] = React.useState(open);
-  const [entered, setEntered] = React.useState(false);
-  if (open && !rendered) setRendered(true);
-  const state = open && entered ? "open" : "closed";
-
-  React.useEffect(() => {
-    if (open) {
-      let inner = 0;
-      const outer = requestAnimationFrame(() => {
-        inner = requestAnimationFrame(() => setEntered(true));
-      });
-      return () => {
-        cancelAnimationFrame(outer);
-        cancelAnimationFrame(inner);
-      };
-    }
-    if (!rendered) return;
-    const t = window.setTimeout(() => {
-      setRendered(false);
-      setEntered(false);
-    }, EXIT_DURATION_MS);
-    return () => window.clearTimeout(t);
-  }, [open, rendered]);
+  const { rendered, state, closing } = usePresence(open, exitMs(motion.sheet));
 
   React.useEffect(() => {
     if (!open) return;
@@ -85,9 +61,12 @@ export function DrawerShell({
       ref={dialogRef}
       tabIndex={-1}
       className="booking-theme fixed inset-0 z-40 outline-none"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
+      // While leaving, the drawer is only a picture of itself: not a dialog, not focusable.
+      role={closing ? undefined : "dialog"}
+      aria-modal={closing ? undefined : true}
+      aria-labelledby={closing ? undefined : titleId}
+      inert={closing}
+      aria-hidden={closing || undefined}
     >
       <div
         data-state={state}

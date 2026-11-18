@@ -3,6 +3,7 @@ import { translateInterfaceLabel } from "@/lib/i18n";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import * as React from "react";
+import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { NotificationsButton } from "./NotificationsButton";
 import { NavbarSearch } from "@/components/admin/search/NavbarSearch";
@@ -39,7 +40,11 @@ export function Topbar({
         type="button"
         onClick={onToggleSidebar}
         className="w-9 h-9 rounded-md hover:bg-paper-2 text-ink-2 flex items-center justify-center"
-        aria-label={collapsed ? uiText("ui.expand.sidebar") : uiText("ui.collapse.sidebar")}
+        aria-label={
+          collapsed
+            ? uiText("ui.expand.sidebar")
+            : uiText("ui.collapse.sidebar")
+        }
       >
         <Icon name="panel-l" size={18} />
       </button>
@@ -51,10 +56,7 @@ export function Topbar({
               <Icon name="chevron-r" size={14} className="text-ink-4" />
             )}
             {c.href && i < crumbs.length - 1 ? (
-              <a
-                href={c.href}
-                className="text-ink-3 hover:text-ink truncate"
-              >
+              <a href={c.href} className="text-ink-3 hover:text-ink truncate">
                 {translateInterfaceLabel(labelLang, c.label)}
               </a>
             ) : (
@@ -77,10 +79,29 @@ export function Topbar({
         <NavbarSearch onOpenPalette={onOpenPalette} />
       )}
 
-
       <DemoGuideButton variant="ghost" className="hidden md:inline-flex" />
 
       {right}
+      {showSearch && (
+        <>
+          <Link
+            href="/admin/assistant"
+            aria-label={uiText("ask.title")}
+            title={uiText("ask.title")}
+            className="w-9 h-9 shrink-0 rounded-md flex items-center justify-center text-ink-2 hover:bg-paper-2"
+          >
+            <Icon name="ask" size={18} />
+          </Link>
+          <Link
+            href="/admin/messages"
+            aria-label={uiText("client.messages")}
+            title={uiText("client.messages")}
+            className="w-9 h-9 shrink-0 rounded-md flex items-center justify-center text-ink-2 hover:bg-paper-2"
+          >
+            <Icon name="mail" size={18} />
+          </Link>
+        </>
+      )}
       {showNotifications && <NotificationsButton />}
     </header>
   );

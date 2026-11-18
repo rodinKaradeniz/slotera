@@ -91,6 +91,7 @@ class FormSummary(ApiModel):
 
 
 class FormSummaryPage(ApiModel):
+    states: dict[str, int]
     items: list[FormSummary]
     total: int
     limit: int

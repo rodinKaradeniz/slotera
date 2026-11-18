@@ -1,3 +1,4 @@
+import { mockData } from "@/services/adapters/mock-data";
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -8,6 +9,15 @@ export type Message = components["schemas"]["Message"];
 export type MessagePage = components["schemas"]["MessagePage"];
 export type ConversationPage = components["schemas"]["ConversationPage"];
 const mock = new Map<string, Message[]>();
+let seeded: Promise<void> | null = null;
+function seedConversation(): Promise<void> {
+  return (seeded ??= (async () => {
+    const clients = await listClients();
+    const client = clients.find((c) => c.name.includes("Sofia"));
+    if (!client) return;
+    mock.set(client.id, mockData<Message[]>("conversation-messages"));
+  })());
+}
 const submissions = new Map<string, { body: string; message: Message }>();
 const reads = new Map<string, number>();
 const pathFor = (clientId?: string) =>
@@ -27,6 +37,7 @@ export async function listConversations(
       `/conversations?limit=25&offset=${offset}`,
       { signal },
     );
+  await seedConversation();
   const clients = await listClients();
   const byId = new Map(clients.map((client) => [client.id, client]));
   const all = [...mock.entries()]
@@ -39,14 +50,12 @@ export async function listConversations(
         ) || a.id.localeCompare(b.id),
     );
   return {
-    items: all
-      .slice(offset, offset + 25)
-      .map(({ id, messages }) => ({
-        clientId: id,
-        clientName: byId.get(id)!.name,
-        lastSequence: messages.length,
-        unreadCount: 0,
-      })),
+    items: all.slice(offset, offset + 25).map(({ id, messages }) => ({
+      clientId: id,
+      clientName: byId.get(id)!.name,
+      lastSequence: messages.length,
+      unreadCount: 0,
+    })),
     total: all.length,
     limit: 25,
     offset,
@@ -61,6 +70,7 @@ export async function listMessages(
       `${pathFor(clientId)}/messages?limit=25${options.before ? `&before=${options.before}` : ""}${options.after !== undefined ? `&after=${options.after}` : ""}`,
       { ...optionsFor(clientId), signal: options.signal },
     );
+  await seedConversation();
   const all = mock.get(clientId ?? "demo") ?? [];
   const matching = all.filter(
     (m) =>

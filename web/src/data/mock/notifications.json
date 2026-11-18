@@ -6,7 +6,8 @@
     "title": "New booking confirmed",
     "detail": "Sofia Marin · Decision Sprint · Today 14:00",
     "age": "10m",
-    "unread": true
+    "unread": true,
+    "href": "/admin/bookings/bkg-1001"
   },
   {
     "id": "n-2",
@@ -15,7 +16,8 @@
     "title": "Payment pending",
     "detail": "Helena Kreutzer · Founder Workshop · £180",
     "age": "1h",
-    "unread": true
+    "unread": true,
+    "href": "/admin/bookings/bkg-1002"
   },
   {
     "id": "n-3",
@@ -24,7 +26,8 @@
     "title": "Session starts soon",
     "detail": "Strategy Deep Dive · Mila Ozawa · in 2h 14m",
     "age": "now",
-    "unread": false
+    "unread": false,
+    "href": "/admin/bookings/bkg-1003"
   },
   {
     "id": "n-4",
@@ -33,6 +36,267 @@
     "title": "Client requested reschedule",
     "detail": "Tariq Hassan · Discovery Call · Thursday",
     "age": "3h",
-    "unread": false
+    "unread": false,
+    "href": "/admin/bookings/bkg-1004"
+  },
+  {
+    "id": "n-5",
+    "icon": "check",
+    "tone": "accent",
+    "title": "New booking confirmed",
+    "detail": "Mila Ozawa · Strategy Session · Monday 09:00",
+    "age": "5h",
+    "unread": true,
+    "href": "/admin/bookings/bkg-1001"
+  },
+  {
+    "id": "n-6",
+    "icon": "card",
+    "tone": "warning",
+    "title": "Payment pending",
+    "detail": "Sofia Marin · Coaching Session · £240",
+    "age": "9h",
+    "unread": true,
+    "href": "/admin/bookings/bkg-1002"
+  },
+  {
+    "id": "n-7",
+    "icon": "x",
+    "tone": "warning",
+    "title": "Client cancelled",
+    "detail": "Jonas Weber · Discovery Call was Wednesday 11:30",
+    "age": "1d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1003"
+  },
+  {
+    "id": "n-8",
+    "icon": "refresh",
+    "tone": "info",
+    "title": "Client rescheduled",
+    "detail": "Amara Bello · Group Workshop now Thursday 16:00",
+    "age": "1d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1004"
+  },
+  {
+    "id": "n-9",
+    "icon": "clock",
+    "tone": "warning",
+    "title": "Booking needs attention",
+    "detail": "Helena Kreutzer · Strategy Session · approval needed",
+    "age": "2d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1005"
+  },
+  {
+    "id": "n-10",
+    "icon": "check",
+    "tone": "accent",
+    "title": "New booking confirmed",
+    "detail": "Tariq Hassan · Coaching Session · Monday 09:00",
+    "age": "2d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1006"
+  },
+  {
+    "id": "n-11",
+    "icon": "card",
+    "tone": "warning",
+    "title": "Payment pending",
+    "detail": "Pieter de Vries · Discovery Call · £180",
+    "age": "3d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1007"
+  },
+  {
+    "id": "n-12",
+    "icon": "x",
+    "tone": "warning",
+    "title": "Client cancelled",
+    "detail": "Lea Mertens · Group Workshop was Wednesday 11:30",
+    "age": "4d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1008"
+  },
+  {
+    "id": "n-13",
+    "icon": "refresh",
+    "tone": "info",
+    "title": "Client rescheduled",
+    "detail": "Mila Ozawa · Strategy Session now Thursday 16:00",
+    "age": "5d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1009"
+  },
+  {
+    "id": "n-14",
+    "icon": "clock",
+    "tone": "warning",
+    "title": "Booking needs attention",
+    "detail": "Sofia Marin · Coaching Session · approval needed",
+    "age": "6d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1010"
+  },
+  {
+    "id": "n-15",
+    "icon": "check",
+    "tone": "accent",
+    "title": "New booking confirmed",
+    "detail": "Jonas Weber · Discovery Call · Monday 09:00",
+    "age": "7d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1011"
+  },
+  {
+    "id": "n-16",
+    "icon": "card",
+    "tone": "warning",
+    "title": "Payment pending",
+    "detail": "Amara Bello · Group Workshop · £380",
+    "age": "8d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1001"
+  },
+  {
+    "id": "n-17",
+    "icon": "x",
+    "tone": "warning",
+    "title": "Client cancelled",
+    "detail": "Helena Kreutzer · Strategy Session was Wednesday 11:30",
+    "age": "9d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1002"
+  },
+  {
+    "id": "n-18",
+    "icon": "refresh",
+    "tone": "info",
+    "title": "Client rescheduled",
+    "detail": "Tariq Hassan · Coaching Session now Thursday 16:00",
+    "age": "11d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1003"
+  },
+  {
+    "id": "n-19",
+    "icon": "clock",
+    "tone": "warning",
+    "title": "Booking needs attention",
+    "detail": "Pieter de Vries · Discovery Call · approval needed",
+    "age": "12d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1004"
+  },
+  {
+    "id": "n-20",
+    "icon": "check",
+    "tone": "accent",
+    "title": "New booking confirmed",
+    "detail": "Lea Mertens · Group Workshop · Monday 09:00",
+    "age": "14d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1005"
+  },
+  {
+    "id": "n-21",
+    "icon": "card",
+    "tone": "warning",
+    "title": "Payment pending",
+    "detail": "Mila Ozawa · Strategy Session · £240",
+    "age": "15d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1006"
+  },
+  {
+    "id": "n-22",
+    "icon": "x",
+    "tone": "warning",
+    "title": "Client cancelled",
+    "detail": "Sofia Marin · Coaching Session was Wednesday 11:30",
+    "age": "17d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1007"
+  },
+  {
+    "id": "n-23",
+    "icon": "refresh",
+    "tone": "info",
+    "title": "Client rescheduled",
+    "detail": "Jonas Weber · Discovery Call now Thursday 16:00",
+    "age": "19d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1008"
+  },
+  {
+    "id": "n-24",
+    "icon": "clock",
+    "tone": "warning",
+    "title": "Booking needs attention",
+    "detail": "Amara Bello · Group Workshop · approval needed",
+    "age": "21d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1009"
+  },
+  {
+    "id": "n-25",
+    "icon": "check",
+    "tone": "accent",
+    "title": "New booking confirmed",
+    "detail": "Helena Kreutzer · Strategy Session · Monday 09:00",
+    "age": "23d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1010"
+  },
+  {
+    "id": "n-26",
+    "icon": "card",
+    "tone": "warning",
+    "title": "Payment pending",
+    "detail": "Tariq Hassan · Coaching Session · £180",
+    "age": "25d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1011"
+  },
+  {
+    "id": "n-27",
+    "icon": "x",
+    "tone": "warning",
+    "title": "Client cancelled",
+    "detail": "Pieter de Vries · Discovery Call was Wednesday 11:30",
+    "age": "26d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1001"
+  },
+  {
+    "id": "n-28",
+    "icon": "refresh",
+    "tone": "info",
+    "title": "Client rescheduled",
+    "detail": "Lea Mertens · Group Workshop now Thursday 16:00",
+    "age": "28d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1002"
+  },
+  {
+    "id": "n-29",
+    "icon": "clock",
+    "tone": "warning",
+    "title": "Booking needs attention",
+    "detail": "Mila Ozawa · Strategy Session · approval needed",
+    "age": "29d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1003"
+  },
+  {
+    "id": "n-30",
+    "icon": "check",
+    "tone": "accent",
+    "title": "New booking confirmed",
+    "detail": "Sofia Marin · Coaching Session · Monday 09:00",
+    "age": "30d",
+    "unread": false,
+    "href": "/admin/bookings/bkg-1004"
   }
 ]

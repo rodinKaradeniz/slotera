@@ -1,12 +1,13 @@
 """Authenticated consultant-only assistant resources."""
 
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
 from typing import Annotated, Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Header, Query, Response
 from pydantic import Field
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 
 from slotera_api.ai import actions
 from slotera_api.ai.service import AssistantService, active, fail, state_row, turn_view
@@ -168,6 +169,7 @@ async def threads(
             AIThread.workspace_id == operator.workspace_id,
             AIThread.actor_id == operator.user_id,
             AIThread.created_at > datetime.now(UTC) - timedelta(days=30),
+            AIThread.kind == "chat",
         )
         total = await session.scalar(select(func.count()).select_from(query.subquery())) or 0
         rows = (
@@ -273,7 +275,7 @@ async def operation(
 
 @router.post("/briefings/{kind}", response_model=TurnView, operation_id="generateAIBriefing")
 async def briefing(
-    kind: Literal["daily", "client"],
+    kind: Literal["client"],
     payload: BriefInput,
     idempotency_key: Key,
     operator: CsrfOperatorWorkspaceDependency,
@@ -281,25 +283,15 @@ async def briefing(
     settings: SettingsDependency,
     client_id: Annotated[UUID | None, Query(alias="clientId")] = None,
 ) -> TurnView:
-    if kind == "client" and client_id is None:
+    if client_id is None:
         raise fail("ai_client_required", "Choose a client.", 422)
-    if kind == "daily" and client_id is not None:
-        raise fail("ai_client_invalid", "A daily briefing is workspace-wide.", 422)
     prompts = {
-        "en": (
-            "Summarize this client’s history, bookings, preparation, messages and open work.",
-            "Summarize my agenda, preparation, unread messages and open tasks.",
-        ),
-        "tr": (
-            "Danışan geçmişini, görüşmeleri, hazırlığı, mesajları ve açık işleri özetle.",
-            "Gündemimi, hazırlıkları, okunmamış konuşmaları ve açık görevleri özetle.",
-        ),
-        "de": (
-            "Kundenbriefing: Verlauf, Buchungen, Vorbereitung, Nachrichten und offene Aufgaben.",
-            "Fasse Agenda, Vorbereitung, ungelesene Nachrichten und offene Aufgaben zusammen.",
-        ),
+        "en": "Summarize this client’s history, bookings, preparation, messages and open work.",
+        "tr": "Danışan geçmişini, görüşmeleri, hazırlığı, mesajları ve açık işleri özetle.",
+        "de": "Kundenbriefing: Verlauf, Buchungen, Vorbereitung, Nachrichten und offene Aufgaben.",
     }
-    prompt = prompts[payload.language][0 if client_id else 1]
+    prompt = prompts[payload.language]
+
     item = await AssistantService(database, settings).generate(
         operator,
         uuid4(),
@@ -380,7 +372,7 @@ async def confirm(
 
 @router.get("/briefings/{kind}", response_model=TurnView | None, operation_id="getAIBriefing")
 async def get_briefing(
-    kind: Literal["daily", "client"],
+    kind: Literal["client"],
     response: Response,
     operator: OperatorWorkspaceDependency,
     database: DatabaseDependency,
@@ -388,9 +380,9 @@ async def get_briefing(
 ) -> TurnView | None:
     from slotera_api.db.ai_models import AIBriefing
 
-    if (kind == "client") != (client_id is not None):
-        raise fail("ai_client_invalid", "Choose a client only for client briefings.", 422)
-    scope = "client:" + str(client_id) if kind == "client" else "daily"
+    if client_id is None:
+        raise fail("ai_client_required", "Choose a client.", 422)
+    scope = "client:" + str(client_id)
     async with database.tenant_transaction(operator.workspace_id) as session:
         row = await session.scalar(
             select(AITurn)
@@ -425,3 +417,160 @@ async def retry_index(
             ),
             {"w": operator.workspace_id},
         )
+
+
+class StopInput(StrictApiModel):
+    key: str = Field(min_length=1, max_length=255)
+    prompt: str = Field(min_length=1, max_length=4000)
+    language: Literal["en", "tr", "de"]
+
+
+@router.post("/threads/{identifier}/stop", status_code=204, operation_id="stopAITurn")
+async def stop_turn(
+    identifier: UUID,
+    payload: StopInput,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> None:
+    from slotera_api.ai.service import running_generations, turn_fingerprint
+
+    async with database.tenant_transaction(operator.workspace_id, scheduling_write=True) as session:
+        state = await active(session, operator.workspace_id)
+        thread = await session.scalar(
+            select(AIThread).where(
+                AIThread.workspace_id == operator.workspace_id,
+                AIThread.actor_id == operator.user_id,
+                AIThread.id == identifier,
+            )
+        )
+        if not thread:
+            raise fail("ai_thread_not_found", "Conversation was not found.", 404)
+        fingerprint = turn_fingerprint(identifier, payload.prompt, payload.language)
+        row = await session.scalar(
+            select(AITurn)
+            .where(
+                AITurn.workspace_id == operator.workspace_id,
+                AITurn.actor_id == operator.user_id,
+                AITurn.key == payload.key,
+            )
+            .with_for_update()
+        )
+        if row and (row.thread_id != identifier or row.fingerprint != fingerprint):
+            raise fail("idempotency_key_reused", "The request changed.")
+        if row is None:
+            row = AITurn(
+                workspace_id=operator.workspace_id,
+                actor_id=operator.user_id,
+                thread_id=identifier,
+                key=payload.key,
+                fingerprint=fingerprint,
+                prompt=payload.prompt,
+                answer="",
+                language=payload.language,
+                privacy_epoch=state.privacy_epoch,
+                citations=[],
+                status="failed",
+                error_code="ai_cancelled",
+            )
+            session.add(row)
+        elif row.status == "pending":
+            row.status = "failed"
+            row.error_code = "ai_cancelled"
+        else:
+            return  # Completed answers and confirmed actions are never undone by Stop.
+    task = running_generations.get((operator.workspace_id, operator.user_id, payload.key))
+    if task:
+        task.cancel()
+
+
+class BranchInput(StrictApiModel):
+    title: str = Field(min_length=1, max_length=120)
+    thread_id: UUID
+    turn_id: UUID
+
+
+@router.post(
+    "/threads/{identifier}/branch", response_model=ThreadView, operation_id="branchAIThread"
+)
+async def branch_thread(
+    identifier: UUID,
+    payload: BranchInput,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> ThreadView:
+    async with database.tenant_transaction(operator.workspace_id, scheduling_write=True) as session:
+        await active(session, operator.workspace_id)
+        source = await session.scalar(
+            select(AITurn).where(
+                AITurn.id == payload.turn_id,
+                AITurn.thread_id == identifier,
+                AITurn.actor_id == operator.user_id,
+                AITurn.workspace_id == operator.workspace_id,
+                AITurn.created_at > datetime.now(UTC) - timedelta(days=30),
+            )
+        )
+        if source is None:
+            raise fail("ai_thread_not_found", "Conversation was not found.", 404)
+        details = {
+            "sourceThreadId": str(identifier),
+            "sourceTurnId": str(source.id),
+            "titleHash": sha256(payload.title.encode()).hexdigest(),
+        }
+        existing = await session.scalar(
+            select(AIThread).where(
+                AIThread.id == payload.thread_id,
+                AIThread.workspace_id == operator.workspace_id,
+                AIThread.actor_id == operator.user_id,
+            )
+        )
+        if existing:
+            audit = await session.scalar(
+                select(AuditEvent).where(
+                    AuditEvent.workspace_id == operator.workspace_id,
+                    AuditEvent.resource_id == existing.id,
+                    AuditEvent.actor_user_id == operator.user_id,
+                    AuditEvent.action == "ai.thread_branched",
+                )
+            )
+            if not audit or any(audit.details.get(key) != value for key, value in details.items()):
+                raise fail("idempotency_key_reused", "The branch request changed.")
+            return ThreadView(id=existing.id, title=existing.title, created_at=existing.created_at)
+        thread = AIThread(
+            id=payload.thread_id,
+            workspace_id=operator.workspace_id,
+            actor_id=operator.user_id,
+            title=payload.title,
+        )
+        session.add(thread)
+        await session.flush()
+        # Copy prior conversation only; executable proposals remain solely in original history.
+        await session.execute(
+            text("""
+            INSERT INTO ai_turns(id,workspace_id,actor_id,thread_id,key,fingerprint,prompt,answer,
+                language,status,privacy_epoch,citations,proposal,error_code,created_at)
+            SELECT gen_random_uuid(),workspace_id,actor_id,:new,gen_random_uuid()::text,fingerprint,
+                prompt,answer,language,status,privacy_epoch,citations,NULL,error_code,created_at
+            FROM ai_turns WHERE workspace_id=:w AND actor_id=:actor AND thread_id=:old
+                AND (created_at,id)<(:created,:turn) AND status<>'pending'
+                AND created_at>now()-interval '30 days'
+        """),
+            {
+                "new": thread.id,
+                "w": operator.workspace_id,
+                "actor": operator.user_id,
+                "old": identifier,
+                "created": source.created_at,
+                "turn": source.id,
+            },
+        )
+        session.add(
+            AuditEvent(
+                workspace_id=operator.workspace_id,
+                actor_user_id=operator.user_id,
+                action="ai.thread_branched",
+                resource_type="ai_thread",
+                resource_id=thread.id,
+                details=details,
+            )
+        )
+        return ThreadView(id=thread.id, title=thread.title, created_at=thread.created_at)

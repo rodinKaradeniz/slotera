@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Modal } from "@/components/ui/Modal";
-import { Tabs } from "@/components/ui/Tabs";
+import { TabPanel, Tabs } from "@/components/ui/Tabs";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
@@ -40,7 +40,7 @@ export function LegalModal({ open, onClose, providerBookingTerms }: Props) {
           ]}
         />
       </div>
-      <div className="text-body">
+      <TabPanel value={tab} order={["provider", "platform"]} className="text-body">
         {tab === "provider" ? (
           showProviderContent ? (
             <p className="text-body whitespace-pre-line">
@@ -62,7 +62,7 @@ export function LegalModal({ open, onClose, providerBookingTerms }: Props) {
             </p>
           </div>
         )}
-      </div>
+      </TabPanel>
     </Modal>
   );
 }

@@ -7,7 +7,7 @@ import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { formatMoney } from "@/lib/money";
 import type { Tone } from "@/types/common";
-import type { Notification } from "@/types/notification";
+import type { Notification, NotificationPage } from "@/types/notification";
 import { apiCurrency } from "./_currency";
 
 type NotificationListDto = components["schemas"]["NotificationListResponse"];
@@ -114,16 +114,48 @@ function mapNotification(notification: NotificationDto): Notification {
     detail: detailFor(notification),
     age: relativeAge(notification.occurredAt),
     unread: notification.readAt === null,
+    href:
+      notification.resourceType === "booking" && notification.resourceId
+        ? `/admin/bookings/${notification.resourceId}`
+        : undefined,
   };
 }
 
-export async function listNotifications(): Promise<Notification[]> {
+/** How many recent notifications the bell's dropdown shows; the rest live on their page. */
+export const NOTIFICATION_PREVIEW_COUNT = 7;
+
+/**
+ * One page of notifications, newest first. `cursor` is the `next` of the previous page;
+ * the API pages by the last item's time and id, so new arrivals never shift later pages.
+ */
+export async function listNotificationPage(
+  cursor: string | null = null,
+  limit = 20,
+): Promise<NotificationPage> {
   if (dataSource === "api") {
-    const response = await apiRequest<NotificationListDto>("/notifications");
-    return response.items.map(mapNotification);
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursor) {
+      const [before, beforeId] = cursor.split("|");
+      params.set("before", before);
+      params.set("beforeId", beforeId);
+    }
+    const page = await apiRequest<NotificationListDto>(`/notifications?${params}`);
+    const last = page.items.at(-1);
+    return {
+      items: page.items.map(mapNotification),
+      unreadCount: page.unreadCount,
+      next: page.hasMore && last ? `${last.occurredAt}|${last.id}` : null,
+    };
   }
-  await sleep(40);
-  return [...mock];
+  await sleep(120);
+  const start = cursor ? mock.findIndex((item) => item.id === cursor) + 1 : 0;
+  const items = mock.slice(start, start + limit);
+  const last = items.at(-1);
+  return {
+    items: [...items],
+    unreadCount: mock.filter((item) => item.unread).length,
+    next: last && start + limit < mock.length ? last.id : null,
+  };
 }
 
 export async function markAllRead(): Promise<void> {
@@ -147,8 +179,7 @@ export async function countUnread(): Promise<number> {
   return mock.filter((notification) => notification.unread).length;
 }
 
-export async function getNotificationSummary(): Promise<{items: Notification[]; unreadCount: number}> {
-  if (dataSource === "mock") return {items: await listNotifications(), unreadCount: mock.filter((item) => item.unread).length};
-  const page = await apiRequest<NotificationListDto>("/notifications");
-  return {items: page.items.map(mapNotification), unreadCount: page.unreadCount};
+export async function getNotificationSummary(): Promise<{items: Notification[]; unreadCount: number; hasMore: boolean}> {
+  const page = await listNotificationPage(null, NOTIFICATION_PREVIEW_COUNT);
+  return { items: page.items, unreadCount: page.unreadCount, hasMore: page.next !== null };
 }

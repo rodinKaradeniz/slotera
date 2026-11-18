@@ -48,16 +48,64 @@
     }
   ],
   "weekStrip": [
-    { "day": "Mon", "date": 18, "bookings": [{ "label": "Deep Dive · 9:00" }] },
-    { "day": "Tue", "date": 19, "bookings": [
-      { "label": "Discovery · 11:00" },
-      { "label": "Workshop · 17:00" }
-    ] },
-    { "day": "Wed", "date": 20, "bookings": [{ "label": "Deep Dive · 11:00" }] },
-    { "day": "Thu", "date": 21, "bookings": [{ "label": "Sprint · 12:00" }] },
-    { "day": "Fri", "date": 22, "bookings": [{ "label": "Discovery · 14:00" }] },
-    { "day": "Sat", "date": 23, "bookings": [] },
-    { "day": "Sun", "date": 24, "bookings": [] }
+    {
+      "day": "Mon",
+      "date": 18,
+      "bookings": [
+        {
+          "label": "Deep Dive · 9:00"
+        }
+      ]
+    },
+    {
+      "day": "Tue",
+      "date": 19,
+      "bookings": [
+        {
+          "label": "Discovery · 11:00"
+        },
+        {
+          "label": "Workshop · 17:00"
+        }
+      ]
+    },
+    {
+      "day": "Wed",
+      "date": 20,
+      "bookings": [
+        {
+          "label": "Deep Dive · 11:00"
+        }
+      ]
+    },
+    {
+      "day": "Thu",
+      "date": 21,
+      "bookings": [
+        {
+          "label": "Sprint · 12:00"
+        }
+      ]
+    },
+    {
+      "day": "Fri",
+      "date": 22,
+      "bookings": [
+        {
+          "label": "Discovery · 14:00"
+        }
+      ]
+    },
+    {
+      "day": "Sat",
+      "date": 23,
+      "bookings": []
+    },
+    {
+      "day": "Sun",
+      "date": 24,
+      "bookings": []
+    }
   ],
   "kpis": [
     {
@@ -66,7 +114,23 @@
       "value": "£8,420",
       "delta": "+12.4%",
       "trend": "up",
-      "spark": [3, 4, 3, 5, 6, 5, 7, 6, 8, 7, 9, 8, 10, 9, 11]
+      "spark": [
+        3,
+        4,
+        3,
+        5,
+        6,
+        5,
+        7,
+        6,
+        8,
+        7,
+        9,
+        8,
+        10,
+        9,
+        11
+      ]
     },
     {
       "id": "bookings",
@@ -74,7 +138,23 @@
       "value": "47",
       "delta": "+8.0%",
       "trend": "up",
-      "spark": [3, 3, 4, 4, 5, 5, 5, 6, 5, 7, 6, 8, 7, 8, 9]
+      "spark": [
+        3,
+        3,
+        4,
+        4,
+        5,
+        5,
+        5,
+        6,
+        5,
+        7,
+        6,
+        8,
+        7,
+        8,
+        9
+      ]
     },
     {
       "id": "clients",
@@ -82,7 +162,23 @@
       "value": "0",
       "delta": "−2.1%",
       "trend": "down",
-      "spark": [8, 7, 9, 8, 7, 8, 9, 8, 8, 7, 7, 6, 7, 6, 6]
+      "spark": [
+        8,
+        7,
+        9,
+        8,
+        7,
+        8,
+        9,
+        8,
+        8,
+        7,
+        7,
+        6,
+        7,
+        6,
+        6
+      ]
     },
     {
       "id": "avgvalue",
@@ -90,65 +186,175 @@
       "value": "£179",
       "delta": "+4.2%",
       "trend": "up",
-      "spark": [5, 5, 6, 6, 6, 7, 6, 7, 8, 7, 8, 8, 9, 9, 10]
+      "spark": [
+        5,
+        5,
+        6,
+        6,
+        6,
+        7,
+        6,
+        7,
+        8,
+        7,
+        8,
+        8,
+        9,
+        9,
+        10
+      ]
     }
   ],
   "trend30d": [
-    { "d": 1, "revenue": 240, "bookings": 1 },
-    { "d": 2, "revenue": 380, "bookings": 2 },
-    { "d": 3, "revenue": 0, "bookings": 0 },
-    { "d": 4, "revenue": 420, "bookings": 2 },
-    { "d": 5, "revenue": 240, "bookings": 1 },
-    { "d": 6, "revenue": 760, "bookings": 3 },
-    { "d": 7, "revenue": 380, "bookings": 1 },
-    { "d": 8, "revenue": 0, "bookings": 0 },
-    { "d": 9, "revenue": 240, "bookings": 1 },
-    { "d": 10, "revenue": 460, "bookings": 2 },
-    { "d": 11, "revenue": 620, "bookings": 3 },
-    { "d": 12, "revenue": 380, "bookings": 1 },
-    { "d": 13, "revenue": 240, "bookings": 1 },
-    { "d": 14, "revenue": 760, "bookings": 3 },
-    { "d": 15, "revenue": 0, "bookings": 0 },
-    { "d": 16, "revenue": 620, "bookings": 2 },
-    { "d": 17, "revenue": 380, "bookings": 2 },
-    { "d": 18, "revenue": 240, "bookings": 1 },
-    { "d": 19, "revenue": 460, "bookings": 2 },
-    { "d": 20, "revenue": 380, "bookings": 2 },
-    { "d": 21, "revenue": 760, "bookings": 3 },
-    { "d": 22, "revenue": 0, "bookings": 0 },
-    { "d": 23, "revenue": 540, "bookings": 2 },
-    { "d": 24, "revenue": 620, "bookings": 2 },
-    { "d": 25, "revenue": 380, "bookings": 1 },
-    { "d": 26, "revenue": 840, "bookings": 3 },
-    { "d": 27, "revenue": 460, "bookings": 2 },
-    { "d": 28, "revenue": 0, "bookings": 0 },
-    { "d": 29, "revenue": 620, "bookings": 2 },
-    { "d": 30, "revenue": 760, "bookings": 3 }
-  ],
-  "pendingActions": [
     {
-      "id": "pa-1",
-      "tone": "warning",
-      "icon": "card",
-      "label": "Bank transfer pending",
-      "detail": "Founder Workshop · Helena Kreutzer · £180",
-      "age": "1h"
+      "d": 1,
+      "revenue": 240,
+      "bookings": 1
     },
     {
-      "id": "pa-2",
-      "tone": "info",
-      "icon": "calendar",
-      "label": "Reschedule requested",
-      "detail": "Discovery Call · Tariq Hassan · Thursday",
-      "age": "3h"
+      "d": 2,
+      "revenue": 380,
+      "bookings": 2
     },
     {
-      "id": "pa-3",
-      "tone": "danger",
-      "icon": "alert",
-      "label": "Invoice overdue",
-      "detail": "Decision Sprint · Pieter de Vries · 12 days",
-      "age": "12d"
+      "d": 3,
+      "revenue": 0,
+      "bookings": 0
+    },
+    {
+      "d": 4,
+      "revenue": 420,
+      "bookings": 2
+    },
+    {
+      "d": 5,
+      "revenue": 240,
+      "bookings": 1
+    },
+    {
+      "d": 6,
+      "revenue": 760,
+      "bookings": 3
+    },
+    {
+      "d": 7,
+      "revenue": 380,
+      "bookings": 1
+    },
+    {
+      "d": 8,
+      "revenue": 0,
+      "bookings": 0
+    },
+    {
+      "d": 9,
+      "revenue": 240,
+      "bookings": 1
+    },
+    {
+      "d": 10,
+      "revenue": 460,
+      "bookings": 2
+    },
+    {
+      "d": 11,
+      "revenue": 620,
+      "bookings": 3
+    },
+    {
+      "d": 12,
+      "revenue": 380,
+      "bookings": 1
+    },
+    {
+      "d": 13,
+      "revenue": 240,
+      "bookings": 1
+    },
+    {
+      "d": 14,
+      "revenue": 760,
+      "bookings": 3
+    },
+    {
+      "d": 15,
+      "revenue": 0,
+      "bookings": 0
+    },
+    {
+      "d": 16,
+      "revenue": 620,
+      "bookings": 2
+    },
+    {
+      "d": 17,
+      "revenue": 380,
+      "bookings": 2
+    },
+    {
+      "d": 18,
+      "revenue": 240,
+      "bookings": 1
+    },
+    {
+      "d": 19,
+      "revenue": 460,
+      "bookings": 2
+    },
+    {
+      "d": 20,
+      "revenue": 380,
+      "bookings": 2
+    },
+    {
+      "d": 21,
+      "revenue": 760,
+      "bookings": 3
+    },
+    {
+      "d": 22,
+      "revenue": 0,
+      "bookings": 0
+    },
+    {
+      "d": 23,
+      "revenue": 540,
+      "bookings": 2
+    },
+    {
+      "d": 24,
+      "revenue": 620,
+      "bookings": 2
+    },
+    {
+      "d": 25,
+      "revenue": 380,
+      "bookings": 1
+    },
+    {
+      "d": 26,
+      "revenue": 840,
+      "bookings": 3
+    },
+    {
+      "d": 27,
+      "revenue": 460,
+      "bookings": 2
+    },
+    {
+      "d": 28,
+      "revenue": 0,
+      "bookings": 0
+    },
+    {
+      "d": 29,
+      "revenue": 620,
+      "bookings": 2
+    },
+    {
+      "d": 30,
+      "revenue": 760,
+      "bookings": 3
     }
   ],
   "recentBookings": [

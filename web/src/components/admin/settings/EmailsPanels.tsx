@@ -35,7 +35,7 @@ export function ApiEmailsPanel({
       onSave={save}
     >
       {edit.notice}
-      <h3 className="text-[13px] font-medium text-ink-2 uppercase tracking-wide mb-2">
+      <h3 className="text-[13px] font-medium text-ink-2 mb-2">
         {uiText("ui.notify.me.when")}</h3>
       <div className="flex flex-col gap-1">
         <CheckRow
@@ -67,7 +67,7 @@ export function EmailsPanel({ data, onChange }: PanelProps) {
   };
   return (
     <PanelCard title={uiText("ui.email.notifications")} onSave={save}>
-      <h3 className="text-[13px] font-medium text-ink-2 uppercase tracking-wide mb-2">
+      <h3 className="text-[13px] font-medium text-ink-2 mb-2">
         {uiText("ui.notify.me.when")}</h3>
       <div className="flex flex-col gap-1 mb-5">
         <CheckRow
@@ -102,7 +102,7 @@ export function EmailsPanel({ data, onChange }: PanelProps) {
         />
       </div>
 
-      <h3 className="text-[13px] font-medium text-ink-2 uppercase tracking-wide mb-2">
+      <h3 className="text-[13px] font-medium text-ink-2 mb-2">
         {uiText("ui.send.clients")}</h3>
       <div className="flex flex-col gap-1 mb-5">
         <CheckRow

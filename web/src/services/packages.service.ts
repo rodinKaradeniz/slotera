@@ -141,9 +141,10 @@ export async function listPackagesForService(
 
 export async function listPackagePage(filters: import("@/types/page").ListFilter, signal?: AbortSignal): Promise<import("@/types/page").Page<import("@/types/package").PackageSummary>> {
   if (dataSource === "mock") {
-    const items = mock.filter((item) => (!filters.search || item.name.toLowerCase().includes(filters.search.toLowerCase())) && (filters.status === undefined || filters.status === "all" || item.status === filters.status));
+    const items = mock.filter((item) => (!filters.search || item.name.toLowerCase().includes(filters.search.trim().toLowerCase())) && (filters.status === undefined || filters.status === "all" || item.status === filters.status));
+    const states = mock.filter((item) => !filters.search || item.name.toLowerCase().includes(filters.search.trim().toLowerCase())).reduce<Record<string, number>>((counts, item) => { const state = item.status; counts[state] = (counts[state] ?? 0) + 1; return counts; }, {});
     const offset = filters.offset ?? 0;
-    return {items: items.slice(offset, offset + 25).map((item) => ({...item, itemCount: item.items.length})), total: items.length, limit: 25, offset};
+    return {states, items: items.slice(offset, offset + 25).map((item) => ({...item, itemCount: item.items.length})), total: items.length, limit: 25, offset};
   }
   const params = new URLSearchParams({search: filters.search ?? "", limit: "25", offset: String(filters.offset ?? 0)});
   if (filters.status && filters.status !== "all") params.set("status", filters.status);

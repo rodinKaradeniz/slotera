@@ -6,6 +6,7 @@ import { useHydrated } from "@/lib/use-hydrated";
 import { createPortal } from "react-dom";
 import { Icon, type IconName } from "./Icon";
 import { cn } from "@/lib/cn";
+import { exitMs, motion, prefersReducedMotion } from "@/lib/motion";
 
 /**
  * Toast primitive. Top-right stack, auto-dismiss after ~3.5s, click to dismiss
@@ -55,66 +56,104 @@ export function useToast(): { toast: ToastApi } {
 }
 
 const DEFAULT_DURATION_MS = 3500;
-const EXIT_ANIMATION_MS = 200;
+const EXIT_ANIMATION_MS = exitMs(motion.sheet);
+/** Older toasts give way once this many are on screen. */
+const MAX_VISIBLE = 3;
+
+type Timer = { handle?: ReturnType<typeof setTimeout>; deadline: number; remaining: number };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<ToastItem[]>([]);
-  // Timeouts keyed by toast id so dismiss() can cancel them.
-  const timeoutsRef = React.useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const itemsRef = React.useRef<ToastItem[]>([]);
+  // Auto-dismiss timers keyed by toast id, so they can pause while someone reads them.
+  const timersRef = React.useRef(new Map<string, Timer>());
+  const pausedRef = React.useRef(false);
 
-  const removeNow = React.useCallback((id: string) => {
-    const t = timeoutsRef.current.get(id);
-    if (t) {
-      clearTimeout(t);
-      timeoutsRef.current.delete(id);
-    }
-    setItems((curr) => curr.filter((i) => i.id !== id));
+  const commit = React.useCallback((next: ToastItem[]) => {
+    itemsRef.current = next;
+    setItems(next);
   }, []);
+
+  const clearTimer = React.useCallback((id: string) => {
+    const timer = timersRef.current.get(id);
+    if (timer?.handle) clearTimeout(timer.handle);
+    timersRef.current.delete(id);
+  }, []);
+
+  const removeNow = React.useCallback(
+    (id: string) => {
+      clearTimer(id);
+      commit(itemsRef.current.filter((i) => i.id !== id));
+    },
+    [clearTimer, commit],
+  );
 
   const dismiss = React.useCallback(
     (id: string) => {
-      // Mark closing → wait for exit animation → remove. Skip the animation
-      // wait if motion is reduced; the CSS already disables the keyframes.
-      const reduced =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (reduced) {
+      clearTimer(id);
+      if (prefersReducedMotion()) {
         removeNow(id);
         return;
       }
-      setItems((curr) =>
-        curr.map((i) => (i.id === id ? { ...i, closing: true } : i)),
-      );
+      // Mark closing → the shell collapses and the toast slides out → remove.
+      commit(itemsRef.current.map((i) => (i.id === id ? { ...i, closing: true } : i)));
       window.setTimeout(() => removeNow(id), EXIT_ANIMATION_MS);
     },
-    [removeNow],
+    [clearTimer, commit, removeNow],
   );
 
-  const enqueue = React.useCallback(
-    (kind: ToastKind, message: string, opts?: ToastOptions) => {
-      const id = `t-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      const item: ToastItem = {
-        id,
-        kind,
-        message,
-        description: opts?.description,
-      };
-      setItems((curr) => [...curr, item]);
-      const duration = opts?.durationMs ?? DEFAULT_DURATION_MS;
-      if (duration > 0) {
-        const handle = setTimeout(() => dismiss(id), duration);
-        timeoutsRef.current.set(id, handle);
-      }
+  const startTimer = React.useCallback(
+    (id: string, ms: number) => {
+      const timer: Timer = { deadline: Date.now() + ms, remaining: ms };
+      if (!pausedRef.current) timer.handle = setTimeout(() => dismiss(id), ms);
+      timersRef.current.set(id, timer);
     },
     [dismiss],
   );
 
+  const pause = React.useCallback(() => {
+    if (pausedRef.current) return;
+    pausedRef.current = true;
+    const timers = timersRef.current;
+    for (const [id, timer] of timers) {
+      if (timer.handle) clearTimeout(timer.handle);
+      timers.set(id, { deadline: timer.deadline, remaining: Math.max(0, timer.deadline - Date.now()) });
+    }
+  }, []);
+
+  const resume = React.useCallback(() => {
+    if (!pausedRef.current) return;
+    pausedRef.current = false;
+    const timers = timersRef.current;
+    for (const [id, { remaining }] of timers) {
+      timers.set(id, {
+        deadline: Date.now() + remaining,
+        remaining,
+        handle: setTimeout(() => dismiss(id), remaining),
+      });
+    }
+  }, [dismiss]);
+
+  const enqueue = React.useCallback(
+    (kind: ToastKind, message: string, opts?: ToastOptions) => {
+      const id = `t-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const item: ToastItem = { id, kind, message, description: opts?.description };
+      // Newest on top; the oldest still-visible toast leaves when the stack is full.
+      commit([item, ...itemsRef.current]);
+      const visible = itemsRef.current.filter((i) => !i.closing);
+      for (const old of visible.slice(MAX_VISIBLE)) dismiss(old.id);
+      const duration = opts?.durationMs ?? DEFAULT_DURATION_MS;
+      if (duration > 0) startTimer(id, duration);
+    },
+    [commit, dismiss, startTimer],
+  );
+
   // Cancel pending timers on unmount so a remounted provider can't leak.
   React.useEffect(() => {
-    const timeouts = timeoutsRef.current;
+    const timers = timersRef.current;
     return () => {
-      for (const handle of timeouts.values()) clearTimeout(handle);
-      timeouts.clear();
+      for (const timer of timers.values()) if (timer.handle) clearTimeout(timer.handle);
+      timers.clear();
     };
   }, []);
 
@@ -131,7 +170,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <ToastViewport items={items} onDismiss={dismiss} />
+      <ToastViewport items={items} onDismiss={dismiss} onPause={pause} onResume={resume} />
     </ToastContext.Provider>
   );
 }
@@ -160,9 +199,13 @@ const KIND_META: Record<
 function ToastViewport({
   items,
   onDismiss,
+  onPause,
+  onResume,
 }: {
   items: ToastItem[];
   onDismiss: (id: string) => void;
+  onPause: () => void;
+  onResume: () => void;
 }) {
   const { t: uiText } = useI18n();
   const mounted = useHydrated();
@@ -173,10 +216,17 @@ function ToastViewport({
     <div
       // `pointer-events-none` on the stack so it can't block clicks; each toast
       // re-enables them. `aria-live` polite so screen readers announce them.
-      className="fixed top-4 right-4 z-60 flex flex-col gap-2 pointer-events-none max-w-[calc(100vw-2rem)] w-[360px]"
+      // Toasts stay while the pointer or keyboard focus is on them.
+      className="fixed top-4 right-4 z-60 flex flex-col pointer-events-none max-w-[calc(100vw-2rem)] w-[360px]"
       role="region"
       aria-label={uiText("ui.notifications")}
       aria-live="polite"
+      onPointerEnter={onPause}
+      onPointerLeave={onResume}
+      onFocus={onPause}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) onResume();
+      }}
     >
       {items.map((item) => {
         const meta = KIND_META[item.kind];
@@ -184,6 +234,11 @@ function ToastViewport({
           <div
             key={item.id}
             data-state={item.closing ? "closed" : "open"}
+            className="toast-shell"
+          >
+          <div>
+          <div className="pb-2">
+          <div
             className={cn(
               "toast-item pointer-events-auto bg-surface border border-line rounded-lg shadow-3 px-3.5 py-3 flex items-center gap-3",
               meta.ring,
@@ -216,6 +271,9 @@ function ToastViewport({
             >
               <Icon name="x" size={14} />
             </button>
+          </div>
+          </div>
+          </div>
           </div>
         );
       })}

@@ -151,8 +151,9 @@ export async function searchClients(search: string, signal?: AbortSignal): Promi
 
 export async function listClientPage(search: string, offset = 0, signal?: AbortSignal): Promise<import("@/types/page").Page<Client>> {
   if (dataSource === "mock") {
-    const items = mock.filter((item) => [item.name, item.email, item.company].some((value) => value?.toLowerCase().includes(search.toLowerCase())));
-    return {items: items.slice(offset, offset + 25), total: items.length, offset, limit: 25};
+    const items = mock.filter((item) => [item.name, item.email, item.company].some((value) => value?.toLowerCase().includes(search.trim().toLowerCase())));
+    const states = items.reduce<Record<string, number>>((counts, item) => { counts[item.tag] = (counts[item.tag] ?? 0) + 1; return counts; }, {});
+    return {states, items: items.slice(offset, offset + 25), total: items.length, offset, limit: 25};
   }
   const params = new URLSearchParams({search, offset: String(offset), limit: "25"});
   const page = await apiRequest<ClientListDto>(`/clients?${params}`, {signal});

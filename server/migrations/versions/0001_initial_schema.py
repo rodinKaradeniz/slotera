@@ -5942,10 +5942,12 @@ CREATE TABLE ai_states (
 ;
 
 CREATE TABLE ai_threads (
+	kind VARCHAR(20) DEFAULT 'chat' NOT NULL,
 	id UUID NOT NULL, 
 	workspace_id UUID NOT NULL, 
 	actor_id UUID NOT NULL, 
-	title VARCHAR(120) NOT NULL, 
+	title VARCHAR(120) NOT NULL,
+	title_generated BOOLEAN DEFAULT false NOT NULL, 
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
 	CONSTRAINT pk_ai_threads PRIMARY KEY (id), 
 	CONSTRAINT uq_ai_threads_tenant_id UNIQUE (workspace_id, id), 
@@ -6000,7 +6002,6 @@ CREATE TABLE ai_briefings (
 	workspace_id UUID NOT NULL, 
 	actor_id UUID NOT NULL, 
 	scope VARCHAR(80) NOT NULL, 
-	cycle VARCHAR(40) NOT NULL, 
 	language VARCHAR(2) NOT NULL, 
 	turn_id UUID NOT NULL, 
 	generated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
@@ -6126,6 +6127,22 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION slotera_ai_cleanup() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION slotera_ai_cleanup() TO slotera_app;
+
+-- Notification retention: read notifications go after 30 days, unread ones after 90.
+-- The runtime role still cannot delete notifications itself; maintenance calls this.
+CREATE FUNCTION slotera_notification_retention() RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE n integer;
+BEGIN
+ DELETE FROM notifications WHERE id IN(
+  SELECT id FROM notifications
+  WHERE (read_at IS NOT NULL AND occurred_at<statement_timestamp()-interval '30 days')
+     OR occurred_at<statement_timestamp()-interval '90 days'
+  ORDER BY occurred_at LIMIT 5000);
+ GET DIAGNOSTICS n=ROW_COUNT;
+ RETURN n;
+END $$;
+REVOKE ALL ON FUNCTION slotera_notification_retention() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION slotera_notification_retention() TO slotera_app;
 
 SET search_path = public;
 SET row_security = on;

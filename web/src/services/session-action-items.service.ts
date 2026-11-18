@@ -1,10 +1,6 @@
 import { mockData } from "@/services/adapters/mock-data";
 import { nextEditVersion } from "./_editing";
 
-import { listSessions } from "./sessions.service";
-import { billingAction } from "@/lib/dashboard-actions";
-import { readLang, translate } from "@/lib/i18n";
-import type { PendingAction } from "@/types/dashboard";
 import { apiRequest } from "@/api/client";
 import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
@@ -229,63 +225,17 @@ export async function listActionItemPage(
   };
 }
 
-export async function listWorklistPage(
-  status: "todo" | "done",
-  offset = 0,
-  signal?: AbortSignal,
-) {
-  if (dataSource === "mock") {
-    const [tasks, sessions] = await Promise.all([
-      listActionItems(),
-      listSessions(),
-    ]);
-    const ids = new Set(sessions.map((session) => session.id));
-    const items = tasks.filter(
-      (item) =>
-        item.status === status && (!item.sessionId || ids.has(item.sessionId)),
+/** Dashboard checklist excludes session action items and derived system alerts. */
+export async function listTodoPage(offset = 0, signal?: AbortSignal) {
+  if (dataSource === "api") {
+    const page = await apiRequest<SessionActionItemListDto>(
+      `/tasks?general_only=true&limit=25&offset=${offset}`, { signal },
     );
-    return {
-      items: items.slice(offset, offset + 25),
-      total: items.length,
-      limit: 25,
-      offset,
-      actions: undefined,
-    };
+    return { ...page, items: page.items.map(mapActionItem) };
   }
-  const page = await apiRequest<components["schemas"]["WorklistResponse"]>(
-    `/dashboard/worklist?status=${status}&limit=25&offset=${offset}`,
-    { signal },
-  );
-  const actions: PendingAction[] = [];
-  if (status === "todo") {
-    const billing = billingAction(page.trialEndsAt, page.paidThrough ?? null);
-    if (billing) actions.push(billing);
-    for (const [id, count, icon, label, hint] of [
-      [
-        "unread-messages",
-        page.unreadMessages,
-        "mail",
-        "messages.unread",
-        "messages.chooseClient",
-      ],
-      [
-        "unread-notifications",
-        page.unreadNotifications,
-        "bell",
-        "dashboard.unread",
-        "dashboard.notificationHint",
-      ],
-    ] as const) {
-      if (count > 0)
-        actions.push({
-          id,
-          tone: "info",
-          icon,
-          label: translate(readLang(), label, { count }),
-          detail: translate(readLang(), hint),
-          age: translate(readLang(), "dashboard.now"),
-        });
-    }
-  }
-  return { ...page, items: page.items.map(mapActionItem), actions };
+  const items = (await listActionItems()).filter((item) => !item.sessionId)
+    .sort((a, b) => Number(a.status === "done") - Number(b.status === "done")
+      || (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999")
+      || a.createdAtISO.localeCompare(b.createdAtISO) || a.id.localeCompare(b.id));
+  return { items: items.slice(offset, offset + 25), total: items.length, limit: 25, offset };
 }

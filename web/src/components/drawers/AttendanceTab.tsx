@@ -161,7 +161,7 @@ export function AttendanceTab({ sessionId }: Props) {
           {uiText(dataSource === "api" ? "attendance.markPage" : "ui.mark.all.present")}</Button>
       </div>
 
-      <div className="flex flex-col rounded-md border border-line bg-surface overflow-hidden">
+      <div className="list-rise flex flex-col rounded-md border border-line bg-surface overflow-hidden">
         {rows.map((r, i) => {
           const isBusy = busyIds.has(r.booking.id);
           return (

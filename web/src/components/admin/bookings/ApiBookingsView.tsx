@@ -32,18 +32,16 @@ export function ApiBookingsView() {
   const { toast } = useToast();
   const [exporting, setExporting] = React.useState(false);
   const [serviceId, setServiceId] = React.useState("");
-  const [serviceSearch, setServiceSearch] = React.useState("");
   const [options, setOptions] = React.useState<{ id: string; name: string }[]>([]);
   const [serviceError, setServiceError] = React.useState<string | null>(null);
   const [serviceAttempt, setServiceAttempt] = React.useState(0);
   const [selectedService, setSelectedService] = React.useState<{id: string; name: string} | null>(null);
   React.useEffect(() => {
     const controller = new AbortController();
-    const timer = setTimeout(() => {
-      searchServiceOptions(serviceSearch, controller.signal).then((items) => { if (!controller.signal.aborted) {setOptions(items); setServiceError(null);} }).catch((error: unknown) => { if (!controller.signal.aborted) setServiceError(error instanceof Error ? error.message : String(error)); });
-    }, 250);
-    return () => { clearTimeout(timer); controller.abort(); };
-  }, [serviceSearch, serviceAttempt]);
+    // One list of services for the filter; the page's own search box covers the rest.
+    searchServiceOptions("", controller.signal).then((items) => { if (!controller.signal.aborted) {setOptions(items); setServiceError(null);} }).catch((error: unknown) => { if (!controller.signal.aborted) setServiceError(error instanceof Error ? error.message : String(error)); });
+    return () => controller.abort();
+  }, [serviceAttempt]);
   const params = useSearchParams();
   const clientId = params.get("client") ?? undefined;
   const { openBookingDrawer } = useDrawers();
@@ -67,7 +65,7 @@ export function ApiBookingsView() {
   }, [search]);
   const reload = () => setRevision((value) => value + 1);
   return <PageContainer>
-    <PageHeader eyebrow={t("ui.operations")} title={t("ui.bookings")} meta={countResult?.key === filterKey ? `${Object.values(counts).reduce((sum, value) => sum + value, 0)} ${t("ui.bookings")} · ${t("ui.pending.payment.count", {count: countResult.page.pendingPaymentCount})}` : t("ui.loading")}
+    <PageHeader title={t("ui.bookings")} meta={countResult?.key === filterKey ? `${Object.values(counts).reduce((sum, value) => sum + value, 0)} ${t("ui.bookings")} · ${t("ui.pending.payment.count", {count: countResult.page.pendingPaymentCount})}` : t("ui.loading")}
       description={t("ui.all.client.bookings.across.1.1.calls.group.classes.and.workshops")}
       actions={<><Button icon="download" variant="secondary" loading={exporting} onClick={async () => {
         setExporting(true);
@@ -75,11 +73,12 @@ export function ApiBookingsView() {
         catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
         finally { setExporting(false); }
       }}>{t("ui.export")}</Button><Button icon="plus" onClick={() => openBookingDrawer({ onSaved: reload })}>{t("ui.new.booking")}</Button></>} />
-    <Input icon="search" placeholder={t("ui.search.by.client.service.or.id")} value={search}
-      onChange={(event) => setSearch(event.target.value)} />
-    <div className="flex flex-wrap gap-3 mt-3">
-      <Input value={serviceSearch} placeholder={t("common.search")} onChange={(event) => setServiceSearch(event.target.value)} />
-      <Select value={serviceId} onChange={(event) => {
+    <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex-1 min-w-0">
+        <Input icon="search" placeholder={t("ui.search.by.client.service.or.id")} value={search}
+          onChange={(event) => setSearch(event.target.value)} />
+      </div>
+      <Select className="sm:w-56" value={serviceId} onChange={(event) => {
         setServiceId(event.target.value);
         setSelectedService(options.find((option) => option.id === event.target.value) ?? null);
       }} options={[{ value: "", label: t("ui.all.services") },
@@ -88,7 +87,7 @@ export function ApiBookingsView() {
     </div>
     {serviceError && <LoadError message={serviceError} onRetry={() => setServiceAttempt((value) => value + 1)} />}
     {clientId && <Button variant="ghost" onClick={() => router.replace("/admin/bookings")}>{t("ui.filtered.by.client")} ×</Button>}
-    <div className="flex flex-col gap-3 mt-6">
+    <div className="list-rise flex flex-col gap-3 mt-6">
       {STATUSES.map((status) => <BookingGroup key={`${query}:${serviceId}:${clientId ?? ""}:${status}`}
         revision={revision} status={status} search={query} clientId={clientId} serviceId={serviceId || undefined} count={counts[status]} previews={countResult?.key === filterKey ? countResult.page.statusPreviews[status] : undefined}
         onCounts={updateCounts} />)}
@@ -123,13 +122,13 @@ function BookingGroup({ revision, status, search, clientId, serviceId, count, pr
     return () => controller.abort();
   }, [open, status, search, clientId, serviceId, offset, attempt, onCounts, revision]);
   return <AccordionItem open={open} onToggle={() => { if (!open) setLoading(true); setOpen((value) => !value); }}
-    header={<span>{translateInterfaceLabel(lang, BOOKING_STATUS[status].label)} · {count ?? "…"}{!open && previews?.length ? <span className="text-small ml-3">{previews.map((item) => item.clientName).join(" · ")}</span> : null}</span>}>
+    header={<span>{translateInterfaceLabel(lang, BOOKING_STATUS[status].label)} · {count ?? "…"}{!open && previews?.length ? <span className="text-small ml-3">{previews.map((item) => item.clientName).join(", ")}</span> : null}</span>}>
     {error && <LoadError message={error} onRetry={() => {setLoading(true); setAttempt((value) => value + 1);}} />}
     {loading && !page ? <LoadingRows /> : page && <>
       {page.items.length === 0 && <p className="p-5 text-small">{t("ui.no.bookings.in.this.status")}</p>}
       {page.items.map((item) => <button type="button" key={item.id}
         onClick={() => router.push(`/admin/bookings/${encodeURIComponent(item.id)}`)}
-        className="w-full flex flex-wrap gap-4 justify-between px-5 py-4 text-left border-b border-line-soft hover:bg-surface-warm">
+        className="w-full flex flex-wrap items-center gap-4 justify-between px-5 py-4 text-left border-b border-line-soft hover:bg-surface-warm">
         <span className="min-w-0 flex-1"><span className="block font-medium">{item.clientName}</span><span className="text-small">{item.serviceName}</span></span>
         <span className="text-small">{new Intl.DateTimeFormat(localeForLang(lang), { dateStyle: "medium", timeStyle: "short", timeZone: timezone }).format(new Date(item.startAt))}</span>
         <StatusBadge kind="payment" status={item.paymentStatus} /><span>{formatMoney(item.amountCents, item.currency)}</span>

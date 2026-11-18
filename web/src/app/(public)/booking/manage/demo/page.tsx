@@ -1,5 +1,6 @@
 "use client";
 
+import { TabPanel } from "@/components/ui/Tabs";
 import * as React from "react";
 import Link from "next/link";
 import { PublicNav } from "@/components/layout/PublicNav";
@@ -209,7 +210,7 @@ export default function BookingManageDemoPage() {
         <Card padded>
           <div className="grid gap-6 lg:grid-cols-[1fr_236px]">
             {/* Left / selected tab content */}
-            <div className="order-2 lg:order-1 min-w-0">
+            <TabPanel value={tab} order={TABS.map((item) => item.id)} className="order-2 lg:order-1 min-w-0">
               {tab === "info" && (
                 <BookingInfo
                   t={t}
@@ -246,7 +247,7 @@ export default function BookingManageDemoPage() {
               {tab === "package" && hasPackage && (
                 <PackageTab t={t} locale={locale} />
               )}
-            </div>
+            </TabPanel>
 
             {/* Right / quiet vertical tab menu, subtle separator */}
             <nav
@@ -262,7 +263,7 @@ export default function BookingManageDemoPage() {
                     onClick={() => setTab(item.id)}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "shrink-0 lg:w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[14px] whitespace-nowrap transition-colors",
+                      "press shrink-0 lg:w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[14px] whitespace-nowrap",
                       active
                         ? "bg-surface-warm text-ink font-medium"
                         : "text-ink-2 hover:bg-paper-2 hover:text-ink",

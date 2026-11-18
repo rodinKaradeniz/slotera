@@ -9,6 +9,7 @@ import { BookingTheme } from "./BookingTheme";
 import { ConversationThread } from "@/components/messages/ConversationThread";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { TabPanel, Tabs } from "@/components/ui/Tabs";
 import { Select } from "@/components/ui/Select";
 import { Field } from "@/components/ui/Field";
 import { useLoad } from "@/lib/use-load";
@@ -179,6 +180,8 @@ function Preferences({
   );
 }
 
+const CLIENT_TABS = ["messages", "bookings", "account"] as const;
+
 export function ClientWorkspace({ slug }: { slug: string }) {
   const { t, setLang } = useI18n();
   const router = useRouter();
@@ -268,18 +271,14 @@ export function ClientWorkspace({ slug }: { slug: string }) {
           </Button>
         </header>
         {failed && <p role="alert">{t("client.failed")}</p>}
-        <nav className="flex flex-wrap gap-2 mb-5">
-          {(["messages", "bookings", "account"] as const).map((item) => (
-            <Button
-              key={item}
-              variant={tab === item ? "primary" : "secondary"}
-              onClick={() => setTab(item)}
-            >
-              {t(`client.${item}`)}
-            </Button>
-          ))}
-        </nav>
+        <Tabs
+          className="mb-5"
+          value={tab}
+          onChange={(value) => setTab(value as typeof tab)}
+          tabs={CLIENT_TABS.map((item) => ({ value: item, label: t(`client.${item}`) }))}
+        />
         <Card>
+          <TabPanel value={tab} order={CLIENT_TABS}>
           {tab === "messages" ? (
             <ConversationThread key={identity.clientId} />
           ) : tab === "bookings" ? (
@@ -291,6 +290,7 @@ export function ClientWorkspace({ slug }: { slug: string }) {
               onSaved={setIdentity}
             />
           )}
+          </TabPanel>
         </Card>
       </main>
       <ClientFooter />

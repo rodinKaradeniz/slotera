@@ -1,0 +1,361 @@
+{
+  "date": "2026-11-17",
+  "providers": "Local AI simulation and console email; no external delivery",
+  "note": "Full run passed 21/22; a new mobile sample check omitted opening the collapsed conversation list. Navigation corrected; all six communication checks passed on focused rerun. No application change was required.",
+  "fullRun": [
+    {
+      "test": "assistant answers, reviewed actions and briefings in en",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 10945,
+      "phase": "setup"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in tr",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 7544,
+      "phase": "setup"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in de",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 7505,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in en",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 5697,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in tr",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 4484,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in de",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 5328,
+      "phase": "setup"
+    },
+    {
+      "test": "production documents enforce script nonces including system pages",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 346,
+      "phase": "setup"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in en",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 9308,
+      "phase": "language"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in tr",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 9399,
+      "phase": "language"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in de",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 10782,
+      "phase": "language"
+    },
+    {
+      "test": "recurring scope retains dates and stops following sessions",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 5111,
+      "phase": "recurring"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in en",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 8222,
+      "phase": "setup"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in tr",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 7354,
+      "phase": "setup"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in de",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 7546,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in en",
+      "project": "mobile",
+      "status": "timedOut",
+      "durationMs": 45017,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in tr",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 5861,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in de",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 7642,
+      "phase": "setup"
+    },
+    {
+      "test": "production documents enforce script nonces including system pages",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 347,
+      "phase": "setup"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in en",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 9189,
+      "phase": "language"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in tr",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 9626,
+      "phase": "language"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in de",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 9084,
+      "phase": "language"
+    },
+    {
+      "test": "recurring scope retains dates and stops following sessions",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 5043,
+      "phase": "recurring"
+    }
+  ],
+  "focusedRerun": [
+    {
+      "test": "client communication, follow-up and tasks in en",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 5364,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in tr",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 4463,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in de",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 4668,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in en",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 5864,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in tr",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 5420,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in de",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 7400,
+      "phase": "setup"
+    }
+  ],
+  "latestResults": [
+    {
+      "test": "assistant answers, reviewed actions and briefings in en",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 10945,
+      "phase": "setup"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in tr",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 7544,
+      "phase": "setup"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in de",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 7505,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in en",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 5364,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in tr",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 4463,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in de",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 4668,
+      "phase": "setup"
+    },
+    {
+      "test": "production documents enforce script nonces including system pages",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 346,
+      "phase": "setup"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in en",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 9308,
+      "phase": "language"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in tr",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 9399,
+      "phase": "language"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in de",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 10782,
+      "phase": "language"
+    },
+    {
+      "test": "recurring scope retains dates and stops following sessions",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 5111,
+      "phase": "recurring"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in en",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 8222,
+      "phase": "setup"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in tr",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 7354,
+      "phase": "setup"
+    },
+    {
+      "test": "assistant answers, reviewed actions and briefings in de",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 7546,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in en",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 5864,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in tr",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 5420,
+      "phase": "setup"
+    },
+    {
+      "test": "client communication, follow-up and tasks in de",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 7400,
+      "phase": "setup"
+    },
+    {
+      "test": "production documents enforce script nonces including system pages",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 347,
+      "phase": "setup"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in en",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 9189,
+      "phase": "language"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in tr",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 9626,
+      "phase": "language"
+    },
+    {
+      "test": "booking, forms, reviewed session changes and cancellation in de",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 9084,
+      "phase": "language"
+    },
+    {
+      "test": "recurring scope retains dates and stops following sessions",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 5043,
+      "phase": "recurring"
+    }
+  ]
+}

@@ -2133,3 +2133,186 @@ streaming-log assertions accept both normal and slow-request log levels.
 Production browser builds now reuse the installed dependency directory through a symlink;
 copying it for every isolated build caused severe avoidable filesystem work. Source files,
 environment selection, production output and the disposable database remain isolated.
+
+## 2026-11-17 — Conversation presentation and reviewed chat controls
+
+Assistant chat now shows optimistic questions, a persistent composer and a progressively
+revealed validated answer. Reveal is presentation only, with reduced-motion support; provider
+output is never shown before citation, tenant and privacy checks finish. Stop uses a durable
+cancelled turn (including the pre-reservation race) and best-effort process-local task
+cancellation; the database prevents late results in every process. Provider costs already
+incurred cannot be recalled, and unknown token reservations remain conservative.
+
+Editing creates an idempotent branch, copies only earlier history and strips executable
+proposals. Original conversations and confirmed domain actions remain intact; editing is
+never a rollback command. Branch audit metadata checks only its own source/title-hash fields,
+since existing audit instrumentation adds correlation fields.
+
+Messages use sender-relative bubbles for both operator and client surfaces; reaching the top
+loads the existing bounded history cursor and preserves the scroll anchor. No websocket,
+message-edit protocol, or new infrastructure is introduced. AI settings use the standard
+body type scale and accessible bounded usage bars.
+
+The two full conversation pages use an explicit AppShell layout mode with a bounded flex
+viewport and independent history/message scrolling. Mobile conversation lists collapse into
+a selector. Other operator pages retain their existing document flow.
+
+## 2026-11-17 — Ask Slotera and automatic conversation history
+
+The empty chat centers its composer beneath Ask Slotera and the existing muted description;
+active conversations keep the composer at the bottom. History remains bounded to 25-row
+requests, loaded automatically as each list reaches its edge. Scope changes abort requests
+and discard unrelated history even on failure; earlier messages preserve their scroll anchor.
+Deletion moves into a row context menu, also reachable through an options button and keyboard.
+
+The first successful response supplies a short conversation title in the same structured
+provider response; there is no separate naming request. Copied branch history does not count
+as a response in the new conversation. Generated titles pass the same privacy and output
+validation boundary before persistence. Local simulation uses a deterministic short title.
+
+Usage settings show one daily percentage calculated from the generation budget; internal
+budgets and indexing limits remain enforced. Search preparation is described without internal
+terminology. Ask Slotera uses a conversation icon distinct from Branding, with operator-only
+Ask/Messages shortcuts beside notifications. The disposable showcase includes a four-message
+Sofia conversation, already read so it cannot trigger a sample-message digest.
+
+First-title state is stored explicitly on the conversation: its existing created_at field is
+updated for recency, so it cannot identify whether a response is the first. The mock sample
+conversation is in the build-selected fixture adapter, preserving API fixture exclusion.
+
+
+## 2026-11-17 — Simplify dashboard To-do
+
+The requested dashboard simplification replaces the combined live-action/session-task manager
+with a title-only general checklist. One input submits on Enter; checkboxes retain completed
+rows without separate tabs. System-action cards and the reusable session-task editor are
+removed from this surface. Calendar keeps its existing session tasks. The retired composite
+worklist endpoint and unused frontend action derivations are removed rather than left as
+hidden code. Billing and notification features retain their own existing surfaces.
+
+General and session tasks still share one persisted model: a bounded general_only task filter
+keeps the dashboard distinct without another table, dual-write or migration. Existing versions,
+tenant RLS, audits and cache invalidation remain authoritative. Existing pagination infrastructure
+loads older items by scroll, with no pagination controls. This favors maintainability over a
+separate task subsystem; reconsider only if a future product decision needs different data.
+
+AI task.delete is the sole new deletion permission: prepare rejects session-bound items and
+foreign-workspace records; execution rechecks the reviewed version and uses the existing
+command transaction and idempotency. It requires the normal explicit review/confirmation and
+a to-do-specific permanent-removal warning. No model receives direct database access.
+
+Verification follows the current AGENTS.md test commands; some older workflow-module examples
+still describe the retired no-frontend-test-runner stage.
+
+
+### Dashboard and communication polish — 2026-11-17
+
+The dashboard Today card combines the manually requested daily briefing with the existing
+next-session details, separated by an inset muted rule. Briefings render a short summary and
+bulleted highlights; local simulation formats scheduled times and service names instead of
+retrieval JSON. Source links remain available in assistant chat, not the compact Today brief.
+Without a generated briefing, Today shows the session count. KPI comparisons show percentages
+only; an undefined comparison against a zero baseline is omitted rather than invented.
+Messages has no large page title or visible composer label; the input retains its accessible
+name. The send arrow sits inside the composer, aligned bottom-right. Conversation lists load
+more on scroll, and message history loads automatically at the top. Booking rows center their
+cells, and shared pills use their natural compact line height instead of stretching to a row.
+
+
+## 2026-11-17 — Separate reports from chat and consolidate settings
+
+A persisted AI thread kind distinguishes ordinary chats from generated daily/client reports,
+including failed generations and older daily cycles without a current briefing pointer. This
+avoids inferring purpose from mutable/translatable titles or hiding only the latest linked
+report. The two-revision pre-production baseline is updated in place; existing local data
+must be reset rather than supported through compatibility inference. Export and erasure
+already cover the same thread table and all report kinds.
+
+Directory responses add server-owned state aggregates over all search matches before catalog
+state filtering; pagination still uses the filtered row total. The client aggregate uses the
+same activity definition and cutoff as per-row statistics. No browser-wide collections or
+per-row HTTP requests are introduced. Metadata and entity plurals are translated at display
+time, preserving language-independent cached facts.
+
+Business Profile and Branding share a settings page while retaining their existing save,
+contrast and stale-edit review boundaries. Notifications names the settings category without
+adding unimplemented push controls. Today removes filler copy, keeps its timestamp beside an
+icon refresh and messaging uses a short centered single-line composer.
+
+## 2026-11-18 — Calm motion system and de-templating pass
+
+The interface had no motion tokens (four hand-written curves, one 400 ms `.fade-in` shared by
+menus, modals and accordions), and most overlays, menus and disclosures mounted and unmounted
+in one frame. Motion now follows one token module (`lib/motion.ts`, mirrored in CSS and
+checked by a test) and the calm-motion defaults: ease-out `0.2, 0.8, 0.2, 1`, sheet curve
+`0.32, 0.72, 0, 1`, 120 to 380 ms, exits at 80%, no bounce, Reduce Motion everywhere.
+
+**Mechanisms, not per-page code.** `DrawerShell`'s existing mount-through-exit logic became
+`usePresence` and now also drives `Modal`, the three hand-rolled popovers and `Accordion`
+(grid-rows collapse rather than animating height). A closing overlay is `inert` and
+`aria-hidden` and drops its dialog role, so tests and assistive tech see it as gone while it
+animates. Route arrival uses `template.tsx` + `ScreenEnter`, with CSS `nth-child` delays and
+fill-mode `backwards`, so the resting state is the element's own styles and nothing depends on
+JavaScript to become visible. Toasts moved from keyframes to transitions (a burst retargets
+instead of restarting), cap at three, newest on top, and pause while hovered or focused.
+
+**Rejected:** a motion library (CSS and two small hooks cover it, and CSS animations stay
+smooth while the main thread is busy); View Transitions for routes (the old screen is removed
+at once by the router, so only the incoming screen animates); animating the command palette
+(keyboard-opened many times a day, so it appears instantly); scroll-driven CSS animations for
+the landing page (they replay on scroll-up; reveals should happen once).
+
+**Identity.** The visual world is unchanged (paper, forest, Fraunces). What changed are the
+signals that read as generated: `.eyebrow` is now a sentence-case body-face label instead of
+spaced mono capitals; decorative kickers above list-page titles ("Catalog", "Operations",
+"Directory", "Platform") and landing section kickers were removed with their dictionary keys;
+the greeting lost its italic accent name and uppercase date; em dashes were rewritten out of
+EN/TR/DE interface copy and seeded demo copy; list previews join with commas; `EmptyState`
+became a left-aligned, contextual note and catalog/client lists gained real empty and
+no-match states; landing features became a hairline list instead of six identical cards, and
+the hero's tick-badge row went. The client portal's tabs had been filled buttons, which read
+as actions, so they now use `Tabs`. A gliding "now" marker was added to today's rail.
+
+**Not done yet:** the landing hero still uses the div-built product collage; replacing it with
+real screenshots needs captures from a browser, which the agent sandbox cannot launch.
+
+## 2026-11-18 — Dashboard rework, notifications page and daily brief removal
+
+**Daily briefing removed.** The workspace-wide "Brief me" on the dashboard duplicated what the
+next call, the schedule and the to-do already show, and its 9am cycle was the only reason for
+`ai_briefings.cycle`. The `daily` kind is gone from `/ai/briefings/{kind}` (only `client`
+remains, and it requires `clientId`), the service no longer creates daily threads, and the
+`cycle` column was dropped from the baseline revision (reset local databases). Client briefings
+are unchanged.
+
+**Dashboard.** "Today" became **Your next call** (the next session may not be today) without a
+brief, refresh or rule above the details. Today's schedule is its own card under it; the to-do
+card sits beside both and is absolutely positioned on wide screens so the left column sets the
+row height and the to-do scrolls inside. To-dos are created in a small modal with a title and
+optional description (the backend already stored descriptions); rows show one truncated line
+and expand in place with a height transition. This reverses two PRODUCT.md rules ("no separate
+schedule card", "no descriptions"), which were updated with the user's request. KPI tiles now
+read number, label, then the change in words.
+
+**Notifications.** Keyset paging (time, then id) rather than offsets, so notifications that
+arrive while someone scrolls never shift or duplicate later pages. Retention follows the usual
+inbox convention: read notifications are cleared after 30 days, unread ones after 90, by a
+fixed `SECURITY DEFINER` function the maintenance job calls; the runtime role still cannot
+delete notifications. The bell shows the latest 7, and `/admin/notifications` loads 20 at a
+time, fetching the next batch when the item halfway down the loaded list scrolls into view.
+`AuthGuard` admits this top-bar route in API mode through `OPERATOR_TOPBAR_ROUTES`.
+
+**Bookings (API mode)** had a second search box that only filtered the services dropdown; the
+dropdown now loads the services once and sits at the right end of the main search row.
+
+**Layout fixes.** Phones get the sidebar as a sheet instead of a permanent 68px rail; the next
+call stacks the time above the client so the name isn't cut; chart axes use compact amounts
+(`formatMoneyCompact`) instead of clipped full ones; the landing demo band uses the accent
+tint instead of a near-black slab.
+
+**Visual review from the agent.** Chromium cannot start inside the agent's macOS sandbox
+(`bootstrap_check_in … MachPortRendezvousServer: Permission denied`), so screenshots need the
+walkthrough to run unsandboxed. The script now lives in the repo as `npm run ui:walk`; letting
+the agent run it means listing that command under `sandbox.excludedCommands` in the
+developer's Claude Code settings.
+

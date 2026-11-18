@@ -1,19 +1,25 @@
 "use client";
-import { useI18n } from "@/components/i18n/I18nProvider";
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import type { Kpi } from "@/types/dashboard";
 import { cn } from "@/lib/cn";
+import { CountUp } from "@/components/shared/CountUp";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 export function KpiTile({ kpi }: { kpi: Kpi }) {
-  const { t: uiText } = useI18n();
   const up = kpi.trend === "up";
   const down = kpi.trend === "down";
+  const { t } = useI18n();
+  // "+12.4%" → "12.4% increase from last month"; anything that isn't a percentage is left out.
+  const percent = /^[+−-]?\d+(?:[.,]\d+)?%$/.test(kpi.delta) ? kpi.delta.replace(/^[+−-]/, "") : null;
+  const change = percent === null ? null
+    : up ? t("dashboard.kpi.increase", { value: percent })
+    : down ? t("dashboard.kpi.decrease", { value: percent })
+    : t("dashboard.kpi.flat");
   return (
     <Card padded={false} className="h-full flex flex-col">
-      <div className="px-5 py-4 flex-1 flex flex-col justify-center gap-1.5">
-        <div className="eyebrow">{kpi.label}</div>
+      <div className="px-5 py-4 flex-1 flex flex-col justify-center">
         <div
           className="font-serif text-ink"
           style={{
@@ -23,11 +29,12 @@ export function KpiTile({ kpi }: { kpi: Kpi }) {
             letterSpacing: "-0.015em",
           }}
         >
-          {kpi.value}
+          <CountUp value={kpi.value} />
         </div>
-        <div
+        <div className="text-[13px] text-ink-2 mt-1.5">{kpi.label}</div>
+        {change && <div
           className={cn(
-            "inline-flex items-center gap-1 text-[12px]",
+            "flex items-start gap-1 text-[12px] leading-snug mt-1",
             up && "text-success",
             down && "text-danger",
             !up && !down && "text-ink-3",
@@ -36,10 +43,10 @@ export function KpiTile({ kpi }: { kpi: Kpi }) {
           <Icon
             name={up ? "trend-up" : down ? "trend-down" : "dot"}
             size={12}
+            className="shrink-0 mt-[3px]"
           />
-          {kpi.delta}
-          <span className="text-ink-3"> {uiText("ui.vs.last.month")}</span>
-        </div>
+          {change}
+        </div>}
       </div>
     </Card>
   );

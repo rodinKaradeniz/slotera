@@ -62,14 +62,14 @@ export function StatusAccordion({ status, rows, defaultOpen, onRowClick }: Props
           </span>
           {!open && preview.length > 0 && (
             <span className="text-small text-ink-3 truncate hidden sm:inline">
-              {preview.map((p) => `${firstName(p.clientName)} ${p.time}`).join(" · ")}
-              {overflow > 0 && ` · +${overflow} more`}
+              {preview.map((p) => `${firstName(p.clientName)} ${p.time}`).join(", ")}
+              {overflow > 0 && `, +${overflow} more`}
             </span>
           )}
         </div>
       }
     >
-      <div>
+      <div className="list-rise">
         {rows.length === 0 ? (
           <div className="px-5 py-6 text-small text-center">{uiText("ui.no.bookings.in.this.status")}</div>
         ) : (

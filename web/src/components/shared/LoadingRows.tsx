@@ -1,12 +1,14 @@
 import * as React from "react";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { cn } from "@/lib/cn";
 
 type Props = { count?: number; className?: string };
 
 export function LoadingRows({ count = 5, className }: Props) {
   return (
-    <Card padded={false} className={className}>
+    // Hidden for the first moment, so a quick load doesn't flash a skeleton.
+    <Card padded={false} className={cn("loading-delay", className)} aria-busy="true">
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}

@@ -19,7 +19,7 @@ export const OPERATOR_NAV: NavItem[] = [
   { id: "packages",  label: "Packages",  icon: "package",   href: "/admin/packages" },
   { id: "forms",     label: "Forms",     icon: "file",      href: "/admin/forms" },
   { id: "messages", label: "Messages", icon: "mail", href: "/admin/messages" },
-  { id: "assistant", label: "Assistant", icon: "sparkle", href: "/admin/assistant" },
+  { id: "assistant", label: "Ask Slotera", icon: "ask", href: "/admin/assistant" },
   { id: "settings",  label: "Settings",  icon: "cog",       href: "/admin/settings" },
 ];
 
@@ -43,10 +43,14 @@ export function navForRole(role: UserRole): NavItem[] {
   return dataSource === "api" ? API_OPERATOR_NAV : OPERATOR_NAV;
 }
 
+/** Operator pages reached from the top bar rather than the sidebar. */
+const OPERATOR_TOPBAR_ROUTES = ["/admin/notifications"];
+
 /** Whether a path belongs to a page this role's navigation lists (AuthGuard, API mode). */
 export function isNavRoute(role: UserRole, pathname: string): boolean {
-  return navForRole(role).some(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  const extra = role === "operator_admin" ? OPERATOR_TOPBAR_ROUTES : [];
+  return [...navForRole(role).map((item) => item.href), ...extra].some(
+    (href) => pathname === href || pathname.startsWith(`${href}/`),
   );
 }
 

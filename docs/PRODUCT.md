@@ -115,7 +115,7 @@ return ...                      // returns from / mutates an in-memory copy of w
 
 `dataSource` is read from `NEXT_PUBLIC_DATA_SOURCE` in `web/src/lib/env.ts` (defaults to `"mock"`). The wired API bundles implement auth/session and password reset, business and client-payment settings, saved locations, services, notifications, availability, sessions, clients, booking-ledger reads, forms, client notes, session action items, dashboard/search, the narrow superadmin workspace reads/commands, and the capacity-one public booking flow through `web/src/api/client.ts`; every unwired API branch still throws explicitly. There is no automatic API→mock fallback. **The mock state lives in module-level `let mock = JSON.parse(JSON.stringify(json))` arrays** — mutations persist for the lifetime of the dev process but reset on reload/HMR. Components must go through the service layer; never import `web/src/data/mock/*.json` directly from a component.
 
-In mock mode, services may compose related resources through other services; `getDashboard()` imports bookings, sessions, and action items to prepend derived attention entries to the fixture. In API mode it maps the single tenant-scoped `GET /dashboard/summary` read model; it must not compose a real dashboard from unrelated mock data or make client-side aggregate queries.
+In mock mode, services may compose related resources through other services; `getDashboard()` uses bookings for the monthly unique-client KPI. Dashboard to-dos load separately through the task service. In API mode it maps the single tenant-scoped `GET /dashboard/summary` read model; it must not compose a real dashboard from unrelated mock data or make client-side aggregate queries.
 
 ### Auth and session
 
@@ -178,6 +178,17 @@ The visual target is the Claude Design handoff (warm cream paper, deep forest gr
   </section>
 </div>
 ```
+
+**Calm motion and an un-templated look.** Nothing in the interface appears or disappears in a
+single frame, and nothing performs: motion explains a change (arrival, state, place) and
+settles quickly on one ease-out curve, without bounce, with exits faster than entrances and
+Reduce Motion respected everywhere. Entrances play once per screen per session, so the app
+never feels slow to someone using it all day. Values live in `web/src/lib/motion.ts`; see
+`AGENTS.md` → Styling for the shared mechanisms. Copy avoids the habits that make a product
+read as generated: no em dashes in interface text (a lone "—" for an empty value is fine),
+no spaced mono capitals as labels, no kicker above a list page's title, " · " at most once per
+line, and empty states that name what's missing and teach the next step instead of a generic
+sparkle.
 
 ### Conventions
 
@@ -560,10 +571,9 @@ Intentionally more editorial than generic SaaS. **Keep:**
   and average booking value. The client count uses distinct clients on non-cancelled
   bookings created during the workspace-local calendar month.
 - Revenue trend with Recharts (`TrendChart`) — its `ResponsiveContainer` is gated on a measured positive size to suppress the `width(-1)/height(-1)` warnings that fire during route transitions.
-- Prominent `NextSessionCard` (also embeds today's schedule timeline — don't add a separate "Today's schedule" card). With no upcoming session, retain a full card with an icon, preparation message and calendar link.
-- `PendingActions` ("To-do") combines bounded private tasks with live system actions; tasks can be completed, while system actions resolve only at their source. General and session tasks share one model and revision.
-- API worklist includes a billing reminder when the trial ends within 7 days or the
-  workspace is unpaid (from `GET /settings/billing`).
+- **Your next call** (`NextSessionCard`) shows the next session's details (it may not be today). Directly below it, **Today's schedule** (`ScheduleCard`) is its own card with today's timeline and a "now" marker; together they are exactly as tall as the to-do beside them. With no upcoming session, Your next call keeps an icon, a preparation message and a calendar link. There is no daily briefing on the dashboard (removed 2026-11-18).
+- KPI tiles read number, then label, then the change in words ("12.4% increase from last month").
+- `TodoList` is one simple checklist of general private tasks. **New to-do** opens a small modal with a title and an optional description. Each row shows its title with one muted, truncated line of description; a chevron at the row's end (on hover, always on touch) expands the row to the full description. The list scrolls inside the card, so expanding never resizes it. Completed tasks stay checked and can be reopened; ticks draw in. Older rows load on scroll. Do not add system-action rows, status tabs, due dates, edit/delete buttons or nested task-manager containers here. Session action items stay in Calendar, outside this list.
 - API mode maps `GET /dashboard/summary` into the same component-facing contract: monthly paid-booking revenue plus active booking count/average, a 30-day trend, today/next session context, weekly session count, and the two attention counts. Currency formatting remains in the service/UI; the API returns currency and minor-unit facts.
 - `Greeting`'s right-hand column has the **booking-page toggle** in mock mode: a `Toggle` + status pill ("Booking page live" / "Bookings paused") + confirmation modal + `toast.info("Bookings paused", { description })` / `toast.success("Bookings live")`. It remains hidden on the API dashboard; the real publication flag is owned by Business Settings and the public endpoint, not by this mock-derived dashboard control.
 
@@ -627,12 +637,12 @@ Two-column structure: left aside (eyebrow "Workspace" + H1 "Settings" + descript
 Sidebar labels in **Title Case** — exact strings:
 
 ```
-Business Profile · Branding · Client Payments · Billing & Subscription · Calendar · Emails · Account
+AI · Business Profile · Client Payments · Billing & Subscription · Calendar · Notifications · Account
 ```
 
 Inner panel card titles match the same Title Case (`Business Profile`, `Manual Payment`, `Payment Processors`, `Calendar Connections`, `Working Hours`, `Email Notifications`). The right-column section header reads just `{label}` — no "settings" suffix.
 
-**Business Profile** also includes a **Studios & offices** card (`LocationsCard`) — list + Add/Edit/Delete of saved `WorkspaceLocation`s. Each location is `{ id, label, address: Address }`. These are pickable in the SessionDrawer and ServiceDrawer via `AddressPicker`.
+**Business Profile** includes its Branding controls and a **Studios & offices** card (`LocationsCard`) — list + Add/Edit/Delete of saved `WorkspaceLocation`s. Each location is `{ id, label, address: Address }`. These are pickable in the SessionDrawer and ServiceDrawer via `AddressPicker`.
 
 **Account** (API mode) also has a **Your data** card: export everything the workspace
 holds as one JSON file, and **Close workspace**. Closing requires typing the booking page
@@ -641,7 +651,7 @@ and the maintenance job deletes all its data 30 days later. Until then Slotera s
 reopen it.
 
 **Business Profile** has an "Accept new bookings" switch that pauses the public page.
-**Emails** (API mode) holds three "Notify me when" switches: a new booking, a client
+**Notifications** (API mode) currently holds email preferences with three "Notify me when" switches: a new booking, a client
 cancelling, and a client moving a booking. Clients always get their booking emails.
 
 Keep Settings simple and not enterprise-heavy.
@@ -716,7 +726,7 @@ A session carries two distinct admin surfaces, both in the shared `SessionDrawer
 
 Tasks and notes never leave the operator surface. Keep tasks lightweight: **no client visibility, assignees, comments, reminders, notifications, recurrence, project boards or messaging**.
 
-Derived surfaces: the Dashboard "Needs your attention" list prepends a live **"Review N open session action items"** entry (computed in `dashboard.service.ts` from `todo` items on real sessions; the `ses-demo` seed is excluded). `BookingDrawer` carries a small **"View booking workspace"** link to `/booking/manage/demo`.
+Session action items do not appear in Dashboard To-do. `BookingDrawer` carries a small **"View booking workspace"** link to `/booking/manage/demo`.
 
 ---
 
@@ -862,9 +872,7 @@ and original contact snapshots remain intact. Claimed affected email blocks the 
 Erasure removes conversations, credentials, answers and communication context; workspace
 exports include entered content and safe delivery metadata, never credentials.
 
-Dashboard To-do and Calendar share private task records with optional session association,
-reviewed versions and due dates. Live message, notification and billing actions cannot be
-checked off. AI, voice, video, package credits and external delivery verification remain
+Dashboard To-do uses general private task records; Calendar keeps session-associated tasks. Both retain reviewed versions. Dashboard shows no live message, notification or billing action rows. AI, voice, video, package credits and external delivery verification remain
 outside this communication release.
 
 
@@ -876,12 +884,55 @@ allow-listed records, disclose incomplete coverage and treat retrieved text as u
 Only the current operator request may propose one allow-listed action; review and explicit
 confirmation are mandatory. Existing permissions, revisions, session impacts, capacity,
 financial snapshots and idempotency remain authoritative. No assistant email transfer,
-payments, approval, billing/access changes, deletion, messages or note/form writing.
+payments, approval, billing/access changes, messages or note/form writing. Deletion is limited to explicitly reviewed general to-do items; session tasks and all other resources cannot be deleted by AI.
 
-Daily briefing is manually requested on Dashboard, with the workspace’s 9am daily cycle and
-15-minute refresh cooldown; client briefings live on client details. Last results remain dated.
+Briefings exist only per client, on client details, with a 15-minute refresh cooldown (the
+workspace-wide daily briefing was removed on 2026-11-18). Last results remain dated.
 Workspace quotas and two concurrent generations bound costs; no scheduled model generation.
 History lasts 30 days. Disabling purges AI context; client erasure conservatively purges all
 workspace AI history and that client’s index. Provider keys and management tokens never enter
 browser storage, retrieval or logs. Hosted provider processing is disclosed before opt-in.
 Voice, video and live third-party verification remain outside this release.
+
+Assistant chat has a conversation sidebar, right-aligned questions, a bottom composer and
+an always-visible mistakes disclaimer. Copy/edit controls and timestamps appear on hover or
+keyboard focus and remain visible on touch screens. Answers reveal progressively only after
+validation, with reduced-motion support. Stop cancels unfinished generation; it does not
+pause/resume or reverse completed actions. Editing creates a separate conversation branch,
+preserves the original history and copies no executable proposals.
+
+Messages show our own messages on the right and received messages on the left, with oldest
+first and automatic bounded history loading at the top. The same sender-relative behavior
+applies to the client surface. AI usage is shown through one labelled daily percentage bar.
+
+The assistant surface is named **Ask Slotera**. New conversations show a centered title,
+muted description and composer; empty conversation history has its own explanation. History
+loads automatically at the edges, without previous/next or older/newer buttons. Chat-row
+options contain deletion with confirmation and support right-click, touch and keyboard access.
+A short title comes from the first successful AI response. Usage settings show a single daily
+percentage, keeping implementation terminology out of the consultant-facing flow.
+
+
+### Dashboard and communication polish — 2026-11-17
+
+*(Superseded 2026-11-18: the daily briefing was removed from the dashboard.)* KPI comparisons
+show percentages only; an undefined comparison against a zero baseline is omitted rather than
+invented.
+Messages has no large page title or visible composer label; the input retains its accessible
+name. The send arrow sits inside the composer, aligned bottom-right. Conversation lists load
+more on scroll, and message history loads automatically at the top. Booking rows center their
+cells, and shared pills use their natural compact line height instead of stretching to a row.
+
+
+### Briefing, directory and settings refinement — 2026-11-17
+
+Generated daily/client briefings are reports, excluded from chat history using an explicit
+thread kind rather than translated titles. Today has no greeting or extra introduction;
+its generated date/time shares a toolbar with an accessible cycle-arrows refresh icon.
+Collection metadata names the entities and shows full search-matching state counts,
+independent of pagination and catalog state filters. Clients use their existing new/active/
+dormant activity definitions; catalogs use active/inactive. Messaging uses a short single-line
+composer with a vertically centered send arrow. Business Profile contains the existing
+branding controls with their own save/review behavior; no separate Branding navigation item
+remains. Notifications is the channel-neutral settings section, currently containing email
+preferences; mobile push configuration is future work.

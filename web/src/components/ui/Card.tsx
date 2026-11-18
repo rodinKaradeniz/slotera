@@ -24,7 +24,7 @@ export function Card({
         selected ? "border-accent" : "border-line",
         padded && "p-7",
         hover &&
-          "transition-all duration-200 hover:-translate-y-px hover:shadow-2 hover:border-ink-4",
+          "transition-[border-color,box-shadow] duration-(--d-fade) ease-out hover:shadow-2 hover:border-ink-4",
         className,
       )}
       {...rest}

@@ -1,4 +1,5 @@
 "use client";
+import { collectionMeta } from "@/lib/collection-meta";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 import { useToast } from "@/components/ui/Toast";
@@ -10,13 +11,14 @@ import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { ServiceCard } from "./ServiceCard";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { useLoad } from "@/lib/use-load";
 import { Pagination } from "@/components/shared/Pagination";
 import { getService, listServiceSummaryPage as listServicePage } from "@/services/services.service";
 
 export function ServicesView() {
-  const { t: uiText } = useI18n();
+  const { t: uiText, lang } = useI18n();
   const { toast } = useToast();
   const { openServiceDrawer } = useDrawers();
   const [offset, setOffset] = React.useState(0);
@@ -27,10 +29,9 @@ export function ServicesView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow={uiText("ui.catalog")}
         title={uiText("ui.services")}
         description={uiText("ui.the.templates.clients.can.book.duration.pricing.and.capacity")}
-        meta={page ? String(page.total) : uiText("ui.loading")}
+        meta={page ? collectionMeta("services", page.states ?? {}, lang) : uiText("ui.loading")}
         actions={
           <Button
             variant="primary"
@@ -48,8 +49,10 @@ export function ServicesView() {
         </Card>
       ) : !services ? (
         <LoadingRows count={4} />
+      ) : services.length === 0 ? (
+        <EmptyState icon="layers" title={uiText("empty.services.title")} body={uiText("empty.services.body")} />
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="list-rise grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {services.map((s) => (
             <ServiceCard
               key={s.id}

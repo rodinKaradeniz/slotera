@@ -10,6 +10,8 @@ import { ContactModal } from "@/components/public/ContactModal";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { currentSession, logout } from "@/services/auth.service";
 import { cn } from "@/lib/cn";
+import { motion } from "@/lib/motion";
+import { usePresence } from "@/lib/use-presence";
 import { bookingPageHref, type NavItem } from "@/lib/nav";
 
 type Props = {
@@ -20,6 +22,9 @@ type Props = {
   workspaceLabel?: string;
   userName?: string;
   userSubtitle?: string;
+  /** Phones: the sidebar opens as a sheet and closes when a link is followed. */
+  onNavigate?: () => void;
+  className?: string;
 };
 
 export function Sidebar({
@@ -30,6 +35,8 @@ export function Sidebar({
   workspaceLabel,
   userName,
   userSubtitle,
+  onNavigate,
+  className,
 }: Props) {
   const { t: uiText } = useI18n();
   const pathname = usePathname();
@@ -39,6 +46,7 @@ export function Sidebar({
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [reportOpen, setReportOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
+  const menu = usePresence(menuOpen, motion.popover.out);
 
   React.useEffect(() => {
     if (!menuOpen) return;
@@ -58,8 +66,9 @@ export function Sidebar({
     <>
     <aside
       className={cn(
-        "h-screen sticky top-0 bg-surface-warm border-r border-line flex flex-col flex-shrink-0 transition-[width] duration-200 print:hidden",
+        "h-screen sticky top-0 bg-surface-warm border-r border-line flex flex-col flex-shrink-0 transition-[width] duration-(--d-collapse) ease-out motion-reduce:transition-none print:hidden",
         collapsed ? "w-[68px]" : "w-[244px]",
+        className,
       )}
     >
       <div
@@ -90,13 +99,14 @@ export function Sidebar({
               key={item.id}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 h-10 rounded-md transition-colors",
+                "press flex items-center gap-3 h-10 rounded-md",
                 collapsed ? "justify-center px-2" : "px-3",
                 active
                   ? "bg-accent-soft text-accent-ink"
                   : "text-ink-2 hover:bg-paper-2",
               )}
               title={collapsed ? label : undefined}
+              onClick={onNavigate}
             >
               <Icon name={item.icon} size={18} />
               {!collapsed && <span className="text-[14px]">{label}</span>}
@@ -128,10 +138,15 @@ export function Sidebar({
         >
           <Icon name="more" size={18} />
         </button>
-        {menuOpen && (
+        {menu.rendered && (
           <div
+            data-state={menu.state}
+            inert={menu.closing}
+          aria-hidden={menu.closing || undefined}
             className={cn(
-              "absolute bottom-full left-2 right-2 mb-2 bg-surface border border-line rounded-md shadow-2 py-1 fade-in z-10",
+              // Opens upward from the account row, so it grows from its bottom edge.
+              "popover origin-bottom absolute bottom-full left-2 right-2 mb-2 bg-surface border border-line rounded-md shadow-2 py-1 z-10",
+              collapsed && "origin-bottom-left",
               collapsed && "left-2 right-auto w-44",
             )}
           >

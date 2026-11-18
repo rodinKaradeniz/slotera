@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import {BriefingCard} from "@/components/assistant/BriefingCard";
 import { ConversationThread } from "@/components/messages/ConversationThread";
-import { Tabs } from "@/components/ui/Tabs";
+import { TabPanel, Tabs } from "@/components/ui/Tabs";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { CardHead } from "@/components/shared/CardHead";
 import { DetailLine } from "@/components/shared/DetailLine";
@@ -158,6 +158,7 @@ export default function ClientDetailPage() {
           </div>
 
           {!client.erasedAt && <div className="mb-5"><BriefingCard clientId={client.id}/></div>}
+          <TabPanel value={tab} order={["overview", "notes", "messages"]}>
           {tab === "messages" ? <Card>{client.erasedAt ? <p>{uiText("booking.emails.erased")}</p> : <ConversationThread key={id} clientId={id} />}</Card> : tab === "overview" ? (
             <div className="space-y-4">
               <Card padded={false}>
@@ -267,6 +268,7 @@ export default function ClientDetailPage() {
           ) : (
             <ClientNotes clientId={client.id} />
           )}
+          </TabPanel>
         </>
       )}
     </PageContainer>

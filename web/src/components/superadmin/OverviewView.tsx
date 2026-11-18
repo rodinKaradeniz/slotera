@@ -31,7 +31,6 @@ export function OverviewView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow={uiText("ui.platform")}
         title={uiText("ui.platform.overview")}
         description={uiText("ui.workspaces.plans.and.activity.across.slotera")}
       />

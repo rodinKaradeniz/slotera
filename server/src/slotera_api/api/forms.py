@@ -54,7 +54,7 @@ async def list_forms(
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> FormTemplateListResponse:
     repository = FormsRepository(database)
-    items, total, attachments = await repository.list_page(
+    items, total, attachments, states = await repository.list_page(
         operator.workspace_id, search, status, limit, offset
     )
     response.headers["Cache-Control"] = "no-store"
@@ -115,11 +115,12 @@ async def list_form_summaries(
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> FormSummaryPage:
-    items, total, attachments = await FormsRepository(database).list_page(
+    items, total, attachments, states = await FormsRepository(database).list_page(
         operator.workspace_id, search, status, limit, offset
     )
     response.headers["Cache-Control"] = "no-store"
     return FormSummaryPage(
+        states=states,
         items=[
             FormSummary(
                 id=item.id,

@@ -1718,6 +1718,34 @@
         "title": "BookingSummaryPage",
         "type": "object"
       },
+      "BranchInput": {
+        "additionalProperties": false,
+        "properties": {
+          "threadId": {
+            "format": "uuid",
+            "title": "Threadid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "turnId": {
+            "format": "uuid",
+            "title": "Turnid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "threadId",
+          "turnId"
+        ],
+        "title": "BranchInput",
+        "type": "object"
+      },
       "Branding": {
         "additionalProperties": false,
         "properties": {
@@ -2708,12 +2736,20 @@
             "title": "Offset",
             "type": "integer"
           },
+          "states": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "States",
+            "type": "object"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
           }
         },
         "required": [
+          "states",
           "items",
           "total",
           "limit",
@@ -3900,12 +3936,20 @@
             "title": "Offset",
             "type": "integer"
           },
+          "states": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "States",
+            "type": "object"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
           }
         },
         "required": [
+          "states",
           "items",
           "total",
           "limit",
@@ -4589,6 +4633,10 @@
       },
       "NotificationListResponse": {
         "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
           "items": {
             "items": {
               "discriminator": {
@@ -4633,7 +4681,8 @@
         },
         "required": [
           "items",
-          "unreadCount"
+          "unreadCount",
+          "hasMore"
         ],
         "title": "NotificationListResponse",
         "type": "object"
@@ -4964,12 +5013,20 @@
             "title": "Offset",
             "type": "integer"
           },
+          "states": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "States",
+            "type": "object"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
           }
         },
         "required": [
+          "states",
           "items",
           "total",
           "limit",
@@ -8019,12 +8076,20 @@
             "title": "Offset",
             "type": "integer"
           },
+          "states": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "States",
+            "type": "object"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
           }
         },
         "required": [
+          "states",
           "items",
           "total",
           "limit",
@@ -8881,6 +8946,39 @@
         "title": "SlugAvailability",
         "type": "object"
       },
+      "StopInput": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Key",
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
+          "prompt": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Prompt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "prompt",
+          "language"
+        ],
+        "title": "StopInput",
+        "type": "object"
+      },
       "TaskCreate": {
         "additionalProperties": false,
         "properties": {
@@ -9201,66 +9299,6 @@
         "title": "ValidationError",
         "type": "object"
       },
-      "WorklistResponse": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/SessionActionItemResponse"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "limit": {
-            "title": "Limit",
-            "type": "integer"
-          },
-          "offset": {
-            "title": "Offset",
-            "type": "integer"
-          },
-          "paidThrough": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Paidthrough"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          },
-          "trialEndsAt": {
-            "format": "date-time",
-            "title": "Trialendsat",
-            "type": "string"
-          },
-          "unreadMessages": {
-            "title": "Unreadmessages",
-            "type": "integer"
-          },
-          "unreadNotifications": {
-            "title": "Unreadnotifications",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "limit",
-          "offset",
-          "items",
-          "total",
-          "unreadMessages",
-          "unreadNotifications",
-          "trialEndsAt",
-          "paidThrough"
-        ],
-        "title": "WorklistResponse",
-        "type": "object"
-      },
       "WorkspaceBillingResponse": {
         "description": "The operator's own plan plus the full price list, for Settings \u2192 Billing.",
         "properties": {
@@ -9505,10 +9543,7 @@
             "name": "kind",
             "required": true,
             "schema": {
-              "enum": [
-                "daily",
-                "client"
-              ],
+              "const": "client",
               "title": "Kind",
               "type": "string"
             }
@@ -9574,10 +9609,7 @@
             "name": "kind",
             "required": true,
             "schema": {
-              "enum": [
-                "daily",
-                "client"
-              ],
+              "const": "client",
               "title": "Kind",
               "type": "string"
             }
@@ -9972,6 +10004,105 @@
           }
         },
         "summary": "Delete Thread",
+        "tags": [
+          "assistant"
+        ]
+      }
+    },
+    "/ai/threads/{identifier}/branch": {
+      "post": {
+        "operationId": "branchAIThread",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BranchInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Branch Thread",
+        "tags": [
+          "assistant"
+        ]
+      }
+    },
+    "/ai/threads/{identifier}/stop": {
+      "post": {
+        "operationId": "stopAITurn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stop Turn",
         "tags": [
           "assistant"
         ]
@@ -13030,71 +13161,6 @@
         ]
       }
     },
-    "/dashboard/worklist": {
-      "get": {
-        "operationId": "getDashboardWorklist",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/SessionActionItemStatus",
-              "default": "todo"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 25,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "offset",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Offset",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorklistResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Worklist",
-        "tags": [
-          "tasks"
-        ]
-      }
-    },
     "/forms": {
       "get": {
         "operationId": "listForms",
@@ -13522,6 +13588,40 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "beforeId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Beforeid"
             }
           }
         ],
@@ -17082,6 +17182,16 @@
                 }
               ],
               "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "general_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "General Only",
+              "type": "boolean"
             }
           },
           {

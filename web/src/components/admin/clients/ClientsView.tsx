@@ -5,19 +5,20 @@ import * as React from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { plural } from "@/lib/text";
+import { collectionMeta } from "@/lib/collection-meta";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { ClientCard } from "./ClientCard";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { LoadingRows } from "@/components/shared/LoadingRows";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { dataSource } from "@/lib/env";
 import { Pagination } from "@/components/shared/Pagination";
 import { useToast } from "@/components/ui/Toast";
-import { exportClientDirectory, listClientPage, listClients } from "@/services/clients.service";
+import { exportClientDirectory, listClientPage } from "@/services/clients.service";
 import { formatMoney } from "@/lib/money";
 import { toCsv, downloadText } from "@/lib/csv";
 import { useLoad } from "@/lib/use-load";
@@ -29,13 +30,13 @@ import { useDrawers } from "@/components/drawers/DrawersProvider";
 type Layout = "grid" | "rows";
 
 export function ClientsView() {
-  const { t: uiText } = useI18n();
+  const { t: uiText, lang } = useI18n();
   const { toast } = useToast();
   const [exporting, setExporting] = React.useState(false);
   const { openClientDrawer } = useDrawers();
   const [query, setQuery] = React.useState("");
   const [offset, setOffset] = React.useState(0);
-  const load = React.useCallback(async (signal?: AbortSignal) => dataSource === "api" ? listClientPage(query, offset, signal) : {items: await listClients(), total: 0, offset: 0, limit: 25}, [query, offset]);
+  const load = React.useCallback(async (signal?: AbortSignal) => listClientPage(query, offset, signal), [query, offset]);
   const { data: page, error, reload, loading } = useLoad(load);
   const clients = page?.items;
   const [layout, setLayout] = React.useState<Layout>("grid");
@@ -77,10 +78,9 @@ export function ClientsView() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow={uiText("ui.directory")}
         title={uiText("ui.clients")}
         description={uiText("ui.everyone.who.has.booked.with.you.with.lifetime.spend.and.activity")}
-        meta={clients ? plural(dataSource === "api" ? (page?.total ?? 0) : clients.length, "client") : uiText("ui.loading")}
+        meta={clients ? collectionMeta("clients", page?.states ?? {}, lang) : uiText("ui.loading")}
         actions={
           <>
             <Button
@@ -126,14 +126,20 @@ export function ClientsView() {
         <LoadError message={error} onRetry={reload} />
       ) : !clients ? (
         <LoadingRows count={5} />
+      ) : filtered.length === 0 ? (
+        query.trim() ? (
+          <EmptyState icon="search" title={uiText("empty.filtered.title")} body={uiText("empty.filtered.body")} />
+        ) : (
+          <EmptyState icon="users" title={uiText("empty.clients.title")} body={uiText("empty.clients.body")} />
+        )
       ) : layout === "grid" ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="list-rise grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((c) => (
             <ClientCard key={c.id} client={c} currency={currency} />
           ))}
         </div>
       ) : (
-        <Card padded={false}>
+        <Card padded={false} className="list-rise">
           {filtered.map((c) => (
             <Link
               key={c.id}
@@ -156,7 +162,7 @@ export function ClientsView() {
           ))}
         </Card>
       )}
-      {dataSource === "api" && page && <Pagination total={page.total} offset={offset} onChange={setOffset} loading={loading} />}
+      {page && <Pagination total={page.total} offset={offset} onChange={setOffset} loading={loading} />}
     </PageContainer>
   );
 }

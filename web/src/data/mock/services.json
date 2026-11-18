@@ -50,7 +50,7 @@
   {
     "id": "svc-workshop",
     "name": "Group Workshop",
-    "description": "Small-group, expert-led workshop — hands-on and capped for real interaction.",
+    "description": "Small-group, expert-led workshop, hands-on and capped for real interaction.",
     "durationMin": 120,
     "priceCents": 18000,
     "currency": "GBP",
@@ -64,7 +64,7 @@
       "region": "Berlin",
       "postalCode": "10178",
       "country": "DE",
-      "notes": "Buzzer for the studio — second floor, glass door on the left."
+      "notes": "Buzzer for the studio, second floor, glass door on the left."
     },
     "bookingMode": "scheduled",
     "confirmationPolicy": "operator_approval",
@@ -88,6 +88,6 @@
     "cancellationRule": "Free reschedule up to 24h before.",
     "active": false,
     "createdAtISO": "2026-02-20T10:00:00.000Z",
-    "notes": "Currently paused — re-enable when there's capacity for retainer clients."
+    "notes": "Currently paused. Re-enable when there's capacity for retainer clients."
   }
 ]

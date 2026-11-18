@@ -6,9 +6,8 @@ import {
 import * as React from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/Button";
-import { Field } from "@/components/ui/Field";
 import { ScrollArea } from "@/components/ui/ScrollArea";
-import { localeForLang } from "@/lib/i18n";
+import { ChatBubble } from "@/components/chat/ChatBubble";
 import {
   listMessages,
   markMessagesRead,
@@ -16,14 +15,21 @@ import {
   type Message,
 } from "@/services/messages.service";
 
-export function ConversationThread({ clientId }: { clientId?: string }) {
-  const { t, lang } = useI18n();
+export function ConversationThread({
+  clientId,
+  fill = false,
+}: {
+  clientId?: string;
+  fill?: boolean;
+}) {
+  const { t } = useI18n();
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<Error | null>(null);
   const [draft, setDraft] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [newMessages, setNewMessages] = React.useState(false);
+  const [paging, setPaging] = React.useState(false);
   const [hasOlder, setHasOlder] = React.useState(false);
   const viewport = React.useRef<HTMLDivElement>(null);
   const latest = React.useRef(0);
@@ -131,12 +137,14 @@ export function ConversationThread({ clientId }: { clientId?: string }) {
     pending.current = ticket;
     const signal = scopeAbort.current?.signal;
     const height = viewport.current?.scrollHeight ?? 0;
+    setPaging(true);
     try {
       const page = await listMessages(clientId, {
         before: first.current,
         signal,
       });
       if (signal?.aborted) return;
+      setError(null);
       first.current = page.items[0]?.sequence ?? first.current;
       setHasOlder(page.items.length === page.limit && first.current > 1);
       atBottom.current = false;
@@ -148,6 +156,7 @@ export function ConversationThread({ clientId }: { clientId?: string }) {
     } catch (cause) {
       if (!signal?.aborted) setError(toError(cause));
     } finally {
+      if (!signal?.aborted) setPaging(false);
       if (pending.current === ticket) pending.current = null;
     }
   }
@@ -177,7 +186,13 @@ export function ConversationThread({ clientId }: { clientId?: string }) {
     }
   }
   return (
-    <section className="flex flex-col min-w-0 gap-3">
+    <section
+      className={
+        fill
+          ? "flex flex-col flex-1 min-h-0 min-w-0 gap-3"
+          : "flex flex-col min-w-0 gap-3"
+      }
+    >
       <div className="flex justify-end">
         <Button size="sm" variant="ghost" onClick={() => retry.current?.()}>
           {t("ui.refresh")}
@@ -185,7 +200,11 @@ export function ConversationThread({ clientId }: { clientId?: string }) {
       </div>
       <RecoverableError error={error} />
       <ScrollArea
-        className="h-[min(55vh,32rem)] flex-none rounded-lg border border-line"
+        className={
+          fill
+            ? "flex-1 min-h-0 rounded-lg border border-line bg-paper"
+            : "h-[min(55vh,32rem)] flex-none rounded-lg border border-line bg-paper"
+        }
         contentClassName="p-4 flex flex-col gap-3"
         viewportRef={viewport}
         onScroll={() => {
@@ -193,41 +212,27 @@ export function ConversationThread({ clientId }: { clientId?: string }) {
           atBottom.current =
             !!node &&
             node.scrollHeight - node.scrollTop - node.clientHeight < 30;
+          if (node && node.scrollTop <= 8 && hasOlder && !loading && !error)
+            void older();
           if (atBottom.current) {
             setNewMessages(false);
             read();
           }
         }}
       >
-        {hasOlder && (
-          <Button size="sm" variant="ghost" onClick={older}>
-            {t("messages.older")}
-          </Button>
-        )}
+        {paging && <p role="status">{t("messages.loading")}</p>}
         {loading ? (
           <p role="status">{t("messages.loading")}</p>
         ) : (
           !messages.length && <p>{t("messages.empty")}</p>
         )}
         {messages.map((message) => (
-          <article
+          <ChatBubble
             key={message.id}
-            className="rounded-lg bg-paper-2 p-3 min-w-0"
-          >
-            <div className="text-micro text-ink-3">
-              {t(
-                message.senderKind === "client"
-                  ? "messages.client"
-                  : "messages.consultant",
-              )}{" "}
-              ·{" "}
-              {new Intl.DateTimeFormat(localeForLang(lang), {
-                dateStyle: "medium",
-                timeStyle: "short",
-              }).format(new Date(message.createdAt))}
-            </div>
-            <p className="whitespace-pre-wrap break-words">{message.body}</p>
-          </article>
+            text={message.body}
+            createdAt={message.createdAt}
+            own={message.senderKind === (clientId ? "operator" : "client")}
+          />
         ))}
       </ScrollArea>
       {newMessages && (
@@ -244,22 +249,32 @@ export function ConversationThread({ clientId }: { clientId?: string }) {
           {t("messages.new")}
         </Button>
       )}
-      <form onSubmit={submit} className="flex flex-col gap-2">
-        <Field label={t("messages.message")} required>
-          <textarea
-            aria-label={t("messages.message")}
-            className="rounded-lg border border-line bg-surface p-3"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            maxLength={4000}
-            required
-            disabled={busy}
-            rows={3}
-          />
-        </Field>
-        <Button type="submit" loading={busy} disabled={!draft.trim()}>
-          {t("messages.send")}
-        </Button>
+      <form
+        onSubmit={submit}
+        className="flex items-center gap-2 rounded-xl border border-line bg-surface p-2 focus-within:border-ink-3"
+      >
+        <div className="min-w-0 flex-1">
+
+            <input type="text"
+              aria-label={t("messages.message")}
+              className="w-full border-0 bg-transparent p-1 outline-none resize-none"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              maxLength={4000}
+              required
+              disabled={busy}
+              
+            />
+
+        </div>
+        <Button
+          size="sm"
+          type="submit"
+          icon="arrow-up"
+          aria-label={t("messages.send")}
+          loading={busy}
+          disabled={!draft.trim()}
+        />
       </form>
     </section>
   );

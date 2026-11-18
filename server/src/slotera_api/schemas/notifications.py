@@ -88,3 +88,6 @@ NotificationItem = Annotated[
 class NotificationListResponse(ApiModel):
     items: list[NotificationItem]
     unread_count: int
+    # More (older) notifications exist after the last item; ask again with
+    # `before`/`beforeId` set to that item's `occurredAt`/`id`.
+    has_more: bool

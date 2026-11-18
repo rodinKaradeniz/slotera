@@ -19,7 +19,6 @@ export function HowItWorks() {
   return (
     <Section>
       <SectionHeader
-        eyebrow={t("landing.how.eyebrow")}
         title={t("landing.how.title")}
         maxTitleWidth="44rem"
       />

@@ -101,6 +101,8 @@ class AIThread(Base):
     workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"))
     actor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     title: Mapped[str] = mapped_column(String(120))
+    kind: Mapped[str] = mapped_column(String(20), server_default="chat")
+    title_generated: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -149,7 +151,6 @@ class AIBriefing(Base):
     workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"))
     actor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     scope: Mapped[str] = mapped_column(String(80))
-    cycle: Mapped[str] = mapped_column(String(40))
     language: Mapped[str] = mapped_column(String(2))
     turn_id: Mapped[UUID]
     generated_at: Mapped[datetime] = mapped_column(
