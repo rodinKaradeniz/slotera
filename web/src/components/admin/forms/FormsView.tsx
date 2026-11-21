@@ -16,6 +16,7 @@ import { FormCard } from "./FormCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { useLoad } from "@/lib/use-load";
+import { useLeavingRows } from "@/lib/use-leaving-rows";
 import { LoadError } from "@/components/shared/LoadError";
 import { Pagination } from "@/components/shared/Pagination";
 import { getForm, listFormPage } from "@/services/forms.service";
@@ -33,6 +34,10 @@ export function FormsView() {
   const {data: page, error, reload: refresh, loading} = useLoad(load);
   const forms = page?.items;
   const filtered = forms ?? [];
+  // Only a removed card fades out; a search, filter or page change swaps cards at once.
+  const [removedId, setRemovedId] = React.useState<string | null>(null);
+  const cards = useLeavingRows(filtered, (item) => item.id, (item) => item.id === removedId);
+  const removed = (id: string) => { setRemovedId(id); refresh(); };
 
   return (
     <PageContainer>
@@ -74,7 +79,7 @@ export function FormsView() {
       {error && <LoadError message={error} onRetry={refresh} />}
       {!forms ? (
         <LoadingRows count={4} />
-      ) : filtered.length === 0 ? (
+      ) : cards.length === 0 ? (
         query.trim() || status !== "all" ? (
           <EmptyState icon="search" title={uiText("empty.filtered.title")} body={uiText("empty.filtered.body")} />
         ) : (
@@ -82,18 +87,19 @@ export function FormsView() {
         )
       ) : (
         <div className="list-rise grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((f) => (
-            <FormCard
-              key={f.id}
-              form={f}
-              onClick={async () => {
-                try {
-                  const item = await getForm(f.id);
-                  if (!item) { refresh(); return; }
-                  openFormDrawer({initial: item, onSaved: refresh, onRemoved: refresh});
-                } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
-              }}
-            />
+          {cards.map(({ item: f, leaving }) => (
+            <div key={f.id} className="card-shell" data-state={leaving ? "closed" : "open"} inert={leaving}>
+              <FormCard
+                form={f}
+                onClick={async () => {
+                  try {
+                    const item = await getForm(f.id);
+                    if (!item) { refresh(); return; }
+                    openFormDrawer({initial: item, onSaved: refresh, onRemoved: removed});
+                  } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+                }}
+              />
+            </div>
           ))}
           <Card
             padded

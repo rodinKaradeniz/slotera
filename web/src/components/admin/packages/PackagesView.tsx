@@ -7,6 +7,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { useLoad } from "@/lib/use-load";
+import { useLeavingRows } from "@/lib/use-leaving-rows";
 import { LoadError } from "@/components/shared/LoadError";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -35,6 +36,10 @@ export function PackagesView() {
   const {data: page, error, reload: refresh, loading} = useLoad(load);
   const items = page?.items;
   const filtered = items ?? [];
+  // Only a removed card fades out; a search, filter or page change swaps cards at once.
+  const [removedId, setRemovedId] = React.useState<string | null>(null);
+  const cards = useLeavingRows(filtered, (item) => item.id, (item) => item.id === removedId);
+  const removed = (id: string) => { setRemovedId(id); refresh(); };
 
   return (
     <PageContainer>
@@ -76,7 +81,7 @@ export function PackagesView() {
 
       {!items ? (
         <LoadingRows count={4} />
-      ) : filtered.length === 0 ? (
+      ) : cards.length === 0 ? (
         query.trim() || status !== "all" ? (
           <EmptyState icon="search" title={uiText("empty.filtered.title")} body={uiText("empty.filtered.body")} />
         ) : (
@@ -84,18 +89,19 @@ export function PackagesView() {
         )
       ) : (
         <div className="list-rise grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((p) => (
-            <PackageCard
-              key={p.id}
-              item={p}
-              onClick={async () => {
-                try {
-                  const item = await getPackage(p.id);
-                  if (!item) { refresh(); return; }
-                  openPackageDrawer({initial: item, onSaved: refresh, onRemoved: refresh});
-                } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
-              }}
-            />
+          {cards.map(({ item: p, leaving }) => (
+            <div key={p.id} className="card-shell" data-state={leaving ? "closed" : "open"} inert={leaving}>
+              <PackageCard
+                item={p}
+                onClick={async () => {
+                  try {
+                    const item = await getPackage(p.id);
+                    if (!item) { refresh(); return; }
+                    openPackageDrawer({initial: item, onSaved: refresh, onRemoved: removed});
+                  } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+                }}
+              />
+            </div>
           ))}
           <Card
             padded

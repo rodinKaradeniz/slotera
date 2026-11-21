@@ -14,6 +14,7 @@ import { ServiceCard } from "./ServiceCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { useLoad } from "@/lib/use-load";
+import { useLeavingRows } from "@/lib/use-leaving-rows";
 import { Pagination } from "@/components/shared/Pagination";
 import { getService, listServiceSummaryPage as listServicePage } from "@/services/services.service";
 
@@ -25,6 +26,10 @@ export function ServicesView() {
   const load = React.useCallback((signal?: AbortSignal) => listServicePage({offset}, signal), [offset]);
   const {data: page, error, reload: refresh, loading} = useLoad(load);
   const services = page?.items;
+  // Only a removed card fades out; a search, filter or page change swaps cards at once.
+  const [removedId, setRemovedId] = React.useState<string | null>(null);
+  const cards = useLeavingRows(services ?? [], (item) => item.id, (item) => item.id === removedId);
+  const removed = (id: string) => { setRemovedId(id); refresh(); };
 
   return (
     <PageContainer>
@@ -49,22 +54,23 @@ export function ServicesView() {
         </Card>
       ) : !services ? (
         <LoadingRows count={4} />
-      ) : services.length === 0 ? (
+      ) : cards.length === 0 ? (
         <EmptyState icon="layers" title={uiText("empty.services.title")} body={uiText("empty.services.body")} />
       ) : (
         <div className="list-rise grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services.map((s) => (
-            <ServiceCard
-              key={s.id}
-              service={s}
-              onClick={async () => {
-                try {
-                  const item = await getService(s.id);
-                  if (!item) { refresh(); return; }
-                  openServiceDrawer({initial: item, onSaved: refresh, onRemoved: refresh});
-                } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
-              }}
-            />
+          {cards.map(({ item: s, leaving }) => (
+            <div key={s.id} className="card-shell" data-state={leaving ? "closed" : "open"} inert={leaving}>
+              <ServiceCard
+                service={s}
+                onClick={async () => {
+                  try {
+                    const item = await getService(s.id);
+                    if (!item) { refresh(); return; }
+                    openServiceDrawer({initial: item, onSaved: refresh, onRemoved: removed});
+                  } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+                }}
+              />
+            </div>
           ))}
           <Card
             padded

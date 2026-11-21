@@ -4,8 +4,8 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useLeavingRows } from "./use-leaving-rows";
 
-function List({ items }: { items: string[] }) {
-  const rows = useLeavingRows(items, (item) => item);
+function List({ items, canLeave }: { items: string[]; canLeave?: (item: string) => boolean }) {
+  const rows = useLeavingRows(items, (item) => item, canLeave);
   return <ul>{rows.map(({ item, leaving }) => <li key={item} data-leaving={leaving || undefined}>{item}</li>)}</ul>;
 }
 
@@ -26,6 +26,17 @@ it("does nothing when the same rows arrive in a new array", () => {
   const { rerender } = render(<List items={["a", "b"]} />);
   rerender(<List items={["a", "b"]} />);
   expect(shown()).toEqual(["a", "b"]);
+});
+
+it("only lets the accepted rows fade when rows also go for other reasons", () => {
+  const onlyB = (item: string) => item === "b";
+  const { rerender } = render(<List items={["a", "b", "c"]} canLeave={onlyB} />);
+  rerender(<List items={["b", "c"]} canLeave={onlyB} />);
+  expect(shown()).toEqual(["b", "c"]);
+  rerender(<List items={["c"]} canLeave={onlyB} />);
+  expect(shown()).toEqual(["b*", "c"]);
+  act(() => void vi.advanceTimersByTime(250));
+  expect(shown()).toEqual(["c"]);
 });
 
 it("drops removed rows at once under Reduce Motion", () => {

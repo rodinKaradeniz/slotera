@@ -64,10 +64,14 @@ detection, `text.ts` (`plural()`, `slugify`), robots/sitemap rules, and the
 `listFormsForService` / `listPackagesForService` relationship filters. `status-maps.ts`
 completeness is enforced by its `Record<…>` types. Still worth adding when touched:
 - ~~`card.ts`, `time.ts`, `cn.ts`, mock patch-merge and `NotFoundError`~~ DONE (Entry 058);
-- `getDashboard()` mock composition, including the `ses-demo` exclusion;
+- ~~`getDashboard()` mock composition~~ DONE 2026-11-21 (`dashboard.service.test.ts`, on a
+  fixed clock; the old `ses-demo` exclusion no longer exists, so it covers cancelled sessions
+  and bookings instead);
 - ~~component render tests~~ started (Entry 059): `useLoad`, `LoadError`, `useDialogFocus`.
-  Still worth adding: the move dialog and the drawers. One Playwright smoke test (sign in,
-  book, approve, move) is still missing; it needs Playwright added.
+  ~~The move dialog and the drawers~~ DONE 2026-11-21: `MoveBookingDialog`, `BookingDrawer`
+  and `ClientDrawer` tests (the session drawer is covered by the Chromium journeys).
+  ~~One Playwright smoke test (sign in, book, approve, move)~~ DONE 2026-11-21:
+  `web/e2e/smoke.spec.ts`, run by `./scripts/browser-check` against the real API.
 
 No component snapshot tests: the browser covers UI.
 
@@ -672,8 +676,9 @@ agreed final integration-verification stage; no new architecture work is deferre
 - **~~Task completion.~~ DONE 2026-11-18.** `Checkbox` (role `checkbox`, 32px hit area) draws
   its tick in and erases it quickly; the dashboard to-do uses it.
 - **~~Row removal.~~ DONE 2026-11-18.** `useLeavingRows` + `.row-shell`: a removed row fades
-  aside while its space closes (to-do, session tasks, client notes, saved locations). Still
-  instant: the assistant's chat history (its paged list empties while it reloads, so leaving
-  rows would flash) and catalog cards (removed behind a closing drawer, in a grid).
+  aside while its space closes (to-do, session tasks, client notes, saved locations, the
+  assistant's chat history). Catalog cards (services, packages, forms) fade in their grid cell
+  through `.card-shell` (DONE 2026-11-21). Both pass `canLeave` so only the item just deleted
+  fades: a search, filter, page change or a reload that drops older pages swaps at once.
 - **~~Demo bookings reach the demo admin.~~ DONE 2026-11-18.** Browser-only, through
   `lib/demo-bookings.ts`; nothing is sent anywhere.

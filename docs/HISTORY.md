@@ -2439,3 +2439,20 @@ Applied every recommendation from the screenshot critique.
   A server-backed demo was rejected: it would cost money to run, need abuse protection, and
   mix strangers' bookings together.
 - **Saved locations** now leave through `useLeavingRows` like the other lists.
+
+## 2026-11-21 — Deleted cards fade, and the missing tests
+
+- **Catalog cards and assistant chats leave gently.** Services, packages and forms fade in
+  their grid cell (`.card-shell`) when the drawer deletes one; deleted assistant chats leave
+  through `.row-shell`. `useLeavingRows` gained `canLeave`, so only the item just deleted
+  fades: searching, filtering, paging, or a chat-history reload that drops older pages, still
+  swaps at once. The empty state waits until the last card has gone.
+- **Tests.** `getDashboard()` demo composition on a fixed clock (schedule order and states,
+  next session, week count, cancelled sessions and bookings left out); `MoveBookingDialog`
+  (same-service choices, required reason, failed move keeps its idempotency key, load retry);
+  `BookingDrawer` (save payload, failure keeps the draft, confirmed cancel, view mode);
+  `ClientDrawer` (inline validation, email-transfer confirmation, stale edit).
+- **Smoke journey.** `web/e2e/smoke.spec.ts` runs through `./scripts/browser-check` on the
+  real API: a client books an approval service on `/book/lena`, the operator signs in with
+  the form, approves the booking and moves it to the next session.
+

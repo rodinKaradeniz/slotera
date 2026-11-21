@@ -19,6 +19,7 @@ import { usePagedHistory } from "@/lib/use-paged-history";
 import { ConversationRow } from "./ConversationRow";
 import { Icon } from "@/components/ui/Icon";
 import { useLoad } from "@/lib/use-load";
+import { useLeavingRows } from "@/lib/use-leaving-rows";
 import { ApiRequestError } from "@/services/_errors";
 import {
   getAIStatus,
@@ -47,6 +48,10 @@ export function AssistantView() {
       [],
     ),
   );
+  // Only the chat just deleted fades out: a reload brings back the first page alone, and the
+  // older pages it drops must not all fade at once.
+  const [erasedId, setErasedId] = React.useState<string | null>(null);
+  const threadRows = useLeavingRows(threads.items, (thread) => thread.id, (thread) => thread.id === erasedId);
   const [selected, setSelected] = React.useState<AIThread | null>(null);
   const [draft, setDraft] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -202,6 +207,7 @@ export function AssistantView() {
         setDraft("");
       }
       setRemoving(null);
+      setErasedId(removing.id);
       threads.reload();
     } catch (e) {
       setError(toError(e));
@@ -311,7 +317,7 @@ export function AssistantView() {
               >
                 {!threads.loading &&
                   !threads.error &&
-                  !threads.items.length && (
+                  !threadRows.length && (
                     <div className="py-8 text-center space-y-2">
                       <Icon
                         name="ask"
@@ -322,21 +328,22 @@ export function AssistantView() {
                       <p className="text-small">{t("ask.historyHint")}</p>
                     </div>
                   )}
-                {threads.items.map((thread) => (
-                  <ConversationRow
-                    key={thread.id}
-                    thread={thread}
-                    active={selected?.id === thread.id}
-                    busy={busy}
-                    onOpen={() => {
-                      setSelected(thread);
-                      setHistoryOpen(false);
-                      setLocalTurn(null);
-                      setEditTarget(null);
-                      submission.current = null;
-                    }}
-                    onDelete={() => setRemoving(thread)}
-                  />
+                {threadRows.map(({ item: thread, leaving }) => (
+                  <div key={thread.id} className="row-shell" data-state={leaving ? "closed" : "open"} inert={leaving}>
+                    <ConversationRow
+                      thread={thread}
+                      active={selected?.id === thread.id}
+                      busy={busy}
+                      onOpen={() => {
+                        setSelected(thread);
+                        setHistoryOpen(false);
+                        setLocalTurn(null);
+                        setEditTarget(null);
+                        submission.current = null;
+                      }}
+                      onDelete={() => setRemoving(thread)}
+                    />
+                  </div>
                 ))}
                 {(threads.loading || threads.paging) && (
                   <p role="status" className="text-small">

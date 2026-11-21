@@ -8,10 +8,16 @@ export type RowState<T> = { item: T; leaving: boolean };
 /**
  * Keeps a row that just left `items` on screen, in its old place and marked `leaving`, long
  * enough for it to fade aside while the rows below close up (render each row inside a
- * `.row-shell` with `data-state={leaving ? "closed" : "open"}`). Under Reduce Motion rows
- * simply go.
+ * `.row-shell` with `data-state={leaving ? "closed" : "open"}`; a card in a grid, inside a
+ * `.card-shell`). Under Reduce Motion rows simply go. Pass `canLeave` where rows also go for
+ * other reasons (a search, a filter, another page): only the rows it accepts fade, the rest
+ * go at once.
  */
-export function useLeavingRows<T>(items: readonly T[], keyOf: (item: T) => string): RowState<T>[] {
+export function useLeavingRows<T>(
+  items: readonly T[],
+  keyOf: (item: T) => string,
+  canLeave?: (item: T) => boolean,
+): RowState<T>[] {
   const signature = items.map(keyOf).join("\u0000");
   const [previous, setPrevious] = React.useState({ signature, items });
   const [leaving, setLeaving] = React.useState<{ item: T; index: number }[]>([]);
@@ -20,7 +26,7 @@ export function useLeavingRows<T>(items: readonly T[], keyOf: (item: T) => strin
     const present = new Set(items.map(keyOf));
     const gone = previous.items
       .map((item, index) => ({ item, index }))
-      .filter(({ item }) => !present.has(keyOf(item)));
+      .filter(({ item }) => !present.has(keyOf(item)) && (!canLeave || canLeave(item)));
     setPrevious({ signature, items });
     if (gone.length && !prefersReducedMotion()) {
       setLeaving((current) => [...current.filter(({ item }) => !present.has(keyOf(item))), ...gone]);

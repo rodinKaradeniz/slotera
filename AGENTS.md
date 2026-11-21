@@ -554,7 +554,9 @@ Tailwind v4 with tokens declared in `web/src/app/globals.css`:
   The command palette deliberately has no animation (keyboard, many times a day).
 - **Row exits and growing rows:** `useLeavingRows` (`web/src/lib/use-leaving-rows.ts`) keeps a
   removed row in a `.row-shell` while it fades aside and its space closes (to-do, session
-  tasks, client notes); `useHeightTransition` animates a block whose content grows (an
+  tasks, client notes, saved locations, assistant chats); a catalog card leaves its grid cell
+  through `.card-shell`. Where items also go for other reasons (search, filter, paging), pass
+  `canLeave` so only the deleted one fades. `useHeightTransition` animates a block whose content grows (an
   expanded to-do). `Checkbox` draws its tick.
 - **Phones:** below 768px the sidebar is a sheet from the left, opened from the top bar's
   sidebar button, closed on navigation, Escape or the backdrop.
@@ -1160,6 +1162,8 @@ an environment-free production build, synthetic records and the console provider
 worker). It owns server/database cleanup and uploads only allow-listed result metadata and
 synthetic screenshots on CI failure; traces, video, full error contexts, bodies and tokens are
 excluded. Install Chromium once with `web/node_modules/.bin/playwright install chromium`.
+`web/e2e/smoke.spec.ts` is the short end-to-end path (public booking of an approval service,
+form sign-in, approve, move); run it alone with `./scripts/browser-check smoke`.
 See `docs/VERIFY_LOCAL_BOOKING.md` for startup, reset, navigation and verification evidence.
 
 
