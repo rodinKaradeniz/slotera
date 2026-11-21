@@ -16,9 +16,12 @@
     "clientId": "cli-005",
     "status": "confirmed",
     "paymentStatus": "paid",
-    "amountCents": 24000,
+    "amountCents": 0,
     "currency": "GBP",
-    "createdAtISO": "2026-05-13T09:00:00.000Z"
+    "createdAtISO": "2026-05-13T09:00:00.000Z",
+    "paymentMethod": "package",
+    "packagePurchaseId": "pur-001",
+    "packagePosition": 2
   },
   {
     "id": "bkg-1003",
@@ -77,9 +80,12 @@
     "clientId": "cli-005",
     "status": "completed",
     "paymentStatus": "paid",
-    "amountCents": 24000,
+    "amountCents": 0,
     "currency": "GBP",
-    "createdAtISO": "2026-05-05T09:00:00.000Z"
+    "createdAtISO": "2026-05-05T09:00:00.000Z",
+    "paymentMethod": "package",
+    "packagePurchaseId": "pur-001",
+    "packagePosition": 1
   },
   {
     "id": "bkg-1009",

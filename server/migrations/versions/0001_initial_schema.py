@@ -1777,6 +1777,7 @@ CREATE FUNCTION public.slotera_workspace_purge_closed(p_after_days integer DEFAU
             DELETE FROM public.session_command_idempotency WHERE workspace_id = target;
             DELETE FROM public.booking_command_idempotency WHERE workspace_id = target;
             DELETE FROM public.bookings WHERE workspace_id = target;
+            DELETE FROM public.package_purchases WHERE workspace_id = target;
             DELETE FROM public.sessions WHERE workspace_id = target;
             DELETE FROM public.session_series WHERE workspace_id = target;
             DELETE FROM public.form_template_services WHERE workspace_id = target;
@@ -2066,7 +2067,7 @@ CREATE TABLE public.bookings (
     CONSTRAINT ck_bookings_ck_bookings_customer_email_normalized CHECK (((customer_email)::text = lower(btrim((customer_email)::text)))),
     CONSTRAINT ck_bookings_ck_bookings_declined_cancelled CHECK (((approval_status <> 'declined'::public.booking_approval_status) OR (status = 'cancelled'::public.booking_status))),
     CONSTRAINT ck_bookings_ck_bookings_financial_snapshot_nonnegative CHECK (((net_amount_cents >= 0) AND (tax_amount_cents >= 0) AND (amount_cents = (net_amount_cents + tax_amount_cents)))),
-    CONSTRAINT ck_bookings_ck_bookings_payment_method CHECK (((payment_method)::text = ANY ((ARRAY['free'::character varying, 'manual'::character varying])::text[]))),
+    CONSTRAINT ck_bookings_ck_bookings_payment_method CHECK (((payment_method)::text = ANY ((ARRAY['free'::character varying, 'manual'::character varying, 'package'::character varying])::text[]))),
     CONSTRAINT ck_bookings_ck_bookings_public_terms_evidence CHECK (((origin <> 'public'::public.booking_origin) OR (terms_accepted_at IS NOT NULL))),
     CONSTRAINT ck_bookings_ck_bookings_tax_treatment CHECK ((((tax_treatment)::text = ANY ((ARRAY['none'::character varying, 'fixed'::character varying])::text[])) AND ((tax_rate_bps >= 0) AND (tax_rate_bps <= 10000)))),
     CONSTRAINT ck_bookings_currency_iso_length CHECK ((char_length((currency)::text) = 3))
@@ -6143,6 +6144,76 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION slotera_notification_retention() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION slotera_notification_retention() TO slotera_app;
+
+-- Package sales. The operator records a sale (the client pays outside Slotera); each
+-- purchase snapshots the package's items, one per session the client may book. A live
+-- booking holds one item, and a cancelled one gives it back by leaving the partial index.
+-- Purchases are voided, never deleted, so the runtime role cannot delete them.
+CREATE TABLE public.package_purchases (
+    id uuid NOT NULL,
+    workspace_id uuid NOT NULL,
+    client_id uuid NOT NULL,
+    package_id uuid NOT NULL,
+    package_name_snapshot character varying(160) NOT NULL,
+    price_cents integer NOT NULL,
+    currency character varying(3) NOT NULL,
+    payment_status character varying(8) NOT NULL,
+    payment_received_at timestamp with time zone,
+    status character varying(8) NOT NULL,
+    voided_at timestamp with time zone,
+    notes character varying(2000),
+    version bigint DEFAULT 1 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT package_purchases_pkey PRIMARY KEY (id),
+    CONSTRAINT package_purchases_workspace_id_id_key UNIQUE (workspace_id, id),
+    CONSTRAINT package_purchases_price_check CHECK (price_cents >= 0),
+    CONSTRAINT package_purchases_currency_check CHECK (char_length(currency) = 3),
+    CONSTRAINT package_purchases_payment_status_check CHECK (payment_status IN ('pending', 'paid')),
+    CONSTRAINT package_purchases_paid_at_check CHECK ((payment_status = 'paid') = (payment_received_at IS NOT NULL)),
+    CONSTRAINT package_purchases_status_check CHECK (status IN ('active', 'voided')),
+    CONSTRAINT package_purchases_voided_at_check CHECK ((status = 'voided') = (voided_at IS NOT NULL)),
+    CONSTRAINT package_purchases_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    CONSTRAINT package_purchases_workspace_id_client_id_fkey FOREIGN KEY (workspace_id, client_id) REFERENCES public.clients(workspace_id, id) ON DELETE RESTRICT,
+    CONSTRAINT package_purchases_workspace_id_package_id_fkey FOREIGN KEY (workspace_id, package_id) REFERENCES public.service_packages(workspace_id, id) ON DELETE RESTRICT
+);
+CREATE INDEX ix_package_purchases_workspace_client ON public.package_purchases (workspace_id, client_id, created_at DESC, id);
+CREATE INDEX ix_package_purchases_workspace_package ON public.package_purchases (workspace_id, package_id);
+
+CREATE TABLE public.package_purchase_items (
+    id uuid NOT NULL,
+    workspace_id uuid NOT NULL,
+    purchase_id uuid NOT NULL,
+    service_id uuid NOT NULL,
+    "position" integer NOT NULL,
+    title_snapshot character varying(160) NOT NULL,
+    CONSTRAINT package_purchase_items_pkey PRIMARY KEY (id),
+    CONSTRAINT package_purchase_items_position_key UNIQUE (workspace_id, purchase_id, "position"),
+    CONSTRAINT package_purchase_items_position_check CHECK ("position" >= 0),
+    CONSTRAINT package_purchase_items_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    CONSTRAINT package_purchase_items_purchase_fkey FOREIGN KEY (workspace_id, purchase_id) REFERENCES public.package_purchases(workspace_id, id) ON DELETE CASCADE,
+    CONSTRAINT package_purchase_items_service_fkey FOREIGN KEY (workspace_id, service_id) REFERENCES public.services(workspace_id, id) ON DELETE RESTRICT
+);
+
+ALTER TABLE public.bookings
+    ADD COLUMN package_purchase_id uuid,
+    ADD COLUMN package_position integer,
+    ADD CONSTRAINT bookings_package_pair_check CHECK ((package_purchase_id IS NULL) = (package_position IS NULL)),
+    ADD CONSTRAINT bookings_package_method_check CHECK ((payment_method = 'package') = (package_purchase_id IS NOT NULL)),
+    ADD CONSTRAINT bookings_package_item_fkey FOREIGN KEY (workspace_id, package_purchase_id, package_position)
+        REFERENCES public.package_purchase_items(workspace_id, purchase_id, "position") ON DELETE RESTRICT;
+-- The double-spend guard: one live booking per package item.
+CREATE UNIQUE INDEX ux_bookings_live_package_item ON public.bookings (workspace_id, package_purchase_id, package_position)
+    WHERE package_purchase_id IS NOT NULL AND status <> 'cancelled';
+
+ALTER TABLE public.package_purchases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.package_purchases FORCE ROW LEVEL SECURITY;
+CREATE POLICY package_purchases_tenant ON public.package_purchases TO slotera_app USING ((workspace_id = public.slotera_current_workspace_id())) WITH CHECK ((workspace_id = public.slotera_current_workspace_id()));
+ALTER TABLE public.package_purchase_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.package_purchase_items FORCE ROW LEVEL SECURITY;
+CREATE POLICY package_purchase_items_tenant ON public.package_purchase_items TO slotera_app USING ((workspace_id = public.slotera_current_workspace_id())) WITH CHECK ((workspace_id = public.slotera_current_workspace_id()));
+GRANT SELECT,INSERT,UPDATE ON TABLE public.package_purchases TO slotera_app;
+GRANT SELECT,INSERT ON TABLE public.package_purchase_items TO slotera_app;
 
 SET search_path = public;
 SET row_security = on;

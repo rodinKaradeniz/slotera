@@ -9,15 +9,18 @@ import { searchClients } from "@/services/clients.service";
 import { listBookableSessions } from "@/services/sessions.service";
 import { browserStorage } from "@/test/browser-storage";
 import { ApiRequestError } from "@/services/_errors";
+import { packagesCovering } from "@/services/package-purchases.service";
 vi.mock("@/services/bookings.service", () => ({ createOperatorBooking: vi.fn() }));
 vi.mock("@/services/clients.service", () => ({ searchClients: vi.fn(), getClient: vi.fn() }));
 vi.mock("@/services/sessions.service", () => ({ listBookableSessions: vi.fn(), getSession: vi.fn() }));
-vi.mock("@/services/services.service", () => ({ serviceOptionsForIds: vi.fn().mockResolvedValue([]) }));
+vi.mock("@/services/services.service", () => ({ serviceOptionsForIds: vi.fn().mockResolvedValue([{ id: "svc", name: "Sprint", priceCents: 24000, currency: "GBP" }]) }));
+vi.mock("@/services/package-purchases.service", () => ({ packagesCovering: vi.fn() }));
 vi.mock("@/lib/use-workspace-timezone", () => ({ useWorkspaceTimezone: () => "UTC" }));
 vi.mock("@/components/ui/DrawerShell", () => ({ DrawerShell: ({ children, footer, open }: { children: React.ReactNode; footer: React.ReactNode; open: boolean }) => open ? <div>{children}{footer}</div> : null }));
 beforeEach(() => {
   vi.stubGlobal("localStorage", browserStorage());
   vi.mocked(searchClients).mockResolvedValue([]);
+  vi.mocked(packagesCovering).mockResolvedValue([]);
   vi.mocked(listBookableSessions).mockResolvedValue({ items: [{ id: "s", serviceId: "svc", startISO: "2035-01-01T10:00:00Z", endISO: "2035-01-01T11:00:00Z", capacity: 1, bookedCount: 0, status: "scheduled", locationType: "online", location: "Call", recurring: "one-off" }], total: 1 });
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
@@ -48,4 +51,23 @@ it("retries a session load failure", async () => {
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", expect.stringContaining("Offline"));
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+});
+it("offers a package that covers the session, then books it at no charge", async () => {
+  vi.mocked(searchClients).mockResolvedValue([{ id: "cli", name: "Sofia", email: "sofia@example.com" } as never]);
+  vi.mocked(packagesCovering).mockResolvedValue([{ id: "pur", packageName: "Sprint Pack", status: "active",
+    items: [{ position: 0, serviceId: "svc", title: "Sprint", booking: null }, { position: 1, serviceId: "svc", title: "Sprint", booking: null }] } as never]);
+  vi.mocked(createOperatorBooking).mockResolvedValue({ id: "b" } as never);
+  mount();
+  await screen.findByRole("option", { name: "Sofia · sofia@example.com" });
+  // The second "Client" select picks the client; the first chooses existing or new.
+  fireEvent.change(screen.getAllByRole("combobox", { name: /^Client/ })[1], { target: { value: "cli" } });
+  fireEvent.change(screen.getByRole("combobox", { name: /Session/ }), { target: { value: "s" } });
+  expect(await screen.findByText("£240.00")).toBeDefined();
+  const choice = await screen.findByRole("combobox", { name: "Package" });
+  await waitFor(() => expect(packagesCovering).toHaveBeenCalledWith("cli", "svc"));
+  expect(screen.getByRole("option", { name: "Sprint Pack (2 left)" })).toBeDefined();
+  fireEvent.change(choice, { target: { value: "pur" } });
+  expect(screen.queryByText("£240.00")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Create booking" }));
+  await waitFor(() => expect(createOperatorBooking).toHaveBeenCalledWith(expect.objectContaining({ clientId: "cli", packagePurchaseId: "pur" }), expect.any(String)));
 });

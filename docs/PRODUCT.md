@@ -461,7 +461,10 @@ Persisted informational offers for presenting **multi-session offers** — the k
 - **Operator surface only:** the **Packages** nav item + `/admin/packages` are operator-admin only (never superadmin). Create/edit uses the global `DrawersProvider` (`openPackageDrawer` → `PackageDrawer` → `PackageForm`). Cards/list show name, price, number of included sessions (`items.length`), status, and a featured indicator.
 - **Public booking is informational only.** When a selected service is included in active packages, the Service step shows a `PackageOptionsHint` (a hint + a modal listing the offers), resolved via `listPackagesForService` (active packages whose `items[].serviceId` matches). **No package checkout, no required choice, no payment changes, no step-sequence changes.** Copy: "Available in packages" / "View package options" — never "programs", "memberships", "credits", "subscriptions", or "available with services".
 - **`/booking/manage/demo`** shows a **display-only** Package tab ("Session N of M" + included services in order) when the booking is part of a package. No credit ledger, balance, or consumption.
-- **This is an informational offer model.** It does **not** implement real checkout, credit/balance ledgers, session consumption, entitlement rules, recurring billing, memberships, coupons, gift cards, or Stripe product/price objects. Future iterations may add package purchase, remaining credits, enrollment, reminders, and customer package management.
+- **Package sales are recorded by the operator, not bought by the client** (2026-11-21). The client pays outside Slotera (bank transfer, in person); the operator records the sale on the client's page (`ClientPackagesCard`: Record sale, Mark payment received, Void). A sale snapshots the package's name, price and items (`package_purchases`, `package_purchase_items`); each item is one session for its service.
+- **Sessions are booked by the operator only**, from New booking: when the chosen client has an active sale with an unused item for the session's service, a "Package" select appears (default "Don't use a package"). The booking takes the lowest unused position for that service (any order), costs 0 (`paymentMethod: "package"`, `paymentStatus: "paid"`) and confirms. One live booking per item (partial unique index); cancelling the booking, in any way, gives the session back. Credits never expire; voiding a sale stops its unused sessions, and existing bookings stay.
+- **Money:** a paid, unvoided sale counts once at the sale date in dashboard revenue and the client's total spent; covered bookings count 0 and are left out of the average booking value. A sold package can't be deleted (`package_in_use`); deactivate it instead.
+- **Still not built:** client checkout or card payment for packages, a client-facing view of sessions left, client self-booking with a package, expiry, memberships, recurring billing, coupons, gift cards, refunds and Stripe product/price objects. Client copy never says "credits".
 - **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Essentials / Professional). Packages = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
 
 Services with sessions (including cancelled or historical sessions) cannot be deleted;
@@ -535,7 +538,7 @@ It is deliberately **not** a full client portal, CRM, project-management app, co
 - **Manage booking** — message-provider textarea (mocked send → toast) + request-reschedule / request-cancellation (ConfirmDialog + toast). No real messaging, no real reschedule/cancel logic.
 - **Forms** — a clean **list** of forms with **Required/Optional** and **Completed/Not completed** statuses. Clicking a row opens a **modal** with the fields: a pre-payment-completed *required* form shows read-only answers; an *optional* incomplete form is fillable (save → local state + toast). The main tab does not expand all fields by default.
 - **Payment** (not "Receipt" — the demo booking is manual/unpaid) — payment method, status, line item + subtotal/tax/total, and manual payment instructions.
-- **Package** — shown **only** when the booking is part of a package: package name, "Session N of M", and the included services in order (current session highlighted). Display-only — **no credits, balances, subscriptions, memberships, checkout, or Stripe product info.**
+- **Package** — shown **only** when the booking is part of a package: package name, "Session N of M", and the included services in order (current session highlighted). Display-only and demo-only; the real manage page has no package tab yet. **No credits, balances, subscriptions, memberships, checkout, or Stripe product info.**
 
 All tab content is mocked English provider/service copy; only the surrounding chrome/labels are translated (EN/TR/DE under the `bookingManage.*` i18n namespace).
 
@@ -544,9 +547,9 @@ The separate API implementation uses **secure booking links sent by email and ba
 **Deliberately simplified — do not re-add to this surface:** "Shared resources" / resource links and a client-facing "Your next steps" / shared action-items list were **removed**. The resources feature (type/service/mock data) was deleted as unused. Action items are **operator-only**; their contracts, persistence and UI contain no client-visibility flag.
 
 **The demo remains illustrative.** The API implements booking links, scheduled reminders,
-self-service changes, forms and service-level approval. Follow-ups and package
-checkout/credits remain deferred; these do **not** change this demo workspace or the public
-booking step sequence.
+self-service changes, forms and service-level approval. Client package checkout remains
+deferred (operator-recorded package sales exist); these do **not** change this demo
+workspace or the public booking step sequence.
 
 ### Calendar
 

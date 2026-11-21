@@ -1,4 +1,4 @@
-"""Informational package resources; no checkout or payment changes."""
+"""Package offers. Sales the operator records live in `package_purchases.py`."""
 
 from typing import Annotated, Literal, cast
 from uuid import UUID
@@ -11,8 +11,15 @@ from slotera_api.auth.dependencies import (
     DatabaseDependency,
     OperatorWorkspaceDependency,
 )
-from slotera_api.db.models import AuditEvent, ServicePackage, ServicePackageItem, Workspace
+from slotera_api.db.models import (
+    AuditEvent,
+    PackagePurchase,
+    ServicePackage,
+    ServicePackageItem,
+    Workspace,
+)
 from slotera_api.editing import ExpectedVersionDependency, ensure_version
+from slotera_api.errors import ApiError
 from slotera_api.packages.repository import load_package, package_view, save_package
 from slotera_api.schemas.packages import (
     PackageInput,
@@ -215,6 +222,20 @@ async def delete_package(
     async with database.tenant_transaction(operator.workspace_id) as session:
         item = await load_package(session, operator.workspace_id, package_id, lock=True)
         ensure_version(item, expected_version)
+        sold = await session.scalar(
+            select(PackagePurchase.id)
+            .where(
+                PackagePurchase.workspace_id == operator.workspace_id,
+                PackagePurchase.package_id == item.id,
+            )
+            .limit(1)
+        )
+        if sold is not None:
+            raise ApiError(
+                status_code=409,
+                code="package_in_use",
+                message="This package was sold to a client. Deactivate it instead",
+            )
         await session.delete(item)
         session.add(
             AuditEvent(

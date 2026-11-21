@@ -39,6 +39,7 @@ function mapBooking(booking: BookingDto): Booking {
         locationType: booking.context.locationType, location: booking.context.location,
         address: booking.context.address ? {...booking.context.address, street2: booking.context.address.street2 ?? undefined,
           region: booking.context.address.region ?? undefined, notes: booking.context.address.notes ?? undefined} : undefined},
+      packageName: booking.context.packageName ?? undefined, packageSize: booking.context.packageSize ?? undefined,
     }} : {}),
     id: booking.id,
     sessionId: booking.sessionId,
@@ -79,6 +80,8 @@ function mapBooking(booking: BookingDto): Booking {
     manualPaymentInstructionsSnapshot:
       booking.manualPaymentInstructionsSnapshot,
     notes: booking.notes ?? undefined,
+    packagePurchaseId: booking.packagePurchaseId ?? undefined,
+    packagePosition: booking.packagePosition ?? undefined,
     createdAtISO: booking.createdAt,
   };
 }
@@ -144,7 +147,8 @@ export async function createBooking(input: BookingInput): Promise<Booking> {
 
 export type OperatorBookingInput = {
   sessionId: string; notes?: string; auditReason: string; sendEmail: boolean; language: Lang;
-} & ({ clientId: string; newClient?: never } | { clientId?: never; newClient: ClientIdentity });
+} & ({ clientId: string; newClient?: never; packagePurchaseId?: string }
+  | { clientId?: never; newClient: ClientIdentity; packagePurchaseId?: never });
 const mockCommands = new Map<string, { fingerprint: string; result: Promise<Booking> }>();
 const mockEmails = new Map<string, BookingEmail[]>();
 let mockCommandTail: Promise<void> = Promise.resolve();
@@ -179,11 +183,18 @@ export async function createOperatorBooking(input: OperatorBookingInput, idempot
       throw new ApiRequestError(409, "client_email_conflict", "This email already belongs to a client. Select that existing client.");
     const client = input.newClient ? await createClient({ ...input.newClient, email: input.newClient.email.trim().toLowerCase() }) : await getClient(input.clientId!);
     if (!client) throw new NotFoundError("client", input.clientId!);
-    const free = service.priceCents === 0;
+    // Loaded lazily: the purchases service reads bookings to know which sessions are used.
+    const packagePosition = input.packagePurchaseId
+      ? await (await import("./package-purchases.service")).claimMockPackageItem(input.packagePurchaseId, client.id, service.id)
+      : undefined;
+    const covered = packagePosition !== undefined;
+    const free = covered || service.priceCents === 0;
     const booking = await createBooking({ clientId: client.id, sessionId: session.id, status: free ? "confirmed" : "pending",
-      paymentStatus: free ? "free" : "pending", paymentMethod: free ? "free" : "manual", approvalStatus: "approved",
-      amountCents: service.priceCents, currency: service.currency, notes: input.notes, emailContact: client.email,
-      language: input.language, customer: { firstName: client.name, lastName: "", email: client.email, phone: client.phone, company: client.company } });
+      paymentStatus: covered ? "paid" : free ? "free" : "pending", paymentMethod: covered ? "package" : free ? "free" : "manual",
+      approvalStatus: "approved", amountCents: covered ? 0 : service.priceCents, currency: service.currency, notes: input.notes,
+      emailContact: client.email, language: input.language,
+      ...(covered ? { packagePurchaseId: input.packagePurchaseId, packagePosition } : {}),
+      customer: { firstName: client.name, lastName: "", email: client.email, phone: client.phone, company: client.company } });
     if (input.sendEmail) mockEmail(booking, free ? "booking_confirmed" : "booking_received");
     return booking;
   });

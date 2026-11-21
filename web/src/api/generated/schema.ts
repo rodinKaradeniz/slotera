@@ -986,6 +986,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/{client_id}/package-purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Client Purchases */
+        get: operations["listClientPackagePurchases"];
+        put?: never;
+        /** Record Purchase */
+        post: operations["recordPackagePurchase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/conversations": {
         parameters: {
             query?: never;
@@ -1136,6 +1154,40 @@ export interface paths {
         put?: never;
         /** Mark All Notifications Read */
         post: operations["markAllNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/package-purchases/{purchase_id}/payment-received": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Paid */
+        post: operations["markPackagePurchasePaid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/package-purchases/{purchase_id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Void Purchase */
+        post: operations["voidPackagePurchase"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2323,6 +2375,10 @@ export interface components {
              * @enum {string}
              */
             locationType: "online" | "physical" | "hybrid";
+            /** Packagename */
+            packageName?: string | null;
+            /** Packagesize */
+            packageSize?: number | null;
             /**
              * Recurring
              * @enum {string}
@@ -2565,13 +2621,17 @@ export interface components {
             netAmountCents: number;
             /** Notes */
             notes: string | null;
+            /** Packageposition */
+            packagePosition?: number | null;
+            /** Packagepurchaseid */
+            packagePurchaseId?: string | null;
             /** Paymentdueat */
             paymentDueAt: string | null;
             /**
              * Paymentmethod
              * @enum {string}
              */
-            paymentMethod: "free" | "manual";
+            paymentMethod: "free" | "manual" | "package";
             /** Paymentreceivedat */
             paymentReceivedAt: string | null;
             /**
@@ -2635,6 +2695,11 @@ export interface components {
             clientId: string;
             /** Clientname */
             clientName: string;
+            /**
+             * Coveredbypackage
+             * @default false
+             */
+            coveredByPackage: boolean;
             /**
              * Createdat
              * Format: date-time
@@ -3678,7 +3743,7 @@ export interface components {
              * Paymentmethod
              * @enum {string}
              */
-            paymentMethod: "free" | "manual";
+            paymentMethod: "free" | "manual" | "package";
             /**
              * Paymentstatus
              * @enum {string}
@@ -3805,6 +3870,8 @@ export interface components {
             newClient?: components["schemas"]["ClientIdentityCreate"] | null;
             /** Notes */
             notes?: string | null;
+            /** Packagepurchaseid */
+            packagePurchaseId?: string | null;
             /**
              * Sendemail
              * @default true
@@ -3883,6 +3950,110 @@ export interface components {
             offset: number;
             /** Total */
             total: number;
+        };
+        /** PackagePurchaseCreate */
+        PackagePurchaseCreate: {
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Packageid
+             * Format: uuid
+             */
+            packageId: string;
+            /**
+             * Paymentreceived
+             * @default false
+             */
+            paymentReceived: boolean;
+        };
+        /** PackagePurchaseItemBooking */
+        PackagePurchaseItemBooking: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Startat
+             * Format: date-time
+             */
+            startAt: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "confirmed" | "completed" | "noshow";
+        };
+        /** PackagePurchaseItemView */
+        PackagePurchaseItemView: {
+            booking: components["schemas"]["PackagePurchaseItemBooking"] | null;
+            /** Position */
+            position: number;
+            /**
+             * Serviceid
+             * Format: uuid
+             */
+            serviceId: string;
+            /** Title */
+            title: string;
+        };
+        /** PackagePurchaseList */
+        PackagePurchaseList: {
+            /** Items */
+            items: components["schemas"]["PackagePurchaseView"][];
+        };
+        /** PackagePurchaseView */
+        PackagePurchaseView: {
+            /**
+             * Clientid
+             * Format: uuid
+             */
+            clientId: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items: components["schemas"]["PackagePurchaseItemView"][];
+            /** Notes */
+            notes: string | null;
+            /**
+             * Packageid
+             * Format: uuid
+             */
+            packageId: string;
+            /** Packagename */
+            packageName: string;
+            /** Paymentreceivedat */
+            paymentReceivedAt: string | null;
+            /**
+             * Paymentstatus
+             * @enum {string}
+             */
+            paymentStatus: "pending" | "paid";
+            /** Pricecents */
+            priceCents: number;
+            /** Remainingcount */
+            remainingCount: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "voided";
+            /** Usedcount */
+            usedCount: number;
+            /** Version */
+            version: number;
+            /** Voidedat */
+            voidedAt: string | null;
         };
         /** PackageSummary */
         PackageSummary: {
@@ -7838,6 +8009,74 @@ export interface operations {
             };
         };
     };
+    listClientPackagePurchases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackagePurchaseList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recordPackagePurchase: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackagePurchaseCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackagePurchaseView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listConversations: {
         parameters: {
             query?: {
@@ -8187,6 +8426,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    markPackagePurchasePaid: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                purchase_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackagePurchaseView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    voidPackagePurchase: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                purchase_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackagePurchaseView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

@@ -46,9 +46,11 @@ export function BookingRow({ row, onClick, groupStatus }: Props) {
         )}
       </div>
       <div className="text-[14px] font-medium text-ink whitespace-nowrap text-right tabular-nums">
-        {row.booking.amountCents === 0
-          ? uiText("ui.free")
-          : formatMoney(row.booking.amountCents, row.booking.currency)}
+        {row.booking.paymentMethod === "package"
+          ? uiText("booking.package.marker")
+          : row.booking.amountCents === 0
+            ? uiText("ui.free")
+            : formatMoney(row.booking.amountCents, row.booking.currency)}
       </div>
     </button>
   );

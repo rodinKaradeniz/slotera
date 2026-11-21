@@ -1,13 +1,13 @@
 import json
 from collections.abc import AsyncIterator, Mapping, Sequence
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from sqlalchemy import case, delete, func, or_, select, text, update
+from sqlalchemy import ColumnElement, case, delete, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +25,7 @@ from slotera_api.db.models import (
     Client,
     ClientEmailCommand,
     ClientNote,
+    PackagePurchase,
     PaymentStatus,
     Service,
     Session,
@@ -37,6 +38,15 @@ from slotera_api.followups import queue_followup
 
 class ClientEmailConflictError(Exception):
     pass
+
+
+def counted_package_sale(workspace_id: UUID) -> ColumnElement[bool]:
+    """A package sale counts as money in once it is paid, until the operator voids it."""
+    return (
+        (PackagePurchase.workspace_id == workspace_id)
+        & (PackagePurchase.payment_status == "paid")
+        & (PackagePurchase.status == "active")
+    )
 
 
 # A client counts as "active" while they have a live booking this recent or upcoming.
@@ -199,6 +209,19 @@ class ClientsRepository:
                     total_spent_cents=int(spent),
                     tag="active" if recent_live else "dormant" if live_total else "new",
                 )
+            # A package is paid for once, at the sale; the bookings it covers are worth 0.
+            sales = await session.execute(
+                select(PackagePurchase.client_id, func.sum(PackagePurchase.price_cents))
+                .where(
+                    counted_package_sale(workspace_id), PackagePurchase.client_id.in_(client_ids)
+                )
+                .group_by(PackagePurchase.client_id)
+            )
+            for client_id, paid in sales:
+                current = stats.get(client_id, ClientStats())
+                stats[client_id] = replace(
+                    current, total_spent_cents=current.total_spent_cents + int(paid or 0)
+                )
             return stats
 
     async def export_directory(
@@ -232,19 +255,31 @@ class ClientsRepository:
             .group_by(Booking.client_id)
             .subquery()
         )
+        sales = (
+            select(
+                PackagePurchase.client_id.label("client_id"),
+                func.sum(PackagePurchase.price_cents).label("paid"),
+            )
+            .where(counted_package_sale(workspace_id))
+            .group_by(PackagePurchase.client_id)
+            .subquery()
+        )
         statement = (
             select(
                 Client,
                 aggregate.c.total,
                 aggregate.c.completed,
                 aggregate.c.cancelled,
-                aggregate.c.spent,
+                (func.coalesce(aggregate.c.spent, 0) + func.coalesce(sales.c.paid, 0)).label(
+                    "spent"
+                ),
                 aggregate.c.live,
                 aggregate.c.recent,
                 Workspace.currency,
             )
             .join(Workspace, Workspace.id == Client.workspace_id)
             .outerjoin(aggregate, aggregate.c.client_id == Client.id)
+            .outerjoin(sales, sales.c.client_id == Client.id)
             .where(Client.workspace_id == workspace_id)
         )
         if search.strip():
@@ -668,6 +703,16 @@ class ClientsRepository:
                 delete(ClientNote).where(
                     ClientNote.workspace_id == workspace_id, ClientNote.client_id == client_id
                 )
+            )
+            # Package sales keep their money facts; the operator's note about them goes.
+            await session.execute(
+                update(PackagePurchase)
+                .where(
+                    PackagePurchase.workspace_id == workspace_id,
+                    PackagePurchase.client_id == client_id,
+                    PackagePurchase.notes.is_not(None),
+                )
+                .values(notes=None, version=PackagePurchase.version + 1)
             )
             if booking_ids:
                 await session.execute(

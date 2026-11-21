@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
+import { ApiRequestError } from "@/services/_errors";
 import {
   PackageForm,
   type PackageFormValue,
@@ -154,7 +155,9 @@ export function PackageDrawer({
     } catch (err) {
       if (edit.onError(err)) {setConfirmDelete(false); setDeactivation(null);}
       toast.error(uiText("ui.couldn.t.delete.package"), {
-        description: err instanceof Error ? err.message : undefined,
+        description: err instanceof ApiRequestError && err.code === "package_in_use"
+          ? uiText("packages.inUse")
+          : err instanceof Error ? err.message : undefined,
       });
     } finally {
       setBusy(false);

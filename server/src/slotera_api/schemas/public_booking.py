@@ -164,7 +164,7 @@ class ManagedBookingResponse(ApiModel):
     reference: str
     status: Literal["pending", "confirmed", "completed", "cancelled", "noshow"]
     payment_status: Literal["pending", "paid", "refunded", "free", "overdue"]
-    payment_method: Literal["free", "manual"]
+    payment_method: Literal["free", "manual", "package"]
     approval_status: Literal["not_required", "pending", "approved", "declined"]
     pending_reasons: list[Literal["approval", "payment"]]
     amount_cents: int

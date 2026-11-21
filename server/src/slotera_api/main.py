@@ -20,6 +20,7 @@ from slotera_api.api.forms import router as forms_router
 from slotera_api.api.health import router as health_router
 from slotera_api.api.notifications import router as notifications_router
 from slotera_api.api.operator_resources import services_router, settings_router
+from slotera_api.api.package_purchases import router as package_purchases_router
 from slotera_api.api.packages import router as packages_router
 from slotera_api.api.platform import router as platform_router
 from slotera_api.api.platform_extras import platform_router as platform_extras_router
@@ -95,6 +96,7 @@ def create_app(
     app.include_router(billing_requests_router)
     app.include_router(branding_router)
     app.include_router(packages_router)
+    app.include_router(package_purchases_router)
     app.include_router(auth_router)
     app.include_router(client_access_router)
     app.include_router(conversations_router)

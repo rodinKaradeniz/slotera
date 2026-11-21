@@ -88,6 +88,8 @@ TENANT_TABLES = frozenset(
         "booking_form_snapshots",
         "service_packages",
         "service_package_items",
+        "package_purchases",
+        "package_purchase_items",
         "booking_access_tokens",
         "calendar_feed_tokens",
         "public_booking_idempotency",
@@ -874,6 +876,9 @@ class Booking(Base):
         Text, server_default=text("''")
     )
     notes: Mapped[str | None] = mapped_column(String(2000))
+    # Set together when a package item covers the booking (payment_method "package").
+    package_purchase_id: Mapped[UUID | None] = mapped_column()
+    package_position: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -1314,6 +1319,78 @@ class ServicePackageItem(Base):
     title: Mapped[str | None] = mapped_column(String(160))
     description: Mapped[str | None] = mapped_column(String(1000))
     position: Mapped[int] = mapped_column(Integer)
+
+
+class PackagePurchase(Versioned, Base):
+    """A package the operator sold to a client; the client paid outside Slotera."""
+
+    __tablename__ = "package_purchases"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "id", name="package_purchases_workspace_id_id_key"),
+        CheckConstraint("price_cents >= 0", name="package_purchases_price_check"),
+        CheckConstraint(
+            "payment_status IN ('pending', 'paid')", name="package_purchases_payment_status_check"
+        ),
+        CheckConstraint("status IN ('active', 'voided')", name="package_purchases_status_check"),
+        ForeignKeyConstraint(
+            ["workspace_id", "client_id"],
+            ["clients.workspace_id", "clients.id"],
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "package_id"],
+            ["service_packages.workspace_id", "service_packages.id"],
+            ondelete="RESTRICT",
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    client_id: Mapped[UUID]
+    package_id: Mapped[UUID]
+    package_name_snapshot: Mapped[str] = mapped_column(String(160))
+    price_cents: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
+    payment_status: Mapped[str] = mapped_column(String(8))
+    payment_received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(8))
+    voided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notes: Mapped[str | None] = mapped_column(String(2000))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class PackagePurchaseItem(Base):
+    """One session of a purchase: the service it is for, snapshotted at the sale."""
+
+    __tablename__ = "package_purchase_items"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "purchase_id", "position", name="package_purchase_items_position_key"
+        ),
+        CheckConstraint("position >= 0", name="package_purchase_items_position_check"),
+        ForeignKeyConstraint(
+            ["workspace_id", "purchase_id"],
+            ["package_purchases.workspace_id", "package_purchases.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "service_id"],
+            ["services.workspace_id", "services.id"],
+            ondelete="RESTRICT",
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    purchase_id: Mapped[UUID]
+    service_id: Mapped[UUID]
+    position: Mapped[int] = mapped_column(Integer)
+    title_snapshot: Mapped[str] = mapped_column(String(160))
 
 
 class PlatformInquiry(Base):

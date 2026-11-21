@@ -17,11 +17,15 @@ class OperatorBookingCreate(StrictApiModel):
     session_id: UUID
     notes: Annotated[str | None, Field(max_length=2000)] = None
     audit_reason: Annotated[NonBlank, Field(max_length=500)]
+    # A package the existing client bought; one of its sessions covers this booking.
+    package_purchase_id: UUID | None = None
 
     @model_validator(mode="after")
     def one_client(self) -> "OperatorBookingCreate":
         if (self.client_id is None) == (self.new_client is None):
             raise ValueError("Choose an existing client or provide a new client")
+        if self.package_purchase_id is not None and self.client_id is None:
+            raise ValueError("A package session needs the client who bought the package")
         return self
 
 
@@ -85,6 +89,9 @@ class BookingDisplayContext(ApiModel):
     location: str
     address: Address | None
     recurring: Literal["one-off", "weekly", "custom"]
+    # Set when a package session covers the booking: the package and its session count.
+    package_name: str | None = None
+    package_size: int | None = None
 
 
 class BookingResponse(ApiModel):
@@ -97,7 +104,7 @@ class BookingResponse(ApiModel):
     reference: str
     status: Literal["pending", "confirmed", "completed", "cancelled", "noshow"]
     payment_status: Literal["paid", "pending", "refunded", "free", "overdue"]
-    payment_method: Literal["free", "manual"]
+    payment_method: Literal["free", "manual", "package"]
     confirmation_policy: Literal["automatic", "operator_approval"]
     approval_status: Literal["not_required", "pending", "approved", "declined"]
     pending_reasons: list[Literal["approval", "payment"]]
@@ -121,6 +128,9 @@ class BookingResponse(ApiModel):
     terms_accepted_at: datetime | None
     manual_payment_instructions_snapshot: str
     notes: str | None
+    package_purchase_id: UUID | None = None
+    # Zero-based, like the package's item order.
+    package_position: int | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -147,6 +157,7 @@ class BookingSummary(ApiModel):
     payment_status: Literal["pending", "paid", "free", "refunded", "overdue"]
     amount_cents: int
     currency: str
+    covered_by_package: bool = False
     created_at: datetime
 
 

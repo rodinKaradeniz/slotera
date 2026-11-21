@@ -18,7 +18,7 @@ class BookingEmailTemplateData(ApiModel):
     starts_at: datetime
     ends_at: datetime
     timezone: str
-    payment_method: Literal["free", "manual"]
+    payment_method: Literal["free", "manual", "package"]
     payment_status: Literal["paid", "pending", "refunded", "free", "overdue"]
     approval_status: Literal["not_required", "pending", "approved", "declined"]
     amount_cents: int = Field(ge=0)

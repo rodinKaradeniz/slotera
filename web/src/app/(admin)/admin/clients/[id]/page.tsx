@@ -19,6 +19,7 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ClientNotes } from "@/components/admin/clients/ClientNotes";
 import { ClientPrivacyActions } from "@/components/admin/clients/ClientPrivacyActions";
+import { ClientPackagesCard } from "@/components/admin/clients/ClientPackagesCard";
 import { plural } from "@/lib/text";
 import { useDrawers } from "@/components/drawers/DrawersProvider";
 import { getClient } from "@/services/clients.service";
@@ -225,7 +226,9 @@ export default function ClientDetailPage() {
                                 ? `${fmtDate(new Date(session.startISO), "short")} · ${clockIn(session.startISO, timezone)}` : "—"}
                             </div>
                             <div className="text-[14px] font-medium text-ink whitespace-nowrap">
-                              {b.amountCents === 0 ? uiText("ui.free") : formatMoney(b.amountCents, b.currency)}
+                              {("startAt" in b ? b.coveredByPackage : b.paymentMethod === "package")
+                                ? uiText("booking.package.marker")
+                                : b.amountCents === 0 ? uiText("ui.free") : formatMoney(b.amountCents, b.currency)}
                             </div>
                             <StatusBadge kind="booking" status={b.status} />
                           </button>
@@ -265,6 +268,8 @@ export default function ClientDetailPage() {
                   </div>
                 </Card>
               </div>
+
+              <ClientPackagesCard clientId={client.id} readOnly={!!client.erasedAt} />
             </div>
           ) : (
             <ClientNotes clientId={client.id} />

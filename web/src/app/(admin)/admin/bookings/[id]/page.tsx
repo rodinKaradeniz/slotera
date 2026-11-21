@@ -48,6 +48,7 @@ import type { SettingsData } from "@/types/settings";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { MoveBookingDialog } from "@/components/admin/bookings/MoveBookingDialog";
+import { BookingPackageLine } from "@/components/admin/bookings/BookingPackageLine";
 
 type BookingAction = "approve" | "decline" | "payment" | "cancel";
 
@@ -390,6 +391,7 @@ export default function BookingDetailPage() {
                       <span className="text-ink-3 text-[14px]">{uiText("ui.status")}</span>
                       <StatusBadge kind="payment" status={booking.paymentStatus} />
                     </div>
+                    <BookingPackageLine booking={booking} />
                     <Row
                       label={uiText("ui.subtotal")}
                       value={formatMoney(

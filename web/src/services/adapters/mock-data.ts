@@ -11,6 +11,7 @@ import bookingsJson from "@/data/mock/bookings.json";
 import personasJson from "@/data/mock/demo-personas.json";
 import settingsJson from "@/data/mock/settings.json";
 import packagesJson from "@/data/mock/packages.json";
+import packagePurchasesJson from "@/data/mock/package-purchases.json";
 import clientNotesJson from "@/data/mock/client-notes.json";
 import notificationsJson from "@/data/mock/notifications.json";
 import servicesJson from "@/data/mock/services.json";
@@ -27,6 +28,7 @@ const fixtures: Record<string, unknown> = {
   "demo-personas": personasJson,
   settings: settingsJson,
   packages: packagesJson,
+  "package-purchases": packagePurchasesJson,
   "client-notes": clientNotesJson,
   notifications: notificationsJson,
   services: servicesJson,

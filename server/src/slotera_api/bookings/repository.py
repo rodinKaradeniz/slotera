@@ -1,6 +1,6 @@
 import json
 from collections.abc import AsyncIterator, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any
@@ -36,6 +36,7 @@ from slotera_api.db.models import (
 )
 from slotera_api.errors import ApiError
 from slotera_api.followups import queue_followup, snapshot_followup
+from slotera_api.packages.purchases import claim_item, package_summary
 from slotera_api.session_capacity import CAPACITY_CONSUMING_STATUSES, release_public_session
 
 
@@ -239,6 +240,7 @@ class BookingsRepository:
                 Booking.payment_status,
                 Booking.amount_cents,
                 Booking.currency,
+                (Booking.payment_method == "package").label("covered_by_package"),
                 Booking.created_at,
             )
             ranked = statement.add_columns(
@@ -310,7 +312,10 @@ class BookingsRepository:
 
     async def get_detail(
         self, workspace_id: UUID, booking_id: UUID
-    ) -> tuple[Booking, Client, Session, Service, SessionSeries | None, int] | None:
+    ) -> (
+        tuple[Booking, Client, Session, Service, SessionSeries | None, int, tuple[str, int] | None]
+        | None
+    ):
         async with self.database.tenant_transaction(workspace_id, repeatable_read=True) as session:
             count = (
                 select(func.count(Booking.id))
@@ -345,7 +350,15 @@ class BookingsRepository:
                     .where(Booking.workspace_id == workspace_id, Booking.id == booking_id)
                 )
             ).one_or_none()
-            return (row[0], row[1], row[2], row[3], row[4], int(row[5])) if row else None
+            if row is None:
+                return None
+            booking = row[0]
+            package = (
+                await package_summary(session, workspace_id, booking.package_purchase_id)
+                if booking.package_purchase_id is not None
+                else None
+            )
+            return (booking, row[1], row[2], row[3], row[4], int(row[5]), package)
 
     async def get_booking(self, workspace_id: UUID, booking_id: UUID) -> Booking | None:
         async with self.database.tenant_transaction(workspace_id) as session:
@@ -555,6 +568,7 @@ class BookingsRepository:
                 if client_id is not None
                 else None
             )
+            package_purchase_id = values.get("package_purchase_id")
             locked = await database_session.execute(
                 select(Session, Service, Workspace)
                 .join(
@@ -598,9 +612,21 @@ class BookingsRepository:
             assert client is not None
             client_id = client.id
             quote = quote_for(service, workspace, payment_settings)
+            package_position: int | None = None
+            if package_purchase_id is not None:
+                # The purchase is locked after the client and session, as erasure orders it;
+                # the package already paid for this session, so the booking is worth nothing.
+                _, package_position = await claim_item(
+                    database_session, workspace_id, package_purchase_id, client_id, service.id
+                )
+                quote = replace(quote, gross_amount_cents=0, net_amount_cents=0, tax_amount_cents=0)
             booking_id = uuid4()
             payment_status = (
-                PaymentStatus.FREE if service.price_cents == 0 else PaymentStatus.PENDING
+                PaymentStatus.PAID
+                if package_position is not None
+                else PaymentStatus.FREE
+                if service.price_cents == 0
+                else PaymentStatus.PENDING
             )
             booking = Booking(
                 id=booking_id,
@@ -608,7 +634,7 @@ class BookingsRepository:
                 session_id=session_id,
                 client_id=client_id,
                 status=BookingStatus.CONFIRMED
-                if payment_status == PaymentStatus.FREE
+                if payment_status in (PaymentStatus.FREE, PaymentStatus.PAID)
                 else BookingStatus.PENDING,
                 language=str(values.get("language", "en")),
                 payment_status=payment_status,
@@ -616,7 +642,13 @@ class BookingsRepository:
                 confirmation_policy_snapshot=ConfirmationPolicy.AUTOMATIC,
                 approval_status=BookingApprovalStatus.NOT_REQUIRED,
                 reference=f"SLT-{booking_id.hex[:12].upper()}",
-                payment_method="free" if service.price_cents == 0 else "manual",
+                payment_method="package"
+                if package_position is not None
+                else "free"
+                if service.price_cents == 0
+                else "manual",
+                package_purchase_id=package_purchase_id if package_position is not None else None,
+                package_position=package_position,
                 **financial_snapshot(quote, payment_settings),
                 billing_address={},
                 payment_due_at=None,
@@ -632,7 +664,9 @@ class BookingsRepository:
                 platform_terms_version="",
                 terms_accepted_at=None,
                 manual_payment_instructions_snapshot=(
-                    payment_settings.manual_payment_instructions if service.price_cents > 0 else ""
+                    payment_settings.manual_payment_instructions
+                    if payment_status == PaymentStatus.PENDING
+                    else ""
                 ),
                 notes=values.get("notes"),
             )
@@ -652,6 +686,14 @@ class BookingsRepository:
                         "audit_reason": values["audit_reason"],
                         "session_id": str(session_id),
                         "client_id": str(client_id),
+                        **(
+                            {
+                                "package_purchase_id": str(package_purchase_id),
+                                "package_position": package_position,
+                            }
+                            if package_position is not None
+                            else {}
+                        ),
                     },
                 )
             )

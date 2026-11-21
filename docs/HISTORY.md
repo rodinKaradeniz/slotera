@@ -2456,3 +2456,28 @@ Applied every recommendation from the screenshot critique.
   real API: a client books an approval service on `/book/lena`, the operator signs in with
   the form, approves the booking and moves it to the next session.
 
+## 2026-11-21 — Operator-recorded package sales
+
+- **Decisions (with the user):** the operator records the sale (the client pays outside
+  Slotera; no checkout until Stripe), only the operator books package sessions, any remaining
+  item can be used, and sessions never expire. This lifts Entry 016's "presentation only"
+  line for the operator side; client checkout and client package views stay out.
+- **Model:** `package_purchases` snapshots the package's name, price and currency, with
+  `pending | paid` payment and `active | voided` status; `package_purchase_items` snapshots
+  one row per session. A booking holds an item through `package_purchase_id` and
+  `package_position`, with `payment_method = 'package'`, amount 0 and status confirmed. A
+  partial unique index allows one live booking per item, so any cancellation gives the
+  session back and no extra bookkeeping is needed. Recording a sale is idempotent by
+  deriving the purchase id from the operator's idempotency key, without a new table.
+- **Money:** a paid, unvoided sale counts once in dashboard revenue (at the sale date) and in
+  the client's total spent; covered bookings count 0 and are left out of the average
+  booking value. Erasure keeps a sale's money facts and clears its note. A sold package
+  can't be deleted (`package_in_use`). Workspace purge deletes sales after bookings.
+- **UI:** `ClientPackagesCard` on the client Overview (record, mark paid, void with
+  confirmation), a "Package" select in New booking when a sale covers the session's service,
+  "Covered by …, session N of M" on the booking detail, and a "Package" marker in booking
+  lists. The demo seeds one partly used sale (Sofia Marin, Strategy Sprint Package).
+- **Tests:** two PostgreSQL integration tests (the full sale lifecycle and the double-spend
+  index), demo service rules, `ClientPackagesCard` and the New booking package option; the
+  Chromium journey `web/e2e/package.spec.ts`.
+

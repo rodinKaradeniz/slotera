@@ -9,10 +9,10 @@
  * service↔package relationship is `ServicePackage.items[].serviceId` — there is
  * NO `Service.packageIds` field.
  *
- * This is a product/demo model only. It deliberately does NOT implement real
- * checkout, credit/balance ledgers, session consumption, entitlements,
- * recurring billing, memberships, coupons, gift cards, or Stripe product/price
- * objects.
+ * The operator can record a sale of a package to a client (paid outside Slotera; see
+ * `types/package-purchase.ts`), and its sessions then cover bookings made from New
+ * booking. There is still no client checkout, recurring billing, memberships, coupons,
+ * gift cards or Stripe product/price objects.
  *
  * Do NOT confuse this with platform billing: Settings → Billing & Subscription
  * is how the *operator* pays Slotera; packages are what the operator sells to

@@ -49,7 +49,7 @@ def _response(managed: ManagedBooking) -> ManagedBookingResponse:
         reference=booking.reference,
         status=booking.status.value,
         payment_status=booking.payment_status.value,
-        payment_method=cast(Literal["free", "manual"], booking.payment_method),
+        payment_method=cast(Literal["free", "manual", "package"], booking.payment_method),
         approval_status=booking.approval_status.value,
         pending_reasons=pending_reasons(booking),
         amount_cents=booking.amount_cents,

@@ -1164,6 +1164,18 @@ synthetic screenshots on CI failure; traces, video, full error contexts, bodies 
 excluded. Install Chromium once with `web/node_modules/.bin/playwright install chromium`.
 `web/e2e/smoke.spec.ts` is the short end-to-end path (public booking of an approval service,
 form sign-in, approve, move); run it alone with `./scripts/browser-check smoke`.
+`web/e2e/package.spec.ts` records a package sale, books one of its sessions from New booking
+and checks the session comes back on cancel (`./scripts/browser-check package`).
+
+**Package sales (2026-11-21):** `package_purchases` + `package_purchase_items` (snapshots;
+voided, never deleted; the runtime role has no DELETE) and `bookings.package_purchase_id` /
+`package_position` with `payment_method = 'package'`. The partial unique index
+`ux_bookings_live_package_item` is the double-spend guard: one non-cancelled booking per
+item. Endpoints: `GET|POST /clients/{id}/package-purchases` (POST needs an Idempotency-Key;
+the purchase id is derived from it), `POST /package-purchases/{id}/payment-received` and
+`/void` (If-Match). `POST /bookings` takes `packagePurchaseId` for an existing client. Code:
+`server/src/slotera_api/packages/purchases.py`, `web/src/services/package-purchases.service.ts`,
+`ClientPackagesCard`. Rules live in PRODUCT.md §Packages.
 See `docs/VERIFY_LOCAL_BOOKING.md` for startup, reset, navigation and verification evidence.
 
 

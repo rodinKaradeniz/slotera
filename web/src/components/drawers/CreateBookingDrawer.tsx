@@ -20,6 +20,8 @@ import { getClient, searchClients } from "@/services/clients.service";
 import { getSession, listBookableSessions } from "@/services/sessions.service";
 import { serviceOptionsForIds, type ServiceOption } from "@/services/services.service";
 import { getLanguagePreference } from "@/services/preferences.service";
+import { packagesCovering } from "@/services/package-purchases.service";
+import type { PackagePurchase } from "@/types/package-purchase";
 import { dataSource } from "@/lib/env";
 import { ApiRequestError } from "@/services/_errors";
 import type { BookingDrawerProps } from "./BookingDrawer";
@@ -59,10 +61,13 @@ export function CreateBookingDrawer({ open, onClose, defaultClientId, defaultSes
   const [errors, setErrors] = React.useState<Partial<Record<string, MessageKey>>>({});
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [duplicate, setDuplicate] = React.useState(false);
+  const [packagePurchaseId, setPackagePurchaseId] = React.useState("");
+  const [cover, setCover] = React.useState<{ key: string; items: PackagePurchase[] } | null>(null);
   useResetOnOpen(open, [defaultClientId, defaultSessionId], () => {
     setClientMode("existing"); setIdentity({ ...emptyClient }); setClientId(defaultClientId ?? "");
     setSessionId(defaultSessionId ?? ""); setSearch(""); setNotes(""); setReason(t("booking.create.reasonDefault"));
     setSendEmail(true); setLanguage(lang); setLanguageTouched(false); setKey(crypto.randomUUID()); setErrors({}); setSubmitError(null); setDuplicate(false);
+    setPackagePurchaseId("");
     setLoading(true); setSearching(true); setLoadError(null); setSearchError(null); setOffset(0); setSessions([]);
   });
   React.useEffect(() => {
@@ -100,6 +105,24 @@ export function CreateBookingDrawer({ open, onClose, defaultClientId, defaultSes
       .catch(() => { if (active) setLanguage("en"); });
     return () => { active = false; };
   }, [open, languageTouched]);
+  const selected = sessions.find((s) => s.id === sessionId);
+  const service = services.find((s) => s.id === selected?.serviceId);
+  // A package the existing client bought can cover the chosen session's service.
+  const coverClient = clientMode === "existing" ? clientId : "";
+  const coverService = selected?.serviceId ?? "";
+  const coverKey = coverClient && coverService ? `${coverClient} ${coverService}` : "";
+  React.useEffect(() => {
+    if (!open || !coverClient || !coverService) return;
+    let active = true;
+    const key = `${coverClient} ${coverService}`;
+    packagesCovering(coverClient, coverService).then(
+      (items) => { if (active) setCover({ key, items }); },
+      () => { if (active) setCover({ key, items: [] }); },
+    );
+    return () => { active = false; };
+  }, [open, coverClient, coverService]);
+  const offers = coverKey && cover?.key === coverKey ? cover.items : [];
+  const usePackage = offers.some((item) => item.id === packagePurchaseId) ? packagePurchaseId : "";
   const save = async () => {
     if (saving.current) return;
     const invalid: Partial<Record<string, MessageKey>> = clientMode === "new" ? validateClientIdentity(identity) : {};
@@ -114,7 +137,8 @@ export function CreateBookingDrawer({ open, onClose, defaultClientId, defaultSes
     saving.current = true; setBusy(true); setSubmitError(null);
     try {
       const created = await createOperatorBooking({ sessionId, notes, auditReason: reason, sendEmail, language,
-        ...(clientMode === "new" ? { newClient: { ...identity, name: identity.name.trim(), email: identity.email.trim().toLowerCase() } } : { clientId }),
+        ...(clientMode === "new" ? { newClient: { ...identity, name: identity.name.trim(), email: identity.email.trim().toLowerCase() } }
+          : { clientId, ...(usePackage ? { packagePurchaseId: usePackage } : {}) }),
       }, key);
       toast.success(t("ui.booking.created"));
       try { await onSaved?.(created); } catch { toast.info(t("booking.create.createdRefresh")); }
@@ -124,8 +148,6 @@ export function CreateBookingDrawer({ open, onClose, defaultClientId, defaultSes
       setDuplicate(error instanceof ApiRequestError && error.code === "client_email_conflict");
     } finally { saving.current = false; setBusy(false); }
   };
-  const selected = sessions.find((s) => s.id === sessionId);
-  const service = services.find((s) => s.id === selected?.serviceId);
   return <DrawerShell open={open} onClose={() => !busy && onClose()} eyebrow={t("ui.new.booking")} title={t("ui.create.a.booking")}
     footer={<><Button variant="ghost" onClick={onClose} disabled={busy}>{t("ui.close")}</Button><Button onClick={save} loading={busy} disabled={loading || !!loadError || (clientMode === "existing" && (searching || !!searchError))}>{t("ui.create.booking")}</Button></>}>
     <div ref={root}><fieldset disabled={busy} className="grid gap-5">
@@ -148,7 +170,13 @@ export function CreateBookingDrawer({ open, onClose, defaultClientId, defaultSes
           {!loading && !sessions.length && <p>{t("booking.create.none")} <Link href="/admin/calendar" onClick={onClose} className="text-accent underline">{t("nav.calendar")}</Link></p>}
         </Field>}
       {offset + 50 < total && <Button variant="secondary" disabled={loading} onClick={() => { setLoading(true); setOffset((n) => n + 50); }}>{t("booking.create.more")}</Button>}
-      {service && <p>{formatMoney(service.priceCents, service.currency, lang)}</p>}
+      {offers.length > 0 && <Field label={t("booking.package.use")} hint={usePackage ? t("booking.package.hint") : undefined}>
+        <Select value={usePackage} onChange={(e) => setPackagePurchaseId(e.target.value)} options={[
+          { value: "", label: t("booking.package.none") },
+          ...offers.map((item) => ({ value: item.id, label: t("booking.package.option", { name: item.packageName,
+            count: item.items.filter((entry) => entry.serviceId === coverService && !entry.booking).length }) }))]} />
+      </Field>}
+      {service && !usePackage && <p>{formatMoney(service.priceCents, service.currency, lang)}</p>}
       <p className="text-small text-ink-3">{t("booking.create.rules")}</p>
       <Field label={t("ui.reason")} required error={errors.reason && t(errors.reason)}><Input value={reason} maxLength={500} aria-invalid={!!errors.reason} onChange={(e) => setReason(e.target.value)} /></Field>
       <Field label={t("ui.booking.note")} optional hint={t("ui.only.visible.to.you.context.for.this.specific.booking")}><Textarea value={notes} maxLength={2000} rows={3} onChange={(e) => setNotes(e.target.value)} /></Field>

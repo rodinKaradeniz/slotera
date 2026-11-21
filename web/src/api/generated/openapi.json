@@ -756,6 +756,28 @@
             "title": "Locationtype",
             "type": "string"
           },
+          "packageName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packagename"
+          },
+          "packageSize": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packagesize"
+          },
           "recurring": {
             "enum": [
               "one-off",
@@ -1354,6 +1376,29 @@
             ],
             "title": "Notes"
           },
+          "packagePosition": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packageposition"
+          },
+          "packagePurchaseId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packagepurchaseid"
+          },
           "paymentDueAt": {
             "anyOf": [
               {
@@ -1369,7 +1414,8 @@
           "paymentMethod": {
             "enum": [
               "free",
-              "manual"
+              "manual",
+              "package"
             ],
             "title": "Paymentmethod",
             "type": "string"
@@ -1583,6 +1629,11 @@
           "clientName": {
             "title": "Clientname",
             "type": "string"
+          },
+          "coveredByPackage": {
+            "default": false,
+            "title": "Coveredbypackage",
+            "type": "boolean"
           },
           "createdAt": {
             "format": "date-time",
@@ -4396,7 +4447,8 @@
           "paymentMethod": {
             "enum": [
               "free",
-              "manual"
+              "manual",
+              "package"
             ],
             "title": "Paymentmethod",
             "type": "string"
@@ -4760,6 +4812,18 @@
             ],
             "title": "Notes"
           },
+          "packagePurchaseId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packagepurchaseid"
+          },
           "sendEmail": {
             "default": true,
             "title": "Sendemail",
@@ -4961,6 +5025,246 @@
           "items"
         ],
         "title": "PackageList",
+        "type": "object"
+      },
+      "PackagePurchaseCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "packageId": {
+            "format": "uuid",
+            "title": "Packageid",
+            "type": "string"
+          },
+          "paymentReceived": {
+            "default": false,
+            "title": "Paymentreceived",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "packageId"
+        ],
+        "title": "PackagePurchaseCreate",
+        "type": "object"
+      },
+      "PackagePurchaseItemBooking": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "completed",
+              "noshow"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "startAt"
+        ],
+        "title": "PackagePurchaseItemBooking",
+        "type": "object"
+      },
+      "PackagePurchaseItemView": {
+        "properties": {
+          "booking": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PackagePurchaseItemBooking"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "serviceId",
+          "title",
+          "booking"
+        ],
+        "title": "PackagePurchaseItemView",
+        "type": "object"
+      },
+      "PackagePurchaseList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PackagePurchaseView"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PackagePurchaseList",
+        "type": "object"
+      },
+      "PackagePurchaseView": {
+        "properties": {
+          "clientId": {
+            "format": "uuid",
+            "title": "Clientid",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PackagePurchaseItemView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "packageId": {
+            "format": "uuid",
+            "title": "Packageid",
+            "type": "string"
+          },
+          "packageName": {
+            "title": "Packagename",
+            "type": "string"
+          },
+          "paymentReceivedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paymentreceivedat"
+          },
+          "paymentStatus": {
+            "enum": [
+              "pending",
+              "paid"
+            ],
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          },
+          "remainingCount": {
+            "title": "Remainingcount",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "voided"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "usedCount": {
+            "title": "Usedcount",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "voidedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voidedat"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "clientId",
+          "packageId",
+          "packageName",
+          "priceCents",
+          "currency",
+          "paymentStatus",
+          "paymentReceivedAt",
+          "status",
+          "voidedAt",
+          "notes",
+          "items",
+          "usedCount",
+          "remainingCount",
+          "createdAt"
+        ],
+        "title": "PackagePurchaseView",
         "type": "object"
       },
       "PackageSummary": {
@@ -13110,6 +13414,111 @@
         ]
       }
     },
+    "/clients/{client_id}/package-purchases": {
+      "get": {
+        "operationId": "listClientPackagePurchases",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagePurchaseList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Client Purchases",
+        "tags": [
+          "package-purchases"
+        ]
+      },
+      "post": {
+        "operationId": "recordPackagePurchase",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackagePurchaseCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagePurchaseView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Purchase",
+        "tags": [
+          "package-purchases"
+        ]
+      }
+    },
     "/conversations": {
       "get": {
         "operationId": "listConversations",
@@ -13690,6 +14099,112 @@
         "summary": "Mark All Notifications Read",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/package-purchases/{purchase_id}/payment-received": {
+      "post": {
+        "operationId": "markPackagePurchasePaid",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "purchase_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Purchase Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagePurchaseView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mark Paid",
+        "tags": [
+          "package-purchases"
+        ]
+      }
+    },
+    "/package-purchases/{purchase_id}/void": {
+      "post": {
+        "operationId": "voidPackagePurchase",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "purchase_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Purchase Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagePurchaseView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Void Purchase",
+        "tags": [
+          "package-purchases"
         ]
       }
     },

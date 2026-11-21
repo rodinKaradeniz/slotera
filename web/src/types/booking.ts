@@ -11,7 +11,9 @@ export type BookingApprovalStatus =
 export type BookingPendingReason = "approval" | "payment";
 
 export type Booking = {
-  context?: {clientName: string; clientEmail: string; serviceName: string; session: SessionItem};
+  context?: {clientName: string; clientEmail: string; serviceName: string; session: SessionItem;
+    /** Set when a package session covers the booking. */
+    packageName?: string; packageSize?: number};
   id: string;
   sessionId: string;
   clientId: string;
@@ -20,7 +22,8 @@ export type Booking = {
   language?: "en" | "tr" | "de";
   status: BookingStatus;
   paymentStatus: PaymentStatus;
-  paymentMethod?: "free" | "manual";
+  /** "package": a session of a package the client bought covers it (amount 0). */
+  paymentMethod?: "free" | "manual" | "package";
   confirmationPolicy?: "automatic" | "operator_approval";
   approvalStatus?: BookingApprovalStatus;
   pendingReasons?: BookingPendingReason[];
@@ -51,6 +54,9 @@ export type Booking = {
   notes?: string;
   /** Only set once the session has run and the operator marks attendance. */
   attendance?: BookingAttendance;
+  packagePurchaseId?: string;
+  /** Zero-based position of the package session this booking holds. */
+  packagePosition?: number;
   createdAtISO: string;
 };
 
@@ -77,7 +83,7 @@ export type BookingSummaryItem = {
   id: string; clientId: string; sessionId: string; serviceId: string; reference: string;
   clientName: string; clientCompany: string | null; serviceName: string; startAt: string;
   status: BookingStatus; paymentStatus: PaymentStatus; amountCents: number;
-  currency: Currency; createdAt: string;
+  currency: Currency; coveredByPackage?: boolean; createdAt: string;
 };
 export type BookingSummaryPage = {
   items: BookingSummaryItem[]; total: number; limit: number; offset: number;

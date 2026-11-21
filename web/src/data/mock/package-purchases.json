@@ -1,0 +1,13 @@
+[
+  {
+    "id": "pur-001",
+    "version": 1,
+    "clientId": "cli-005",
+    "packageId": "pkg-strategy-sprint",
+    "notes": "Paid by bank transfer before the first sprint.",
+    "paymentStatus": "paid",
+    "paymentReceivedAtISO": "2026-05-08T10:00:00.000Z",
+    "status": "active",
+    "createdAtISO": "2026-05-08T09:30:00.000Z"
+  }
+]

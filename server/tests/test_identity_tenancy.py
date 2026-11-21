@@ -32,6 +32,8 @@ def test_every_declared_tenant_table_carries_workspace_identity() -> None:
         "booking_form_snapshots",
         "service_packages",
         "service_package_items",
+        "package_purchases",
+        "package_purchase_items",
         "booking_access_tokens",
         "calendar_feed_tokens",
         "form_templates",

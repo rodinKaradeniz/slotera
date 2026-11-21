@@ -45,6 +45,8 @@ EXPORTED_TABLES: tuple[str, ...] = (
     "conversation_reads",
     "service_followup_rules",
     "booking_followups",
+    "package_purchases",
+    "package_purchase_items",
     "bookings",
     "booking_form_responses",
     "booking_form_snapshots",

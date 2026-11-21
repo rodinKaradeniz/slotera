@@ -30,6 +30,10 @@ from slotera_api.bookings.repository import (
 from slotera_api.clients.repository import ClientEmailConflictError
 from slotera_api.db.models import Booking, BookingAttendance, Session
 from slotera_api.errors import ApiError
+from slotera_api.packages.purchases import (
+    PackageCreditUnavailableError,
+    PackagePurchaseVoidedError,
+)
 from slotera_api.schemas.bookings import (
     BookingAttendanceCommand,
     BookingCustomerSnapshot,
@@ -68,7 +72,7 @@ def _response(item: Booking) -> BookingResponse:
         reference=item.reference,
         status=item.status.value,
         payment_status=item.payment_status.value,
-        payment_method=cast(Literal["free", "manual"], item.payment_method),
+        payment_method=cast(Literal["free", "manual", "package"], item.payment_method),
         confirmation_policy=item.confirmation_policy_snapshot.value,
         approval_status=item.approval_status.value,
         pending_reasons=pending_reasons,
@@ -98,6 +102,8 @@ def _response(item: Booking) -> BookingResponse:
         terms_accepted_at=item.terms_accepted_at,
         manual_payment_instructions_snapshot=item.manual_payment_instructions_snapshot,
         notes=item.notes,
+        package_purchase_id=item.package_purchase_id,
+        package_position=item.package_position,
         created_at=item.created_at,
         updated_at=item.updated_at,
     )
@@ -218,6 +224,18 @@ async def create_operator_booking(
         BookingTransitionError,
     ) as exc:
         raise _command_error(exc) from exc
+    except PackageCreditUnavailableError as exc:
+        raise ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="package_credit_unavailable",
+            message="This client's package has no session left for this service",
+        ) from exc
+    except PackagePurchaseVoidedError as exc:
+        raise ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="package_voided",
+            message="This package was voided, so its sessions can't be booked",
+        ) from exc
     if result is None:
         raise ApiError(
             status_code=HTTPStatus.NOT_FOUND,
@@ -391,7 +409,7 @@ async def get_booking(
     detail = await BookingsRepository(database).get_detail(operator.workspace_id, booking_id)
     if detail is None:
         raise _booking_not_found()
-    booking, client, occurrence, service, series, booked_count = detail
+    booking, client, occurrence, service, series, booked_count, package = detail
     recurring: Literal["one-off", "weekly", "custom"] = "one-off"
     if series:
         weekday = occurrence.start_at.astimezone(ZoneInfo(series.timezone)).isoweekday()
@@ -414,6 +432,8 @@ async def get_booking(
         location=occurrence.location,
         address=Address.model_validate(occurrence.address) if occurrence.address else None,
         recurring=recurring,
+        package_name=package[0] if package else None,
+        package_size=package[1] if package else None,
     )
     return result
 

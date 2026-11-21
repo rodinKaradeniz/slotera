@@ -108,6 +108,9 @@ export async function removePackage(id: string,
   const reviewed = mock.find((item) => item.id === id);
   if (reviewed) nextEditVersion(reviewed, expectedVersion);
   await sleep(80);
+  if (await (await import("./package-purchases.service")).isPackageSold(id)) {
+    throw new ApiRequestError(409, "package_in_use", "This package was sold to a client. Deactivate it instead.");
+  }
   mock = mock.filter((p) => p.id !== id);
 }
 

@@ -529,11 +529,14 @@ stay demonstrations until the backend can support them properly.
   **service-level** `automatic | operator_approval` policy, snapshotted on bookings and
   separate from payment/lifecycle state. It does not change the public booking steps.
 - **~~Email follow-ups.~~ DONE (2026-11-16).** Completion snapshots per-service rules and optional forms; maintenance queues local outbox mail, with reviewed manual send/skip and client automatic opt-out.
-- **Package purchase and credits.** Packages are display-only by design — no checkout, no
-  credit ledger, no consumption, no entitlements, no memberships, no recurring billing, no
-  coupons or gift cards. A real version would need purchase, remaining-credit tracking,
-  enrollment, and customer-facing package management. Do not add any of it to the current
-  surface; see HISTORY.md Entry 016.
+- **~~Operator package sales and sessions.~~ DONE 2026-11-21.** The operator records a sale
+  on the client page (paid outside Slotera), books its sessions from New booking, marks the
+  payment received or voids it; cancelling a covered booking gives the session back. See
+  PRODUCT.md §Packages.
+- **Client package checkout and self-service.** Still open: buying a package on the booking
+  page (manual payment now, card once Stripe exists), a client-facing "sessions left" view
+  (the real manage page has no package tab), client self-booking with a package, expiry,
+  refunds, memberships, recurring billing, coupons and gift cards.
 - **~~Operator booking approval/payment reconciliation UI.~~ DONE for narrow booking-detail actions.**
   API mode exposes approve, decline, mark manual payment received, and cancel when valid.
   Operator booking creation is DONE for existing/new clients in upcoming sessions, including

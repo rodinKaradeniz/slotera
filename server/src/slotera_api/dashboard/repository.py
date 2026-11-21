@@ -8,12 +8,14 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import and_, case, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from slotera_api.clients.repository import counted_package_sale as _counted_sale
 from slotera_api.database import Database
 from slotera_api.db.models import (
     Booking,
     BookingStatus,
     Client,
     Notification,
+    PackagePurchase,
     PaymentStatus,
     Service,
     Session,
@@ -200,13 +202,24 @@ m.sequence>coalesce(r.last_read,0)
                         0,
                     ),
                     func.count(Booking.id),
-                    func.coalesce(func.avg(Booking.amount_cents), 0),
+                    # A package session is prepaid; its 0 would drag the average down.
+                    func.coalesce(
+                        func.avg(Booking.amount_cents).filter(Booking.payment_method != "package"),
+                        0,
+                    ),
                     func.count(func.distinct(Booking.client_id)),
                 ).where(active)
             )
         ).one()
+        sales = await session.scalar(
+            select(func.coalesce(func.sum(PackagePurchase.price_cents), 0)).where(
+                _counted_sale(workspace_id),
+                PackagePurchase.created_at >= starts_at,
+                PackagePurchase.created_at < ends_at,
+            )
+        )
         return (
-            int(result[0] or 0),
+            int(result[0] or 0) + int(sales or 0),
             int(result[1] or 0),
             int(round(float(result[2] or 0))),
             int(result[3] or 0),
@@ -246,6 +259,16 @@ m.sequence>coalesce(r.last_read,0)
             value["bookings"] += 1
             if booking.payment_status == PaymentStatus.PAID:
                 value["revenue_cents"] += booking.amount_cents
+        for created_at, price_cents in await session.execute(
+            select(PackagePurchase.created_at, PackagePurchase.price_cents).where(
+                _counted_sale(workspace_id),
+                PackagePurchase.created_at >= starts_at,
+                PackagePurchase.created_at < ends_at,
+            )
+        ):
+            sale_day = values.get(created_at.astimezone(timezone).date())
+            if sale_day is not None:
+                sale_day["revenue_cents"] += price_cents
         return [
             DashboardTrend(
                 day=day,
