@@ -22,6 +22,8 @@ from slotera_api.schemas.notifications import (
     BookingPendingPayload,
     NotificationItem,
     NotificationListResponse,
+    PackageRequestedNotification,
+    PackageRequestedPayload,
     PaymentPendingNotification,
     PaymentPendingPayload,
     RescheduleRequestedNotification,
@@ -76,6 +78,12 @@ def _notification_response(notification: Notification) -> NotificationItem:
             **common,
             kind="session_starting",
             payload=SessionStartingPayload.model_validate(notification.payload),
+        )
+    if notification.kind == NotificationKind.PACKAGE_REQUESTED:
+        return PackageRequestedNotification(
+            **common,
+            kind="package_requested",
+            payload=PackageRequestedPayload.model_validate(notification.payload),
         )
     if notification.kind == NotificationKind.BOOKING_CANCELLED:
         return BookingCancelledNotification(

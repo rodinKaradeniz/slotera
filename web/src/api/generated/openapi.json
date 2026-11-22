@@ -1466,6 +1466,23 @@
             "title": "Reference",
             "type": "string"
           },
+          "refundedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refundedat"
+          },
+          "refundedCents": {
+            "default": 0,
+            "title": "Refundedcents",
+            "type": "integer"
+          },
           "sellerTaxNumber": {
             "anyOf": [
               {
@@ -2207,6 +2224,15 @@
             "title": "Id",
             "type": "string"
           },
+          "paymentMethod": {
+            "enum": [
+              "free",
+              "manual",
+              "package"
+            ],
+            "title": "Paymentmethod",
+            "type": "string"
+          },
           "paymentStatus": {
             "enum": [
               "pending",
@@ -2221,6 +2247,10 @@
           "reference": {
             "title": "Reference",
             "type": "string"
+          },
+          "refundedCents": {
+            "title": "Refundedcents",
+            "type": "integer"
           },
           "serviceName": {
             "title": "Servicename",
@@ -2248,7 +2278,9 @@
           "reference",
           "status",
           "paymentStatus",
+          "paymentMethod",
           "amountCents",
+          "refundedCents",
           "currency",
           "startAt",
           "endAt",
@@ -2941,6 +2973,143 @@
           "updatedAt"
         ],
         "title": "ClientNoteResponse",
+        "type": "object"
+      },
+      "ClientPackage": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "packageName": {
+            "title": "Packagename",
+            "type": "string"
+          },
+          "paymentStatus": {
+            "enum": [
+              "pending",
+              "paid"
+            ],
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          },
+          "refundedCents": {
+            "title": "Refundedcents",
+            "type": "integer"
+          },
+          "remainingCount": {
+            "title": "Remainingcount",
+            "type": "integer"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/ClientPackageSession"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "voided"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "usedCount": {
+            "title": "Usedcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "packageName",
+          "priceCents",
+          "currency",
+          "paymentStatus",
+          "status",
+          "refundedCents",
+          "sessions",
+          "usedCount",
+          "remainingCount",
+          "createdAt"
+        ],
+        "title": "ClientPackage",
+        "type": "object"
+      },
+      "ClientPackageSession": {
+        "additionalProperties": false,
+        "properties": {
+          "bookedFor": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bookedfor"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "serviceId": {
+            "format": "uuid",
+            "title": "Serviceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "serviceId",
+          "title",
+          "bookedFor"
+        ],
+        "title": "ClientPackageSession",
+        "type": "object"
+      },
+      "ClientPackages": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ClientPackage"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "manualPaymentInstructions": {
+            "title": "Manualpaymentinstructions",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "manualPaymentInstructions"
+        ],
+        "title": "ClientPackages",
         "type": "object"
       },
       "ClientPatch": {
@@ -4491,6 +4660,11 @@
             "title": "Reference",
             "type": "string"
           },
+          "refundedCents": {
+            "default": 0,
+            "title": "Refundedcents",
+            "type": "integer"
+          },
           "rescheduled": {
             "title": "Rescheduled",
             "type": "boolean"
@@ -4716,6 +4890,7 @@
                   "booking_cancelled": "#/components/schemas/BookingCancelledNotification",
                   "booking_confirmed": "#/components/schemas/BookingConfirmedNotification",
                   "booking_pending": "#/components/schemas/BookingPendingNotification",
+                  "package_requested": "#/components/schemas/PackageRequestedNotification",
                   "payment_pending": "#/components/schemas/PaymentPendingNotification",
                   "reschedule_requested": "#/components/schemas/RescheduleRequestedNotification",
                   "session_starting": "#/components/schemas/SessionStartingNotification"
@@ -4740,6 +4915,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/BookingCancelledNotification"
+                },
+                {
+                  "$ref": "#/components/schemas/PackageRequestedNotification"
                 }
               ]
             },
@@ -5042,6 +5220,11 @@
             ],
             "title": "Notes"
           },
+          "notifyClient": {
+            "default": true,
+            "title": "Notifyclient",
+            "type": "boolean"
+          },
           "packageId": {
             "format": "uuid",
             "title": "Packageid",
@@ -5213,6 +5396,22 @@
             "title": "Pricecents",
             "type": "integer"
           },
+          "refundedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refundedat"
+          },
+          "refundedCents": {
+            "title": "Refundedcents",
+            "type": "integer"
+          },
           "remainingCount": {
             "title": "Remainingcount",
             "type": "integer"
@@ -5258,6 +5457,8 @@
           "paymentReceivedAt",
           "status",
           "voidedAt",
+          "refundedCents",
+          "refundedAt",
           "notes",
           "items",
           "usedCount",
@@ -5265,6 +5466,103 @@
           "createdAt"
         ],
         "title": "PackagePurchaseView",
+        "type": "object"
+      },
+      "PackageRequestedNotification": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "package_requested",
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/PackageRequestedPayload"
+          },
+          "readAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readat"
+          },
+          "resourceId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resourceid"
+          },
+          "resourceType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resourcetype"
+          }
+        },
+        "required": [
+          "id",
+          "resourceType",
+          "resourceId",
+          "occurredAt",
+          "readAt",
+          "kind",
+          "payload"
+        ],
+        "title": "PackageRequestedNotification",
+        "type": "object"
+      },
+      "PackageRequestedPayload": {
+        "properties": {
+          "clientId": {
+            "format": "uuid",
+            "title": "Clientid",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "packageName": {
+            "title": "Packagename",
+            "type": "string"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clientId",
+          "packageName",
+          "priceCents",
+          "currency"
+        ],
+        "title": "PackageRequestedPayload",
         "type": "object"
       },
       "PackageSummary": {
@@ -6605,10 +6903,23 @@
             "title": "Language",
             "type": "string"
           },
+          "packagePurchaseId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packagepurchaseid"
+          },
           "paymentMethod": {
             "enum": [
               "free",
-              "manual"
+              "manual",
+              "package"
             ],
             "title": "Paymentmethod",
             "type": "string"
@@ -6755,7 +7066,8 @@
           "paymentMethod": {
             "enum": [
               "free",
-              "manual"
+              "manual",
+              "package"
             ],
             "title": "Paymentmethod",
             "type": "string"
@@ -7043,6 +7355,90 @@
           "items"
         ],
         "title": "PublicPackageList",
+        "type": "object"
+      },
+      "PublicPackageRequest": {
+        "additionalProperties": false,
+        "description": "A visitor asks to buy a package; it waits for the manual payment the consultant records.",
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/PublicBookingCustomer"
+          },
+          "language": {
+            "default": "en",
+            "enum": [
+              "en",
+              "tr",
+              "de"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
+          "packageId": {
+            "format": "uuid",
+            "title": "Packageid",
+            "type": "string"
+          },
+          "termsAccepted": {
+            "const": true,
+            "title": "Termsaccepted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "packageId",
+          "customer",
+          "termsAccepted"
+        ],
+        "title": "PublicPackageRequest",
+        "type": "object"
+      },
+      "PublicPackageRequestResponse": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "manualPaymentInstructions": {
+            "title": "Manualpaymentinstructions",
+            "type": "string"
+          },
+          "packageName": {
+            "title": "Packagename",
+            "type": "string"
+          },
+          "paymentStatus": {
+            "enum": [
+              "pending",
+              "paid"
+            ],
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          },
+          "sessionCount": {
+            "title": "Sessioncount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "packageName",
+          "priceCents",
+          "currency",
+          "paymentStatus",
+          "sessionCount",
+          "manualPaymentInstructions"
+        ],
+        "title": "PublicPackageRequestResponse",
         "type": "object"
       },
       "PublicPackageView": {
@@ -7471,6 +7867,23 @@
           "weekdays"
         ],
         "title": "RecurrenceInput",
+        "type": "object"
+      },
+      "RefundCreate": {
+        "additionalProperties": false,
+        "description": "Money given back outside Slotera; recorded so revenue stays right.",
+        "properties": {
+          "amountCents": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000000.0,
+            "title": "Amountcents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "amountCents"
+        ],
+        "title": "RefundCreate",
         "type": "object"
       },
       "RescheduleRequestedNotification": {
@@ -12131,6 +12544,70 @@
         ]
       }
     },
+    "/bookings/{booking_id}/record-refund": {
+      "post": {
+        "operationId": "recordBookingRefund",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Booking Refund",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
     "/bookings/{booking_id}/send-details": {
       "post": {
         "operationId": "sendBookingDetails",
@@ -12667,6 +13144,27 @@
         "summary": "Client Read",
         "tags": [
           "conversations"
+        ]
+      }
+    },
+    "/client/package-purchases": {
+      "get": {
+        "operationId": "listClientPackages",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientPackages"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Client Packages",
+        "tags": [
+          "client access"
         ]
       }
     },
@@ -14155,6 +14653,69 @@
         ]
       }
     },
+    "/package-purchases/{purchase_id}/refund": {
+      "post": {
+        "operationId": "refundPackagePurchase",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "purchase_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Purchase Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"v[1-9][0-9]*\"$",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagePurchaseView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Refund Purchase",
+        "tags": [
+          "package-purchases"
+        ]
+      }
+    },
     "/package-purchases/{purchase_id}/void": {
       "post": {
         "operationId": "voidPackagePurchase",
@@ -15563,6 +16124,69 @@
           }
         },
         "summary": "Create Public Booking",
+        "tags": [
+          "public-booking"
+        ]
+      }
+    },
+    "/public/workspaces/{workspace_slug}/package-purchases": {
+      "post": {
+        "operationId": "requestPublicPackage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_slug",
+            "required": true,
+            "schema": {
+              "title": "Workspace Slug",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPackageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPackageRequestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Public Package",
         "tags": [
           "public-booking"
         ]

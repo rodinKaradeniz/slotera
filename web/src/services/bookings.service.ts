@@ -65,6 +65,8 @@ function mapBooking(booking: BookingDto): Booking {
     currency: booking.currency as Booking["currency"],
     paymentDueAtISO: booking.paymentDueAt ?? undefined,
     paymentReceivedAtISO: booking.paymentReceivedAt ?? undefined,
+    refundedCents: booking.refundedCents ?? 0,
+    refundedAtISO: booking.refundedAt ?? undefined,
     approvedAtISO: booking.approvedAt ?? undefined,
     declinedAtISO: booking.declinedAt ?? undefined,
     customer: {
@@ -299,6 +301,33 @@ export async function markBookingPaymentReceived(id: string): Promise<Booking> {
     return updateBooking(id, { paymentStatus: "paid", status: "confirmed" });
   }
   return commandBooking(id, "mark-payment-received");
+}
+
+/** What can still be refunded: a received payment (not a package session), once settled. */
+export function refundableCents(booking: Booking): number {
+  if (booking.paymentStatus !== "paid" || booking.paymentMethod === "package" || booking.status === "pending") return 0;
+  return booking.amountCents - (booking.refundedCents ?? 0);
+}
+
+/** Record money given back outside Slotera; refunds add up to at most the amount paid. */
+export async function recordBookingRefund(id: string, amountCents: number): Promise<Booking> {
+  if (dataSource === "api") {
+    return mapBooking(await apiRequest<BookingDto, { amountCents: number }>(
+      `/bookings/${encodeURIComponent(id)}/record-refund`,
+      { method: "POST", csrf: true, idempotencyKey: crypto.randomUUID(), body: { amountCents } },
+    ));
+  }
+  const booking = mock.find((item) => item.id === id);
+  if (!booking) throw new NotFoundError("booking", id);
+  if (amountCents <= 0 || amountCents > refundableCents(booking)) {
+    throw new ApiRequestError(409, "booking_refund_invalid", "A refund can only be recorded on a paid booking, up to the amount paid.");
+  }
+  const refunded = (booking.refundedCents ?? 0) + amountCents;
+  return updateBooking(id, {
+    refundedCents: refunded,
+    refundedAtISO: new Date().toISOString(),
+    paymentStatus: refunded === booking.amountCents ? "refunded" : "paid",
+  });
 }
 
 /** A confirmed 1:1 booking's outcome after the session: it happened, or the client didn't come. */

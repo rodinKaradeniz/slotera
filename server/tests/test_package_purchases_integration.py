@@ -214,6 +214,21 @@ async def test_a_recorded_package_sale_covers_bookings_until_its_sessions_are_us
                 "totalSpentCents"
             ]
 
+            async def refund(amount: int, version: int) -> Response:
+                return await client.post(
+                    f"/package-purchases/{purchase['id']}/refund",
+                    headers=_csrf(client, version=version),
+                    json={"amountCents": amount},
+                )
+
+            voided_version = results["void"].json()["version"]
+            results["over_refund"] = await refund(30001, voided_version)
+            results["refund"] = await refund(10000, voided_version)
+            results["stale_refund"] = await refund(100, voided_version)
+            results["spent_after_refund"] = (await client.get(f"/clients/{client_id}")).json()[
+                "totalSpentCents"
+            ]
+
             fresh = (await client.get(f"/clients/{client_id}")).json()
             erased = await client.post(
                 f"/clients/{client_id}/erase",
@@ -267,7 +282,14 @@ async def test_a_recorded_package_sale_covers_bookings_until_its_sessions_are_us
     assert results["void"].status_code == 200 and results["void"].json()["remainingCount"] == 0
     assert results["after_void"].status_code == 409
     assert results["after_void"].json()["error"]["code"] == "package_voided"
-    assert results["spent_after_void"] == 0
+    # A void stops the unused sessions; the money stays until a refund is recorded.
+    assert results["spent_after_void"] == 30000
+    assert results["over_refund"].status_code == 409
+    assert results["over_refund"].json()["error"]["code"] == "package_refund_invalid"
+    assert results["refund"].status_code == 200, results["refund"].text
+    assert results["refund"].json()["refundedCents"] == 10000
+    assert results["stale_refund"].status_code == 409
+    assert results["spent_after_refund"] == 20000
     assert results["erased_notes"] is None
 
 

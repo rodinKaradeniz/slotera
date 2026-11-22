@@ -35,6 +35,7 @@ from slotera_api.api.workspace_data import router as workspace_data_router
 from slotera_api.auth.service import AuthServiceProtocol, create_auth_service
 from slotera_api.client_access.api import router as client_access_router
 from slotera_api.client_access.messages import router as conversations_router
+from slotera_api.client_access.packages import router as client_packages_router
 from slotera_api.config import Settings, get_settings
 from slotera_api.database import Database, DatabaseLifecycle
 from slotera_api.errors import install_error_handlers
@@ -97,6 +98,7 @@ def create_app(
     app.include_router(branding_router)
     app.include_router(packages_router)
     app.include_router(package_purchases_router)
+    app.include_router(client_packages_router)
     app.include_router(auth_router)
     app.include_router(client_access_router)
     app.include_router(conversations_router)

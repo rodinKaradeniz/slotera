@@ -64,6 +64,10 @@ class BookingPaymentError(Exception):
     pass
 
 
+class BookingRefundError(Exception):
+    pass
+
+
 class BookingMoveError(Exception):
     """The chosen session can't take this booking (other service, past, cancelled, same)."""
 
@@ -941,6 +945,63 @@ class BookingsRepository:
             await database_session.flush()
             if confirmed:
                 await self._emit_confirmed_event(database_session, booking)
+            await database_session.refresh(booking)
+            return BookingCommandResult(booking=booking, replayed=False)
+
+    async def record_refund(
+        self,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        booking_id: UUID,
+        amount_cents: int,
+        idempotency_key: str,
+    ) -> BookingCommandResult | None:
+        """Record money given back outside Slotera; refunds add up to at most the amount paid."""
+        cmd = _command(
+            workspace_id,
+            actor_user_id,
+            idempotency_key,
+            "record_refund",
+            {"booking_id": str(booking_id), "amount_cents": amount_cents},
+        )
+        async with self.database.tenant_transaction(
+            workspace_id, scheduling_write=True
+        ) as database_session:
+            locked = await self._lock_booking_and_session(
+                database_session, workspace_id, booking_id
+            )
+            if locked is None:
+                return None
+            booking, _scheduled_session = locked
+            replay = await self._replay_or_conflict(database_session, cmd)
+            if replay is not None:
+                return BookingCommandResult(booking=replay, replayed=True)
+            if (
+                booking.payment_status != PaymentStatus.PAID
+                or booking.payment_method == "package"
+                or booking.status == BookingStatus.PENDING
+                or amount_cents > booking.amount_cents - booking.refunded_cents
+            ):
+                raise BookingRefundError
+            booking.refunded_cents += amount_cents
+            booking.refunded_at = datetime.now(UTC)
+            if booking.refunded_cents == booking.amount_cents:
+                booking.payment_status = PaymentStatus.REFUNDED
+            database_session.add(
+                AuditEvent(
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    action="booking.refund_recorded",
+                    resource_type="booking",
+                    resource_id=booking.id,
+                    details={
+                        "amount_cents": amount_cents,
+                        "refunded_cents": booking.refunded_cents,
+                    },
+                )
+            )
+            await self._record_idempotency(database_session, cmd, booking.id)
+            await database_session.flush()
             await database_session.refresh(booking)
             return BookingCommandResult(booking=booking, replayed=False)
 

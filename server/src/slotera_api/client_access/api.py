@@ -268,7 +268,10 @@ class ClientBooking(StrictApiModel):
     reference: str
     status: Literal["pending", "confirmed", "completed", "cancelled", "noshow"]
     payment_status: Literal["pending", "paid", "refunded", "free", "overdue"]
+    # "package": a session of the client's package covers it.
+    payment_method: Literal["free", "manual", "package"]
     amount_cents: int
+    refunded_cents: int
     currency: str
     start_at: datetime
     end_at: datetime

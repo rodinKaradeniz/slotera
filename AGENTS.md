@@ -376,7 +376,8 @@ implemented HTTP surface is deliberately limited to:
 - booking-token-protected `GET /public/bookings/manage/forms` and item `POST /submit` —
   assigned forms and one-time optional submissions before the session;
 - `/packages` CRUD and `GET /public/workspaces/{slug}/packages` — persisted ordered
-  informational offers, with private notes excluded from the public projection;
+  offers, with private notes excluded from the public projection; buying and package
+  sales are listed under "Package sales" below;
 - `GET/PATCH /settings/branding` — validated client-page accent and heading font;
 - `POST /settings/billing/change-request` — session-attributed manual plan/interval requests;
 - `GET/PATCH /auth/preferences` — the authenticated user's interface language;
@@ -673,7 +674,7 @@ Present tense — what exists in the working tree today.
 
 **Completion bundle (2026-11-13)**
 - API-mode Packages now persist ordered service offers, with safe public information only;
-  package purchases, credits and consumption remain deferred.
+  sales, client buying and package bookings followed on 2026-11-21/22 (see "Package sales").
 - Both plans persist client-page accent/font settings; Professional attribution removal
   remains separate. Branding does not style emails or the operator application.
 - Booking form snapshots preserve original questions. Required forms appear at checkout;
@@ -746,7 +747,7 @@ Present tense — what exists in the working tree today.
   backed by a minimal Tiptap editor. In API mode the detail page also has "Download data"
   (JSON export) and "Erase client" (anonymisation that keeps booking amounts and payment
   state).
-- Services, Packages (persisted informational ordered bundles of existing services), Forms (reusable templates
+- Services, Packages (persisted ordered bundles of existing services, sold to clients), Forms (reusable templates
   attached to services), and Settings (Business Profile incl. saved locations, Branding,
   Client Payments, Billing (API mode only), Calendar, Emails, Account).
 - A scheduled session's drawer has "Add attendee", which opens the booking drawer with
@@ -1165,7 +1166,8 @@ excluded. Install Chromium once with `web/node_modules/.bin/playwright install c
 `web/e2e/smoke.spec.ts` is the short end-to-end path (public booking of an approval service,
 form sign-in, approve, move); run it alone with `./scripts/browser-check smoke`.
 `web/e2e/package.spec.ts` records a package sale, books one of its sessions from New booking
-and checks the session comes back on cancel (`./scripts/browser-check package`).
+and checks the session comes back on cancel; a second journey buys a package on the booking
+page, marks it paid and records a partial refund (`./scripts/browser-check package`).
 
 **Package sales (2026-11-21):** `package_purchases` + `package_purchase_items` (snapshots;
 voided, never deleted; the runtime role has no DELETE) and `bookings.package_purchase_id` /
@@ -1176,6 +1178,22 @@ the purchase id is derived from it), `POST /package-purchases/{id}/payment-recei
 `/void` (If-Match). `POST /bookings` takes `packagePurchaseId` for an existing client. Code:
 `server/src/slotera_api/packages/purchases.py`, `web/src/services/package-purchases.service.ts`,
 `ClientPackagesCard`. Rules live in PRODUCT.md §Packages.
+
+**Client packages and refunds (2026-11-22):** `POST /public/workspaces/{slug}/package-purchases`
+(no sign-in; trusted origin, `public_package_request` rate limit, Idempotency-Key, terms
+snapshot in `package_purchases.provider_terms_snapshot`/`terms_accepted_at`) records a pending
+sale. `GET /client/package-purchases` (client session; `client_access/packages.py`) feeds the
+client page's Packages tab. `POST /public/workspaces/{slug}/bookings` with
+`paymentMethod: "package"` + `packagePurchaseId` needs the client session and client CSRF and
+a paid, active sale of that client. Emails: `packages/notify.py` renders the copy in every
+language and `slotera_package_purchase_notify` queues `package_requested`, `package_ready`
+(on mark paid, or a sale recorded as paid with `notifyClient`) and
+`operator_package_requested`, plus the `package_requested` bell kind. Refunds:
+`POST /bookings/{id}/record-refund` (Idempotency-Key) and `POST /package-purchases/{id}/refund`
+(If-Match), body `{amountCents}`; `refunded_cents`/`refunded_at` on both tables;
+`booking_net_received()` and `SALE_NET_CENTS` in `clients/repository.py` are the one money rule
+(received minus refunds, whatever the booking status). Demo requests use the
+`slotera.demoPackagePurchases` localStorage record in `web/src/lib/demo-bookings.ts`.
 See `docs/VERIFY_LOCAL_BOOKING.md` for startup, reset, navigation and verification evidence.
 
 
@@ -1207,7 +1225,9 @@ Dashboard To-do shows general tasks only, while Calendar retains session tasks; 
 are canonical task resources, with contextual session list/create routes retained.
 `GET /tasks?general_only=true` reads the dashboard checklist; the old composite worklist endpoint is removed.
 
-Communication models live in `db/client_models.py`, client auth/messages in `client_access/`,
+Persistence models live in `db/enums.py`, `db/identity_models.py`, `db/catalog_models.py`,
+`db/scheduling_models.py` and `db/booking_models.py`; `db/models.py` re-exports them, so code
+imports from `slotera_api.db.models`. Communication models live in `db/client_models.py`, client auth/messages in `client_access/`,
 and shared typed form validation in `form_validation.py`. Credential and digest bookkeeping
 tables have no direct runtime grants; conversation writes use fixed capabilities. Exports,
 erasure, corrected delivery addresses and workspace deletion cover the communication data.

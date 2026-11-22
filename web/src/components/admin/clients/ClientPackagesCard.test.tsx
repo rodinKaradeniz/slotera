@@ -6,18 +6,20 @@ import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { browserStorage } from "@/test/browser-storage";
 import { listActivePackages } from "@/services/packages.service";
-import { listClientPackagePurchases, markPackagePaid, recordPackageSale, voidPackagePurchase } from "@/services/package-purchases.service";
+import { listClientPackagePurchases, markPackagePaid, recordPackageSale, refundPackagePurchase, voidPackagePurchase } from "@/services/package-purchases.service";
 import { ClientPackagesCard } from "./ClientPackagesCard";
 import type { PackagePurchase } from "@/types/package-purchase";
 vi.mock("@/services/packages.service", () => ({ listActivePackages: vi.fn() }));
 vi.mock("@/services/package-purchases.service", () => ({
   listClientPackagePurchases: vi.fn(), markPackagePaid: vi.fn(), recordPackageSale: vi.fn(), voidPackagePurchase: vi.fn(),
+  refundPackagePurchase: vi.fn(),
+  saleRefundableCents: (p: PackagePurchase) => (p.paymentStatus === "paid" ? p.priceCents - p.refundedCents : 0),
 }));
 vi.mock("next/link", () => ({ default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a> }));
 
 const sale: PackagePurchase = {
   id: "pur", version: 3, clientId: "cli", packageId: "pkg", packageName: "Sprint Pack", priceCents: 50000, currency: "GBP",
-  paymentStatus: "pending", status: "active", usedCount: 1, remainingCount: 1, createdAtISO: "2035-01-01T09:00:00Z",
+  paymentStatus: "pending", status: "active", refundedCents: 0, usedCount: 1, remainingCount: 1, createdAtISO: "2035-01-01T09:00:00Z",
   items: [
     { position: 0, serviceId: "svc", title: "Kick-off", booking: { id: "bkg", status: "confirmed", startISO: "2035-01-05T10:00:00Z" } },
     { position: 1, serviceId: "svc", title: "Sprint", booking: null },
@@ -72,7 +74,7 @@ it("records a sale once per opened dialog, keeping the key across a retry", asyn
   fireEvent.click(within(dialog).getByRole("button", { name: "Record sale" }));
   await waitFor(() => expect(recordPackageSale).toHaveBeenCalledTimes(2));
   const [first, second] = vi.mocked(recordPackageSale).mock.calls;
-  expect(first).toEqual(["cli", { packageId: "pkg", paymentReceived: true, notes: "" }, expect.any(String)]);
+  expect(first).toEqual(["cli", { packageId: "pkg", paymentReceived: true, notes: "", notifyClient: true }, expect.any(String)]);
   expect(second[2]).toBe(first[2]);
 });
 
@@ -81,4 +83,22 @@ it("is read-only for an erased client", async () => {
   await screen.findByText("Sprint Pack");
   expect(screen.queryByRole("button", { name: "Record sale" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Void package" })).toBeNull();
+});
+
+it("records a partial refund on a voided paid sale, with its version", async () => {
+  vi.mocked(listClientPackagePurchases).mockResolvedValue([{ ...sale, paymentStatus: "paid", status: "voided", remainingCount: 0 }]);
+  vi.mocked(refundPackagePurchase).mockResolvedValue({ ...sale, refundedCents: 20000 });
+  mount();
+  expect(await screen.findByText("Voided")).toBeDefined();
+  expect(screen.queryByRole("button", { name: "Void package" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Record refund" }));
+  const dialog = await screen.findByRole("dialog", { name: "Record a refund" });
+  const amount = within(dialog).getByRole("spinbutton");
+  expect((amount as HTMLInputElement).value).toBe("500.00");
+  fireEvent.change(amount, { target: { value: "600" } });
+  expect(within(dialog).getByRole("button", { name: "Record refund" }).hasAttribute("disabled")).toBe(true);
+  fireEvent.change(amount, { target: { value: "200" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Record refund" }));
+  await waitFor(() => expect(refundPackagePurchase).toHaveBeenCalledWith("pur", 3, 20000));
+  await waitFor(() => expect(listClientPackagePurchases).toHaveBeenCalledTimes(2));
 });

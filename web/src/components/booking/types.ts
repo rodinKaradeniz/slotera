@@ -9,6 +9,11 @@ export type BookingDraft = {
   startAt: string | null;
   /** Answers keyed by form template id — populated on the conditional Forms step. */
   formResponses: Record<string, FormAnswer[]>;
+  /**
+   * A signed-in client's package that covers this session. null: use the first package
+   * that covers the service; "": the client chose to pay instead.
+   */
+  packagePurchaseId: string | null;
   customer: {
     firstName: string;
     lastName: string;
@@ -34,6 +39,7 @@ export const EMPTY_DRAFT: BookingDraft = {
   time: null,
   startAt: null,
   formResponses: {},
+  packagePurchaseId: null,
   customer: {
     firstName: "",
     lastName: "",

@@ -9,6 +9,12 @@ from slotera_api.schemas.clients import ClientIdentityCreate
 from slotera_api.schemas.operator_resources import Address, NonBlank, StrictApiModel
 
 
+class RefundCreate(StrictApiModel):
+    """Money given back outside Slotera; recorded so revenue stays right."""
+
+    amount_cents: Annotated[int, Field(gt=0, le=100_000_000)]
+
+
 class OperatorBookingCreate(StrictApiModel):
     client_id: UUID | None = None
     new_client: ClientIdentityCreate | None = None
@@ -120,6 +126,8 @@ class BookingResponse(ApiModel):
     currency: str
     payment_due_at: datetime | None
     payment_received_at: datetime | None
+    refunded_cents: int = 0
+    refunded_at: datetime | None = None
     approved_at: datetime | None
     declined_at: datetime | None
     customer: BookingCustomerSnapshot

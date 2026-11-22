@@ -18,8 +18,9 @@ HELP = {
         (
             "Bookings → New booking adds an existing or new client to an upcoming "
             "session with room. Free operator bookings confirm; paid bookings await"
-            " manually recorded payment. Open a booking for forms, email history "
-            "and reviewed actions."
+            " manually recorded payment; a client's paid package can cover the "
+            "session. Open a booking for forms, email history, reviewed actions and "
+            "Record refund, which lowers revenue by money given back outside Slotera."
         ),
         "/admin/bookings",
     ),
@@ -39,7 +40,8 @@ HELP = {
             "Clients stores private profiles and notes. Messages opens one "
             "conversation per client. Clients sign in through workspace-specific "
             "email links and can view their own messages, bookings and preferences."
-            " Notes and tasks are never visible to clients."
+            " Notes and tasks are never visible to clients. A client page's Packages"
+            " card records package sales, payments, refunds and voids."
         ),
         "/admin/clients",
     ),
@@ -56,9 +58,11 @@ HELP = {
     "packages": (
         "Package offers",
         (
-            "Packages are informational ordered service offers. Clients contact the"
-            " consultant to arrange them; purchases, credits, balances and "
-            "consumption are not implemented."
+            "Packages are ordered service offers. Clients can request one on the "
+            "booking page and pay by bank transfer, or the consultant records a sale"
+            " on the client page and marks it paid. Signed-in clients book the paid "
+            "sessions themselves; cancelling gives a session back. There is no "
+            "expiry or card payment."
         ),
         "/admin/packages",
     ),

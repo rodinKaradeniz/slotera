@@ -41,11 +41,27 @@ class ClientEmailConflictError(Exception):
 
 
 def counted_package_sale(workspace_id: UUID) -> ColumnElement[bool]:
-    """A package sale counts as money in once it is paid, until the operator voids it."""
-    return (
-        (PackagePurchase.workspace_id == workspace_id)
-        & (PackagePurchase.payment_status == "paid")
-        & (PackagePurchase.status == "active")
+    """A package sale counts as money in once it is paid; a void doesn't change that."""
+    return (PackagePurchase.workspace_id == workspace_id) & (
+        PackagePurchase.payment_status == "paid"
+    )
+
+
+# What a paid sale or booking still brings in after refunds.
+SALE_NET_CENTS = PackagePurchase.price_cents - PackagePurchase.refunded_cents
+
+
+def booking_net_received() -> ColumnElement[int]:
+    """Money kept from a booking: what was received minus refunds, whatever its status.
+
+    A cancelled booking that was paid and not refunded is money the operator kept.
+    """
+    return case(
+        (
+            Booking.payment_status.in_((PaymentStatus.PAID, PaymentStatus.REFUNDED)),
+            Booking.amount_cents - Booking.refunded_cents,
+        ),
+        else_=0,
     )
 
 
@@ -184,9 +200,7 @@ class ClientsRepository:
                     func.count(Booking.id).filter(Booking.status == BookingStatus.COMPLETED),
                     func.count(Booking.id).filter(Booking.status == BookingStatus.CANCELLED),
                     func.coalesce(
-                        func.sum(Booking.amount_cents).filter(
-                            Booking.payment_status == PaymentStatus.PAID
-                        ),
+                        func.sum(booking_net_received()),
                         0,
                     ),
                     func.count(Booking.id).filter(live),
@@ -211,7 +225,7 @@ class ClientsRepository:
                 )
             # A package is paid for once, at the sale; the bookings it covers are worth 0.
             sales = await session.execute(
-                select(PackagePurchase.client_id, func.sum(PackagePurchase.price_cents))
+                select(PackagePurchase.client_id, func.sum(SALE_NET_CENTS))
                 .where(
                     counted_package_sale(workspace_id), PackagePurchase.client_id.in_(client_ids)
                 )
@@ -240,9 +254,7 @@ class ClientsRepository:
                 .filter(Booking.status == BookingStatus.CANCELLED)
                 .label("cancelled"),
                 func.coalesce(
-                    func.sum(Booking.amount_cents).filter(
-                        Booking.payment_status == PaymentStatus.PAID
-                    ),
+                    func.sum(booking_net_received()),
                     0,
                 ).label("spent"),
                 func.count(Booking.id).filter(live).label("live"),
@@ -258,7 +270,7 @@ class ClientsRepository:
         sales = (
             select(
                 PackagePurchase.client_id.label("client_id"),
-                func.sum(PackagePurchase.price_cents).label("paid"),
+                func.sum(SALE_NET_CENTS).label("paid"),
             )
             .where(counted_package_sale(workspace_id))
             .group_by(PackagePurchase.client_id)

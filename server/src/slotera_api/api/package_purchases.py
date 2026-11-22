@@ -12,6 +12,7 @@ from slotera_api.auth.dependencies import (
 )
 from slotera_api.editing import ExpectedVersionDependency
 from slotera_api.packages import purchases
+from slotera_api.schemas.bookings import RefundCreate
 from slotera_api.schemas.package_purchases import (
     PackagePurchaseCreate,
     PackagePurchaseList,
@@ -96,4 +97,27 @@ async def void_purchase(
     async with database.tenant_transaction(operator.workspace_id, scheduling_write=True) as session:
         return await purchases.void(
             session, operator.workspace_id, operator.user_id, purchase_id, expected_version
+        )
+
+
+@router.post(
+    "/package-purchases/{purchase_id}/refund",
+    response_model=PackagePurchaseView,
+    operation_id="refundPackagePurchase",
+)
+async def refund_purchase(
+    purchase_id: UUID,
+    payload: RefundCreate,
+    expected_version: ExpectedVersionDependency,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+) -> PackagePurchaseView:
+    async with database.tenant_transaction(operator.workspace_id) as session:
+        return await purchases.refund(
+            session,
+            operator.workspace_id,
+            operator.user_id,
+            purchase_id,
+            expected_version,
+            payload.amount_cents,
         )

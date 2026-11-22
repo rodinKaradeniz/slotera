@@ -13,13 +13,15 @@ type Customer = BookingDraft["customer"];
 type Props = {
   customer: Customer;
   onChange: (next: Customer) => void;
+  /** Signed in: the booking belongs to this account's email, so it can't be changed here. */
+  emailLocked?: boolean;
   providerBookingTerms?: {
     enabled: boolean;
     content: string;
   };
 };
 
-export function StepDetails({ customer, onChange, providerBookingTerms }: Props) {
+export function StepDetails({ customer, onChange, emailLocked, providerBookingTerms }: Props) {
   const { t } = useI18n();
   const [legalOpen, setLegalOpen] = React.useState(false);
   const update = (patch: Partial<Customer>) => onChange({ ...customer, ...patch });
@@ -43,11 +45,12 @@ export function StepDetails({ customer, onChange, providerBookingTerms }: Props)
             onChange={(e) => update({ lastName: e.target.value })}
           />
         </Field>
-        <Field label={t("booking.details.email")} required>
+        <Field label={t("booking.details.email")} required hint={emailLocked ? t("booking.packageUse.signedIn") : undefined}>
           <Input
             type="email"
             icon="mail"
             value={customer.email}
+            readOnly={emailLocked}
             onChange={(e) => update({ email: e.target.value })}
           />
         </Field>

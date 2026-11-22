@@ -2481,3 +2481,45 @@ Applied every recommendation from the screenshot critique.
   index), demo service rules, `ClientPackagesCard` and the New booking package option; the
   Chromium journey `web/e2e/package.spec.ts`.
 
+
+## 2026-11-22 — Large files split, stale TODO items closed
+
+- **Already done:** API-mode Bookings and Clients search and page on the server, the calendar
+  loads only its visible window, and the API build swaps the fixtures out (a postbuild check
+  enforces it). `LogoWall`/`Testimonials` were gone; their leftover landing copy is deleted.
+- **Splits, moving code only:** `db/models.py` re-exports `enums`, `identity_models`,
+  `catalog_models`, `scheduling_models` and `booking_models` (the existing sibling pattern of
+  `ai_models`/`client_models`, so no import changed). Slot computing moved to
+  `public_booking/availability.py` as plain functions, so `manage.py` no longer calls the
+  repository's private methods; `client_for_email` is shared with package requests. The
+  booking detail page uses `BookingActionsCard`, `BookingOutcomeCard` and
+  `BookingPaymentCard`; `SessionDrawer` uses `SessionDetailsForm`; onboarding and the demo
+  manage page keep their panes in `components/onboarding/` and `components/booking/manage-demo/`.
+
+## 2026-11-22 — Clients buy and book packages; refunds are recorded
+
+- **Decisions (with the user):** buying needs no sign-in (name and email on the booking page,
+  manual payment, the consultant marks it paid); a client books with a package only once
+  it's paid; refunds are full or partial and only recorded; the only extra is the "ready"
+  email. Invitations, price edits and undoing a payment were decided against.
+- **Refunds:** `refunded_cents`/`refunded_at` on bookings and sales. Revenue and total spent
+  now count money received minus refunds **whatever the booking's status**: a paid booking
+  cancelled without a refund is money kept (before, cancelled bookings dropped out of
+  revenue). A void no longer drops a sale's revenue; a refund does. The booking
+  confirmation-gate check allows `refunded`, since a refunded booking was paid.
+- **Client side:** `GET /client/package-purchases` (no operator notes), a Packages tab on the
+  client page, "Covered by your package" in client history, the manage page and the booking
+  flow. A signed-in client's paid package is offered on the Service step; the public
+  booking command accepts `paymentMethod: "package"` only with the client session and CSRF,
+  books for the signed-in client and keeps the service's approval policy.
+- **Buying:** `POST /public/workspaces/{slug}/package-purchases` (trusted origin, rate limit,
+  idempotency key, terms snapshot) records a pending sale for the client with that email.
+  `slotera_package_purchase_notify` (SECURITY DEFINER) takes the copy in every language and
+  picks the client's and owner's preferred language; it queues `package_requested`,
+  `package_ready` and `operator_package_requested`, plus a `package_requested` bell item.
+  The demo stores requests in `slotera.demoPackagePurchases` so the demo admin sees them.
+- **Tests:** refund and client-package PostgreSQL integration tests (signed-out, forged CSRF,
+  unpaid, someone else's, voided, approval, buying, emails, no-email sale), Vitest for the
+  refund rules and dialog, the Packages tab, the package choice, the package request body,
+  buying and the demo request; `web/e2e/package.spec.ts` gains the buy → mark paid → refund
+  journey.

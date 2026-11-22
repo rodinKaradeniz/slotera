@@ -31,9 +31,10 @@ from slotera_api.db.models import (
     WorkspaceBusinessProfile,
 )
 from slotera_api.identity import hash_opaque_token
-from slotera_api.public_booking.repository import (
-    PublicBookingRepository,
+from slotera_api.public_booking.availability import (
     PublicSlotUnavailableError,
+    available_slots,
+    lock_scheduled_session,
 )
 from slotera_api.session_capacity import CAPACITY_CONSUMING_STATUSES, release_public_session
 
@@ -181,18 +182,17 @@ class BookingManageRepository:
             if not managed.can_reschedule:
                 raise CustomerChangeClosedError
             now = datetime.now(UTC)
-            booking_repository = PublicBookingRepository(self.database)
             await session.execute(
                 text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
                 {"key": f"public-booking-slot:{workspace_id}:{start_at.isoformat()}"},
             )
             if managed.service.booking_mode == ServiceBookingMode.SCHEDULED:
-                target = await booking_repository._lock_scheduled_session(
+                target = await lock_scheduled_session(
                     session, workspace_id, managed.service, start_at, now
                 )
             else:
                 local_day = start_at.astimezone(ZoneInfo(managed.workspace.timezone)).date()
-                slots = await booking_repository._available_slots(
+                slots = await available_slots(
                     session,
                     workspace_id,
                     managed.service,

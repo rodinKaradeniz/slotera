@@ -5,6 +5,8 @@ import type { Lang } from "@/lib/i18n";
 
 export type ClientIdentity = components["schemas"]["ClientIdentity"];
 export type ClientBookingPage = components["schemas"]["ClientBookings"];
+export type ClientPackages = components["schemas"]["ClientPackages"];
+export type ClientPackage = ClientPackages["items"][number];
 const options = { authKind: "client" as const, cache: false };
 export function requestClientSignIn(
   slug: string,
@@ -61,6 +63,10 @@ export function listClientBookings(offset = 0, signal?: AbortSignal) {
     `/client/bookings?limit=25&offset=${offset}`,
     { ...options, signal },
   );
+}
+/** The signed-in client's packages: sessions left, booked dates, and how to pay a pending one. */
+export function listClientPackages(signal?: AbortSignal) {
+  return apiRequest<ClientPackages>("/client/package-purchases", { ...options, signal });
 }
 export function clientManagementAccess(bookingId: string) {
   return apiRequest<components["schemas"]["ManagementAccess"]>(

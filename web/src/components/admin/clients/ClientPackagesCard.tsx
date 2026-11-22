@@ -25,8 +25,11 @@ import {
   listClientPackagePurchases,
   markPackagePaid,
   recordPackageSale,
+  refundPackagePurchase,
+  saleRefundableCents,
   voidPackagePurchase,
 } from "@/services/package-purchases.service";
+import { RefundDialog } from "@/components/shared/RefundDialog";
 import type { PackagePurchase } from "@/types/package-purchase";
 import type { ServicePackage } from "@/types/package";
 
@@ -43,6 +46,7 @@ export function ClientPackagesCard({ clientId, readOnly }: { clientId: string; r
   const rows = useLeavingRows(data ?? [], (item) => item.id);
   const [recording, setRecording] = React.useState(false);
   const [voiding, setVoiding] = React.useState<PackagePurchase | null>(null);
+  const [refunding, setRefunding] = React.useState<PackagePurchase | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const act = async (id: string, run: () => Promise<unknown>, done: string) => {
@@ -84,6 +88,7 @@ export function ClientPackagesCard({ clientId, readOnly }: { clientId: string; r
                 readOnly={readOnly}
                 onMarkPaid={() => act(item.id, () => markPackagePaid(item.id, item.version), t("packageSales.paidToast"))}
                 onVoid={() => setVoiding(item)}
+                onRefund={() => setRefunding(item)}
               />
             </li>
           ))}
@@ -94,6 +99,17 @@ export function ClientPackagesCard({ clientId, readOnly }: { clientId: string; r
         clientId={clientId}
         onClose={() => setRecording(false)}
         onRecorded={() => { setRecording(false); toast.success(t("packageSales.recorded")); reload(); }}
+      />
+      <RefundDialog
+        open={!!refunding}
+        refundableCents={refunding ? saleRefundableCents(refunding) : 0}
+        currency={refunding?.currency ?? "GBP"}
+        onClose={() => setRefunding(null)}
+        onRefund={async (amount) => {
+          if (!refunding) return;
+          await refundPackagePurchase(refunding.id, refunding.version, amount);
+          reload();
+        }}
       />
       <ConfirmDialog
         open={!!voiding}
@@ -113,11 +129,12 @@ export function ClientPackagesCard({ clientId, readOnly }: { clientId: string; r
   );
 }
 
-function PurchaseRow({ purchase, busy, readOnly, onMarkPaid, onVoid }: {
-  purchase: PackagePurchase; busy: boolean; readOnly?: boolean; onMarkPaid: () => void; onVoid: () => void;
+function PurchaseRow({ purchase, busy, readOnly, onMarkPaid, onVoid, onRefund }: {
+  purchase: PackagePurchase; busy: boolean; readOnly?: boolean; onMarkPaid: () => void; onVoid: () => void; onRefund: () => void;
 }) {
   const { t } = useI18n();
   const voided = purchase.status === "voided";
+  const refundable = saleRefundableCents(purchase);
   return (
     <div className={voided ? "px-5 py-4 opacity-70" : "px-5 py-4"}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -151,13 +168,24 @@ function PurchaseRow({ purchase, busy, readOnly, onMarkPaid, onVoid }: {
           </li>
         ))}
       </ol>
+      {purchase.refundedCents > 0 && (
+        <p className="text-small mt-3 tabular-nums">
+          {purchase.refundedAtISO
+            ? t("refund.refundedOn", { date: fmtDate(new Date(purchase.refundedAtISO), "short") })
+            : t("refund.refunded")}{" "}
+          {formatMoney(purchase.refundedCents, purchase.currency)}
+        </p>
+      )}
       {purchase.notes && <p className="text-micro text-ink-3 mt-3 whitespace-pre-line">{purchase.notes}</p>}
-      {!readOnly && !voided && (
+      {!readOnly && (!voided || refundable > 0) && (
         <div className="flex flex-wrap gap-2 mt-3">
-          {purchase.paymentStatus === "pending" && (
+          {!voided && purchase.paymentStatus === "pending" && (
             <Button size="sm" variant="secondary" loading={busy} onClick={onMarkPaid}>{t("packageSales.markPaid")}</Button>
           )}
-          <Button size="sm" variant="ghost" disabled={busy} onClick={onVoid}>{t("packageSales.void")}</Button>
+          {refundable > 0 && (
+            <Button size="sm" variant="ghost" disabled={busy} onClick={onRefund}>{t("refund.record")}</Button>
+          )}
+          {!voided && <Button size="sm" variant="ghost" disabled={busy} onClick={onVoid}>{t("packageSales.void")}</Button>}
         </div>
       )}
     </div>
@@ -172,12 +200,13 @@ function RecordSaleDialog({ open, clientId, onClose, onRecorded }: {
   const [packages, setPackages] = React.useState<ServicePackage[] | null>(null);
   const [packageId, setPackageId] = React.useState("");
   const [paid, setPaid] = React.useState(false);
+  const [notify, setNotify] = React.useState(true);
   const [notes, setNotes] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   // One key per opened dialog: a double click or a retry records the sale once.
   const [key, setKey] = React.useState(() => crypto.randomUUID());
   useResetOnOpen(open, [clientId], () => {
-    setPackageId(""); setPaid(false); setNotes(""); setPackages(null); setKey(crypto.randomUUID());
+    setPackageId(""); setPaid(false); setNotify(true); setNotes(""); setPackages(null); setKey(crypto.randomUUID());
   });
   React.useEffect(() => {
     if (!open) return;
@@ -190,7 +219,7 @@ function RecordSaleDialog({ open, clientId, onClose, onRecorded }: {
     if (!packageId) return;
     setBusy(true);
     try {
-      onRecorded(await recordPackageSale(clientId, { packageId, paymentReceived: paid, notes }, key));
+      onRecorded(await recordPackageSale(clientId, { packageId, paymentReceived: paid, notes, notifyClient: paid && notify }, key));
     } catch (cause) {
       toast.error(t("packageSales.failed"), { description: cause instanceof Error ? cause.message : undefined });
     } finally {
@@ -235,6 +264,12 @@ function RecordSaleDialog({ open, clientId, onClose, onRecorded }: {
           <Checkbox checked={paid} onChange={setPaid} aria-label={t("packageSales.paymentReceived")} />
           {t("packageSales.paymentReceived")}
         </label>
+        {paid && (
+          <label className="flex items-center gap-3 text-small text-ink-2 cursor-pointer">
+            <Checkbox checked={notify} onChange={setNotify} aria-label={t("packageSales.notifyClient")} />
+            {t("packageSales.notifyClient")}
+          </label>
+        )}
         <Field label={t("packageSales.note")} optional>
           <Textarea rows={2} value={notes} maxLength={2000} onChange={(event) => setNotes(event.target.value)} />
         </Field>

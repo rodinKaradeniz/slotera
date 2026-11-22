@@ -25,6 +25,9 @@ export type PackagePurchase = {
   paymentReceivedAtISO?: string;
   status: "active" | "voided";
   voidedAtISO?: string;
+  /** Money given back outside Slotera; revenue counts the price minus this. */
+  refundedCents: number;
+  refundedAtISO?: string;
   notes?: string;
   items: PackagePurchaseItem[];
   usedCount: number;
@@ -32,4 +35,10 @@ export type PackagePurchase = {
   createdAtISO: string;
 };
 
-export type PackageSaleInput = { packageId: string; paymentReceived: boolean; notes?: string };
+export type PackageSaleInput = {
+  packageId: string;
+  paymentReceived: boolean;
+  notes?: string;
+  /** A paid sale emails the client that it's ready to book; off for a past sale. */
+  notifyClient?: boolean;
+};

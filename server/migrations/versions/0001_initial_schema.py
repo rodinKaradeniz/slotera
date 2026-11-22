@@ -142,7 +142,8 @@ CREATE TYPE public.notification_kind AS ENUM (
     'payment_pending',
     'session_starting',
     'reschedule_requested',
-    'booking_cancelled'
+    'booking_cancelled',
+    'package_requested'
 );
 
 
@@ -2046,6 +2047,8 @@ CREATE TABLE public.bookings (
     confirmation_policy_snapshot public.confirmation_policy DEFAULT 'automatic'::public.confirmation_policy NOT NULL,
     approval_status public.booking_approval_status DEFAULT 'not_required'::public.booking_approval_status NOT NULL,
     payment_received_at timestamp with time zone,
+    refunded_cents integer DEFAULT 0 NOT NULL,
+    refunded_at timestamp with time zone,
     approved_at timestamp with time zone,
     declined_at timestamp with time zone,
     customer_first_name character varying(80) DEFAULT ''::character varying NOT NULL,
@@ -2063,13 +2066,15 @@ CREATE TABLE public.bookings (
     CONSTRAINT bookings_language_check CHECK (((language)::text = ANY ((ARRAY['en'::character varying, 'tr'::character varying, 'de'::character varying])::text[]))),
     CONSTRAINT ck_bookings_amount_nonnegative CHECK ((amount_cents >= 0)),
     CONSTRAINT ck_bookings_ck_bookings_approval_policy CHECK ((((confirmation_policy_snapshot = 'automatic'::public.confirmation_policy) AND (approval_status = 'not_required'::public.booking_approval_status)) OR ((confirmation_policy_snapshot = 'operator_approval'::public.confirmation_policy) AND (approval_status <> 'not_required'::public.booking_approval_status)))),
-    CONSTRAINT ck_bookings_ck_bookings_confirmation_gate CHECK (((status <> ALL (ARRAY['confirmed'::public.booking_status, 'completed'::public.booking_status, 'noshow'::public.booking_status])) OR ((payment_status = ANY (ARRAY['paid'::public.payment_status, 'free'::public.payment_status])) AND (approval_status = ANY (ARRAY['not_required'::public.booking_approval_status, 'approved'::public.booking_approval_status]))))),
+    CONSTRAINT ck_bookings_ck_bookings_confirmation_gate CHECK (((status <> ALL (ARRAY['confirmed'::public.booking_status, 'completed'::public.booking_status, 'noshow'::public.booking_status])) OR ((payment_status = ANY (ARRAY['paid'::public.payment_status, 'free'::public.payment_status, 'refunded'::public.payment_status])) AND (approval_status = ANY (ARRAY['not_required'::public.booking_approval_status, 'approved'::public.booking_approval_status]))))),
     CONSTRAINT ck_bookings_ck_bookings_customer_email_normalized CHECK (((customer_email)::text = lower(btrim((customer_email)::text)))),
     CONSTRAINT ck_bookings_ck_bookings_declined_cancelled CHECK (((approval_status <> 'declined'::public.booking_approval_status) OR (status = 'cancelled'::public.booking_status))),
     CONSTRAINT ck_bookings_ck_bookings_financial_snapshot_nonnegative CHECK (((net_amount_cents >= 0) AND (tax_amount_cents >= 0) AND (amount_cents = (net_amount_cents + tax_amount_cents)))),
     CONSTRAINT ck_bookings_ck_bookings_payment_method CHECK (((payment_method)::text = ANY ((ARRAY['free'::character varying, 'manual'::character varying, 'package'::character varying])::text[]))),
     CONSTRAINT ck_bookings_ck_bookings_public_terms_evidence CHECK (((origin <> 'public'::public.booking_origin) OR (terms_accepted_at IS NOT NULL))),
     CONSTRAINT ck_bookings_ck_bookings_tax_treatment CHECK ((((tax_treatment)::text = ANY ((ARRAY['none'::character varying, 'fixed'::character varying])::text[])) AND ((tax_rate_bps >= 0) AND (tax_rate_bps <= 10000)))),
+    CONSTRAINT ck_bookings_refund_range CHECK (((refunded_cents >= 0) AND (refunded_cents <= amount_cents))),
+    CONSTRAINT ck_bookings_refunded_at CHECK (((refunded_cents = 0) = (refunded_at IS NULL))),
     CONSTRAINT ck_bookings_currency_iso_length CHECK ((char_length((currency)::text) = 3))
 );
 
@@ -5448,7 +5453,7 @@ CREATE FUNCTION public.slotera_client_bookings(p_token bytea,p_limit integer,p_o
  IF identity IS NULL THEN RETURN NULL; END IF;
  SELECT count(*) INTO n FROM public.bookings b WHERE b.workspace_id=(identity->>'workspaceId')::uuid AND b.client_id=(identity->>'clientId')::uuid;
  SELECT coalesce(jsonb_agg(to_jsonb(rows)),'[]') INTO result FROM (
- SELECT b.id,b.reference,b.status,b.payment_status AS "paymentStatus",b.amount_cents AS "amountCents",b.currency,
+ SELECT b.id,b.reference,b.status,b.payment_status AS "paymentStatus",b.payment_method AS "paymentMethod",b.amount_cents AS "amountCents",b.refunded_cents AS "refundedCents",b.currency,
  s.start_at AS "startAt",s.end_at AS "endAt",v.name AS "serviceName"
  FROM public.bookings b JOIN public.sessions s ON s.workspace_id=b.workspace_id AND s.id=b.session_id
  JOIN public.services v ON v.workspace_id=s.workspace_id AND v.id=s.service_id
@@ -5460,6 +5465,46 @@ CREATE FUNCTION public.slotera_client_bookings(p_token bytea,p_limit integer,p_o
 $$;
 REVOKE ALL ON FUNCTION public.slotera_client_identity(bytea),public.slotera_client_login_issue(text,text,bytea,text,text,text,text),public.slotera_client_login_consume(bytea,bytea,bytea),public.slotera_client_logout(bytea),public.slotera_client_preferences(bytea,text,boolean,boolean),public.slotera_client_bookings(bytea,integer,integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.slotera_client_identity(bytea),public.slotera_client_login_issue(text,text,bytea,text,text,text,text),public.slotera_client_login_consume(bytea,bytea,bytea),public.slotera_client_logout(bytea),public.slotera_client_preferences(bytea,text,boolean,boolean),public.slotera_client_bookings(bytea,integer,integer) TO slotera_app;
+
+-- Package sale emails: the copy comes rendered in every language ({"en": [subject, body], ...});
+-- this picks the client's (and for a request, the workspace owner's) preferred language,
+-- queues the emails and adds the owner's bell item (no client name: erasure can't reach it).
+-- Runs in the caller's tenant transaction.
+CREATE FUNCTION public.slotera_package_purchase_notify(p_purchase_id uuid,p_kind text,p_copy jsonb,p_operator_copy jsonb) RETURNS boolean
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog,public AS $$
+ DECLARE ws uuid := public.slotera_current_workspace_id(); target record; owner record; lang text;
+ BEGIN
+ IF ws IS NULL OR p_kind NOT IN ('package_requested','package_ready') THEN RETURN false; END IF;
+ SELECT p.id,p.client_id,p.package_name_snapshot,p.price_cents,p.currency,c.email,c.preferred_language INTO target
+ FROM public.package_purchases p JOIN public.clients c ON c.workspace_id=p.workspace_id AND c.id=p.client_id
+ WHERE p.workspace_id=ws AND p.id=p_purchase_id AND c.erased_at IS NULL;
+ IF NOT FOUND THEN RETURN false; END IF;
+ lang := CASE WHEN p_copy ? target.preferred_language THEN target.preferred_language ELSE 'en' END;
+ INSERT INTO public.email_outbox(id,kind,recipient_email,subject,text_body,template_data,related_workspace_id)
+ VALUES(gen_random_uuid(),p_kind,target.email,p_copy->lang->>0,p_copy->lang->>1,
+ jsonb_build_object('language',lang,'clientId',target.client_id,'purchaseId',target.id),ws);
+ IF p_operator_copy IS NOT NULL THEN
+ SELECT m.user_id,u.email,u.preferred_language INTO owner FROM public.workspace_memberships m JOIN public.users u ON u.id=m.user_id
+ WHERE m.workspace_id=ws AND m.role::text='operator_admin' ORDER BY m.created_at,m.id LIMIT 1;
+ IF FOUND THEN
+ INSERT INTO public.notifications(id,workspace_id,recipient_user_id,kind,payload,resource_type,resource_id)
+ VALUES(gen_random_uuid(),ws,owner.user_id,'package_requested',
+ jsonb_build_object('clientId',target.client_id,'packageName',target.package_name_snapshot,'priceCents',target.price_cents,'currency',target.currency),
+ 'package_purchase',target.id)
+ ON CONFLICT ON CONSTRAINT uq_notifications_resource_event DO NOTHING;
+ IF (SELECT notify_operator_new FROM public.workspace_business_profiles WHERE workspace_id=ws) IS NOT FALSE THEN
+ lang := CASE WHEN p_operator_copy ? owner.preferred_language THEN owner.preferred_language ELSE 'en' END;
+ INSERT INTO public.email_outbox(id,kind,recipient_email,subject,text_body,template_data,related_workspace_id)
+ VALUES(gen_random_uuid(),'operator_package_requested',owner.email,p_operator_copy->lang->>0,p_operator_copy->lang->>1,
+ jsonb_build_object('language',lang,'purchaseId',target.id),ws);
+ END IF;
+ END IF;
+ END IF;
+ RETURN true;
+ END;
+$$;
+REVOKE ALL ON FUNCTION public.slotera_package_purchase_notify(uuid,text,jsonb,jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.slotera_package_purchase_notify(uuid,text,jsonb,jsonb) TO slotera_app;
 
 CREATE TABLE public.client_conversations (
  id uuid CONSTRAINT pk_client_conversations PRIMARY KEY,
@@ -6162,6 +6207,10 @@ CREATE TABLE public.package_purchases (
     status character varying(8) NOT NULL,
     voided_at timestamp with time zone,
     notes character varying(2000),
+    refunded_cents integer DEFAULT 0 NOT NULL,
+    refunded_at timestamp with time zone,
+    provider_terms_snapshot text,
+    terms_accepted_at timestamp with time zone,
     version bigint DEFAULT 1 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -6173,6 +6222,8 @@ CREATE TABLE public.package_purchases (
     CONSTRAINT package_purchases_paid_at_check CHECK ((payment_status = 'paid') = (payment_received_at IS NOT NULL)),
     CONSTRAINT package_purchases_status_check CHECK (status IN ('active', 'voided')),
     CONSTRAINT package_purchases_voided_at_check CHECK ((status = 'voided') = (voided_at IS NOT NULL)),
+    CONSTRAINT package_purchases_refund_check CHECK (refunded_cents >= 0 AND refunded_cents <= price_cents AND (refunded_cents = 0 OR payment_status = 'paid')),
+    CONSTRAINT package_purchases_refunded_at_check CHECK ((refunded_cents = 0) = (refunded_at IS NULL)),
     CONSTRAINT package_purchases_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE,
     CONSTRAINT package_purchases_workspace_id_client_id_fkey FOREIGN KEY (workspace_id, client_id) REFERENCES public.clients(workspace_id, id) ON DELETE RESTRICT,
     CONSTRAINT package_purchases_workspace_id_package_id_fkey FOREIGN KEY (workspace_id, package_id) REFERENCES public.service_packages(workspace_id, id) ON DELETE RESTRICT

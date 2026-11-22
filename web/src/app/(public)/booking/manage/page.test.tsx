@@ -28,3 +28,18 @@ it("offers retry for throttling and only marks a 404 as an invalid link", async 
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   expect(await screen.findByText("This link doesn't work.")).toBeDefined();
 });
+
+it("shows a package session as covered and lists a refund", async () => {
+  vi.mocked(getManagedBooking).mockResolvedValue({
+    reference: "SLT-PKG", status: "confirmed", paymentStatus: "paid", paymentMethod: "package", approvalStatus: "not_required",
+    pendingReasons: [], amountCents: 0, refundedCents: 0, currency: "GBP", paymentDueAt: null, manualPaymentInstructions: "",
+    serviceId: "svc", serviceName: "Strategy Session", cancellationRule: "", providerName: "Lena", providerEmail: "lena@example.com",
+    providerPhone: null, workspaceSlug: "lena", timezone: "Europe/London", sessionStartAt: "2035-01-05T10:00:00Z",
+    sessionEndAt: "2035-01-05T11:00:00Z", sessionLocationType: "online", sessionLocation: "Zoom", sessionAddress: null,
+    changeDeadline: "2035-01-04T10:00:00Z", canCancel: false, canReschedule: false, meetingUrl: null, rescheduled: false,
+    showPlatformBranding: false,
+  } as never);
+  render(<I18nProvider><ToastProvider><ManageBookingPage /></ToastProvider></I18nProvider>);
+  expect(await screen.findByText("Covered by your package")).toBeDefined();
+  expect(screen.queryByText("£0.00")).toBeNull();
+});

@@ -80,3 +80,51 @@ test("a recorded package sale covers a booking and gets the session back on canc
   await page.goto(`/admin/clients/${client.id}`);
   await expect(page.getByText(t("packageSales.used", { used: 0, total: 2 }))).toBeVisible();
 });
+
+test("a visitor buys a package, then the operator marks it paid and records a partial refund", async ({ page }, info) => {
+  await page.route((url) => url.hostname !== "localhost", (route) => route.abort());
+  execFileSync(resolve("../server/.venv/bin/python"), [resolve("../server/scripts/browser_fixture.py"), "prepare-auth"], { stdio: "pipe" });
+  const login = await page.request.post(`${api}/auth/login`, { headers: { Origin: "http://localhost:3345" }, data: { email: "hello@slotera.io", password: "slotera-local-only" } });
+  expect(login.status()).toBe(200);
+  expect((await page.request.patch(`${api}/auth/preferences`, { headers: await headers(page), data: { language: "en" } })).status()).toBe(200);
+
+  info.annotations.push({ type: "phase", description: "setup" });
+  const name = `Bought ${info.project.name}`;
+  const service = (await (await page.request.get(`${api}/services`)).json()).items.find((item: { name: string }) => item.name === "Discovery Call");
+  const offer = await page.request.post(`${api}/packages`, { headers: await headers(page), data: {
+    name, status: "active", priceCents: 40000, items: [{ serviceId: service.id }, { serviceId: service.id }],
+  } });
+  expect(offer.status()).toBe(201);
+  const email = `buyer-${info.project.name}@example.com`;
+
+  info.annotations.push({ type: "phase", description: "buy" });
+  await page.goto("/book/lena");
+  await page.getByRole("heading", { name: "Discovery Call", exact: true }).click();
+  await page.getByRole("button", { name: t("booking.packages.viewOptions"), exact: true }).click();
+  const options = page.getByRole("dialog");
+  await options.getByRole("heading", { name, exact: true })
+    .locator("xpath=ancestor::div[contains(@class,'rounded-md')][1]")
+    .getByRole("button", { name: t("booking.packages.buy"), exact: true }).click();
+  await options.getByRole("textbox", { name: t("booking.details.firstName") }).fill("Package");
+  await options.getByRole("textbox", { name: t("booking.details.lastName") }).fill("Buyer");
+  await options.getByRole("textbox", { name: t("booking.details.email") }).fill(email);
+  await options.getByRole("checkbox").check();
+  await options.getByRole("button", { name: t("booking.packages.buySubmit"), exact: true }).click();
+  await expect(options.getByText(t("booking.packages.requestedTitle"))).toBeVisible();
+
+  info.annotations.push({ type: "phase", description: "mark-paid" });
+  const client = (await (await page.request.get(`${api}/clients?search=${encodeURIComponent(email)}`)).json()).items[0];
+  await page.goto(`/admin/clients/${client.id}`);
+  await expect(page.getByText(t("packageSales.awaitingPayment"))).toBeVisible();
+  await page.getByRole("button", { name: t("packageSales.markPaid"), exact: true }).click();
+  await expect(page.getByText(t("packageSales.paid"), { exact: true })).toBeVisible();
+
+  info.annotations.push({ type: "phase", description: "refund" });
+  await page.getByRole("button", { name: t("refund.record"), exact: true }).click();
+  const refund = page.getByRole("dialog", { name: t("refund.title") });
+  await refund.getByRole("spinbutton").fill("100");
+  await refund.getByRole("button", { name: t("refund.record"), exact: true }).click();
+  await expect(refund).toBeHidden();
+  const [sale] = (await (await page.request.get(`${api}/clients/${client.id}/package-purchases`)).json()).items;
+  expect(sale).toMatchObject({ packageName: name, paymentStatus: "paid", refundedCents: 10000 });
+});

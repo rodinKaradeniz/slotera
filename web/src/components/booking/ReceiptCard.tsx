@@ -29,8 +29,10 @@ export function ReceiptCard({
   const country =
     COUNTRIES.find((c) => c.code === draft.billing.country) ?? COUNTRIES[0];
   // The server's quote: the price is gross and any fixed tax is already inside it.
-  const serverQuote = draft.service?.publicQuote;
-  const total = serverQuote?.grossAmountCents ?? draft.service?.priceCents ?? 0;
+  // A package the client already paid covers the session, so nothing is due now.
+  const covered = !!draft.packagePurchaseId;
+  const serverQuote = covered ? undefined : draft.service?.publicQuote;
+  const total = covered ? 0 : serverQuote?.grossAmountCents ?? draft.service?.priceCents ?? 0;
   const subtotal = serverQuote?.netAmountCents ?? total;
   const tax = serverQuote?.taxAmountCents ?? 0;
   const fixedTax = serverQuote?.treatment === "fixed" && serverQuote.rateBps > 0;
@@ -170,7 +172,7 @@ export function ReceiptCard({
           className="font-serif text-ink"
           style={{ fontSize: 28, fontWeight: 400, lineHeight: 1 }}
         >
-          {isFree ? t("common.free") : money(total)}
+          {covered ? t("client.packages.covered") : isFree ? t("common.free") : money(total)}
         </span>
       </div>
 
@@ -178,7 +180,12 @@ export function ReceiptCard({
 
       <div className="px-6 py-5 flex flex-col gap-3">
         <ReceiptSection title={t("booking.receipt.paymentMethod")}>
-          {isFree ? (
+          {covered ? (
+            <div className="flex items-center gap-2 text-[14px] text-ink">
+              <Icon name="layers" size={14} />
+              {t("client.packages.covered")}
+            </div>
+          ) : isFree ? (
             <div className="text-[14px] text-ink">{uiText("ui.no.payment.required")}</div>
           ) : (
             <div className="flex items-center gap-2 text-[14px] text-ink">

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import EmailStr, Field, StrictBool, StrictStr, field_validator
+from pydantic import EmailStr, Field, StrictBool, StrictStr, field_validator, model_validator
 
 from slotera_api.schemas.base import ApiModel
 from slotera_api.schemas.branding import Branding
@@ -124,9 +124,17 @@ class PublicBookingCreate(StrictApiModel):
     customer: PublicBookingCustomer
     # Required for paid (manual) bookings; free bookings skip the billing step.
     billing_address: PublicBookingBillingAddress | None = None
-    payment_method: Literal["free", "manual"]
+    # "package": a signed-in client books a session of a package they bought and paid.
+    payment_method: Literal["free", "manual", "package"]
+    package_purchase_id: UUID | None = None
     form_responses: list[PublicFormSubmission] = Field(default_factory=list, max_length=50)
     terms_accepted: Literal[True]
+
+    @model_validator(mode="after")
+    def package_needs_purchase(self) -> "PublicBookingCreate":
+        if (self.payment_method == "package") != (self.package_purchase_id is not None):
+            raise ValueError("A package booking names the package, and only a package booking")
+        return self
 
     @field_validator("start_at")
     @classmethod
@@ -141,7 +149,7 @@ class PublicBookingResponse(ApiModel):
     reference: str
     status: Literal["pending", "confirmed", "completed", "cancelled", "noshow"]
     payment_status: Literal["pending", "paid", "free", "overdue"]
-    payment_method: Literal["free", "manual"]
+    payment_method: Literal["free", "manual", "package"]
     confirmation_policy: Literal["automatic", "operator_approval"]
     approval_status: Literal["not_required", "pending", "approved", "declined"]
     pending_reasons: list[Literal["approval", "payment"]]
@@ -168,6 +176,7 @@ class ManagedBookingResponse(ApiModel):
     approval_status: Literal["not_required", "pending", "approved", "declined"]
     pending_reasons: list[Literal["approval", "payment"]]
     amount_cents: int
+    refunded_cents: int = 0
     currency: str
     payment_due_at: datetime | None
     manual_payment_instructions: str
@@ -202,3 +211,23 @@ class ManagedBookingReschedule(StrictApiModel):
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("startAt must include a timezone")
         return value
+
+
+class PublicPackageRequest(StrictApiModel):
+    """A visitor asks to buy a package; it waits for the manual payment the consultant records."""
+
+    package_id: UUID
+    customer: PublicBookingCustomer
+    language: Literal["en", "tr", "de"] = "en"
+    terms_accepted: Literal[True]
+
+
+class PublicPackageRequestResponse(ApiModel):
+    id: UUID
+    package_name: str
+    price_cents: int
+    currency: str
+    payment_status: Literal["pending", "paid"]
+    session_count: int
+    # How to pay while the request awaits payment; empty when nothing is due.
+    manual_payment_instructions: str

@@ -49,6 +49,11 @@ const PRESENTATION: Record<
     tone: "warning",
     title: "Client cancelled",
   },
+  package_requested: {
+    icon: "layers",
+    tone: "accent",
+    title: "Package requested",
+  },
 };
 
 function relativeAge(occurredAt: string): string {
@@ -101,6 +106,11 @@ function detailFor(notification: NotificationDto): string {
       return translate(lang, "notification.now", { time: formatDateTime(notification.payload.requestedFor) });
     case "booking_cancelled":
       return translate(lang, "notification.was", { time: formatDateTime(notification.payload.startsAt) });
+    case "package_requested":
+      return translate(lang, "notification.package", {
+        name: notification.payload.packageName,
+        amount: formatMoney(notification.payload.priceCents, apiCurrency(notification.payload.currency)),
+      });
   }
 }
 
@@ -115,9 +125,11 @@ function mapNotification(notification: NotificationDto): Notification {
     age: relativeAge(notification.occurredAt),
     unread: notification.readAt === null,
     href:
-      notification.resourceType === "booking" && notification.resourceId
-        ? `/admin/bookings/${notification.resourceId}`
-        : undefined,
+      notification.kind === "package_requested"
+        ? `/admin/clients/${notification.payload.clientId}`
+        : notification.resourceType === "booking" && notification.resourceId
+          ? `/admin/bookings/${notification.resourceId}`
+          : undefined,
   };
 }
 

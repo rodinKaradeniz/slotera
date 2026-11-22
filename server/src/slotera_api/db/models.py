@@ -1,33 +1,56 @@
 # ruff: noqa: E501
-from datetime import date, datetime, time
-from enum import StrEnum
-from typing import Any
-from uuid import UUID, uuid4
-
-from sqlalchemy import (
-    BigInteger,
-    Boolean,
-    CheckConstraint,
-    Date,
-    DateTime,
-    Enum,
-    ForeignKey,
-    ForeignKeyConstraint,
-    Index,
-    Integer,
-    LargeBinary,
-    String,
-    Text,
-    Time,
-    UniqueConstraint,
-    func,
-    text,
-)
-from sqlalchemy.dialects.postgresql import JSONB, ExcludeConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+"""All persistence models, re-exported from the modules that define them."""
 
 from slotera_api.db import ai_models as ai_models
-from slotera_api.db.base import Base
+from slotera_api.db.base import Base as Base
+from slotera_api.db.booking_models import (
+    Booking as Booking,
+)
+from slotera_api.db.booking_models import (
+    BookingAccessToken as BookingAccessToken,
+)
+from slotera_api.db.booking_models import (
+    BookingCommandIdempotency as BookingCommandIdempotency,
+)
+from slotera_api.db.booking_models import (
+    BookingFormResponse as BookingFormResponse,
+)
+from slotera_api.db.booking_models import (
+    BookingFormSnapshot as BookingFormSnapshot,
+)
+from slotera_api.db.booking_models import (
+    CalendarFeedToken as CalendarFeedToken,
+)
+from slotera_api.db.booking_models import (
+    Client as Client,
+)
+from slotera_api.db.booking_models import (
+    ClientNote as ClientNote,
+)
+from slotera_api.db.booking_models import (
+    PackagePurchase as PackagePurchase,
+)
+from slotera_api.db.booking_models import (
+    PackagePurchaseItem as PackagePurchaseItem,
+)
+from slotera_api.db.booking_models import (
+    PublicBookingIdempotency as PublicBookingIdempotency,
+)
+from slotera_api.db.catalog_models import (
+    FormTemplate as FormTemplate,
+)
+from slotera_api.db.catalog_models import (
+    FormTemplateService as FormTemplateService,
+)
+from slotera_api.db.catalog_models import (
+    Service as Service,
+)
+from slotera_api.db.catalog_models import (
+    ServicePackage as ServicePackage,
+)
+from slotera_api.db.catalog_models import (
+    ServicePackageItem as ServicePackageItem,
+)
 from slotera_api.db.client_models import (
     BookingFollowup as BookingFollowup,
 )
@@ -55,7 +78,130 @@ from slotera_api.db.client_models import (
 from slotera_api.db.client_models import (
     ServiceFollowupRule as ServiceFollowupRule,
 )
-from slotera_api.db.versioning import Versioned
+from slotera_api.db.enums import (
+    BookingApprovalStatus as BookingApprovalStatus,
+)
+from slotera_api.db.enums import (
+    BookingAttendance as BookingAttendance,
+)
+from slotera_api.db.enums import (
+    BookingOrigin as BookingOrigin,
+)
+from slotera_api.db.enums import (
+    BookingStatus as BookingStatus,
+)
+from slotera_api.db.enums import (
+    ConfirmationPolicy as ConfirmationPolicy,
+)
+from slotera_api.db.enums import (
+    FormStatus as FormStatus,
+)
+from slotera_api.db.enums import (
+    LocationType as LocationType,
+)
+from slotera_api.db.enums import (
+    MembershipRole as MembershipRole,
+)
+from slotera_api.db.enums import (
+    NotificationKind as NotificationKind,
+)
+from slotera_api.db.enums import (
+    PaymentMethod as PaymentMethod,
+)
+from slotera_api.db.enums import (
+    PaymentStatus as PaymentStatus,
+)
+from slotera_api.db.enums import (
+    PlatformRole as PlatformRole,
+)
+from slotera_api.db.enums import (
+    ServiceBookingMode as ServiceBookingMode,
+)
+from slotera_api.db.enums import (
+    SessionActionItemStatus as SessionActionItemStatus,
+)
+from slotera_api.db.enums import (
+    SessionOrigin as SessionOrigin,
+)
+from slotera_api.db.enums import (
+    SessionStatus as SessionStatus,
+)
+from slotera_api.db.enums import (
+    TaxTreatment as TaxTreatment,
+)
+from slotera_api.db.enums import (
+    WorkspaceOperationalStatus as WorkspaceOperationalStatus,
+)
+from slotera_api.db.enums import (
+    _enum_values as _enum_values,
+)
+from slotera_api.db.identity_models import (
+    AuditEvent as AuditEvent,
+)
+from slotera_api.db.identity_models import (
+    AuthSession as AuthSession,
+)
+from slotera_api.db.identity_models import (
+    EmailOutbox as EmailOutbox,
+)
+from slotera_api.db.identity_models import (
+    Notification as Notification,
+)
+from slotera_api.db.identity_models import (
+    PasswordResetToken as PasswordResetToken,
+)
+from slotera_api.db.identity_models import (
+    PlatformInquiry as PlatformInquiry,
+)
+from slotera_api.db.identity_models import (
+    RequestRateLimit as RequestRateLimit,
+)
+from slotera_api.db.identity_models import (
+    ReservedWorkspaceSlug as ReservedWorkspaceSlug,
+)
+from slotera_api.db.identity_models import (
+    User as User,
+)
+from slotera_api.db.identity_models import (
+    Workspace as Workspace,
+)
+from slotera_api.db.identity_models import (
+    WorkspaceBusinessProfile as WorkspaceBusinessProfile,
+)
+from slotera_api.db.identity_models import (
+    WorkspaceLocation as WorkspaceLocation,
+)
+from slotera_api.db.identity_models import (
+    WorkspaceMembership as WorkspaceMembership,
+)
+from slotera_api.db.identity_models import (
+    WorkspacePaymentSettings as WorkspacePaymentSettings,
+)
+from slotera_api.db.identity_models import (
+    WorkspaceSlugHistory as WorkspaceSlugHistory,
+)
+from slotera_api.db.scheduling_models import (
+    AvailabilityBlackout as AvailabilityBlackout,
+)
+from slotera_api.db.scheduling_models import (
+    AvailabilityPolicy as AvailabilityPolicy,
+)
+from slotera_api.db.scheduling_models import (
+    AvailabilityWindow as AvailabilityWindow,
+)
+from slotera_api.db.scheduling_models import (
+    Session as Session,
+)
+from slotera_api.db.scheduling_models import (
+    SessionActionItem as SessionActionItem,
+)
+from slotera_api.db.scheduling_models import (
+    SessionCommandIdempotency as SessionCommandIdempotency,
+)
+from slotera_api.db.scheduling_models import (
+    SessionSeries as SessionSeries,
+)
+from slotera_api.db.versioning import Versioned as Versioned
 
 TENANT_TABLES = frozenset(
     {
@@ -111,1079 +257,6 @@ TENANT_TABLES = frozenset(
 )
 
 
-class PlatformRole(StrEnum):
-    SUPERADMIN = "superadmin"
-
-
-class MembershipRole(StrEnum):
-    OPERATOR_ADMIN = "operator_admin"
-
-
-class WorkspaceOperationalStatus(StrEnum):
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
-
-
-class LocationType(StrEnum):
-    ONLINE = "online"
-    PHYSICAL = "physical"
-    HYBRID = "hybrid"
-
-
-class ServiceBookingMode(StrEnum):
-    OPEN = "open"
-    SCHEDULED = "scheduled"
-
-
-class ConfirmationPolicy(StrEnum):
-    AUTOMATIC = "automatic"
-    OPERATOR_APPROVAL = "operator_approval"
-
-
-class NotificationKind(StrEnum):
-    BOOKING_PENDING = "booking_pending"
-    BOOKING_CONFIRMED = "booking_confirmed"
-    PAYMENT_PENDING = "payment_pending"
-    SESSION_STARTING = "session_starting"
-    RESCHEDULE_REQUESTED = "reschedule_requested"
-    BOOKING_CANCELLED = "booking_cancelled"
-
-
-class SessionStatus(StrEnum):
-    SCHEDULED = "scheduled"
-    LIVE = "live"
-    DONE = "done"
-    CANCELLED = "cancelled"
-
-
-class SessionOrigin(StrEnum):
-    OPERATOR = "operator"
-    PUBLIC_OPEN = "public_open"
-
-
-class BookingStatus(StrEnum):
-    PENDING = "pending"
-    CONFIRMED = "confirmed"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
-    NOSHOW = "noshow"
-
-
-class BookingOrigin(StrEnum):
-    OPERATOR = "operator"
-    PUBLIC = "public"
-
-
-class BookingApprovalStatus(StrEnum):
-    NOT_REQUIRED = "not_required"
-    PENDING = "pending"
-    APPROVED = "approved"
-    DECLINED = "declined"
-
-
-class BookingAttendance(StrEnum):
-    PRESENT = "present"
-    LATE = "late"
-    ABSENT = "absent"
-
-
-class PaymentStatus(StrEnum):
-    PAID = "paid"
-    PENDING = "pending"
-    REFUNDED = "refunded"
-    FREE = "free"
-    OVERDUE = "overdue"
-
-
-class PaymentMethod(StrEnum):
-    FREE = "free"
-    MANUAL = "manual"
-
-
-class TaxTreatment(StrEnum):
-    NONE = "none"
-    FIXED = "fixed"
-
-
-class FormStatus(StrEnum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-
-
-class SessionActionItemStatus(StrEnum):
-    TODO = "todo"
-    DONE = "done"
-
-
-def _enum_values(enum_type: type[StrEnum]) -> list[str]:
-    return [member.value for member in enum_type]
-
-
-class User(Base):
-    __tablename__ = "users"
-    __table_args__ = (CheckConstraint("email = lower(btrim(email))", name="email_normalized"),)
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    preferred_language: Mapped[str] = mapped_column(String(2), server_default="en")
-    email: Mapped[str] = mapped_column(String(320), unique=True)
-    title: Mapped[str | None] = mapped_column(String(32))
-    first_names: Mapped[str] = mapped_column(String(160))
-    last_name: Mapped[str] = mapped_column(String(160))
-    password_hash: Mapped[str | None] = mapped_column(String(255))
-    platform_role: Mapped[PlatformRole | None] = mapped_column(
-        Enum(
-            PlatformRole,
-            name="platform_role",
-            values_callable=_enum_values,
-        )
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class Workspace(Base):
-    __tablename__ = "workspaces"
-    __table_args__ = (
-        CheckConstraint(
-            "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'",
-            name="slug_format",
-        ),
-        CheckConstraint("char_length(currency) = 3", name="currency_iso_length"),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    name: Mapped[str] = mapped_column(String(160))
-    slug: Mapped[str] = mapped_column(String(80), unique=True)
-    currency: Mapped[str] = mapped_column(String(3), server_default=text("'EUR'"))
-    timezone: Mapped[str] = mapped_column(String(64), server_default=text("'Europe/Berlin'"))
-    operational_status: Mapped[WorkspaceOperationalStatus] = mapped_column(
-        Enum(
-            WorkspaceOperationalStatus,
-            name="workspace_operational_status",
-            values_callable=_enum_values,
-        ),
-        server_default=text("'active'"),
-    )
-    # Platform plan and manual-billing facts; changed only by the audited superadmin
-    # database command (slotera_platform_set_workspace_billing).
-    plan: Mapped[str] = mapped_column(String(16), server_default=text("'essentials'"))
-    plan_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    billing_version: Mapped[int] = mapped_column(BigInteger, server_default=text("1"))
-    billing_interval: Mapped[str] = mapped_column(String(16), server_default=text("'monthly'"))
-    trial_ends_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=text("now() + interval '30 days'")
-    )
-    paid_through: Mapped[date | None] = mapped_column(Date)
-    # Set when the operator closes the workspace; the data is deleted 30 days later.
-    closure_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class WorkspaceMembership(Base):
-    __tablename__ = "workspace_memberships"
-    __table_args__ = (UniqueConstraint("workspace_id", "user_id"),)
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    role: Mapped[MembershipRole] = mapped_column(
-        Enum(
-            MembershipRole,
-            name="membership_role",
-            values_callable=_enum_values,
-        ),
-        server_default=text("'operator_admin'"),
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class AuthSession(Base):
-    __tablename__ = "auth_sessions"
-    __table_args__ = (
-        CheckConstraint("octet_length(token_hash) = 32", name="token_hash_sha256"),
-        CheckConstraint("octet_length(csrf_token_hash) = 32", name="csrf_token_hash_sha256"),
-        CheckConstraint("expires_at > created_at", name="expires_after_creation"),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    active_workspace_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="SET NULL"), index=True
-    )
-    token_hash: Mapped[bytes] = mapped_column(LargeBinary, unique=True)
-    csrf_token_hash: Mapped[bytes] = mapped_column(LargeBinary)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class PasswordResetToken(Base):
-    __tablename__ = "password_reset_tokens"
-    __table_args__ = (CheckConstraint("octet_length(token_hash) = 32", name="token_hash_sha256"),)
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    token_hash: Mapped[bytes] = mapped_column(LargeBinary, unique=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class RequestRateLimit(Base):
-    __tablename__ = "request_rate_limits"
-    __table_args__ = (
-        CheckConstraint("octet_length(key_hash) = 32", name="key_hash_sha256"),
-        CheckConstraint("request_count > 0", name="request_count_positive"),
-    )
-
-    scope: Mapped[str] = mapped_column(String(64), primary_key=True)
-    key_hash: Mapped[bytes] = mapped_column(LargeBinary, primary_key=True)
-    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    request_count: Mapped[int] = mapped_column(Integer)
-
-
-class EmailOutbox(Base):
-    __tablename__ = "email_outbox"
-    __table_args__ = (
-        CheckConstraint("attempt_count >= 0", name="attempt_count_nonnegative"),
-        Index(
-            "ix_email_outbox_client_context",
-            text("(template_data->>'workspaceId')"),
-            text("(template_data->>'clientId')"),
-        ),
-        Index(
-            "ix_email_outbox_pending",
-            "available_at",
-            "created_at",
-            postgresql_where=text(
-                "sent_at IS NULL AND suppressed_at IS NULL AND attempt_count < 10"
-            ),
-        ),
-        Index(
-            "ix_email_outbox_expired_claim",
-            "claimed_at",
-            "id",
-            postgresql_where=text(
-                "sent_at IS NULL AND suppressed_at IS NULL "
-                "AND attempt_count >= 10 AND claimed_at IS NOT NULL"
-            ),
-        ),
-        Index("ix_email_outbox_booking_created", "related_booking_id", "created_at", "id"),
-        UniqueConstraint(
-            "kind", "related_booking_id", "event_key", name="uq_email_outbox_booking_event"
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    kind: Mapped[str] = mapped_column(String(80))
-    recipient_email: Mapped[str] = mapped_column(String(320))
-    subject: Mapped[str] = mapped_column(String(300))
-    text_body: Mapped[str] = mapped_column(Text)
-    template_data: Mapped[dict[str, object]] = mapped_column(
-        JSONB, server_default=text("'{}'::jsonb")
-    )
-    related_workspace_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE")
-    )
-    related_password_reset_token_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("password_reset_tokens.id", ondelete="SET NULL")
-    )
-    related_booking_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("bookings.id", ondelete="SET NULL")
-    )
-    # Empty for events that happen once per booking; a fresh value for repeatable ones.
-    event_key: Mapped[str] = mapped_column(Text, server_default=text("''"))
-    attempt_count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
-    available_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    suppressed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    provider_message_id: Mapped[str | None] = mapped_column(String(255))
-    last_error: Mapped[str | None] = mapped_column(String(1000))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class WorkspaceSlugHistory(Base):
-    __tablename__ = "workspace_slug_history"
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    slug: Mapped[str] = mapped_column(String(80), unique=True)
-    retired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class ReservedWorkspaceSlug(Base):
-    __tablename__ = "reserved_workspace_slugs"
-    __table_args__ = (
-        CheckConstraint(
-            "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'",
-            name="slug_format",
-        ),
-    )
-
-    slug: Mapped[str] = mapped_column(String(80), primary_key=True)
-    reason: Mapped[str] = mapped_column(String(160))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class AuditEvent(Base):
-    __tablename__ = "audit_events"
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    actor_user_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), index=True
-    )
-    action: Mapped[str] = mapped_column(String(120), index=True)
-    resource_type: Mapped[str] = mapped_column(String(80))
-    resource_id: Mapped[UUID | None]
-    details: Mapped[dict[str, object]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
-    occurred_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), index=True
-    )
-
-
-class WorkspaceBusinessProfile(Versioned, Base):
-    __tablename__ = "workspace_business_profiles"
-
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), primary_key=True
-    )
-    display_name: Mapped[str] = mapped_column(String(160))
-    bio: Mapped[str] = mapped_column(String(4000), server_default=text("''"))
-    brand_accent: Mapped[str] = mapped_column(String(7), server_default="#3d5a3d")
-    brand_font: Mapped[str] = mapped_column(String(5), server_default="serif")
-    email: Mapped[str] = mapped_column(String(320))
-    phone: Mapped[str] = mapped_column(String(40), server_default=text("''"))
-    address: Mapped[str] = mapped_column(String(500), server_default=text("''"))
-    booking_page_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
-    # Emails to the owner about what a client did (see booking_access.notify_operator).
-    notify_operator_messages: Mapped[bool] = mapped_column(server_default=text("true"))
-    notify_operator_new: Mapped[bool] = mapped_column(server_default=text("true"))
-    notify_operator_cancelled: Mapped[bool] = mapped_column(server_default=text("true"))
-    notify_operator_rescheduled: Mapped[bool] = mapped_column(server_default=text("true"))
-    onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class WorkspacePaymentSettings(Base):
-    __tablename__ = "workspace_payment_settings"
-    __table_args__ = (
-        CheckConstraint("tax_treatment IN ('none', 'fixed')", name="tax_treatment"),
-        CheckConstraint("tax_rate_bps BETWEEN 0 AND 10000", name="tax_rate_bps"),
-        CheckConstraint(
-            "(tax_treatment = 'none' AND tax_rate_bps = 0) OR "
-            "(tax_treatment = 'fixed' AND tax_rate_bps > 0)",
-            name="tax_treatment_rate",
-        ),
-    )
-
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), primary_key=True
-    )
-    manual_payment_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
-    manual_payment_instructions: Mapped[str] = mapped_column(
-        String(4000), server_default=text("''")
-    )
-    booking_terms_enabled: Mapped[bool] = mapped_column(server_default=text("false"))
-    booking_terms_content: Mapped[str] = mapped_column(String(10000), server_default=text("''"))
-    tax_treatment: Mapped[str] = mapped_column(String(16), server_default=text("'none'"))
-    tax_rate_bps: Mapped[int] = mapped_column(Integer, server_default=text("0"))
-    tax_label: Mapped[str] = mapped_column(String(40), server_default=text("'Tax'"))
-    tax_jurisdiction: Mapped[str | None] = mapped_column(String(2))
-    seller_tax_number: Mapped[str | None] = mapped_column(String(80))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class WorkspaceLocation(Versioned, Base):
-    __tablename__ = "workspace_locations"
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    label: Mapped[str] = mapped_column(String(160))
-    street: Mapped[str] = mapped_column(String(200))
-    street2: Mapped[str | None] = mapped_column(String(200))
-    city: Mapped[str] = mapped_column(String(120))
-    region: Mapped[str | None] = mapped_column(String(120))
-    postal_code: Mapped[str] = mapped_column(String(32))
-    country: Mapped[str] = mapped_column(String(2))
-    notes: Mapped[str | None] = mapped_column(String(500))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class Service(Versioned, Base):
-    __tablename__ = "services"
-    __table_args__ = (UniqueConstraint("workspace_id", "id", name="uq_services_workspace_id_id"),)
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    name: Mapped[str] = mapped_column(String(160))
-    description: Mapped[str] = mapped_column(String(4000), server_default=text("''"))
-    duration_min: Mapped[int] = mapped_column(Integer)
-    price_cents: Mapped[int] = mapped_column(Integer)
-    capacity: Mapped[int] = mapped_column(Integer)
-    location_type: Mapped[LocationType] = mapped_column(
-        Enum(LocationType, name="location_type", values_callable=_enum_values)
-    )
-    location: Mapped[str] = mapped_column(String(240))
-    address: Mapped[dict[str, object] | None] = mapped_column(JSONB)
-    # Online/hybrid only: one https meeting link, shown to confirmed clients.
-    meeting_url: Mapped[str | None] = mapped_column(String(500))
-    booking_mode: Mapped[ServiceBookingMode] = mapped_column(
-        Enum(ServiceBookingMode, name="service_booking_mode", values_callable=_enum_values)
-    )
-    confirmation_policy: Mapped[ConfirmationPolicy] = mapped_column(
-        Enum(ConfirmationPolicy, name="confirmation_policy", values_callable=_enum_values),
-        server_default=text("'automatic'"),
-    )
-    cancellation_rule: Mapped[str] = mapped_column(String(1000), server_default=text("''"))
-    active: Mapped[bool] = mapped_column(server_default=text("true"))
-    notes: Mapped[str | None] = mapped_column(String(2000))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class Client(Versioned, Base):
-    __tablename__ = "clients"
-    __table_args__ = (
-        UniqueConstraint("workspace_id", "email", name="uq_clients_workspace_id_email"),
-        Index("ix_clients_workspace_id_name", "workspace_id", "name"),
-        UniqueConstraint("workspace_id", "id", name="uq_clients_workspace_id_id"),
-        CheckConstraint("email = lower(btrim(email))", name="email_normalized"),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    erased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    preferred_language: Mapped[str] = mapped_column(String(2), server_default="en")
-    message_digest_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
-    automatic_followup_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
-    name: Mapped[str] = mapped_column(String(160))
-    email: Mapped[str] = mapped_column(String(320))
-    phone: Mapped[str | None] = mapped_column(String(40))
-    company: Mapped[str | None] = mapped_column(String(160))
-    role: Mapped[str | None] = mapped_column(String(160))
-    timezone: Mapped[str | None] = mapped_column(String(64))
-    address: Mapped[str | None] = mapped_column(String(500))
-    vat_id: Mapped[str | None] = mapped_column(String(80))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class AvailabilityPolicy(Base):
-    __tablename__ = "availability_policies"
-    __table_args__ = (
-        CheckConstraint("slot_interval_min BETWEEN 5 AND 1440", name="slot_interval"),
-        CheckConstraint("buffer_before_min BETWEEN 0 AND 1440", name="buffer_before"),
-        CheckConstraint("buffer_after_min BETWEEN 0 AND 1440", name="buffer_after"),
-        CheckConstraint("minimum_notice_min BETWEEN 0 AND 525600", name="minimum_notice"),
-        CheckConstraint("maximum_advance_days BETWEEN 1 AND 730", name="maximum_advance"),
-    )
-
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), primary_key=True
-    )
-    slot_interval_min: Mapped[int] = mapped_column(Integer, server_default=text("30"))
-    buffer_before_min: Mapped[int] = mapped_column(Integer, server_default=text("0"))
-    buffer_after_min: Mapped[int] = mapped_column(Integer, server_default=text("0"))
-    minimum_notice_min: Mapped[int] = mapped_column(Integer, server_default=text("1440"))
-    maximum_advance_days: Mapped[int] = mapped_column(Integer, server_default=text("90"))
-    # Customers may cancel/reschedule themselves until this many hours before start.
-    customer_change_notice_hours: Mapped[int] = mapped_column(Integer, server_default=text("24"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class AvailabilityWindow(Base):
-    __tablename__ = "availability_windows"
-    __table_args__ = (
-        CheckConstraint("day_of_week BETWEEN 1 AND 7", name="day_of_week"),
-        CheckConstraint("start_local < end_local", name="ordered"),
-        UniqueConstraint("workspace_id", "day_of_week", "start_local", "end_local"),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    day_of_week: Mapped[int] = mapped_column(Integer)
-    start_local: Mapped[time] = mapped_column(Time(timezone=False))
-    end_local: Mapped[time] = mapped_column(Time(timezone=False))
-
-
-class AvailabilityBlackout(Base):
-    __tablename__ = "availability_blackouts"
-    __table_args__ = (CheckConstraint("starts_at < ends_at", name="ordered"),)
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    reason: Mapped[str | None] = mapped_column(String(240))
-
-
-class SessionSeries(Versioned, Base):
-    __tablename__ = "session_series"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["workspace_id", "service_id"],
-            ["services.workspace_id", "services.id"],
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["workspace_id", "calendar_owner_id"],
-            ["workspace_memberships.workspace_id", "workspace_memberships.user_id"],
-            ondelete="RESTRICT",
-        ),
-        CheckConstraint("duration_min >= 1", name="template_duration"),
-        CheckConstraint("capacity BETWEEN 1 AND 10000", name="template_capacity"),
-        CheckConstraint("interval_weeks BETWEEN 1 AND 52", name="interval_weeks"),
-        CheckConstraint("starts_on <= ends_on OR ends_on IS NULL", name="date_order"),
-        UniqueConstraint("workspace_id", "id", name="uq_session_series_workspace_id_id"),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    service_id: Mapped[UUID]
-    calendar_owner_id: Mapped[UUID]
-    start_local: Mapped[time] = mapped_column(Time(timezone=False))
-    duration_min: Mapped[int] = mapped_column(Integer)
-    capacity: Mapped[int] = mapped_column(Integer)
-    location_type: Mapped[LocationType] = mapped_column(
-        Enum(LocationType, name="location_type", values_callable=_enum_values)
-    )
-    location: Mapped[str] = mapped_column(String(240))
-    address: Mapped[dict[str, object] | None] = mapped_column(JSONB)
-    notes: Mapped[str | None] = mapped_column(String(2000))
-    interval_weeks: Mapped[int] = mapped_column(Integer)
-    weekdays: Mapped[list[int]] = mapped_column(JSONB)
-    timezone: Mapped[str] = mapped_column(String(64))
-    starts_on: Mapped[date]
-    ends_on: Mapped[date | None]
-    horizon_through: Mapped[date]
-    cancelled_from: Mapped[date | None]
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class Session(Versioned, Base):
-    __tablename__ = "sessions"
-    __table_args__ = (
-        CheckConstraint("start_at < end_at", name="ordered"),
-        CheckConstraint("capacity BETWEEN 1 AND 10000", name="capacity"),
-        ForeignKeyConstraint(
-            ["workspace_id", "calendar_owner_id"],
-            ["workspace_memberships.workspace_id", "workspace_memberships.user_id"],
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["workspace_id", "service_id"],
-            ["services.workspace_id", "services.id"],
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["workspace_id", "series_id"],
-            ["session_series.workspace_id", "session_series.id"],
-            ondelete="RESTRICT",
-        ),
-        UniqueConstraint("series_id", "start_at"),
-        UniqueConstraint("workspace_id", "id", name="uq_sessions_workspace_id_id"),
-        ExcludeConstraint(
-            ("calendar_owner_id", "="),
-            (func.tstzrange(text("start_at"), text("end_at"), "[)"), "&&"),
-            where=text("status <> 'cancelled'"),
-            using="gist",
-            name="ex_sessions_owner_time",
-            deferrable=True,
-            initially="IMMEDIATE",
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    series_id: Mapped[UUID | None] = mapped_column(index=True)
-    service_id: Mapped[UUID] = mapped_column(index=True)
-    calendar_owner_id: Mapped[UUID]
-    start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    capacity: Mapped[int] = mapped_column(Integer)
-    status: Mapped[SessionStatus] = mapped_column(
-        Enum(SessionStatus, name="session_status", values_callable=_enum_values),
-        server_default=text("'scheduled'"),
-    )
-    origin: Mapped[SessionOrigin] = mapped_column(
-        Enum(SessionOrigin, name="session_origin", values_callable=_enum_values),
-        server_default=text("'operator'"),
-    )
-    location_type: Mapped[LocationType] = mapped_column(
-        Enum(LocationType, name="location_type", values_callable=_enum_values)
-    )
-    location: Mapped[str] = mapped_column(String(240))
-    address: Mapped[dict[str, object] | None] = mapped_column(JSONB)
-    notes: Mapped[str | None] = mapped_column(String(2000))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class Booking(Base):
-    __tablename__ = "bookings"
-    __table_args__ = (
-        Index(
-            "ix_bookings_workspace_status_created",
-            "workspace_id",
-            "status",
-            text("created_at DESC"),
-            "id",
-        ),
-        Index(
-            "ix_bookings_workspace_client_created",
-            "workspace_id",
-            "client_id",
-            text("created_at DESC"),
-            "id",
-        ),
-        CheckConstraint("amount_cents >= 0", name="amount_nonnegative"),
-        CheckConstraint("char_length(currency) = 3", name="currency_iso_length"),
-        UniqueConstraint("workspace_id", "id", name="uq_bookings_workspace_id_id"),
-        UniqueConstraint("workspace_id", "reference", name="uq_bookings_workspace_reference"),
-        ForeignKeyConstraint(
-            ["workspace_id", "client_id"],
-            ["clients.workspace_id", "clients.id"],
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["workspace_id", "session_id"],
-            ["sessions.workspace_id", "sessions.id"],
-            ondelete="RESTRICT",
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    session_id: Mapped[UUID] = mapped_column(index=True)
-    client_id: Mapped[UUID] = mapped_column(index=True)
-    status: Mapped[BookingStatus] = mapped_column(
-        Enum(BookingStatus, name="booking_status", values_callable=_enum_values)
-    )
-    payment_status: Mapped[PaymentStatus] = mapped_column(
-        Enum(PaymentStatus, name="payment_status", values_callable=_enum_values)
-    )
-    origin: Mapped[BookingOrigin] = mapped_column(
-        Enum(BookingOrigin, name="booking_origin", values_callable=_enum_values),
-        server_default=text("'operator'"),
-    )
-    confirmation_policy_snapshot: Mapped[ConfirmationPolicy] = mapped_column(
-        Enum(ConfirmationPolicy, name="confirmation_policy", values_callable=_enum_values),
-        server_default=text("'automatic'"),
-    )
-    approval_status: Mapped[BookingApprovalStatus] = mapped_column(
-        Enum(
-            BookingApprovalStatus,
-            name="booking_approval_status",
-            values_callable=_enum_values,
-        ),
-        server_default=text("'not_required'"),
-    )
-    delivery_email_override: Mapped[str | None] = mapped_column(String(320))
-    language: Mapped[str] = mapped_column(String(2), server_default="en")
-    reference: Mapped[str] = mapped_column(String(32))
-    payment_method: Mapped[str] = mapped_column(String(16))
-    attendance: Mapped[BookingAttendance | None] = mapped_column(
-        Enum(
-            BookingAttendance,
-            name="booking_attendance",
-            values_callable=_enum_values,
-        )
-    )
-    amount_cents: Mapped[int] = mapped_column(Integer)
-    net_amount_cents: Mapped[int] = mapped_column(Integer)
-    tax_amount_cents: Mapped[int] = mapped_column(Integer)
-    tax_treatment: Mapped[str] = mapped_column(String(16))
-    tax_rate_bps: Mapped[int] = mapped_column(Integer)
-    tax_label: Mapped[str | None] = mapped_column(String(40))
-    tax_jurisdiction: Mapped[str | None] = mapped_column(String(2))
-    seller_tax_number: Mapped[str | None] = mapped_column(String(80))
-    currency: Mapped[str] = mapped_column(String(3))
-    billing_address: Mapped[dict[str, object]] = mapped_column(
-        JSONB, server_default=text("'{}'::jsonb")
-    )
-    payment_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    payment_received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    declined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    # Set when the customer moved the booking themselves (allowed once).
-    customer_rescheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    customer_first_name: Mapped[str] = mapped_column(String(80), server_default=text("''"))
-    customer_last_name: Mapped[str] = mapped_column(String(80), server_default=text("''"))
-    customer_email: Mapped[str] = mapped_column(String(320), server_default=text("''"))
-    customer_phone: Mapped[str | None] = mapped_column(String(40))
-    customer_company: Mapped[str | None] = mapped_column(String(160))
-    provider_terms_snapshot: Mapped[str] = mapped_column(Text, server_default=text("''"))
-    platform_terms_version: Mapped[str] = mapped_column(String(80), server_default=text("''"))
-    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    manual_payment_instructions_snapshot: Mapped[str] = mapped_column(
-        Text, server_default=text("''")
-    )
-    notes: Mapped[str | None] = mapped_column(String(2000))
-    # Set together when a package item covers the booking (payment_method "package").
-    package_purchase_id: Mapped[UUID | None] = mapped_column()
-    package_position: Mapped[int | None] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class SessionCommandIdempotency(Base):
-    __tablename__ = "session_command_idempotency"
-    __table_args__ = (
-        UniqueConstraint("workspace_id", "actor_user_id", "idempotency_key"),
-        ForeignKeyConstraint(
-            ["workspace_id", "session_id"],
-            ["sessions.workspace_id", "sessions.id"],
-            ondelete="CASCADE",
-        ),
-    )
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    actor_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
-    session_id: Mapped[UUID]
-    idempotency_key: Mapped[str] = mapped_column(String(255))
-    request_fingerprint: Mapped[str] = mapped_column(String(64))
-    outcome: Mapped[dict[str, Any]] = mapped_column(JSONB)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class BookingCommandIdempotency(Base):
-    __tablename__ = "booking_command_idempotency"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["workspace_id", "booking_id"],
-            ["bookings.workspace_id", "bookings.id"],
-            ondelete="CASCADE",
-        ),
-        UniqueConstraint(
-            "workspace_id",
-            "actor_user_id",
-            "idempotency_key",
-            name="uq_booking_command_idempotency_actor_key",
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    actor_user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT"), index=True
-    )
-    idempotency_key: Mapped[str] = mapped_column(String(255))
-    command: Mapped[str] = mapped_column(String(64))
-    request_fingerprint: Mapped[str] = mapped_column(String(64))
-    booking_id: Mapped[UUID]
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class BookingAccessToken(Base):
-    """A customer's link to one booking. Only the SHA-256 of the token is stored."""
-
-    __tablename__ = "booking_access_tokens"
-    __table_args__ = (
-        Index("ix_booking_access_tokens_booking", "workspace_id", "booking_id"),
-        ForeignKeyConstraint(
-            ["workspace_id", "booking_id"],
-            ["bookings.workspace_id", "bookings.id"],
-            ondelete="CASCADE",
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"))
-    booking_id: Mapped[UUID]
-    token_hash: Mapped[bytes] = mapped_column(LargeBinary, unique=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class CalendarFeedToken(Base):
-    """An operator's private calendar subscribe link. Only the token's SHA-256 is stored."""
-
-    __tablename__ = "calendar_feed_tokens"
-
-    __table_args__ = (Index("ix_calendar_feed_tokens_owner", "workspace_id", "user_id"),)
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"))
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    token_hash: Mapped[bytes] = mapped_column(LargeBinary, unique=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-
-class PublicBookingIdempotency(Base):
-    __tablename__ = "public_booking_idempotency"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["workspace_id", "booking_id"],
-            ["bookings.workspace_id", "bookings.id"],
-            ondelete="CASCADE",
-        ),
-        UniqueConstraint(
-            "workspace_id", "idempotency_key", name="uq_public_booking_idempotency_key"
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    idempotency_key: Mapped[str] = mapped_column(String(255))
-    request_fingerprint: Mapped[str] = mapped_column(String(64))
-    booking_id: Mapped[UUID]
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class BookingFormResponse(Base):
-    __tablename__ = "booking_form_responses"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["workspace_id", "booking_id", "snapshot_id"],
-            [
-                "booking_form_snapshots.workspace_id",
-                "booking_form_snapshots.booking_id",
-                "booking_form_snapshots.id",
-            ],
-            ondelete="CASCADE",
-        ),
-        ForeignKeyConstraint(
-            ["workspace_id", "booking_id"],
-            ["bookings.workspace_id", "bookings.id"],
-            ondelete="CASCADE",
-        ),
-        UniqueConstraint(
-            "workspace_id",
-            "booking_id",
-            "snapshot_id",
-            name="uq_booking_form_response",
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    booking_id: Mapped[UUID]
-    snapshot_id: Mapped[UUID]
-    form_template_id: Mapped[UUID]
-    form_name: Mapped[str] = mapped_column(String(160))
-    answers: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
-    submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-
-
-class FormTemplate(Versioned, Base):
-    __tablename__ = "form_templates"
-    __table_args__ = (
-        UniqueConstraint("workspace_id", "id", name="uq_form_templates_workspace_id_id"),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    name: Mapped[str] = mapped_column(String(160))
-    description: Mapped[str] = mapped_column(String(1000), server_default=text("''"))
-    status: Mapped[FormStatus] = mapped_column(
-        Enum(FormStatus, name="form_status", values_callable=_enum_values)
-    )
-    fields: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
-    required_before_payment: Mapped[bool] = mapped_column(server_default=text("true"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class FormTemplateService(Base):
-    __tablename__ = "form_template_services"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["workspace_id", "form_template_id"],
-            ["form_templates.workspace_id", "form_templates.id"],
-            ondelete="CASCADE",
-        ),
-        ForeignKeyConstraint(
-            ["workspace_id", "service_id"],
-            ["services.workspace_id", "services.id"],
-            ondelete="RESTRICT",
-        ),
-    )
-
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), primary_key=True
-    )
-    form_template_id: Mapped[UUID] = mapped_column(primary_key=True)
-    service_id: Mapped[UUID] = mapped_column(primary_key=True)
-
-
-class ClientNote(Versioned, Base):
-    __tablename__ = "client_notes"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["workspace_id", "client_id"],
-            ["clients.workspace_id", "clients.id"],
-            ondelete="CASCADE",
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    client_id: Mapped[UUID] = mapped_column(index=True)
-    title: Mapped[str] = mapped_column(String(160))
-    body: Mapped[str] = mapped_column(String(20000))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class SessionActionItem(Versioned, Base):
-    __tablename__ = "session_action_items"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["workspace_id", "session_id"],
-            ["sessions.workspace_id", "sessions.id"],
-            ondelete="CASCADE",
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    session_id: Mapped[UUID | None] = mapped_column(index=True)
-    title: Mapped[str] = mapped_column(String(160))
-    description: Mapped[str | None] = mapped_column(String(1000))
-    status: Mapped[SessionActionItemStatus] = mapped_column(
-        Enum(
-            SessionActionItemStatus,
-            name="session_action_item_status",
-            values_callable=_enum_values,
-        ),
-        server_default=text("'todo'"),
-    )
-    due_date: Mapped[date | None] = mapped_column(Date)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class Notification(Base):
-    __tablename__ = "notifications"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["workspace_id", "recipient_user_id"],
-            [
-                "workspace_memberships.workspace_id",
-                "workspace_memberships.user_id",
-            ],
-            ondelete="CASCADE",
-        ),
-        Index(
-            "ix_notifications_principal_occurred_at",
-            "workspace_id",
-            "recipient_user_id",
-            "occurred_at",
-        ),
-        Index(
-            "ix_notifications_principal_unread",
-            "workspace_id",
-            "recipient_user_id",
-            postgresql_where=text("read_at IS NULL"),
-        ),
-        UniqueConstraint(
-            "workspace_id",
-            "recipient_user_id",
-            "kind",
-            "resource_type",
-            "resource_id",
-            name="uq_notifications_resource_event",
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID]
-    recipient_user_id: Mapped[UUID]
-    kind: Mapped[NotificationKind] = mapped_column(
-        Enum(NotificationKind, name="notification_kind", values_callable=_enum_values)
-    )
-    payload: Mapped[dict[str, object]] = mapped_column(JSONB)
-    resource_type: Mapped[str | None] = mapped_column(String(80))
-    resource_id: Mapped[UUID | None]
-    occurred_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-
 __all__ = [
     "TENANT_TABLES",
     "AuditEvent",
@@ -1229,179 +302,3 @@ __all__ = [
     "WorkspaceLocation",
     "WorkspaceSlugHistory",
 ]
-
-
-class BookingFormSnapshot(Base):
-    __tablename__ = "booking_form_snapshots"
-    __table_args__ = (
-        UniqueConstraint(
-            "workspace_id", "booking_id", "id", name="uq_booking_form_snapshots_assignment"
-        ),
-        CheckConstraint("assignment_kind IN ('preparation','followup')", name="assignment_kind"),
-        ForeignKeyConstraint(
-            ["workspace_id", "booking_id"],
-            ["bookings.workspace_id", "bookings.id"],
-            ondelete="CASCADE",
-        ),
-        UniqueConstraint(
-            "workspace_id",
-            "booking_id",
-            "form_template_id",
-            "assignment_kind",
-            name="booking_form_snapshots_workspace_id_booking_id_form_templat_key",
-        ),
-    )
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    booking_id: Mapped[UUID]
-    form_template_id: Mapped[UUID]
-    name: Mapped[str] = mapped_column(String(160))
-    description: Mapped[str] = mapped_column(String(1000))
-    fields: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
-    required_before_payment: Mapped[bool] = mapped_column(Boolean)
-    assignment_kind: Mapped[str] = mapped_column(String(20), server_default=text("'preparation'"))
-    response_deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class ServicePackage(Versioned, Base):
-    __tablename__ = "service_packages"
-    __table_args__ = (
-        UniqueConstraint("workspace_id", "id", name="service_packages_workspace_id_id_key"),
-        CheckConstraint("price_cents >= 0", name="package_price"),
-        CheckConstraint("status IN ('active', 'inactive')", name="package_status"),
-    )
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    name: Mapped[str] = mapped_column(String(160))
-    description: Mapped[str] = mapped_column(String(4000))
-    status: Mapped[str] = mapped_column(String(8))
-    price_cents: Mapped[int] = mapped_column(Integer)
-    notes: Mapped[str | None] = mapped_column(String(4000))
-    featured: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class ServicePackageItem(Base):
-    __tablename__ = "service_package_items"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["workspace_id", "package_id"],
-            ["service_packages.workspace_id", "service_packages.id"],
-            ondelete="CASCADE",
-        ),
-        ForeignKeyConstraint(
-            ["workspace_id", "service_id"],
-            ["services.workspace_id", "services.id"],
-            ondelete="RESTRICT",
-        ),
-        UniqueConstraint(
-            "workspace_id",
-            "package_id",
-            "position",
-            name="service_package_items_workspace_id_package_id_position_key",
-        ),
-        CheckConstraint("position >= 0", name="package_position"),
-    )
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    package_id: Mapped[UUID]
-    service_id: Mapped[UUID]
-    title: Mapped[str | None] = mapped_column(String(160))
-    description: Mapped[str | None] = mapped_column(String(1000))
-    position: Mapped[int] = mapped_column(Integer)
-
-
-class PackagePurchase(Versioned, Base):
-    """A package the operator sold to a client; the client paid outside Slotera."""
-
-    __tablename__ = "package_purchases"
-    __table_args__ = (
-        UniqueConstraint("workspace_id", "id", name="package_purchases_workspace_id_id_key"),
-        CheckConstraint("price_cents >= 0", name="package_purchases_price_check"),
-        CheckConstraint(
-            "payment_status IN ('pending', 'paid')", name="package_purchases_payment_status_check"
-        ),
-        CheckConstraint("status IN ('active', 'voided')", name="package_purchases_status_check"),
-        ForeignKeyConstraint(
-            ["workspace_id", "client_id"],
-            ["clients.workspace_id", "clients.id"],
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["workspace_id", "package_id"],
-            ["service_packages.workspace_id", "service_packages.id"],
-            ondelete="RESTRICT",
-        ),
-    )
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    client_id: Mapped[UUID]
-    package_id: Mapped[UUID]
-    package_name_snapshot: Mapped[str] = mapped_column(String(160))
-    price_cents: Mapped[int] = mapped_column(Integer)
-    currency: Mapped[str] = mapped_column(String(3))
-    payment_status: Mapped[str] = mapped_column(String(8))
-    payment_received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    status: Mapped[str] = mapped_column(String(8))
-    voided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    notes: Mapped[str | None] = mapped_column(String(2000))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-
-class PackagePurchaseItem(Base):
-    """One session of a purchase: the service it is for, snapshotted at the sale."""
-
-    __tablename__ = "package_purchase_items"
-    __table_args__ = (
-        UniqueConstraint(
-            "workspace_id", "purchase_id", "position", name="package_purchase_items_position_key"
-        ),
-        CheckConstraint("position >= 0", name="package_purchase_items_position_check"),
-        ForeignKeyConstraint(
-            ["workspace_id", "purchase_id"],
-            ["package_purchases.workspace_id", "package_purchases.id"],
-            ondelete="CASCADE",
-        ),
-        ForeignKeyConstraint(
-            ["workspace_id", "service_id"],
-            ["services.workspace_id", "services.id"],
-            ondelete="RESTRICT",
-        ),
-    )
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
-    )
-    purchase_id: Mapped[UUID]
-    service_id: Mapped[UUID]
-    position: Mapped[int] = mapped_column(Integer)
-    title_snapshot: Mapped[str] = mapped_column(String(160))
-
-
-class PlatformInquiry(Base):
-    """Metadata for the staff inbox; runtime access remains through fixed capabilities."""
-
-    __tablename__ = "platform_inquiries"
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    name: Mapped[str] = mapped_column(String(160))
-    email: Mapped[str] = mapped_column(String(320))
-    company: Mapped[str | None] = mapped_column(String(160))
-    reason: Mapped[str] = mapped_column(String(32))
-    message: Mapped[str] = mapped_column(String(4000))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

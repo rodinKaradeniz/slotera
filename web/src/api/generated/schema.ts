@@ -673,6 +673,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bookings/{booking_id}/record-refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record Booking Refund */
+        post: operations["recordBookingRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bookings/{booking_id}/send-details": {
         parameters: {
             query?: never;
@@ -823,6 +840,23 @@ export interface paths {
         put?: never;
         /** Client Read */
         post: operations["readClientMessages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/client/package-purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Client Packages */
+        get: operations["listClientPackages"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1171,6 +1205,23 @@ export interface paths {
         put?: never;
         /** Mark Paid */
         post: operations["markPackagePurchasePaid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/package-purchases/{purchase_id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refund Purchase */
+        post: operations["refundPackagePurchase"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1573,6 +1624,23 @@ export interface paths {
         put?: never;
         /** Create Public Booking */
         post: operations["createPublicBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/workspaces/{workspace_slug}/package-purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Public Package */
+        post: operations["requestPublicPackage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2647,6 +2715,13 @@ export interface components {
             providerTermsSnapshot: string;
             /** Reference */
             reference: string;
+            /** Refundedat */
+            refundedAt?: string | null;
+            /**
+             * Refundedcents
+             * @default 0
+             */
+            refundedCents: number;
             /** Sellertaxnumber */
             sellerTaxNumber: string | null;
             /**
@@ -2936,12 +3011,19 @@ export interface components {
              */
             id: string;
             /**
+             * Paymentmethod
+             * @enum {string}
+             */
+            paymentMethod: "free" | "manual" | "package";
+            /**
              * Paymentstatus
              * @enum {string}
              */
             paymentStatus: "pending" | "paid" | "refunded" | "free" | "overdue";
             /** Reference */
             reference: string;
+            /** Refundedcents */
+            refundedCents: number;
             /** Servicename */
             serviceName: string;
             /**
@@ -3223,6 +3305,64 @@ export interface components {
             updatedAt: string;
             /** Version */
             version: number;
+        };
+        /** ClientPackage */
+        ClientPackage: {
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Packagename */
+            packageName: string;
+            /**
+             * Paymentstatus
+             * @enum {string}
+             */
+            paymentStatus: "pending" | "paid";
+            /** Pricecents */
+            priceCents: number;
+            /** Refundedcents */
+            refundedCents: number;
+            /** Remainingcount */
+            remainingCount: number;
+            /** Sessions */
+            sessions: components["schemas"]["ClientPackageSession"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "voided";
+            /** Usedcount */
+            usedCount: number;
+        };
+        /** ClientPackageSession */
+        ClientPackageSession: {
+            /** Bookedfor */
+            bookedFor: string | null;
+            /** Position */
+            position: number;
+            /**
+             * Serviceid
+             * Format: uuid
+             */
+            serviceId: string;
+            /** Title */
+            title: string;
+        };
+        /** ClientPackages */
+        ClientPackages: {
+            /** Items */
+            items: components["schemas"]["ClientPackage"][];
+            /** Manualpaymentinstructions */
+            manualPaymentInstructions: string;
         };
         /** ClientPatch */
         ClientPatch: {
@@ -3759,6 +3899,11 @@ export interface components {
             providerPhone: string;
             /** Reference */
             reference: string;
+            /**
+             * Refundedcents
+             * @default 0
+             */
+            refundedCents: number;
             /** Rescheduled */
             rescheduled: boolean;
             /**
@@ -3851,7 +3996,7 @@ export interface components {
             /** Hasmore */
             hasMore: boolean;
             /** Items */
-            items: (components["schemas"]["BookingPendingNotification"] | components["schemas"]["BookingConfirmedNotification"] | components["schemas"]["PaymentPendingNotification"] | components["schemas"]["SessionStartingNotification"] | components["schemas"]["RescheduleRequestedNotification"] | components["schemas"]["BookingCancelledNotification"])[];
+            items: (components["schemas"]["BookingPendingNotification"] | components["schemas"]["BookingConfirmedNotification"] | components["schemas"]["PaymentPendingNotification"] | components["schemas"]["SessionStartingNotification"] | components["schemas"]["RescheduleRequestedNotification"] | components["schemas"]["BookingCancelledNotification"] | components["schemas"]["PackageRequestedNotification"])[];
             /** Unreadcount */
             unreadCount: number;
         };
@@ -3956,6 +4101,11 @@ export interface components {
             /** Notes */
             notes?: string | null;
             /**
+             * Notifyclient
+             * @default true
+             */
+            notifyClient: boolean;
+            /**
              * Packageid
              * Format: uuid
              */
@@ -4041,6 +4191,10 @@ export interface components {
             paymentStatus: "pending" | "paid";
             /** Pricecents */
             priceCents: number;
+            /** Refundedat */
+            refundedAt: string | null;
+            /** Refundedcents */
+            refundedCents: number;
             /** Remainingcount */
             remainingCount: number;
             /**
@@ -4054,6 +4208,45 @@ export interface components {
             version: number;
             /** Voidedat */
             voidedAt: string | null;
+        };
+        /** PackageRequestedNotification */
+        PackageRequestedNotification: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "package_requested";
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt: string;
+            payload: components["schemas"]["PackageRequestedPayload"];
+            /** Readat */
+            readAt: string | null;
+            /** Resourceid */
+            resourceId: string | null;
+            /** Resourcetype */
+            resourceType: string | null;
+        };
+        /** PackageRequestedPayload */
+        PackageRequestedPayload: {
+            /**
+             * Clientid
+             * Format: uuid
+             */
+            clientId: string;
+            /** Currency */
+            currency: string;
+            /** Packagename */
+            packageName: string;
+            /** Pricecents */
+            priceCents: number;
         };
         /** PackageSummary */
         PackageSummary: {
@@ -4561,11 +4754,13 @@ export interface components {
              * @enum {string}
              */
             language: "en" | "tr" | "de";
+            /** Packagepurchaseid */
+            packagePurchaseId?: string | null;
             /**
              * Paymentmethod
              * @enum {string}
              */
-            paymentMethod: "free" | "manual";
+            paymentMethod: "free" | "manual" | "package";
             /**
              * Serviceid
              * Format: uuid
@@ -4625,7 +4820,7 @@ export interface components {
              * Paymentmethod
              * @enum {string}
              */
-            paymentMethod: "free" | "manual";
+            paymentMethod: "free" | "manual" | "package";
             /**
              * Paymentstatus
              * @enum {string}
@@ -4730,6 +4925,52 @@ export interface components {
         PublicPackageList: {
             /** Items */
             items: components["schemas"]["PublicPackageView"][];
+        };
+        /**
+         * PublicPackageRequest
+         * @description A visitor asks to buy a package; it waits for the manual payment the consultant records.
+         */
+        PublicPackageRequest: {
+            customer: components["schemas"]["PublicBookingCustomer"];
+            /**
+             * Language
+             * @default en
+             * @enum {string}
+             */
+            language: "en" | "tr" | "de";
+            /**
+             * Packageid
+             * Format: uuid
+             */
+            packageId: string;
+            /**
+             * Termsaccepted
+             * @constant
+             */
+            termsAccepted: true;
+        };
+        /** PublicPackageRequestResponse */
+        PublicPackageRequestResponse: {
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Manualpaymentinstructions */
+            manualPaymentInstructions: string;
+            /** Packagename */
+            packageName: string;
+            /**
+             * Paymentstatus
+             * @enum {string}
+             */
+            paymentStatus: "pending" | "paid";
+            /** Pricecents */
+            priceCents: number;
+            /** Sessioncount */
+            sessionCount: number;
         };
         /** PublicPackageView */
         PublicPackageView: {
@@ -4912,6 +5153,14 @@ export interface components {
             intervalWeeks: number;
             /** Weekdays */
             weekdays: number[];
+        };
+        /**
+         * RefundCreate
+         * @description Money given back outside Slotera; recorded so revenue stays right.
+         */
+        RefundCreate: {
+            /** Amountcents */
+            amountCents: number;
         };
         /** RescheduleRequestedNotification */
         RescheduleRequestedNotification: {
@@ -7203,6 +7452,43 @@ export interface operations {
             };
         };
     };
+    recordBookingRefund: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sendBookingDetails: {
         parameters: {
             query?: never;
@@ -7566,6 +7852,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listClientPackages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientPackages"];
                 };
             };
         };
@@ -8462,6 +8768,43 @@ export interface operations {
             };
         };
     };
+    refundPackagePurchase: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                purchase_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackagePurchaseView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     voidPackagePurchase: {
         parameters: {
             query?: never;
@@ -9331,6 +9674,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicBookingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    requestPublicPackage: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workspace_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicPackageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPackageRequestResponse"];
                 };
             };
             /** @description Validation Error */

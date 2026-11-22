@@ -24,6 +24,7 @@ from slotera_api.bookings.repository import (
     BookingIdempotencyConflictError,
     BookingMoveError,
     BookingPaymentError,
+    BookingRefundError,
     BookingsRepository,
     BookingTransitionError,
 )
@@ -46,6 +47,7 @@ from slotera_api.schemas.bookings import (
     BookingSummary,
     BookingSummaryPage,
     OperatorBookingCreate,
+    RefundCreate,
 )
 from slotera_api.schemas.operator_resources import Address
 
@@ -88,6 +90,8 @@ def _response(item: Booking) -> BookingResponse:
         currency=item.currency,
         payment_due_at=item.payment_due_at,
         payment_received_at=item.payment_received_at,
+        refunded_cents=item.refunded_cents,
+        refunded_at=item.refunded_at,
         approved_at=item.approved_at,
         declined_at=item.declined_at,
         customer=BookingCustomerSnapshot(
@@ -159,6 +163,12 @@ def _command_error(error: Exception) -> ApiError:
             status_code=HTTPStatus.CONFLICT,
             code="booking_approval_invalid",
             message="The booking is not awaiting an approval decision",
+        )
+    if isinstance(error, BookingRefundError):
+        return ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="booking_refund_invalid",
+            message="A refund can only be recorded on a paid booking, up to the amount paid",
         )
     if isinstance(error, BookingPaymentError):
         return ApiError(
@@ -497,6 +507,35 @@ async def mark_booking_payment_received(
             idempotency_key,
         )
     except (BookingIdempotencyConflictError, BookingPaymentError) as exc:
+        raise _command_error(exc) from exc
+    if result is None:
+        raise _booking_not_found()
+    _private(response)
+    return _response(result.booking)
+
+
+@router.post(
+    "/{booking_id}/record-refund",
+    response_model=BookingResponse,
+    operation_id="recordBookingRefund",
+)
+async def record_booking_refund(
+    booking_id: UUID,
+    payload: RefundCreate,
+    response: Response,
+    operator: CsrfOperatorWorkspaceDependency,
+    database: DatabaseDependency,
+    idempotency_key: IdempotencyKey,
+) -> BookingResponse:
+    try:
+        result = await BookingsRepository(database).record_refund(
+            operator.workspace_id,
+            operator.user_id,
+            booking_id,
+            payload.amount_cents,
+            idempotency_key,
+        )
+    except (BookingIdempotencyConflictError, BookingRefundError) as exc:
         raise _command_error(exc) from exc
     if result is None:
         raise _booking_not_found()

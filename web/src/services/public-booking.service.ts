@@ -172,8 +172,8 @@ export async function createPublicBooking(
       company: draft.customer.company || null,
       notes: draft.customer.notes || null,
     },
-    // Free bookings skip the billing step; the server needs an address only for paid ones.
-    billingAddress: draft.service.priceCents === 0 ? null : {
+    // Free and package bookings skip the billing step; only a payment needs an address.
+    billingAddress: draft.service.priceCents === 0 || draft.packagePurchaseId ? null : {
       street: draft.billing.street,
       street2: draft.billing.address2 || null,
       city: draft.billing.city,
@@ -181,7 +181,8 @@ export async function createPublicBooking(
       postalCode: draft.billing.zip,
       country: draft.billing.country,
     },
-    paymentMethod: draft.service.priceCents === 0 ? "free" : "manual",
+    paymentMethod: draft.packagePurchaseId ? "package" : draft.service.priceCents === 0 ? "free" : "manual",
+    packagePurchaseId: draft.packagePurchaseId || null,
     formResponses: Object.entries(draft.formResponses).filter(([id]) => requiredForms.has(id)).map(
       ([formTemplateId, answers]) => ({
         formTemplateId,
@@ -196,7 +197,10 @@ export async function createPublicBooking(
   const idempotencyKey = crypto.randomUUID();
   return apiRequest<BookingResponseDto, BookingCreateDto>(
     `${workspacePath(slug)}/bookings`,
-    { method: "POST", body, idempotencyKey },
+    // A package booking is the signed-in client's: their session cookie and CSRF token go along.
+    draft.packagePurchaseId
+      ? { method: "POST", body, idempotencyKey, authKind: "client", csrf: true }
+      : { method: "POST", body, idempotencyKey },
   );
 }
 

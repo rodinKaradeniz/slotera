@@ -23,7 +23,7 @@ export function StepPayment({ draft }: { draft: BookingDraft }) {
 
   const instructions = settings?.payments.manualPaymentInstructions ?? null;
 
-  if (draft.service?.priceCents === 0) {
+  if (draft.service?.priceCents === 0 || draft.packagePurchaseId) {
     return (
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-stretch h-full">
         <Card padded className="flex items-center justify-center h-full">
@@ -31,8 +31,14 @@ export function StepPayment({ draft }: { draft: BookingDraft }) {
             <span className="w-11 h-11 rounded-full bg-accent-soft text-accent mx-auto mb-4 flex items-center justify-center">
               <Icon name="check" size={20} />
             </span>
-            <h2 className="text-h3 text-ink">{t("ui.no.payment.required")}</h2>
-            <p className="text-small mt-2">{t("ui.confirm.the.booking.to.reserve.this.free.session")}</p>
+            <h2 className="text-h3 text-ink">
+              {draft.packagePurchaseId ? t("client.packages.covered") : t("ui.no.payment.required")}
+            </h2>
+            <p className="text-small mt-2">
+              {draft.packagePurchaseId
+                ? t("booking.packageUse.confirm")
+                : t("ui.confirm.the.booking.to.reserve.this.free.session")}
+            </p>
           </div>
         </Card>
         <ReceiptCard draft={draft} variant="pay" manualInstructions={null} />

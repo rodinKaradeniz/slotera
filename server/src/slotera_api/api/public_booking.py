@@ -13,9 +13,19 @@ from slotera_api.auth.dependencies import (
     require_trusted_origin,
 )
 from slotera_api.booking_financials import TaxQuote, quote_for
+from slotera_api.client_access.api import (
+    invalid_session,
+    require_client,
+    require_client_write,
+)
 from slotera_api.db.models import Service, ServicePackage, Workspace
 from slotera_api.errors import ApiError
 from slotera_api.form_validation import FormValidationError
+from slotera_api.packages import purchases
+from slotera_api.packages.purchases import (
+    PackageCreditUnavailableError,
+    PackagePurchaseVoidedError,
+)
 from slotera_api.packages.repository import package_view
 from slotera_api.plans import shows_platform_branding
 from slotera_api.public_booking.repository import (
@@ -26,6 +36,7 @@ from slotera_api.public_booking.repository import (
     PublicSlotUnavailableError,
     PublicWorkspaceContext,
     PublicWorkspaceNotFoundError,
+    client_for_email,
 )
 from slotera_api.schemas.branding import Branding
 from slotera_api.schemas.forms import FormFieldInput
@@ -38,6 +49,8 @@ from slotera_api.schemas.public_booking import (
     PublicBookingResponse,
     PublicFormListResponse,
     PublicFormResponse,
+    PublicPackageRequest,
+    PublicPackageRequestResponse,
     PublicServiceListResponse,
     PublicServiceResponse,
     PublicTaxQuote,
@@ -248,9 +261,21 @@ async def create_public_booking(
             message="Too many booking attempts. Please try again later",
         )
     workspace_id = await _workspace_id(repository, workspace_slug)
+    client_id = None
+    if payload.payment_method == "package":
+        # Only the signed-in client who owns the package can use it.
+        signed_in = await require_client_write(
+            request, database, settings, await require_client(request, database)
+        )
+        if signed_in.workspace_id != workspace_id:
+            raise invalid_session()
+        client_id = signed_in.client_id
     try:
         result = await repository.create_booking(
-            workspace_id, idempotency_key=idempotency_key, values=payload.model_dump()
+            workspace_id,
+            idempotency_key=idempotency_key,
+            values=payload.model_dump(),
+            client_id=client_id,
         )
     except (PublicWorkspaceNotFoundError, PublicServiceNotFoundError) as exc:
         raise _not_found() from exc
@@ -265,6 +290,18 @@ async def create_public_booking(
             status_code=HTTPStatus.CONFLICT,
             code="idempotency_key_reused",
             message="The idempotency key was already used for another booking",
+        ) from exc
+    except PackageCreditUnavailableError as exc:
+        raise ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="package_credit_unavailable",
+            message="This package has no paid session left for this service",
+        ) from exc
+    except PackagePurchaseVoidedError as exc:
+        raise ApiError(
+            status_code=HTTPStatus.CONFLICT,
+            code="package_voided",
+            message="This package was voided, so its sessions can't be booked",
         ) from exc
     except (PublicPaymentMethodError, FormValidationError) as exc:
         raise ApiError(
@@ -288,7 +325,7 @@ async def create_public_booking(
             Literal["pending", "paid", "free", "overdue"],
             result.booking.payment_status.value,
         ),
-        payment_method=cast(Literal["free", "manual"], result.booking.payment_method),
+        payment_method=cast(Literal["free", "manual", "package"], result.booking.payment_method),
         confirmation_policy=result.booking.confirmation_policy_snapshot.value,
         approval_status=result.booking.approval_status.value,
         pending_reasons=pending_reasons,
@@ -302,6 +339,84 @@ async def create_public_booking(
         meeting_url=(result.meeting_url if result.booking.status.value == "confirmed" else None),
         payment_due_at=result.booking.payment_due_at,
         quote=_tax_response(result.quote),
+    )
+
+
+@router.post(
+    "/package-purchases",
+    response_model=PublicPackageRequestResponse,
+    status_code=HTTPStatus.CREATED,
+    operation_id="requestPublicPackage",
+)
+async def request_public_package(
+    workspace_slug: str,
+    payload: PublicPackageRequest,
+    request: Request,
+    response: Response,
+    database: DatabaseDependency,
+    settings: SettingsDependency,
+    idempotency_key: IdempotencyKey,
+) -> PublicPackageRequestResponse:
+    require_trusted_origin(request, settings)
+    repository = PublicBookingRepository(database)
+    client_key = request.client.host if request.client is not None else "unknown"
+    if not await repository.consume_rate_limit(
+        scope="public_package_request",
+        key=f"{workspace_slug}:{client_key}",
+        limit=10,
+        window_seconds=3600,
+    ):
+        raise ApiError(
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
+            code="rate_limit_exceeded",
+            message="Too many requests. Please try again later",
+        )
+    workspace_id = await _workspace_id(repository, workspace_slug)
+    try:
+        context = await repository.get_workspace(workspace_id)
+    except PublicWorkspaceNotFoundError as exc:
+        raise _not_found() from exc
+    payments = context.payments
+    async with database.tenant_transaction(workspace_id) as session:
+        price = await session.scalar(
+            select(ServicePackage.price_cents).where(
+                ServicePackage.workspace_id == workspace_id,
+                ServicePackage.id == payload.package_id,
+                ServicePackage.status == "active",
+            )
+        )
+        if price is None:
+            raise _not_found()
+        if price > 0 and not payments.manual_payment_enabled:
+            raise ApiError(
+                status_code=HTTPStatus.CONFLICT,
+                code="package_purchase_unavailable",
+                message="This package can't be bought online right now",
+            )
+        client = await client_for_email(session, workspace_id, payload.customer.model_dump())
+        # Emails about the package go out in the language the client chose here.
+        client.preferred_language = payload.language
+        view, created = await purchases.request_sale(
+            session,
+            workspace_id,
+            client.id,
+            payload.package_id,
+            idempotency_key,
+            payments.booking_terms_content if payments.booking_terms_enabled else "",
+        )
+    _no_store(response)
+    if not created:
+        response.status_code = HTTPStatus.OK
+    return PublicPackageRequestResponse(
+        id=view.id,
+        package_name=view.package_name,
+        price_cents=view.price_cents,
+        currency=view.currency,
+        payment_status=view.payment_status,
+        session_count=len(view.items),
+        manual_payment_instructions=(
+            payments.manual_payment_instructions if view.payment_status == "pending" else ""
+        ),
     )
 
 

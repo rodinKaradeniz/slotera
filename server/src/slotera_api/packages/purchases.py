@@ -29,6 +29,7 @@ from slotera_api.db.models import (
 )
 from slotera_api.editing import ensure_version
 from slotera_api.errors import ApiError
+from slotera_api.packages.notify import PackageEvent, notify_package
 from slotera_api.schemas.package_purchases import (
     PackagePurchaseCreate,
     PackagePurchaseItemBooking,
@@ -127,6 +128,8 @@ async def purchase_views(
                 payment_received_at=purchase.payment_received_at,
                 status=cast(Literal["active", "voided"], purchase.status),
                 voided_at=purchase.voided_at,
+                refunded_cents=purchase.refunded_cents,
+                refunded_at=purchase.refunded_at,
                 notes=purchase.notes,
                 items=entries,
                 used_count=used,
@@ -191,15 +194,89 @@ async def record_sale(
             and existing.notes == payload.notes
         )
         if not same:
-            raise ApiError(
-                status_code=409,
-                code="idempotency_key_reused",
-                message="The idempotency key was already used for a different sale",
-            )
+            raise _key_reused()
         return (await purchase_views(session, workspace_id, [existing]))[0], False
+    purchase = await _new_sale(
+        session,
+        workspace_id,
+        actor,
+        purchase_id,
+        client_id,
+        payload.package_id,
+        paid=payload.payment_received,
+        notes=payload.notes,
+        terms=None,
+    )
+    view = (await purchase_views(session, workspace_id, [purchase]))[0]
+    if purchase.payment_status == "paid" and payload.notify_client:
+        await notify_package(session, purchase, "ready", view.remaining_count)
+    return view, True
+
+
+async def request_sale(
+    session: AsyncSession,
+    workspace_id: UUID,
+    client_id: UUID,
+    package_id: UUID,
+    idempotency_key: str,
+    terms: str,
+) -> tuple[PackagePurchaseView, bool]:
+    """A client asks for a package on the booking page: a sale awaiting manual payment.
+
+    A free package is paid at once. The client gets the payment details (or the ready
+    email) and the workspace owner is told. Returns whether this call created it.
+    """
+    purchase_id = uuid5(NAMESPACE_URL, f"slotera:package-request:{workspace_id}:{idempotency_key}")
+    existing = await session.get(PackagePurchase, purchase_id)
+    if existing is not None:
+        if existing.client_id != client_id or existing.package_id != package_id:
+            raise _key_reused()
+        return (await purchase_views(session, workspace_id, [existing]))[0], False
+    price = await session.scalar(
+        select(ServicePackage.price_cents).where(
+            ServicePackage.workspace_id == workspace_id, ServicePackage.id == package_id
+        )
+    )
+    purchase = await _new_sale(
+        session,
+        workspace_id,
+        None,
+        purchase_id,
+        client_id,
+        package_id,
+        paid=price == 0,
+        notes=None,
+        terms=terms,
+    )
+    view = (await purchase_views(session, workspace_id, [purchase]))[0]
+    event: PackageEvent = "ready" if purchase.payment_status == "paid" else "requested"
+    await notify_package(session, purchase, event, view.remaining_count, tell_owner=True)
+    return view, True
+
+
+def _key_reused() -> ApiError:
+    return ApiError(
+        status_code=409,
+        code="idempotency_key_reused",
+        message="The idempotency key was already used for a different sale",
+    )
+
+
+async def _new_sale(
+    session: AsyncSession,
+    workspace_id: UUID,
+    actor: UUID | None,
+    purchase_id: UUID,
+    client_id: UUID,
+    package_id: UUID,
+    *,
+    paid: bool,
+    notes: str | None,
+    terms: str | None,
+) -> PackagePurchase:
     package = await session.scalar(
         select(ServicePackage).where(
-            ServicePackage.workspace_id == workspace_id, ServicePackage.id == payload.package_id
+            ServicePackage.workspace_id == workspace_id, ServicePackage.id == package_id
         )
     )
     if package is None:
@@ -230,11 +307,13 @@ async def record_sale(
         package_name_snapshot=package.name,
         price_cents=package.price_cents,
         currency=str(currency),
-        payment_status="paid" if payload.payment_received else "pending",
-        payment_received_at=now if payload.payment_received else None,
+        payment_status="paid" if paid else "pending",
+        payment_received_at=now if paid else None,
         status="active",
         voided_at=None,
-        notes=payload.notes,
+        notes=notes,
+        provider_terms_snapshot=terms,
+        terms_accepted_at=now if terms is not None else None,
     )
     session.add(purchase)
     await session.flush()
@@ -253,12 +332,11 @@ async def record_sale(
             for index, item in enumerate(package_items)
         ]
     )
-    _audit(
-        session, workspace_id, actor, "package_purchase.recorded", purchase, client=str(client_id)
-    )
+    action = "package_purchase.recorded" if actor else "package_purchase.requested"
+    _audit(session, workspace_id, actor, action, purchase, client=str(client_id))
     await session.flush()
     await session.refresh(purchase)
-    return (await purchase_views(session, workspace_id, [purchase]))[0], True
+    return purchase
 
 
 async def mark_paid(
@@ -273,7 +351,11 @@ async def mark_paid(
     _audit(session, workspace_id, actor, "package_purchase.payment_received", purchase)
     await session.flush()
     await session.refresh(purchase)
-    return (await purchase_views(session, workspace_id, [purchase]))[0]
+    view = (await purchase_views(session, workspace_id, [purchase]))[0]
+    # The client can book now; tell them, unless the sale was already voided.
+    if purchase.status == "active":
+        await notify_package(session, purchase, "ready", view.remaining_count)
+    return view
 
 
 async def void(
@@ -286,6 +368,41 @@ async def void(
     purchase.voided_at = datetime.now(UTC)
     purchase.version += 1
     _audit(session, workspace_id, actor, "package_purchase.voided", purchase)
+    await session.flush()
+    await session.refresh(purchase)
+    return (await purchase_views(session, workspace_id, [purchase]))[0]
+
+
+async def refund(
+    session: AsyncSession,
+    workspace_id: UUID,
+    actor: UUID,
+    purchase_id: UUID,
+    expected: int,
+    amount_cents: int,
+) -> PackagePurchaseView:
+    """Record money given back for a paid sale; refunds add up to at most the price."""
+    purchase = await _locked_for_change(session, workspace_id, purchase_id, expected)
+    if (
+        purchase.payment_status != "paid"
+        or amount_cents > purchase.price_cents - purchase.refunded_cents
+    ):
+        raise ApiError(
+            status_code=409,
+            code="package_refund_invalid",
+            message="A refund can only be recorded on a paid sale, up to its price",
+        )
+    purchase.refunded_cents += amount_cents
+    purchase.refunded_at = datetime.now(UTC)
+    purchase.version += 1
+    _audit(
+        session,
+        workspace_id,
+        actor,
+        "package_purchase.refund_recorded",
+        purchase,
+        amount_cents=str(amount_cents),
+    )
     await session.flush()
     await session.refresh(purchase)
     return (await purchase_views(session, workspace_id, [purchase]))[0]
@@ -387,7 +504,7 @@ def _transition_error() -> ApiError:
 def _audit(
     session: AsyncSession,
     workspace_id: UUID,
-    actor: UUID,
+    actor: UUID | None,
     action: str,
     purchase: PackagePurchase,
     **details: str,

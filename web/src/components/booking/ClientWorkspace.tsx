@@ -7,6 +7,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { ClientFooter } from "./ClientFooter";
 import { BookingTheme } from "./BookingTheme";
 import { ConversationThread } from "@/components/messages/ConversationThread";
+import { ClientPackages } from "./ClientPackages";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { TabPanel, Tabs } from "@/components/ui/Tabs";
@@ -20,6 +21,7 @@ import {
   logoutClient,
   updateClientPreferences,
   listClientBookings,
+  listClientPackages,
   clientManagementAccess,
   type ClientIdentity,
 } from "@/services/client-access.service";
@@ -69,9 +71,19 @@ function BookingHistory() {
           <p>
             {booking.reference} ·{" "}
             <StatusBadge kind="booking" status={booking.status} /> ·{" "}
-            {formatMoney(
-              booking.amountCents,
-              booking.currency as "GBP" | "EUR" | "USD",
+            {booking.paymentMethod === "package"
+              ? t("client.packages.covered")
+              : formatMoney(
+                  booking.amountCents,
+                  booking.currency as "GBP" | "EUR" | "USD",
+                )}
+            {booking.refundedCents > 0 && (
+              <>
+                {" "}·{" "}
+                {t("client.refunded", {
+                  amount: formatMoney(booking.refundedCents, booking.currency as "GBP" | "EUR" | "USD"),
+                })}
+              </>
             )}
           </p>
           <Button
@@ -180,7 +192,8 @@ function Preferences({
   );
 }
 
-const CLIENT_TABS = ["messages", "bookings", "account"] as const;
+const CLIENT_TABS = ["messages", "bookings", "packages", "account"] as const;
+type ClientTab = (typeof CLIENT_TABS)[number];
 
 export function ClientWorkspace({ slug }: { slug: string }) {
   const { t, setLang } = useI18n();
@@ -188,9 +201,15 @@ export function ClientWorkspace({ slug }: { slug: string }) {
   const initialized = React.useRef<string | null>(null);
   const [identity, setIdentity] = React.useState<ClientIdentity | null>(null);
   const [failed, setFailed] = React.useState(false);
-  const [tab, setTab] = React.useState<"messages" | "bookings" | "account">(
-    "messages",
+  const [tab, setTab] = React.useState<ClientTab>("messages");
+  const clientId = identity?.clientId;
+  // The Packages tab shows only for a client who has bought one.
+  const loadPackages = React.useCallback(
+    (signal?: AbortSignal) => (clientId ? listClientPackages(signal) : Promise.resolve(null)),
+    [clientId],
   );
+  const packages = useLoad(loadPackages).data;
+  const tabs = CLIENT_TABS.filter((item) => item !== "packages" || !!packages?.items.length);
   React.useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -274,15 +293,17 @@ export function ClientWorkspace({ slug }: { slug: string }) {
         <Tabs
           className="mb-5"
           value={tab}
-          onChange={(value) => setTab(value as typeof tab)}
-          tabs={CLIENT_TABS.map((item) => ({ value: item, label: t(`client.${item}`) }))}
+          onChange={(value) => setTab(value as ClientTab)}
+          tabs={tabs.map((item) => ({ value: item, label: t(`client.${item}`) }))}
         />
         <Card>
-          <TabPanel value={tab} order={CLIENT_TABS}>
+          <TabPanel value={tab} order={tabs}>
           {tab === "messages" ? (
             <ConversationThread key={identity.clientId} />
           ) : tab === "bookings" ? (
             <BookingHistory key={identity.clientId} />
+          ) : tab === "packages" && packages ? (
+            <ClientPackages slug={slug} data={packages} />
           ) : (
             <Preferences
               key={identity.clientId}

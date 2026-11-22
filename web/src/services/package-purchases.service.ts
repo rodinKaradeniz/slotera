@@ -12,6 +12,11 @@ import { listBookings } from "./bookings.service";
 import { getPackage } from "./packages.service";
 import { listServices } from "./services.service";
 import { listSessions } from "./sessions.service";
+import { currentPublicWorkspaceSlug } from "./public-booking.service";
+import { getPaymentSettings } from "./settings.service";
+import { readLang } from "@/lib/i18n";
+import { saveDemoPurchase, syncDemoPurchases, type DemoPurchaseRecord } from "@/lib/demo-bookings";
+import type { Client } from "@/types/client";
 
 type PurchaseDto = components["schemas"]["PackagePurchaseView"];
 
@@ -21,6 +26,7 @@ function mapPurchase(dto: PurchaseDto): PackagePurchase {
     packageName: dto.packageName, priceCents: dto.priceCents, currency: dto.currency as Currency,
     paymentStatus: dto.paymentStatus, paymentReceivedAtISO: dto.paymentReceivedAt ?? undefined,
     status: dto.status, voidedAtISO: dto.voidedAt ?? undefined, notes: dto.notes ?? undefined,
+    refundedCents: dto.refundedCents, refundedAtISO: dto.refundedAt ?? undefined,
     items: dto.items.map((item) => ({
       position: item.position, serviceId: item.serviceId, title: item.title,
       booking: item.booking ? { id: item.booking.id, status: item.booking.status, startISO: item.booking.startAt } : null,
@@ -47,14 +53,25 @@ async function snapshot(packageId: string) {
   return { item, items };
 }
 
+// Package requests a visitor made on the demo booking page, possibly in another tab.
+let demoRequests: DemoPurchaseRecord[] = [];
+if (dataSource === "mock") syncDemoPurchases((records) => { demoRequests = records; });
+
+async function fromSeed(seed: MockSeed): Promise<MockPurchase> {
+  const { item, items } = await snapshot(seed.packageId);
+  return { ...seed, packageName: item.name, priceCents: item.priceCents, currency: item.currency, refundedCents: 0, items };
+}
+
 async function store(): Promise<MockPurchase[]> {
-  if (mock) return mock;
-  const seeds = mockData<MockSeed[]>("package-purchases");
-  const loaded = await Promise.all(seeds.map(async (seed) => {
-    const { item, items } = await snapshot(seed.packageId);
-    return { ...seed, packageName: item.name, priceCents: item.priceCents, currency: item.currency, items };
-  }));
-  mock ??= loaded;
+  if (!mock) {
+    const loaded = await Promise.all(mockData<MockSeed[]>("package-purchases").map(fromSeed));
+    mock ??= loaded;
+  }
+  const missing = demoRequests.filter((record) => !mock!.some((item) => item.id === record.purchase.id));
+  for (const record of missing) {
+    const added = await fromSeed({ ...record.purchase, version: 1, paymentStatus: "pending", status: "active" });
+    if (!mock.some((item) => item.id === added.id)) mock = [added, ...mock];
+  }
   return mock;
 }
 
@@ -91,7 +108,8 @@ export async function recordPackageSale(clientId: string, input: PackageSaleInpu
   if (dataSource === "api") return mapPurchase(await apiRequest<PurchaseDto, components["schemas"]["PackagePurchaseCreate"]>(
     `/clients/${encodeURIComponent(clientId)}/package-purchases`, {
       method: "POST", csrf: true, idempotencyKey,
-      body: { packageId: input.packageId, paymentReceived: input.paymentReceived, notes: input.notes?.trim() || null },
+      body: { packageId: input.packageId, paymentReceived: input.paymentReceived, notes: input.notes?.trim() || null,
+        notifyClient: input.notifyClient ?? true },
     }));
   await sleep(80);
   const purchases = await store();
@@ -108,16 +126,16 @@ export async function recordPackageSale(clientId: string, input: PackageSaleInpu
     id: makeId("pur"), version: 1, clientId, packageId: item.id, packageName: item.name, priceCents: item.priceCents,
     currency: item.currency, paymentStatus: input.paymentReceived ? "paid" : "pending",
     paymentReceivedAtISO: input.paymentReceived ? now : undefined, status: "active",
-    notes: input.notes?.trim() || undefined, items, createdAtISO: now,
+    notes: input.notes?.trim() || undefined, refundedCents: 0, items, createdAtISO: now,
   };
   mock = [created, ...purchases];
   mockSales.set(idempotencyKey, { fingerprint, id: created.id });
   return (await withUse([created]))[0];
 }
 
-async function change(id: string, expectedVersion: number, apply: (item: MockPurchase) => boolean, path: string): Promise<PackagePurchase> {
-  if (dataSource === "api") return mapPurchase(await apiRequest<PurchaseDto>(
-    `/package-purchases/${encodeURIComponent(id)}/${path}`, { method: "POST", csrf: true, expectedVersion }));
+async function change(id: string, expectedVersion: number, apply: (item: MockPurchase) => boolean, path: string, body?: object): Promise<PackagePurchase> {
+  if (dataSource === "api") return mapPurchase(await apiRequest<PurchaseDto, object>(
+    `/package-purchases/${encodeURIComponent(id)}/${path}`, { method: "POST", csrf: true, expectedVersion, body }));
   await sleep(60);
   const item = (await store()).find((entry) => entry.id === id);
   if (!item) throw new NotFoundError("package purchase", id);
@@ -143,6 +161,25 @@ export function voidPackagePurchase(id: string, expectedVersion: number): Promis
   }, "void");
 }
 
+/** What can still be refunded on a sale: its price minus earlier refunds, once paid. */
+export function saleRefundableCents(purchase: Pick<PackagePurchase, "paymentStatus" | "priceCents" | "refundedCents">): number {
+  return purchase.paymentStatus === "paid" ? purchase.priceCents - purchase.refundedCents : 0;
+}
+
+/** Record money given back for a paid sale; a voided sale can still be refunded. */
+export async function refundPackagePurchase(id: string, expectedVersion: number, amountCents: number): Promise<PackagePurchase> {
+  if (dataSource !== "api") {
+    const item = (await store()).find((entry) => entry.id === id);
+    if (item && (amountCents <= 0 || amountCents > saleRefundableCents(item))) {
+      throw new ApiRequestError(409, "package_refund_invalid", "A refund can only be recorded on a paid sale, up to its price.");
+    }
+  }
+  return change(id, expectedVersion, (item) => {
+    item.refundedCents += amountCents; item.refundedAtISO = new Date().toISOString();
+    return true;
+  }, "refund", { amountCents });
+}
+
 /** Demo only: the lowest unused position of `serviceId` in the client's purchase. */
 export async function claimMockPackageItem(purchaseId: string, clientId: string, serviceId: string): Promise<number> {
   const [purchase] = await withUse((await store()).filter((item) => item.id === purchaseId && item.clientId === clientId));
@@ -162,4 +199,51 @@ export async function packagesCovering(clientId: string, serviceId: string): Pro
 /** Demo only: a sold package can't be deleted, as in the API. */
 export async function isPackageSold(packageId: string): Promise<boolean> {
   return (await store()).some((item) => item.packageId === packageId);
+}
+
+export type PackageRequest = components["schemas"]["PublicPackageRequestResponse"];
+export type PackageBuyer = { firstName: string; lastName: string; email: string; phone?: string };
+const mockRequests = new Map<string, { fingerprint: string; result: PackageRequest }>();
+
+/**
+ * A visitor asks to buy a package on the booking page. It waits for the manual payment the
+ * consultant records; the visitor gets the payment details on screen and by email.
+ */
+export async function requestPackage(packageId: string, buyer: PackageBuyer, idempotencyKey: string): Promise<PackageRequest> {
+  if (dataSource === "api") {
+    const slug = currentPublicWorkspaceSlug();
+    if (!slug) throw new NotFoundError("Booking page", "(no workspace selected)");
+    return apiRequest<PackageRequest, components["schemas"]["PublicPackageRequest"]>(
+      `/public/workspaces/${encodeURIComponent(slug)}/package-purchases`, {
+        method: "POST", idempotencyKey,
+        body: { packageId, language: readLang(), termsAccepted: true,
+          customer: { firstName: buyer.firstName.trim(), lastName: buyer.lastName.trim(), email: buyer.email.trim(), phone: buyer.phone?.trim() || null } },
+      });
+  }
+  await sleep(300);
+  const fingerprint = JSON.stringify([packageId, buyer.email.trim().toLowerCase()]);
+  const replay = mockRequests.get(idempotencyKey);
+  if (replay) {
+    if (replay.fingerprint !== fingerprint) throw new ApiRequestError(409, "idempotency_key_reused", "That request was already sent differently.");
+    return replay.result;
+  }
+  const { item, items } = await snapshot(packageId);
+  const { listClients } = await import("./clients.service");
+  const email = buyer.email.trim();
+  const existing = (await listClients()).find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+  const id = makeId("pur");
+  const now = new Date().toISOString();
+  const client: Client | null = existing ? null : {
+    version: 1, id: `cli-demo-${id}`, name: `${buyer.firstName} ${buyer.lastName}`.trim(), email,
+    phone: buyer.phone || undefined, tag: "new", joinedISO: now,
+    totalBookings: 0, completedBookings: 0, cancelledBookings: 0, totalSpentCents: 0,
+  };
+  saveDemoPurchase({ purchase: { id, clientId: existing?.id ?? client!.id, packageId, createdAtISO: now }, client });
+  const payments = await getPaymentSettings();
+  const result: PackageRequest = {
+    id, packageName: item.name, priceCents: item.priceCents, currency: item.currency, paymentStatus: "pending",
+    sessionCount: items.length, manualPaymentInstructions: payments.manualPaymentInstructions,
+  };
+  mockRequests.set(idempotencyKey, { fingerprint, result });
+  return result;
 }

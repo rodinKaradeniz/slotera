@@ -1,13 +1,13 @@
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from dataclasses import dataclass, replace
+from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
 from typing import Any
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import ColumnElement, and_, func, or_, select, text
+from sqlalchemy import ColumnElement, and_, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from slotera_api.booking_access import emit_booking_event, notify_operator
@@ -15,9 +15,6 @@ from slotera_api.booking_financials import TaxQuote, financial_snapshot, quote_f
 from slotera_api.database import Database
 from slotera_api.db.models import (
     AuditEvent,
-    AvailabilityBlackout,
-    AvailabilityPolicy,
-    AvailabilityWindow,
     Booking,
     BookingApprovalStatus,
     BookingFormResponse,
@@ -42,6 +39,18 @@ from slotera_api.db.models import (
     WorkspacePaymentSettings,
 )
 from slotera_api.form_validation import FormValidationError, validate_form_responses
+from slotera_api.packages.purchases import PackageCreditUnavailableError, claim_item
+from slotera_api.public_booking.availability import (
+    AvailabilitySlot as AvailabilitySlot,
+)
+from slotera_api.public_booking.availability import (
+    PublicSlotUnavailableError as PublicSlotUnavailableError,
+)
+from slotera_api.public_booking.availability import (
+    available_slots,
+    lock_scheduled_session,
+    scheduled_slots,
+)
 from slotera_api.public_booking.terms import PLATFORM_TERMS_VERSION
 
 
@@ -50,10 +59,6 @@ class PublicWorkspaceNotFoundError(Exception):
 
 
 class PublicServiceNotFoundError(Exception):
-    pass
-
-
-class PublicSlotUnavailableError(Exception):
     pass
 
 
@@ -70,17 +75,6 @@ class PublicWorkspaceContext:
     workspace: Workspace
     profile: WorkspaceBusinessProfile
     payments: WorkspacePaymentSettings
-
-
-@dataclass(frozen=True)
-class AvailabilitySlot:
-    start_at: datetime
-    end_at: datetime
-    # Scheduled services only: seats still free in that existing session.
-    spots_left: int | None = None
-
-
-_CAPACITY_CONSUMING = (BookingStatus.PENDING, BookingStatus.CONFIRMED)
 
 
 def _publicly_bookable() -> ColumnElement[bool]:
@@ -102,18 +96,35 @@ class PublicBookingResult:
     meeting_url: str | None = None
 
 
-def _overlaps(
-    left_start: datetime,
-    left_end: datetime,
-    right_start: datetime,
-    right_end: datetime,
-) -> bool:
-    return left_start < right_end and right_start < left_end
-
-
 def _fingerprint(values: Mapping[str, Any]) -> str:
     serialized = json.dumps(values, sort_keys=True, separators=(",", ":"), default=str)
     return sha256(serialized.encode()).hexdigest()
+
+
+async def client_for_email(
+    session: AsyncSession, workspace_id: UUID, customer: Mapping[str, Any]
+) -> Client:
+    """The workspace's client with this email, created from the customer details if new."""
+    email = str(customer["email"]).strip().lower()
+    client = await session.scalar(
+        select(Client).where(Client.workspace_id == workspace_id, Client.email == email)
+    )
+    if client is None:
+        client = Client(
+            id=uuid4(),
+            workspace_id=workspace_id,
+            name=f"{customer['first_name']} {customer['last_name']}".strip(),
+            email=email,
+            phone=customer.get("phone"),
+            company=customer.get("company"),
+            role=None,
+            timezone=None,
+            address=None,
+            vat_id=None,
+        )
+        session.add(client)
+        await session.flush()
+    return client
 
 
 class PublicBookingRepository:
@@ -250,7 +261,7 @@ class PublicBookingRepository:
             effective_now = now or datetime.now(UTC)
             await self._expire_manual_bookings(session, workspace_id, effective_now)
             if service.booking_mode == ServiceBookingMode.SCHEDULED:
-                return context.workspace.timezone, await self._scheduled_slots(
+                return context.workspace.timezone, await scheduled_slots(
                     session,
                     workspace_id,
                     service,
@@ -259,7 +270,7 @@ class PublicBookingRepository:
                     ends_on,
                     effective_now,
                 )
-            slots = await self._available_slots(
+            slots = await available_slots(
                 session,
                 workspace_id,
                 service,
@@ -316,202 +327,15 @@ class PublicBookingRepository:
         if rows:
             await session.flush()
 
-    async def _scheduled_slots(
-        self,
-        session: AsyncSession,
-        workspace_id: UUID,
-        service: Service,
-        timezone_name: str,
-        starts_on: date,
-        ends_on: date,
-        now: datetime,
-    ) -> list[AvailabilitySlot]:
-        policy = await session.get(AvailabilityPolicy, workspace_id)
-        if policy is None:
-            return []
-        timezone = ZoneInfo(timezone_name)
-        range_start = datetime.combine(starts_on, time.min, timezone).astimezone(UTC)
-        range_end = datetime.combine(ends_on + timedelta(days=1), time.min, timezone).astimezone(
-            UTC
-        )
-        earliest = max(range_start, now + timedelta(minutes=policy.minimum_notice_min))
-        latest = min(range_end, now + timedelta(days=policy.maximum_advance_days))
-        consumed = (
-            select(func.count(Booking.id))
-            .where(
-                Booking.workspace_id == Session.workspace_id,
-                Booking.session_id == Session.id,
-                Booking.status.in_(_CAPACITY_CONSUMING),
-            )
-            .scalar_subquery()
-        )
-        rows = (
-            await session.execute(
-                select(Session, consumed)
-                .where(
-                    Session.workspace_id == workspace_id,
-                    Session.service_id == service.id,
-                    Session.status == SessionStatus.SCHEDULED,
-                    Session.start_at >= earliest,
-                    Session.start_at < latest,
-                )
-                .order_by(Session.start_at)
-            )
-        ).all()
-        return [
-            AvailabilitySlot(
-                start_at=item.start_at,
-                end_at=item.end_at,
-                spots_left=item.capacity - int(taken or 0),
-            )
-            for item, taken in rows
-            if int(taken or 0) < item.capacity
-        ]
-
-    async def _lock_scheduled_session(
-        self,
-        session: AsyncSession,
-        workspace_id: UUID,
-        service: Service,
-        start_at: datetime,
-        now: datetime,
-    ) -> Session:
-        """Lock the operator's session at `start_at` and confirm a seat is free."""
-        policy = await session.get(AvailabilityPolicy, workspace_id)
-        scheduled_session = await session.scalar(
-            select(Session)
-            .where(
-                Session.workspace_id == workspace_id,
-                Session.service_id == service.id,
-                Session.status == SessionStatus.SCHEDULED,
-                Session.start_at == start_at,
-            )
-            .with_for_update()
-        )
-        if scheduled_session is None or policy is None:
-            raise PublicSlotUnavailableError
-        if not (
-            now + timedelta(minutes=policy.minimum_notice_min)
-            <= scheduled_session.start_at
-            <= now + timedelta(days=policy.maximum_advance_days)
-        ):
-            raise PublicSlotUnavailableError
-        taken = await session.scalar(
-            select(func.count(Booking.id)).where(
-                Booking.workspace_id == workspace_id,
-                Booking.session_id == scheduled_session.id,
-                Booking.status.in_(_CAPACITY_CONSUMING),
-            )
-        )
-        if int(taken or 0) >= scheduled_session.capacity:
-            raise PublicSlotUnavailableError
-        return scheduled_session
-
-    async def _available_slots(
-        self,
-        session: AsyncSession,
-        workspace_id: UUID,
-        service: Service,
-        timezone_name: str,
-        starts_on: date,
-        ends_on: date,
-        now: datetime,
-    ) -> list[AvailabilitySlot]:
-        policy = await session.get(AvailabilityPolicy, workspace_id)
-        if policy is None:
-            return []
-        windows = list(
-            (
-                await session.scalars(
-                    select(AvailabilityWindow).where(
-                        AvailabilityWindow.workspace_id == workspace_id
-                    )
-                )
-            ).all()
-        )
-        timezone = ZoneInfo(timezone_name)
-        range_start = datetime.combine(starts_on, time.min, timezone).astimezone(UTC)
-        range_end = datetime.combine(ends_on + timedelta(days=1), time.min, timezone).astimezone(
-            UTC
-        )
-        blackouts = list(
-            (
-                await session.scalars(
-                    select(AvailabilityBlackout).where(
-                        AvailabilityBlackout.workspace_id == workspace_id,
-                        AvailabilityBlackout.starts_at < range_end,
-                        AvailabilityBlackout.ends_at > range_start,
-                    )
-                )
-            ).all()
-        )
-        sessions = list(
-            (
-                await session.scalars(
-                    select(Session).where(
-                        Session.workspace_id == workspace_id,
-                        Session.status != SessionStatus.CANCELLED,
-                        Session.start_at < range_end + timedelta(minutes=policy.buffer_before_min),
-                        Session.end_at > range_start - timedelta(minutes=policy.buffer_after_min),
-                    )
-                )
-            ).all()
-        )
-        earliest = now + timedelta(minutes=policy.minimum_notice_min)
-        latest = now + timedelta(days=policy.maximum_advance_days)
-        duration = timedelta(minutes=service.duration_min)
-        interval = timedelta(minutes=policy.slot_interval_min)
-        buffer_before = timedelta(minutes=policy.buffer_before_min)
-        buffer_after = timedelta(minutes=policy.buffer_after_min)
-        by_day: dict[int, list[AvailabilityWindow]] = {}
-        for window in windows:
-            by_day.setdefault(window.day_of_week, []).append(window)
-
-        slots: list[AvailabilitySlot] = []
-        current_day = starts_on
-        while current_day <= ends_on:
-            for window in by_day.get(current_day.isoweekday(), []):
-                cursor = datetime.combine(current_day, window.start_local, timezone)
-                window_end = datetime.combine(current_day, window.end_local, timezone)
-                while cursor + duration <= window_end:
-                    start_at = cursor.astimezone(UTC)
-                    end_at = (cursor + duration).astimezone(UTC)
-                    blocked_start = start_at - buffer_before
-                    blocked_end = end_at + buffer_after
-                    if (
-                        start_at >= earliest
-                        and start_at <= latest
-                        and not any(
-                            _overlaps(
-                                blocked_start,
-                                blocked_end,
-                                item.starts_at,
-                                item.ends_at,
-                            )
-                            for item in blackouts
-                        )
-                        and not any(
-                            _overlaps(
-                                blocked_start,
-                                blocked_end,
-                                item.start_at,
-                                item.end_at,
-                            )
-                            for item in sessions
-                        )
-                    ):
-                        slots.append(AvailabilitySlot(start_at=start_at, end_at=end_at))
-                    cursor += interval
-            current_day += timedelta(days=1)
-        return slots
-
     async def create_booking(
         self,
         workspace_id: UUID,
         *,
         idempotency_key: str,
         values: Mapping[str, Any],
+        client_id: UUID | None = None,
     ) -> PublicBookingResult:
+        """Book a public slot. `client_id` is the signed-in client, needed to use a package."""
         fingerprint = _fingerprint(values)
         async with self.database.tenant_transaction(workspace_id, scheduling_write=True) as session:
             await session.execute(
@@ -601,13 +425,13 @@ class PublicBookingRepository:
             start_at = start_at.astimezone(UTC)
             existing_session: Session | None = None
             if service.booking_mode == ServiceBookingMode.SCHEDULED:
-                existing_session = await self._lock_scheduled_session(
+                existing_session = await lock_scheduled_session(
                     session, workspace_id, service, start_at, effective_now
                 )
                 slot = AvailabilitySlot(existing_session.start_at, existing_session.end_at)
             else:
                 local_day = start_at.astimezone(ZoneInfo(workspace.timezone)).date()
-                available = await self._available_slots(
+                available = await available_slots(
                     session,
                     workspace_id,
                     service,
@@ -622,7 +446,11 @@ class PublicBookingRepository:
                 slot = open_slot
 
             payment_method = values["payment_method"]
-            if service.price_cents == 0:
+            if payment_method == "package":
+                # A package already paid for the session, whatever the service costs.
+                if client_id is None:
+                    raise PublicPaymentMethodError
+            elif service.price_cents == 0:
                 if payment_method != "free":
                     raise PublicPaymentMethodError
             elif (
@@ -666,28 +494,30 @@ class PublicBookingRepository:
             customer = values["customer"]
             if not isinstance(customer, Mapping):
                 raise FormValidationError
-            email = str(customer["email"]).strip().lower()
-            client = await session.scalar(
-                select(Client).where(
-                    Client.workspace_id == workspace_id,
-                    Client.email == email,
+            package_position: int | None = None
+            if payment_method == "package":
+                signed_in = await session.scalar(
+                    select(Client)
+                    .where(
+                        Client.workspace_id == workspace_id,
+                        Client.id == client_id,
+                        Client.erased_at.is_(None),
+                    )
+                    .with_for_update()
                 )
-            )
-            if client is None:
-                client = Client(
-                    id=uuid4(),
-                    workspace_id=workspace_id,
-                    name=f"{customer['first_name']} {customer['last_name']}".strip(),
-                    email=email,
-                    phone=customer.get("phone"),
-                    company=customer.get("company"),
-                    role=None,
-                    timezone=None,
-                    address=None,
-                    vat_id=None,
+                if signed_in is None:
+                    raise PublicPaymentMethodError
+                client = signed_in
+                email = client.email
+                # Locked after the client, as the operator path and erasure order it.
+                purchase, package_position = await claim_item(
+                    session, workspace_id, values["package_purchase_id"], client.id, service.id
                 )
-                session.add(client)
-                await session.flush()
+                if purchase.payment_status != "paid":
+                    raise PackageCreditUnavailableError
+            else:
+                email = str(customer["email"]).strip().lower()
+                client = await client_for_email(session, workspace_id, customer)
 
             scheduled_session = existing_session or Session(
                 id=uuid4(),
@@ -712,6 +542,8 @@ class PublicBookingRepository:
                 await session.flush()
             booking_id = uuid4()
             quote = quote_for(service, workspace, payments)
+            if package_position is not None:
+                quote = replace(quote, gross_amount_cents=0, net_amount_cents=0, tax_amount_cents=0)
             payment_due_at = (
                 min(effective_now + timedelta(hours=48), slot.start_at)
                 if payment_method == "manual"
@@ -722,12 +554,13 @@ class PublicBookingRepository:
                 if service.confirmation_policy.value == "operator_approval"
                 else BookingApprovalStatus.NOT_REQUIRED
             )
-            payment_status = (
-                PaymentStatus.FREE if payment_method == "free" else PaymentStatus.PENDING
-            )
+            payment_status = {
+                "free": PaymentStatus.FREE,
+                "package": PaymentStatus.PAID,
+            }.get(str(payment_method), PaymentStatus.PENDING)
             initial_status = (
                 BookingStatus.CONFIRMED
-                if payment_status == PaymentStatus.FREE
+                if payment_status in (PaymentStatus.FREE, PaymentStatus.PAID)
                 and approval_status == BookingApprovalStatus.NOT_REQUIRED
                 else BookingStatus.PENDING
             )
@@ -745,6 +578,10 @@ class PublicBookingRepository:
                 attendance=None,
                 reference=f"SLT-{booking_id.hex[:12].upper()}",
                 payment_method=str(payment_method),
+                package_purchase_id=values["package_purchase_id"]
+                if package_position is not None
+                else None,
+                package_position=package_position,
                 **financial_snapshot(quote, payments),
                 billing_address=dict(values.get("billing_address") or {}),
                 payment_due_at=payment_due_at,

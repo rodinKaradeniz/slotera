@@ -189,8 +189,19 @@ export default function ManageBookingPage() {
                 <DetailLine
                   icon="wallet"
                   label={t("manage.amount")}
-                  value={formatMoney(booking.amountCents, booking.currency as Currency)}
+                  value={
+                    booking.paymentMethod === "package"
+                      ? t("client.packages.covered")
+                      : formatMoney(booking.amountCents, booking.currency as Currency)
+                  }
                 />
+                {booking.refundedCents > 0 && (
+                  <DetailLine
+                    icon="wallet"
+                    label={t("refund.refunded")}
+                    value={formatMoney(booking.refundedCents, booking.currency as Currency)}
+                  />
+                )}
               </div>
               {booking.manualPaymentInstructions && (
                 <div className="mt-5">

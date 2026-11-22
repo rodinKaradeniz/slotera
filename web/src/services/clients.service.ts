@@ -7,7 +7,7 @@ import type { components } from "@/api/generated/schema";
 import { dataSource } from "@/lib/env";
 import { sleep } from "@/lib/delay";
 import { makeId } from "@/lib/id";
-import { syncDemoBookings } from "@/lib/demo-bookings";
+import { syncDemoBookings, syncDemoPurchases } from "@/lib/demo-bookings";
 import type { Client, ClientInput } from "@/types/client";
 import { ApiRequestError, NotFoundError, NotImplementedError } from "./_errors";
 
@@ -25,6 +25,12 @@ if (dataSource === "mock") syncDemoBookings((records) => {
     demoSeen.add(booking.id);
     if (client && !mock.some((item) => item.id === client.id)) mock = [client, ...mock];
     else mock = mock.map((item) => item.id === booking.clientId ? {...item, totalBookings: item.totalBookings + 1} : item);
+  }
+});
+// A demo package request adds its buyer when they are new.
+if (dataSource === "mock") syncDemoPurchases((records) => {
+  for (const { client } of [...records].reverse()) {
+    if (client && !mock.some((item) => item.id === client.id)) mock = [client, ...mock];
   }
 });
 

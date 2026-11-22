@@ -301,8 +301,6 @@ export const en = {
     "Slotera is a lightweight client workspace for independent experts. Take paid bookings with bank-transfer payment, send prep forms, bundle sessions into packages, and keep client context and follow-up in one place. No heavy CRM.",
 
   // Landing — logo wall
-  "landing.logos.trustedBy":
-    "Trusted by 1,200+ independent advisors, coaches and instructors across Europe.",
 
   // Landing — how it works
   "landing.how.title":
@@ -343,15 +341,6 @@ export const en = {
   "landing.demoStrip.title": "Try a real booking flow. No sign-up needed.",
 
   // Landing — testimonials
-  "landing.testimonials.eyebrow": "Testimonials",
-  "landing.testimonials.title":
-    "Operators we've quietly freed up an afternoon a week.",
-  "landing.testimonials.q1":
-    "I used to lose half a day every week to scheduling. Slotera collapsed that to a Sunday-night review.",
-  "landing.testimonials.q2":
-    "The booking page looks like part of my site. Clients don't even notice the handoff.",
-  "landing.testimonials.q3":
-    "Group workshops with capacity and waitlists used to need a CRM. Now it's two clicks.",
 
   // Landing — pricing
   "landing.pricing.title": "Two plans. Try either free for 30 days.",
@@ -1878,7 +1867,7 @@ export const en = {
   "packageSales.markPaid": "Mark payment received",
   "packageSales.void": "Void package",
   "packageSales.voidTitle": "Void {name}?",
-  "packageSales.voidBody": "Its unused sessions can no longer be booked. Bookings already made stay as they are, and any refund happens outside Slotera.",
+  "packageSales.voidBody": "Its unused sessions can no longer be booked. Bookings already made stay, and the sale still counts as revenue. If you give money back, record a refund.",
   "packageSales.recordTitle": "Record a package sale",
   "packageSales.recordBody": "For a package the client pays you for outside Slotera. Its sessions can then be booked from New booking.",
   "packageSales.package": "Package",
@@ -1897,6 +1886,42 @@ export const en = {
   "booking.package.covered": "Covered by {name}, session {position} of {total}",
   "booking.package.marker": "Package",
   "packages.inUse": "This package was sold to a client. Deactivate it instead.",
+  "refund.title": "Record a refund",
+  "refund.body": "For money you gave back outside Slotera. Revenue and the client's total spent go down by this amount.",
+  "refund.amount": "Amount refunded ({currency})",
+  "refund.max": "Up to {amount}",
+  "refund.record": "Record refund",
+  "refund.recorded": "Refund recorded",
+  "refund.failed": "Couldn't record the refund",
+  "refund.refunded": "Refunded",
+  "refund.refundedOn": "Refunded on {date}",
+  "refund.invalid": "A refund can only be recorded on a paid booking or sale, up to what was paid.",
+  "client.packages": "Packages",
+  "client.packages.book": "Book a session",
+  "client.packages.payBody": "Pay {amount} using the details below. You can book your sessions once your consultant has received it.",
+  "client.packages.covered": "Covered by your package",
+  "client.refunded": "Refunded {amount}",
+  "booking.packageUse.title": "Use your package",
+  "booking.packageUse.option": "{name}: {count} left",
+  "booking.packageUse.pay": "Pay for this session instead",
+  "booking.packageUse.confirm": "Confirm to book this session with your package.",
+  "booking.packageUse.signedIn": "You're signed in, so the booking uses this email.",
+  "booking.packageUse.unavailable": "This package has no session left for this service.",
+  "booking.packageUse.voided": "This package was voided, so its sessions can't be booked.",
+  "notification.package_requested": "Package requested",
+  "notification.package": "{name} · {amount} awaiting payment",
+  "packageSales.notifyClient": "Email the client that their sessions can be booked",
+  "booking.packages.buy": "Buy",
+  "booking.packages.buyTitle": "Buy {name}",
+  "booking.packages.buyBody": "{sessions} sessions for {price}. You pay by bank transfer; once {provider} has received it, you can book your sessions.",
+  "booking.packages.buySubmit": "Request package",
+  "booking.packages.requestedTitle": "Request sent",
+  "booking.packages.requestedBody": "We've emailed you these payment details. Once {provider} has received your payment, you'll get an email and can book your sessions.",
+  "booking.packages.readyBody": "Your package is ready. We've emailed you how to book its sessions.",
+  "booking.packages.buyFailed": "The request couldn't be sent",
+  "booking.packages.unavailable": "This package can't be bought online right now.",
+  "booking.packages.buyIntro": "Buy a package here and pay by bank transfer. Once your consultant has received it, you can book its sessions.",
+  "booking.packages.providerTerms": "{provider}'s booking terms",
 } as const;
 
 export type MessageKey = keyof typeof en;

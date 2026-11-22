@@ -5,9 +5,10 @@ from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import and_, case, func, select, text
+from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from slotera_api.clients.repository import SALE_NET_CENTS, booking_net_received
 from slotera_api.clients.repository import counted_package_sale as _counted_sale
 from slotera_api.database import Database
 from slotera_api.db.models import (
@@ -186,21 +187,17 @@ m.sequence>coalesce(r.last_read,0)
             Booking.created_at >= starts_at,
             Booking.created_at < ends_at,
         )
+        # Money kept counts whatever the booking's status; the counts skip cancelled ones.
+        received = await session.scalar(
+            select(func.coalesce(func.sum(booking_net_received()), 0)).where(
+                Booking.workspace_id == workspace_id,
+                Booking.created_at >= starts_at,
+                Booking.created_at < ends_at,
+            )
+        )
         result = (
             await session.execute(
                 select(
-                    func.coalesce(
-                        func.sum(
-                            case(
-                                (
-                                    Booking.payment_status == PaymentStatus.PAID,
-                                    Booking.amount_cents,
-                                ),
-                                else_=0,
-                            )
-                        ),
-                        0,
-                    ),
                     func.count(Booking.id),
                     # A package session is prepaid; its 0 would drag the average down.
                     func.coalesce(
@@ -212,17 +209,17 @@ m.sequence>coalesce(r.last_read,0)
             )
         ).one()
         sales = await session.scalar(
-            select(func.coalesce(func.sum(PackagePurchase.price_cents), 0)).where(
+            select(func.coalesce(func.sum(SALE_NET_CENTS), 0)).where(
                 _counted_sale(workspace_id),
                 PackagePurchase.created_at >= starts_at,
                 PackagePurchase.created_at < ends_at,
             )
         )
         return (
-            int(result[0] or 0) + int(sales or 0),
-            int(result[1] or 0),
-            int(round(float(result[2] or 0))),
-            int(result[3] or 0),
+            int(received or 0) + int(sales or 0),
+            int(result[0] or 0),
+            int(round(float(result[1] or 0))),
+            int(result[2] or 0),
         )
 
     async def _trend(
@@ -250,17 +247,16 @@ m.sequence>coalesce(r.last_read,0)
             for offset in range(30)
         }
         for booking in bookings:
-            if booking.status == BookingStatus.CANCELLED:
-                continue
             day = booking.created_at.astimezone(timezone).date()
             value = values.get(day)
             if value is None:
                 continue
-            value["bookings"] += 1
-            if booking.payment_status == PaymentStatus.PAID:
-                value["revenue_cents"] += booking.amount_cents
+            if booking.payment_status in (PaymentStatus.PAID, PaymentStatus.REFUNDED):
+                value["revenue_cents"] += booking.amount_cents - booking.refunded_cents
+            if booking.status != BookingStatus.CANCELLED:
+                value["bookings"] += 1
         for created_at, price_cents in await session.execute(
-            select(PackagePurchase.created_at, PackagePurchase.price_cents).where(
+            select(PackagePurchase.created_at, SALE_NET_CENTS).where(
                 _counted_sale(workspace_id),
                 PackagePurchase.created_at >= starts_at,
                 PackagePurchase.created_at < ends_at,

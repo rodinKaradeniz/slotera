@@ -33,6 +33,14 @@ import {
   createPublicBooking,
   currentPublicWorkspaceSlug,
 } from "@/services/public-booking.service";
+import {
+  getClientSession,
+  listClientPackages,
+  type ClientIdentity,
+  type ClientPackage,
+} from "@/services/client-access.service";
+import { dataSource } from "@/lib/env";
+import { PackageChoice } from "@/components/booking/PackageChoice";
 
 const DRAFT_KEY = "slotera.booking.draft";
 
@@ -105,9 +113,35 @@ export function PublicBookingFlow() {
     };
   }, [serviceId]);
 
+  // A client signed in to this workspace can book with a paid package that covers the
+  // service. Guests (no client session) simply don't get the option.
+  const [client, setClient] = React.useState<{ identity: ClientIdentity; packages: ClientPackage[] } | null>(null);
+  React.useEffect(() => {
+    const slug = currentPublicWorkspaceSlug();
+    if (dataSource !== "api" || !slug) return;
+    const controller = new AbortController();
+    getClientSession(controller.signal)
+      .then(async (identity) => {
+        if (identity.slug !== slug) return;
+        const { items } = await listClientPackages(controller.signal);
+        if (!controller.signal.aborted) setClient({ identity, packages: items });
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+  // Signed in, the booking is the account's: its email is used and its name is filled in.
+  const identity = client?.identity;
+  const covering = (client?.packages ?? []).filter((item) => item.status === "active" && item.paymentStatus === "paid"
+    && item.sessions.some((session) => session.serviceId === serviceId && !session.bookedFor));
+  const chosenPackage = draft.packagePurchaseId === ""
+    ? undefined
+    : covering.find((item) => item.id === draft.packagePurchaseId) ?? covering[0];
+  // What the later steps and the request see: the package in use, or none.
+  const effective = { ...draft, packagePurchaseId: chosenPackage?.id ?? null };
+
   // Drop the Forms step when the chosen service has no attached forms, and Billing for a
-  // free service (nothing is invoiced, and the server doesn't ask for an address).
-  const free = draft.service?.priceCents === 0;
+  // free or package-covered session (nothing is invoiced, and the server doesn't ask for an address).
+  const free = draft.service?.priceCents === 0 || !!chosenPackage;
   const activeSteps = React.useMemo(
     () => STEPS.filter((s) => (s.key !== "forms" || forms.length > 0) && (s.key !== "billing" || !free)),
     [forms.length, free],
@@ -119,6 +153,11 @@ export function PublicBookingFlow() {
     setRestored(true);
     const saved = readDraft();
     if (saved) setDraft(saved);
+  }
+  if (identity && restored && draft.customer.email !== identity.email) {
+    const [firstName, ...rest] = identity.name.split(" ");
+    setDraft({ ...draft, customer: { ...draft.customer, email: identity.email,
+      firstName: draft.customer.firstName || firstName, lastName: draft.customer.lastName || rest.join(" ") } });
   }
 
   React.useEffect(() => {
@@ -161,8 +200,8 @@ export function PublicBookingFlow() {
       case "review":
         return true;
       case "pay":
-        // The server accepts free bookings, or manual payment when the operator allows it.
-        return draft.service?.priceCents === 0 || settings?.payments.manualPaymentEnabled === true;
+        // The server accepts free bookings, a package, or manual payment when the operator allows it.
+        return free || settings?.payments.manualPaymentEnabled === true;
       default:
         return false;
     }
@@ -187,12 +226,12 @@ export function PublicBookingFlow() {
     setError(null);
     setSubmitting(true);
     try {
-      const booking = await createPublicBooking(draft);
+      const booking = await createPublicBooking(effective);
       window.sessionStorage.setItem(
         "slotera.booking.last",
         JSON.stringify({
           ref: booking.reference,
-          draft,
+          draft: effective,
           booking,
           slug: currentPublicWorkspaceSlug(),
           providerName: settings?.business.displayName,
@@ -270,11 +309,21 @@ export function PublicBookingFlow() {
           className="flex flex-col min-h-[clamp(420px,60vh,640px)] [&>*]:flex-1"
         >
           {step === "service" && (
-            <StepService
-              selected={draft.service}
-              onSelect={(s) => setDraft({ ...draft, service: s })}
-              persona={persona}
-            />
+            <div>
+              <StepService
+                selected={draft.service}
+                onSelect={(s) => setDraft({ ...draft, service: s, packagePurchaseId: null })}
+                persona={persona}
+              />
+              {draft.service && covering.length > 0 && (
+                <PackageChoice
+                  packages={covering}
+                  serviceId={draft.service.id}
+                  chosenId={chosenPackage?.id ?? ""}
+                  onChange={(packagePurchaseId) => setDraft({ ...draft, packagePurchaseId })}
+                />
+              )}
+            </div>
           )}
           {step === "time" && draft.service && (
             <StepDateTime
@@ -289,6 +338,7 @@ export function PublicBookingFlow() {
             <Card padded>
               <StepDetails
                 customer={draft.customer}
+                emailLocked={!!identity}
                 onChange={(customer) => setDraft({ ...draft, customer })}
                 providerBookingTerms={settings?.payments.bookingTerms}
               />
@@ -311,12 +361,12 @@ export function PublicBookingFlow() {
           )}
           {step === "review" && (
             <StepReview
-              draft={draft}
+              draft={effective}
               onEdit={(s) => setStep(s)}
             />
           )}
           {step === "pay" && (
-            <StepPayment draft={draft} />
+            <StepPayment draft={effective} />
           )}
         </TabPanel>
 
@@ -343,7 +393,7 @@ export function PublicBookingFlow() {
             loading={submitting}
           >
             {step === "pay"
-              ? !draft.service?.priceCents
+              ? free
                 ? t("booking.confirm")
                 : t("booking.reservePay")
               : t("booking.continue")}

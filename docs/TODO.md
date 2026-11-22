@@ -107,12 +107,17 @@ below are standing security requirements as further API and frontend integration
   maintenance/error pages; inline CSS remains intentional. Production Chromium smoke
   verifies framework nonces and blocked parser-inserted scripts. Full authenticated
   journey regression remains part of the communication bundle verification.
-- **Smaller code items.** Split `db/models.py` and `public_booking/repository.py` by
-  concern, and the other large web files (demo manage page, onboarding, SessionDrawer,
-  booking detail); have `GET /bookings` return client and service names so the list stops
-  fetching three full lists; use server-side search and paging in the Clients and Bookings
-  views; load only the visible date window in the calendar; keep mock data out of the real
-  bundle; delete the unused `LogoWall` and `Testimonials` components.
+- **~~Smaller code items.~~ DONE 2026-11-22.** Split by concern, moving code only:
+  `db/models.py` re-exports `enums`, `identity_models`, `catalog_models`, `scheduling_models`
+  and `booking_models`; slot computing moved to `public_booking/availability.py` (and
+  `client_for_email` is shared); the booking detail page uses `BookingActionsCard`,
+  `BookingOutcomeCard` and `BookingPaymentCard`; `SessionDrawer` uses `SessionDetailsForm`;
+  onboarding and the demo manage page moved their panes to `components/onboarding/` and
+  `components/booking/manage-demo/`. The rest was already done: API-mode Bookings and
+  Clients page and search on the server (`/bookings/summaries`, `/clients?search=`), the
+  calendar loads only its visible window (`listSessionsInRange`), the API build swaps out
+  the fixtures (checked by `scripts/check-fixture-boundary.mjs` after every build), and
+  `LogoWall`/`Testimonials` were gone; their leftover landing copy was deleted.
 
 - **Manual payment instructions are operator-authored free text shown to the public.**
   Rendered as text today. If that ever becomes rich text, the sanitisation note above
@@ -533,19 +538,24 @@ stay demonstrations until the backend can support them properly.
   on the client page (paid outside Slotera), books its sessions from New booking, marks the
   payment received or voids it; cancelling a covered booking gives the session back. See
   PRODUCT.md §Packages.
-- **Client package checkout and self-service.** Still open: buying a package on the booking
-  page (manual payment now, card once Stripe exists), a client-facing "sessions left" view
-  (the real manage page has no package tab), client self-booking with a package, expiry,
-  refunds, memberships, recurring billing, coupons and gift cards.
+- **~~Client package checkout and self-service.~~ DONE 2026-11-22.** Visitors buy a package on
+  the booking page (no sign-in, manual payment, the consultant marks it paid); the client
+  page has a Packages tab; signed-in clients book their paid package's sessions on the
+  booking page; a "ready" email goes out when a sale is paid; refunds are recorded on sales
+  and bookings. Card payment waits for Stripe (Phase 3). Expiry, memberships, recurring
+  billing, coupons and gift cards are not planned: a decision, not a gap.
 - **~~Operator booking approval/payment reconciliation UI.~~ DONE for narrow booking-detail actions.**
   API mode exposes approve, decline, mark manual payment received, and cancel when valid.
   Operator booking creation is DONE for existing/new clients in upcoming sessions, including
   client-detail and Calendar Add attendee entry points; customer-email history and reviewed
-  send/correct actions are also DONE locally. Broader payment
-  adjustment/refund behavior remains later.
-- **Client-side authentication at booking time** ("if you have an account, log in") and
-  **invitation flows** ("your provider has invited you to book"). Both imply customer
-  accounts; workspace-scoped accounts are now DONE (2026-11-16), while booking-time sign-in and invitations remain separate unrequested flows.
+  send/correct actions are also DONE locally. Full or partial refunds are recorded on the
+  booking (DONE 2026-11-22). Editing a booking's price and undoing "payment received" were
+  decided against: consultants rarely need them, and they would add screens.
+- **~~Client-side authentication at booking time~~ DONE 2026-11-22.** The booking page links
+  to the client sign-in, and a signed-in client's details are filled in (email locked) and
+  their paid packages offered. **Invitation flows** ("your provider has invited you to
+  book") were decided against: consultants share their booking link themselves, and the
+  package "ready" email already invites a buyer to book.
 - **~~`bookingMode: "scheduled"` end-to-end.~~ DONE (2026-10-09).** Scheduled services (any capacity) list upcoming operator sessions with seats left; booking locks the session and counts capacity, and the confirmation/manage pages show the session address. Original note: The field exists and services carry it, but
   the public flow's date/time picker generates free-form slots and never resolves to a
   concrete `SessionItem`. Consequence: `SessionItem.address` is stored but never shown to

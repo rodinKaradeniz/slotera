@@ -38,6 +38,9 @@ export type Booking = {
   currency: Currency;
   paymentDueAtISO?: string;
   paymentReceivedAtISO?: string;
+  /** Money given back outside Slotera; a full refund makes the payment "refunded". */
+  refundedCents?: number;
+  refundedAtISO?: string;
   approvedAtISO?: string;
   declinedAtISO?: string;
   customer?: {

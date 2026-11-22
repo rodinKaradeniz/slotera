@@ -35,7 +35,7 @@ export class ApiRequestError extends Error {
       booking_email_in_progress: "booking.emails.sendingConflict", followup_form_in_use: "followup.formUsed",
       followup_not_ready: "followup.notReady", followup_handled: "followup.handled",
       client_email_review_required: "client.transferDescription", client_erased: "booking.emails.erased",
-      resource_stale: "editing.stale",
+      resource_stale: "editing.stale", booking_refund_invalid: "refund.invalid", package_credit_unavailable: "booking.packageUse.unavailable", package_voided: "booking.packageUse.voided", package_purchase_unavailable: "booking.packages.unavailable", package_refund_invalid: "refund.invalid",
       session_impact_stale: "session.impactChanged", session_capacity_in_use: "session.capacityConflict",
       session_service_in_use: "session.serviceConflict", series_date_change_invalid: "session.singleDate",
       session_cancelled: "session.cancelled", booking_email_in_flight: "booking.emails.sendingConflict",

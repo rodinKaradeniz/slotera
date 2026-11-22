@@ -71,7 +71,7 @@ export function StepReview({ draft, onEdit }: Props) {
             onEdit={() => onEdit("forms")}
           />
         )}
-        {draft.service?.priceCents !== 0 && <SummaryRow
+        {draft.service?.priceCents !== 0 && !draft.packagePurchaseId && <SummaryRow
           title={t("booking.review.billing")}
           value={draft.billing.street || "—"}
           hint={

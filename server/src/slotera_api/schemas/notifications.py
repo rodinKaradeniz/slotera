@@ -36,6 +36,14 @@ class BookingCancelledPayload(ApiModel):
     starts_at: datetime
 
 
+class PackageRequestedPayload(ApiModel):
+    # No client name: notifications outlive a client's erasure; the item links to the client.
+    client_id: UUID
+    package_name: str
+    price_cents: int
+    currency: str
+
+
 class NotificationBase(ApiModel):
     id: UUID
     resource_type: str | None
@@ -74,13 +82,19 @@ class BookingCancelledNotification(NotificationBase):
     payload: BookingCancelledPayload
 
 
+class PackageRequestedNotification(NotificationBase):
+    kind: Literal["package_requested"]
+    payload: PackageRequestedPayload
+
+
 NotificationItem = Annotated[
     BookingPendingNotification
     | BookingConfirmedNotification
     | PaymentPendingNotification
     | SessionStartingNotification
     | RescheduleRequestedNotification
-    | BookingCancelledNotification,
+    | BookingCancelledNotification
+    | PackageRequestedNotification,
     Field(discriminator="kind"),
 ]
 

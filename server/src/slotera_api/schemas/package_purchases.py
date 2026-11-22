@@ -12,6 +12,8 @@ class PackagePurchaseCreate(StrictApiModel):
     package_id: UUID
     payment_received: bool = False
     notes: str | None = Field(default=None, max_length=2000)
+    # A paid sale emails the client that it's ready to book; off for a past sale.
+    notify_client: bool = True
 
 
 class PackagePurchaseItemBooking(ApiModel):
@@ -40,6 +42,8 @@ class PackagePurchaseView(ApiModel):
     payment_received_at: datetime | None
     status: Literal["active", "voided"]
     voided_at: datetime | None
+    refunded_cents: int
+    refunded_at: datetime | None
     notes: str | None
     items: list[PackagePurchaseItemView]
     used_count: int

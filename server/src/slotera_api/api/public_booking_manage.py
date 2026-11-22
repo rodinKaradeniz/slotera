@@ -53,6 +53,7 @@ def _response(managed: ManagedBooking) -> ManagedBookingResponse:
         approval_status=booking.approval_status.value,
         pending_reasons=pending_reasons(booking),
         amount_cents=booking.amount_cents,
+        refunded_cents=booking.refunded_cents,
         currency=booking.currency,
         payment_due_at=booking.payment_due_at,
         manual_payment_instructions=(

@@ -459,12 +459,14 @@ Persisted informational offers for presenting **multi-session offers** — the k
 - **A package is an ordered bundle of existing services.** Shape: `ServicePackage { id, name, description, status, priceCents, currency, items: PackageItem[], notes?, featured?, createdAtISO, updatedAtISO }`. `PackageItem { id, serviceId, title?, description?, order }`. Each item points to an existing `Service`; multiple items may share a `serviceId`; the operator arranges them in a custom order (the editor manages `items` as an array and recomputes `order` from position).
 - **Source of truth for the service relationship is `ServicePackage.items[].serviceId`** — there is **no `Service.packageIds`** field and **no dual-write**. To change which packages include a service, edit the package's items on `/admin/packages`. The service editor does **not** have a package-inclusion control (don't reintroduce `AvailableInPackagesField`/`setPackageServiceAttachment`).
 - **Operator surface only:** the **Packages** nav item + `/admin/packages` are operator-admin only (never superadmin). Create/edit uses the global `DrawersProvider` (`openPackageDrawer` → `PackageDrawer` → `PackageForm`). Cards/list show name, price, number of included sessions (`items.length`), status, and a featured indicator.
-- **Public booking is informational only.** When a selected service is included in active packages, the Service step shows a `PackageOptionsHint` (a hint + a modal listing the offers), resolved via `listPackagesForService` (active packages whose `items[].serviceId` matches). **No package checkout, no required choice, no payment changes, no step-sequence changes.** Copy: "Available in packages" / "View package options" — never "programs", "memberships", "credits", "subscriptions", or "available with services".
+- **Buying on the booking page (2026-11-22).** When a selected service is included in active packages, the Service step shows a `PackageOptionsHint` (a hint + a modal listing the offers, via `listPackagesForService`). Each offer has **Buy** when the consultant takes manual payments (or the package is free): name, email, optional phone and the terms, no sign-in. It creates a pending sale (`POST /public/workspaces/{slug}/package-purchases`, idempotent, rate-limited, terms snapshot) for the client with that email, shows and emails the payment details, and tells the owner (bell + email under "new booking" notifications). The single-session booking in progress is untouched: **no required choice, no step-sequence change.** Copy: "Available in packages" / "View package options" / "Buy" — never "programs", "memberships", "credits", "subscriptions", or "available with services".
 - **`/booking/manage/demo`** shows a **display-only** Package tab ("Session N of M" + included services in order) when the booking is part of a package. No credit ledger, balance, or consumption.
-- **Package sales are recorded by the operator, not bought by the client** (2026-11-21). The client pays outside Slotera (bank transfer, in person); the operator records the sale on the client's page (`ClientPackagesCard`: Record sale, Mark payment received, Void). A sale snapshots the package's name, price and items (`package_purchases`, `package_purchase_items`); each item is one session for its service.
-- **Sessions are booked by the operator only**, from New booking: when the chosen client has an active sale with an unused item for the session's service, a "Package" select appears (default "Don't use a package"). The booking takes the lowest unused position for that service (any order), costs 0 (`paymentMethod: "package"`, `paymentStatus: "paid"`) and confirms. One live booking per item (partial unique index); cancelling the booking, in any way, gives the session back. Credits never expire; voiding a sale stops its unused sessions, and existing bookings stay.
-- **Money:** a paid, unvoided sale counts once at the sale date in dashboard revenue and the client's total spent; covered bookings count 0 and are left out of the average booking value. A sold package can't be deleted (`package_in_use`); deactivate it instead.
-- **Still not built:** client checkout or card payment for packages, a client-facing view of sessions left, client self-booking with a package, expiry, memberships, recurring billing, coupons, gift cards, refunds and Stripe product/price objects. Client copy never says "credits".
+- **The operator can also record a sale** (2026-11-21) for a package paid outside Slotera (bank transfer, in person), on the client's page (`ClientPackagesCard`: Record sale, Mark payment received, Record refund, Void). A sale snapshots the package's name, price and items (`package_purchases`, `package_purchase_items`); each item is one session for its service. Payment is always manual: the consultant marks it received.
+- **"Ready" email.** When a sale becomes paid (marked, or recorded as paid with "Email the client" on), the client gets an email with the sessions left, the booking link and the client sign-in link.
+- **Who books the sessions.** The operator, from New booking: when the chosen client has an active sale with an unused item for the session's service, a "Package" select appears (default "Don't use a package"); unpaid sales can be used here. **The client**, on the booking page once signed in to their client page: a **paid** active package covering the chosen service is offered on the Service step ("Use your package", default on, or "Pay for this session instead"); the booking skips Billing, needs the client session and CSRF, and belongs to the signed-in client whatever email is typed. The service's approval policy still applies. Either way the booking takes the lowest unused position for that service (any order), costs 0 (`paymentMethod: "package"`, `paymentStatus: "paid"`). One live booking per item (partial unique index); cancelling the booking, in any way, gives the session back. Sessions never expire; voiding a sale stops its unused sessions, and existing bookings stay.
+- **Clients see their packages** in the client page's Packages tab (shown once they have one): sessions booked and left, and the payment details while pending. Their booking history, the manage page and the booking flow say "Covered by your package" instead of an amount. Operator notes are never shown.
+- **Money:** a paid sale counts once at the sale date in dashboard revenue and the client's total spent, minus refunds; a void doesn't change that (record a refund if money goes back). Covered bookings count 0 and are left out of the average booking value. A sold package can't be deleted (`package_in_use`); deactivate it instead.
+- **Not built, by decision:** card payment (waits for Stripe), expiry, memberships, recurring billing, coupons and gift cards. Client copy never says "credits".
 - **Don't confuse this with platform billing.** Settings → Billing & Subscription = how the **operator pays Slotera** (Essentials / Professional). Packages = what the **operator sells to their own clients**. They are separate domains in code, UI, and copy — keep them separate.
 
 Services with sessions (including cancelled or historical sessions) cannot be deleted;
@@ -517,7 +519,9 @@ instructions, policy) — never notes or action items.
   available slot of the same service at the same price. After the cutoff, or after one
   move, the page points them to the provider.
 - **Cancellation never refunds.** Payment state is untouched; the operator handles refunds
-  under their own policy. The operator gets a notification for every customer change.
+  under their own policy and records them on the booking. The operator gets a notification
+  for every customer change. A refund shows as "Refunded £X"; a package session shows
+  "Covered by your package".
 - **Reminders** go out ~24h before confirmed sessions from the maintenance job.
 
 ### Customer booking workspace (demo)
@@ -538,7 +542,7 @@ It is deliberately **not** a full client portal, CRM, project-management app, co
 - **Manage booking** — message-provider textarea (mocked send → toast) + request-reschedule / request-cancellation (ConfirmDialog + toast). No real messaging, no real reschedule/cancel logic.
 - **Forms** — a clean **list** of forms with **Required/Optional** and **Completed/Not completed** statuses. Clicking a row opens a **modal** with the fields: a pre-payment-completed *required* form shows read-only answers; an *optional* incomplete form is fillable (save → local state + toast). The main tab does not expand all fields by default.
 - **Payment** (not "Receipt" — the demo booking is manual/unpaid) — payment method, status, line item + subtotal/tax/total, and manual payment instructions.
-- **Package** — shown **only** when the booking is part of a package: package name, "Session N of M", and the included services in order (current session highlighted). Display-only and demo-only; the real manage page has no package tab yet. **No credits, balances, subscriptions, memberships, checkout, or Stripe product info.**
+- **Package** — shown **only** when the booking is part of a package: package name, "Session N of M", and the included services in order (current session highlighted). Display-only and demo-only; the real manage page shows "Covered by your package" in the amount line, and the client page's Packages tab lists the sessions. **No credits, balances, subscriptions, memberships, checkout, or Stripe product info.**
 
 All tab content is mocked English provider/service copy; only the surrounding chrome/labels are translated (EN/TR/DE under the `bookingManage.*` i18n namespace).
 
@@ -547,8 +551,8 @@ The separate API implementation uses **secure booking links sent by email and ba
 **Deliberately simplified — do not re-add to this surface:** "Shared resources" / resource links and a client-facing "Your next steps" / shared action-items list were **removed**. The resources feature (type/service/mock data) was deleted as unused. Action items are **operator-only**; their contracts, persistence and UI contain no client-visibility flag.
 
 **The demo remains illustrative.** The API implements booking links, scheduled reminders,
-self-service changes, forms and service-level approval. Client package checkout remains
-deferred (operator-recorded package sales exist); these do **not** change this demo
+self-service changes, forms, service-level approval, package buying and package bookings;
+these do **not** change this demo
 workspace or the public booking step sequence.
 
 ### Calendar
@@ -589,7 +593,12 @@ The API has an operator transaction boundary for scheduled and public-created bo
 Lifecycle, payment, and approval are separate state machines. Manual-payment receipt and
 service-level approval/decline are idempotent audited commands; confirmation occurs only
 when payment is `free | paid` and approval is `not_required | approved`. Cancellation and
-decline never imply a refund. Public-created capacity-one sessions are released on
+decline never imply a refund. **Refunds** (2026-11-22) are recorded, not paid out: "Record refund"
+on a booking whose payment was received and that is no longer pending (not a package session),
+or on a paid package sale (also after a void), takes a full or partial amount; refunds add up
+to at most what was paid, and a full refund makes the booking's payment "refunded". Revenue
+and the client's total spent count money received minus refunds, **whatever the booking's
+status** — a cancelled booking that was paid and not refunded is money kept. Public-created capacity-one sessions are released on
 decline, cancellation, or payment expiry; operator-created sessions are never cancelled
 as a side effect.
 
@@ -599,7 +608,7 @@ when manual payment is pending, cancel an active booking, and, once a confirmed 
 session has started, record its outcome as **Completed** or **No-show**. A 1:1 booking
 never takes `attendance`; that is for group sessions. Bookings → New booking creates a booking
 for an existing or new client in an existing upcoming session; Calendar → Add attendee and
-client details reuse that drawer. Generic editing and refunds remain deferred. Group-session attendance remains in the Calendar
+client details reuse that drawer. Generic editing (price changes, undoing a payment) is not built, by decision. Group-session attendance remains in the Calendar
 SessionDrawer, where the session roster provides its necessary context.
 
 - Grouped into status accordions in order: **Pending → Confirmed → Completed → No-show → Cancelled**.
@@ -607,7 +616,7 @@ SessionDrawer, where the session roster provides its necessary context.
 - Row-level edit/cancel icons stay removed. Mock rows use `BookingDrawer`; API rows open the focused booking-detail route.
 - `BookingStatus` includes `"noshow"`. Its `BOOKING_STATUS` entry uses tone `warning` and icon `alert` so it's visually distinct from `cancelled` (tone `danger`, icon `x`). Don't make them look the same.
 - Per-booking attendance — `Booking.attendance?: "present" | "late" | "absent"` — is set via the SessionDrawer's **Attendance** tab (renders only when `capacity > 1`). Only confirmed/completed bookings appear; recording an outcome completes the booking but never changes payment state. It is recorded per row with a `SegGroup`; "Mark all present" sends individually idempotent commands and gives one toast.
-- **Booking detail page (`/admin/bookings/[id]`)** is a focused two-column layout: **left = Session + Location**, assigned form answers and email history (+ the optional booking note), **right = Payment**. It deliberately does **not** duplicate the full client info card — the Session section shows the client **name as a link to `/admin/clients/<clientId>`** instead. API mode renders stored financial/manual-instruction snapshots and the narrow approval/payment/cancel command card; it has no Stripe, refund, or generic edit workflow.
+- **Booking detail page (`/admin/bookings/[id]`)** is a focused two-column layout: **left = Session + Location**, assigned form answers and email history (+ the optional booking note), **right = Payment**. It deliberately does **not** duplicate the full client info card — the Session section shows the client **name as a link to `/admin/clients/<clientId>`** instead. API mode renders stored financial/manual-instruction snapshots, the narrow approval/payment/cancel command card, and Record refund on the payment card; it has no Stripe or generic edit workflow.
 
 **Operator booking creation.** Exactly one existing client or new identity (name/email plus
 optional phone/company) is accepted; a duplicate normalized workspace email requires explicit
@@ -829,7 +838,7 @@ profile. Operator language belongs in Settings → Account; staff use the accoun
 Upcoming sessions can change time, location and capacity after reviewing their impact.
 Cancelling a session cancels pending/confirmed bookings in the same transaction; completed,
 no-show and already-cancelled booking history, financial snapshots and payment states remain
-unchanged. Paid cancellations require refunds to be arranged manually. A service cannot change
+unchanged. Paid cancellations require refunds to be arranged manually and then recorded. A service cannot change
 when any booking history exists, and capacity cannot fall below active attendance.
 
 Recurring changes default to **This session**. **This and following** retains recurrence dates
