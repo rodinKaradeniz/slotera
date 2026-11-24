@@ -327,6 +327,11 @@ async def test_a_visitor_buys_a_package_and_gets_it_once_the_payment_is_marked(
         )
     assert terms_at is not None
 
+    # The client's data export lists the sale, its payment and when the terms were accepted.
+    [exported] = (await operator.get(f"/clients/{client_id}/export")).json()["packagePurchases"]
+    assert (exported["id"], exported["paymentStatus"]) == (sale["id"], "paid")
+    assert exported["termsAcceptedAt"] is not None and exported["items"][0]["title"]
+
 
 async def test_buying_needs_an_active_package_and_manual_payments(communication) -> None:
     operator, customer, owner = communication

@@ -3104,10 +3104,16 @@ export interface components {
             emailContact: string;
             /** Notes */
             notes: string | null;
+            /** Paymentmethod */
+            paymentMethod: string;
             /** Paymentstatus */
             paymentStatus: string;
             /** Reference */
             reference: string;
+            /** Refundedat */
+            refundedAt: string | null;
+            /** Refundedcents */
+            refundedCents: number;
             /** Servicename */
             serviceName: string;
             /**
@@ -3153,6 +3159,67 @@ export interface components {
              */
             updatedAt: string;
         };
+        /** ClientExportPackage */
+        ClientExportPackage: {
+            /**
+             * Clientid
+             * Format: uuid
+             */
+            clientId: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items: components["schemas"]["PackagePurchaseItemView"][];
+            /** Notes */
+            notes: string | null;
+            /**
+             * Packageid
+             * Format: uuid
+             */
+            packageId: string;
+            /** Packagename */
+            packageName: string;
+            /** Paymentreceivedat */
+            paymentReceivedAt: string | null;
+            /**
+             * Paymentstatus
+             * @enum {string}
+             */
+            paymentStatus: "pending" | "paid";
+            /** Pricecents */
+            priceCents: number;
+            /** Providerterms */
+            providerTerms: string | null;
+            /** Refundedat */
+            refundedAt: string | null;
+            /** Refundedcents */
+            refundedCents: number;
+            /** Remainingcount */
+            remainingCount: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "voided";
+            /** Termsacceptedat */
+            termsAcceptedAt: string | null;
+            /** Usedcount */
+            usedCount: number;
+            /** Version */
+            version: number;
+            /** Voidedat */
+            voidedAt: string | null;
+        };
         /** ClientExportResponse */
         ClientExportResponse: {
             /** Bookingemails */
@@ -3179,6 +3246,8 @@ export interface components {
             }[];
             /** Notes */
             notes: components["schemas"]["ClientExportNote"][];
+            /** Packagepurchases */
+            packagePurchases?: components["schemas"]["ClientExportPackage"][];
         };
         /** ClientIdentity */
         ClientIdentity: {

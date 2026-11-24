@@ -82,6 +82,14 @@ def _booking_facts(data: BookingEmailTemplateData) -> list[str]:
     return facts
 
 
+def _cancelled_money_line(payment_method: str) -> list[str]:
+    if payment_method == "free":
+        return []
+    if payment_method == "package":
+        return ["", "This session is back in your package, so you can book it again."]
+    return ["", "Any refund is handled by the provider under their cancellation policy."]
+
+
 def render_booking_email(
     kind: BookingEmailKind,
     raw_data: dict[str, object],
@@ -138,8 +146,7 @@ def render_booking_email(
                 "Your booking has been cancelled.",
                 "",
                 *facts,
-                "",
-                "Any refund is handled by the provider under their cancellation policy.",
+                *_cancelled_money_line(data.payment_method),
             ]
         )
         return subject, body

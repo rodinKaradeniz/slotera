@@ -37,6 +37,7 @@ TEXT: dict[str, dict[str, str]] = {
         "manage": "Rezervasyonunuzu görüntüleyin, taşıyın veya iptal edin:",
         "keep": "Bu e-postayı ve referansı kayıtlarınız için saklayın.",
         "refund": "İadeler, danışmanın iptal koşullarına göre danışman tarafından yapılır.",
+        "package_back": "Bu seans paketinize geri döndü; yeniden rezerve edebilirsiniz.",
         "calendar": "Değiştirmek veya iptal etmek için onay e-postanızdaki bağlantıyı kullanın.",
         "with": "ile",
         "client": "Bir müşteri",
@@ -88,6 +89,7 @@ TEXT: dict[str, dict[str, str]] = {
         "manage": "Buchung ansehen, verschieben oder stornieren:",
         "keep": "Bewahren Sie diese E-Mail und die Referenz für Ihre Unterlagen auf.",
         "refund": "Erstattungen erfolgen durch den Anbieter gemäß seinen Stornierungsbedingungen.",
+        "package_back": "Dieser Termin ist wieder in Ihrem Paket, Sie können ihn erneut buchen.",
         "calendar": "Nutzen Sie zum Ändern oder Stornieren den Link in Ihrer Bestätigungs-E-Mail.",
         "with": "mit",
         "client": "Ein Kunde",
@@ -233,8 +235,8 @@ def render_localized(kind: str, raw: dict[str, object]) -> tuple[str, str]:
         lines += ["", text["manage"], str(raw["manageUrl"])]
     if event == "confirmed":
         lines.append(text["keep"])
-    if event == "cancelled":
-        lines.append(text["refund"])
+    if event == "cancelled" and raw.get("paymentMethod") != "free":
+        lines.append(text["package_back" if raw.get("paymentMethod") == "package" else "refund"])
     return f"{text[event]} — {service}", "\n".join(lines)
 
 

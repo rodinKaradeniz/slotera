@@ -704,8 +704,8 @@ In mock mode, the client detail page (`/admin/clients/[id]`) is a focused two-ta
 - **Notes** tab → see Client notes below.
 
 **Data requests (real app).** The client page has **Download data** (`GET
-/clients/{id}/export`: profile, bookings with payment facts, form answers and notes, as
-JSON) and **Erase client** (`POST /clients/{id}/erase`; the operator retypes the client's
+/clients/{id}/export`: profile, bookings with payment facts and refunds, package sales
+(sessions, payment, refunds, accepted terms), form answers and notes, as JSON) and **Erase client** (`POST /clients/{id}/erase`; the operator retypes the client's
 email to confirm). Erasure is anonymisation, not deletion:
 - the client becomes "Erased client" with a placeholder email;
 - notes, form answers, booking contact and billing snapshots, and booking notes are
@@ -840,6 +840,10 @@ Cancelling a session cancels pending/confirmed bookings in the same transaction;
 no-show and already-cancelled booking history, financial snapshots and payment states remain
 unchanged. Paid cancellations require refunds to be arranged manually and then recorded. A service cannot change
 when any booking history exists, and capacity cannot fall below active attendance.
+
+A new session repeats **One-off**, **Weekly** (on the start date's weekday) or **Custom**:
+every 1–52 weeks on chosen weekdays, starting from the first chosen day on or after the
+start date. Series stay rolling (no end date in the form).
 
 Recurring changes default to **This session**. **This and following** retains recurrence dates
 and local clock times across daylight-saving changes; date moves apply to one occurrence.

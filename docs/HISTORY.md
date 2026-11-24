@@ -2528,3 +2528,16 @@ Applied every recommendation from the screenshot critique.
   `/package-purchases` did not refresh reads under `/clients` or the dashboard
   (`relatedReads` in `api/query-cache.ts`). The browser reporter now reports failing lines
   for every spec, not just five.
+
+## 2026-11-24 — Gap pass: client export, cancellation email, custom repeats
+
+- **Client data export** now includes package sales (sessions, payment, refunds, when the
+  terms were accepted and their text) and each booking's payment method and refunds.
+- **Cancellation email:** a cancelled package booking says the session is back in the
+  package; a free booking no longer mentions refunds (en, de, tr).
+- **Custom repeats:** the session form's "Custom" works in the real app: every N weeks on
+  chosen weekdays, which the API already supported. Before, the real app refused it and the
+  demo offered it without repeating anything.
+- **Checked and found complete:** every server endpoint has a screen, cache refreshes cover
+  every write, translations match in all three languages, erasure clears sale notes, and
+  the workspace export already includes the new columns.

@@ -28,4 +28,7 @@ export type SessionItem = {
   notes?: string;
 };
 
-export type SessionInput = Omit<SessionItem, "id">;
+/** A custom repeat rule: every `intervalWeeks` weeks on these ISO weekdays (1 = Monday). */
+export type CustomRecurrence = { intervalWeeks: number; weekdays: number[] };
+
+export type SessionInput = Omit<SessionItem, "id"> & { custom?: CustomRecurrence };

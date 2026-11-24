@@ -28,6 +28,7 @@ from slotera_api.schemas.clients import (
     ClientExportBooking,
     ClientExportFormResponse,
     ClientExportNote,
+    ClientExportPackage,
     ClientExportResponse,
     ClientListResponse,
     ClientPatch,
@@ -298,6 +299,7 @@ async def export_client(
         communication=exported["communication"],
         form_snapshots=exported["form_snapshots"],
         form_responses=[ClientExportFormResponse(**item) for item in exported["form_responses"]],
+        package_purchases=[ClientExportPackage(**item) for item in exported["package_purchases"]],
         notes=[
             ClientExportNote(
                 title=note.title,

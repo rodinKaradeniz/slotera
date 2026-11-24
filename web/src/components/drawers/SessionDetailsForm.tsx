@@ -11,8 +11,8 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { slotParts } from "@/lib/calendar";
+import { fmtDayShort } from "@/lib/time";
 import { useWorkspaceTimezone } from "@/lib/use-workspace-timezone";
-import { dataSource } from "@/lib/env";
 import type { SessionUpdateScope } from "@/services/sessions.service";
 import type { Service } from "@/types/service";
 import type { Recurring, SessionItem, SessionStatus } from "@/types/session";
@@ -30,9 +30,15 @@ export type FormState = {
   /** Optional structured address. Only used when locationType is physical/hybrid. */
   address?: Address;
   recurring: Recurring;
+  /** The custom rule: every `intervalWeeks` weeks on these ISO weekdays. */
+  intervalWeeks: number;
+  weekdays: number[];
   status: SessionStatus;
   notes: string;
 };
+
+/** ISO weekday (1 = Monday) of a yyyy-mm-dd date. */
+const isoWeekday = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay() || 7;
 
 export function toForm(item: SessionItem, services: Service[], timezone: string): FormState {
   const start = new Date(item.startISO);
@@ -50,6 +56,8 @@ export function toForm(item: SessionItem, services: Service[], timezone: string)
     location: item.location,
     address: item.address,
     recurring: item.recurring,
+    intervalWeeks: 1,
+    weekdays: [],
     status: item.status,
     notes: item.notes ?? "",
   };
@@ -69,6 +77,8 @@ export function emptyForm(services: Service[]): FormState {
     location: first?.location ?? "Zoom",
     address: first?.address ? { ...first.address } : undefined,
     recurring: "one-off",
+    intervalWeeks: 1,
+    weekdays: [],
     status: "scheduled",
     notes: "",
   };
@@ -190,19 +200,42 @@ export function SessionDetailsForm({
           <Select
             disabled={isEdit}
             value={form.recurring}
-            onChange={(e) =>
-              setForm({ ...form, recurring: e.target.value as Recurring })
-            }
+            onChange={(e) => {
+              const recurring = e.target.value as Recurring;
+              // A custom rule starts on the start date's weekday; the operator adds others.
+              const weekdays = form.weekdays.length ? form.weekdays : [isoWeekday(form.date)];
+              setForm({ ...form, recurring, weekdays: recurring === "custom" ? weekdays : form.weekdays });
+            }}
             options={[
               { value: "one-off", label: uiText("ui.one.off") },
               { value: "weekly", label: uiText("ui.weekly") },
-              ...(dataSource === "mock" || form.recurring === "custom"
-                ? [{ value: "custom", label: uiText("ui.custom") }]
-                : []),
+              { value: "custom", label: uiText("ui.custom") },
             ]}
           />
         </Field>
       </div>
+
+      {!isEdit && form.recurring === "custom" && (
+        <div className="grid grid-cols-1 sm:grid-cols-[8rem_minmax(0,1fr)] gap-4">
+          <Field label={uiText("session.repeatEvery")}>
+            <Input type="number" min={1} max={52} value={form.intervalWeeks || ""} suffix={uiText("session.weeks")}
+              onChange={(e) => setForm({ ...form, intervalWeeks: Number(e.target.value) })} />
+          </Field>
+          <Field label={uiText("session.onDays")} group>
+            <div className="flex flex-wrap gap-1.5">
+              {[1, 2, 3, 4, 5, 6, 7].map((day) => {
+                const on = form.weekdays.includes(day);
+                return (
+                  <Button key={day} type="button" size="sm" variant={on ? "primary" : "secondary"} aria-pressed={on}
+                    onClick={() => setForm({ ...form, weekdays: on ? form.weekdays.filter((d) => d !== day) : [...form.weekdays, day].sort() })}>
+                    {fmtDayShort(new Date(Date.UTC(2024, 0, day, 12)))}
+                  </Button>
+                );
+              })}
+            </div>
+          </Field>
+        </div>
+      )}
 
       <Field label={uiText("ui.meeting.location.detail")}>
         <Input

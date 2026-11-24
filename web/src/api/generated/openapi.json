@@ -2498,6 +2498,10 @@
             ],
             "title": "Notes"
           },
+          "paymentMethod": {
+            "title": "Paymentmethod",
+            "type": "string"
+          },
           "paymentStatus": {
             "title": "Paymentstatus",
             "type": "string"
@@ -2505,6 +2509,22 @@
           "reference": {
             "title": "Reference",
             "type": "string"
+          },
+          "refundedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refundedat"
+          },
+          "refundedCents": {
+            "title": "Refundedcents",
+            "type": "integer"
           },
           "serviceName": {
             "title": "Servicename",
@@ -2531,8 +2551,11 @@
           "sessionStartAt",
           "status",
           "paymentStatus",
+          "paymentMethod",
           "amountCents",
           "taxAmountCents",
+          "refundedCents",
+          "refundedAt",
           "currency",
           "customerFirstName",
           "customerLastName",
@@ -2609,6 +2632,175 @@
         "title": "ClientExportNote",
         "type": "object"
       },
+      "ClientExportPackage": {
+        "properties": {
+          "clientId": {
+            "format": "uuid",
+            "title": "Clientid",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PackagePurchaseItemView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "packageId": {
+            "format": "uuid",
+            "title": "Packageid",
+            "type": "string"
+          },
+          "packageName": {
+            "title": "Packagename",
+            "type": "string"
+          },
+          "paymentReceivedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paymentreceivedat"
+          },
+          "paymentStatus": {
+            "enum": [
+              "pending",
+              "paid"
+            ],
+            "title": "Paymentstatus",
+            "type": "string"
+          },
+          "priceCents": {
+            "title": "Pricecents",
+            "type": "integer"
+          },
+          "providerTerms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Providerterms"
+          },
+          "refundedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refundedat"
+          },
+          "refundedCents": {
+            "title": "Refundedcents",
+            "type": "integer"
+          },
+          "remainingCount": {
+            "title": "Remainingcount",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "voided"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "termsAcceptedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Termsacceptedat"
+          },
+          "usedCount": {
+            "title": "Usedcount",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "voidedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voidedat"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "clientId",
+          "packageId",
+          "packageName",
+          "priceCents",
+          "currency",
+          "paymentStatus",
+          "paymentReceivedAt",
+          "status",
+          "voidedAt",
+          "refundedCents",
+          "refundedAt",
+          "notes",
+          "items",
+          "usedCount",
+          "remainingCount",
+          "createdAt",
+          "termsAcceptedAt",
+          "providerTerms"
+        ],
+        "title": "ClientExportPackage",
+        "type": "object"
+      },
       "ClientExportResponse": {
         "properties": {
           "bookingEmails": {
@@ -2659,6 +2851,13 @@
               "$ref": "#/components/schemas/ClientExportNote"
             },
             "title": "Notes",
+            "type": "array"
+          },
+          "packagePurchases": {
+            "items": {
+              "$ref": "#/components/schemas/ClientExportPackage"
+            },
+            "title": "Packagepurchases",
             "type": "array"
           }
         },

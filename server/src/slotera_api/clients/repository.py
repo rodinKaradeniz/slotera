@@ -34,6 +34,7 @@ from slotera_api.db.models import (
 from slotera_api.editing import ensure_version
 from slotera_api.errors import ApiError
 from slotera_api.followups import queue_followup
+from slotera_api.packages.purchases import purchase_views
 
 
 class ClientEmailConflictError(Exception):
@@ -572,6 +573,26 @@ class ClientsRepository:
                     .order_by(ClientNote.created_at)
                 )
             )
+            sales = list(
+                await session.scalars(
+                    select(PackagePurchase)
+                    .where(
+                        PackagePurchase.workspace_id == workspace_id,
+                        PackagePurchase.client_id == client_id,
+                    )
+                    .order_by(PackagePurchase.created_at)
+                )
+            )
+            package_purchases = [
+                {
+                    **view.model_dump(),
+                    "terms_accepted_at": sale.terms_accepted_at,
+                    "provider_terms": sale.provider_terms_snapshot,
+                }
+                for sale, view in zip(
+                    sales, await purchase_views(session, workspace_id, sales), strict=True
+                )
+            ]
             communication = await session.scalar(
                 text("""
                 SELECT jsonb_build_object(
@@ -611,8 +632,11 @@ class ClientsRepository:
                         "session_start_at": start_at,
                         "status": booking.status.value,
                         "payment_status": booking.payment_status.value,
+                        "payment_method": booking.payment_method,
                         "amount_cents": booking.amount_cents,
                         "tax_amount_cents": booking.tax_amount_cents,
+                        "refunded_cents": booking.refunded_cents,
+                        "refunded_at": booking.refunded_at,
                         "currency": booking.currency,
                         "customer_first_name": booking.customer_first_name,
                         "customer_last_name": booking.customer_last_name,
@@ -650,6 +674,7 @@ class ClientsRepository:
                     }
                     for response in responses
                 ],
+                "package_purchases": package_purchases,
                 "notes": notes,
             }
 

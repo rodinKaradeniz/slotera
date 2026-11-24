@@ -6,6 +6,7 @@ from pydantic import EmailStr, Field, field_validator
 
 from slotera_api.schemas.base import ApiModel, JsonObject
 from slotera_api.schemas.operator_resources import NonBlank, StrictApiModel
+from slotera_api.schemas.package_purchases import PackagePurchaseView
 
 
 class ClientIdentityCreate(StrictApiModel):
@@ -80,8 +81,11 @@ class ClientExportBooking(ApiModel):
     session_start_at: datetime
     status: str
     payment_status: str
+    payment_method: str
     amount_cents: int
     tax_amount_cents: int
+    refunded_cents: int
+    refunded_at: datetime | None
     currency: str
     customer_first_name: str
     customer_last_name: str
@@ -107,6 +111,11 @@ class ClientExportNote(ApiModel):
     updated_at: datetime
 
 
+class ClientExportPackage(PackagePurchaseView):
+    terms_accepted_at: datetime | None
+    provider_terms: str | None
+
+
 class ClientExportResponse(ApiModel):
     communication: JsonObject = Field(default_factory=dict)
     booking_emails: list[dict[str, object]] = Field(default_factory=list)
@@ -117,6 +126,7 @@ class ClientExportResponse(ApiModel):
     bookings: list[ClientExportBooking]
     form_snapshots: list[JsonObject] = Field(default_factory=list)
     form_responses: list[ClientExportFormResponse]
+    package_purchases: list[ClientExportPackage] = Field(default_factory=list)
     notes: list[ClientExportNote]
 
 

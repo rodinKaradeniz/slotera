@@ -79,6 +79,12 @@ async def test_refunds_add_up_and_lower_revenue_while_a_kept_cancellation_still_
     after_full = await _refund(client, booking_id, 1)
     assert after_full.json()["error"]["code"] == "booking_refund_invalid"
 
+    # The client's data export shows how the booking was paid and what was refunded.
+    exported = (await client.get(f"/clients/{client_id}/export")).json()["bookings"]
+    row = next(item for item in exported if item["reference"] == booking["reference"])
+    assert (row["paymentMethod"], row["refundedCents"]) == ("manual", price)
+    assert row["refundedAt"] is not None
+
 
 async def test_free_bookings_have_nothing_to_refund(setup) -> None:
     client, _owner, _ = setup

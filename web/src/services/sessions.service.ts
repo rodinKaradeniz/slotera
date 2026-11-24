@@ -80,13 +80,8 @@ function mapSession(session: SessionDto): SessionItem {
 
 
 function createPayload(input: SessionInput): SessionCreateDto {
-  if (input.recurring === "custom") {
-    throw new ApiRequestError(
-      400,
-      "custom_recurrence_not_configured",
-      "Custom recurrence is not available in the local API calendar yet.",
-    );
-  }
+  const weekly = { intervalWeeks: 1, weekdays: [isoWeekdayInTimezone(input.startISO, verifiedMetadata().timezone ?? "UTC")] };
+  const rule = input.recurring === "custom" && input.custom ? input.custom : input.recurring === "one-off" ? null : weekly;
   return {
     serviceId: input.serviceId,
     startAt: input.startISO,
@@ -96,10 +91,7 @@ function createPayload(input: SessionInput): SessionCreateDto {
     location: input.location,
     address: input.address ? toAddressDto(input.address) : null,
     notes: input.notes ?? null,
-    recurrence:
-      input.recurring === "weekly"
-        ? { intervalWeeks: 1, weekdays: [isoWeekdayInTimezone(input.startISO, verifiedMetadata().timezone ?? "UTC")], endsOn: null }
-        : null,
+    recurrence: rule && { ...rule, endsOn: null },
   };
 }
 

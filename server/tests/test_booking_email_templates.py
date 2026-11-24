@@ -94,3 +94,14 @@ def test_operator_email_says_what_the_client_did_and_links_to_the_booking() -> N
     assert "Thursday, 10 January 2030 at 09:00 GMT" in body
     assert "It is waiting for your approval." in body
     assert body.endswith("https://app.example/admin/bookings/b1")
+
+
+def test_a_cancelled_package_session_goes_back_to_the_package_and_free_ones_skip_refunds() -> None:
+    for language, back in (("en", "back in your package"), ("de", "Paket"), ("tr", "paket")):
+        data = {**TEMPLATE_DATA, "language": language, "paymentMethod": "package"}
+        _, body = render_booking_email("booking_cancelled", data)
+        assert back in body
+    _, paid = render_booking_email("booking_cancelled", TEMPLATE_DATA)
+    assert "Any refund" in paid
+    _, free = render_booking_email("booking_cancelled", {**TEMPLATE_DATA, "paymentMethod": "free"})
+    assert "refund" not in free.lower()

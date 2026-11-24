@@ -220,6 +220,7 @@ export function SessionDrawer({
           location: form.location,
           address: addressOnSave,
           recurring: form.recurring,
+          custom: form.recurring === "custom" ? { intervalWeeks: Math.min(52, Math.max(1, Math.round(form.intervalWeeks) || 1)), weekdays: form.weekdays } : undefined,
           notes: form.notes,
         });
         onSaved?.(next);
@@ -318,7 +319,7 @@ export function SessionDrawer({
           <>
             <Button variant="ghost" onClick={onClose} disabled={busy}>
               {uiText("ui.cancel")}</Button>
-            <Button onClick={isEdit ? () => requestReview("save") : save} loading={busy} disabled={!form.serviceId}>
+            <Button onClick={isEdit ? () => requestReview("save") : save} loading={busy} disabled={!form.serviceId || (!isEdit && form.recurring === "custom" && form.weekdays.length === 0)}>
               {isEdit ? uiText("ui.save.changes") : uiText("ui.create.session")}
             </Button>
           </>
