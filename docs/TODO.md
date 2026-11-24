@@ -285,7 +285,8 @@ live environment.
   explicit in booking DTOs and operator/customer UI; approval decline, cancellation, and
   expiry must release a public-created capacity-one slot without cancelling an operator-
   created session; idempotency replay must not duplicate commands or events.
-- **Keep customer access narrow for now.** Do not add an all-history client dashboard in
+- **~~Keep customer access narrow for now.~~ Superseded (2026-11-16, 2026-11-22).** Workspace-scoped
+  client accounts now show booking history, messages and packages. Original note: do not add an all-history client dashboard in
   this pass. Booking-scoped magic access and the booking workspace remain a later coherent
   bundle, and a cross-booking dashboard would first require a deliberate customer-identity
   decision.
@@ -431,8 +432,8 @@ live environment.
   actor-idempotent, audited command; it completes the booking and does not alter payment
   state. Batch attendance remains a client composition of these safe per-booking commands,
   not a new broad mutation endpoint.
-- **Payments:** Stripe, payment holds, webhooks, refunds, and tax-provider work remain
-  Phase 3.
+- **Payments:** Stripe, payment holds, webhooks, card refunds, and tax-provider work remain
+  Phase 3. Recording a refund paid outside Slotera is DONE (2026-11-22).
 - **Email:** the PostgreSQL outbox, retry-safe worker, local console provider, production
   Resend provider, activation/password-reset delivery, and booking receipt/confirmation
   events/templates are DONE in code. External provider/domain configuration remains an

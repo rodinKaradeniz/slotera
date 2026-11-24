@@ -29,6 +29,15 @@ it("invalidates reads after writes and never automatically retries a write", asy
   await expect(apiRequest("/clients/id", {method: "PATCH"})).rejects.toThrow();
   expect(fetch).toHaveBeenCalledTimes(4);
 });
+it("refreshes a client's package list after a change to one of their sales", async () => {
+  const fetch = vi.fn().mockImplementation(async () => new Response("{}"));
+  vi.stubGlobal("fetch", fetch);
+  setQueryScope("workspace:a", expires());
+  await apiRequest("/clients/c1/package-purchases");
+  await apiRequest("/package-purchases/p1/payment-received", {method: "POST"});
+  await apiRequest("/clients/c1/package-purchases");
+  expect(fetch).toHaveBeenCalledTimes(3);
+});
 it("does not cache token-protected reads or server requests before verification", async () => {
   vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => new Response("{}")));
   await apiRequest("/clients");

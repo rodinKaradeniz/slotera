@@ -2523,3 +2523,8 @@ Applied every recommendation from the screenshot critique.
   refund rules and dialog, the Packages tab, the package choice, the package request body,
   buying and the demo request; `web/e2e/package.spec.ts` gains the buy → mark paid → refund
   journey.
+- **Fixed after the first browser run (2026-11-23):** marking a sale paid, voiding it or
+  refunding it left the client's package card showing the cached list, because writes under
+  `/package-purchases` did not refresh reads under `/clients` or the dashboard
+  (`relatedReads` in `api/query-cache.ts`). The browser reporter now reports failing lines
+  for every spec, not just five.

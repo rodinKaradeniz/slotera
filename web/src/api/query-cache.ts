@@ -76,6 +76,8 @@ export function relatedReads(path: string): string[] {
     services: ["services", "packages", "forms", "sessions", "bookings", "dashboard", "search"],
     forms: ["forms", "bookings", "services", "search"],
     packages: ["packages", "services", "search"],
+    // A sale's payment, void or refund changes the client's packages, total spent and revenue.
+    "package-purchases": ["package-purchases", "clients", "dashboard"],
     settings: ["settings", "availability", "sessions", "dashboard", "search"],
     availability: ["availability", "settings", "sessions", "dashboard", "search"],
     notifications: ["notifications", "dashboard"],
