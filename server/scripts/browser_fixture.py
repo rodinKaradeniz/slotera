@@ -72,6 +72,13 @@ async def run():
                 occurrence.end_at = occurrence.start_at + timedelta(minutes=30)
                 print(json.dumps({"ready": True}))
             elif operation == "manage-link":
+                # All journeys share localhost's hourly manage-link allowance; reset it.
+                await tx.execute(
+                    text(
+                        "DELETE FROM request_rate_limits WHERE scope IN "
+                        "('public_booking_manage_read', 'public_booking_manage_change')"
+                    )
+                )
                 url = await issue_manage_url(
                     tx,
                     workspace_id=booking.workspace_id,

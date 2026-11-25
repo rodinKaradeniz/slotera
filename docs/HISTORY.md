@@ -2548,4 +2548,7 @@ Applied every recommendation from the screenshot critique.
   hides the sidebar link the language check looked for. The second run found two more: the
   client page's tabs have the tab role, not button; and the calendar's week steps came from
   the day offset, which skips a week after local midnight east of UTC, so they now count
-  local Mondays to the session's real start. Test-only changes.
+  local Mondays to the session's real start. With every journey now reaching the end, the
+  last one hit the 30-per-hour manage-link limit that all of localhost shares, so the
+  browser fixture's `manage-link` step resets that limit as `prepare-auth` does for login.
+  Test-only changes.
