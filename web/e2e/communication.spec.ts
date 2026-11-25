@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { translate, type Lang } from "../src/lib/i18n";
+import { loadLang, translate, type Lang } from "../src/lib/i18n";
 const api = "http://localhost:8011";
 const origin = { Origin: "http://localhost:3345" };
 async function headers(page: Page, version?: number) {
@@ -25,6 +25,9 @@ function fixture(operation: string, value = "") {
     ),
   );
 }
+// Turkish and German load lazily; until loaded, translate() returns English.
+test.beforeAll(() => Promise.all([loadLang("tr"), loadLang("de")]));
+
 for (const lang of ["en", "tr", "de"] as Lang[]) {
   test(`client communication, follow-up and tasks in ${lang}`, async ({
     page,
@@ -179,8 +182,9 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
         customer.getByText(`Client ${lang}`, { exact: true }),
       ).toBeVisible();
       await page.goto(`/admin/messages?clientId=${client.id}`);
+      // The conversation list previews the same text; the thread bubble comes after it.
       await expect(
-        page.getByText(`Client ${lang}`, { exact: true }),
+        page.getByText(`Client ${lang}`, { exact: true }).last(),
       ).toBeVisible();
       await page
         .getByLabel(t("messages.message"), { exact: true })
@@ -207,7 +211,7 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
         customer.getByText(`Consultant ${lang}`, { exact: true }),
       ).toBeVisible();
       await customer
-        .getByRole("button", { name: t("client.account"), exact: true })
+        .getByRole("tab", { name: t("client.account"), exact: true })
         .click();
       await customer.getByLabel(t("client.digest"), { exact: true }).uncheck();
       await customer
@@ -218,7 +222,7 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
       ).toBeVisible();
       await customer.reload();
       await customer
-        .getByRole("button", { name: t("client.account"), exact: true })
+        .getByRole("tab", { name: t("client.account"), exact: true })
         .click();
       await expect(
         customer.getByLabel(t("client.digest"), { exact: true }),
@@ -255,7 +259,7 @@ for (const lang of ["en", "tr", "de"] as Lang[]) {
         ),
       ).toBe(true);
       await customer
-        .getByRole("button", { name: t("client.bookings"), exact: true })
+        .getByRole("tab", { name: t("client.bookings"), exact: true })
         .click();
       await customer
         .getByRole("button", { name: t("client.openBooking"), exact: true })

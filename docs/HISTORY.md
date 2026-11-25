@@ -2541,3 +2541,11 @@ Applied every recommendation from the screenshot critique.
 - **Checked and found complete:** every server endpoint has a screen, cache refreshes cover
   every write, translations match in all three languages, erasure clears sale notes, and
   the workspace export already includes the new columns.
+- **Browser journeys fixed (2026-11-25):** the first full run since 2026-11-18 failed every
+  Turkish and German case, because the specs never called `loadLang` after languages became
+  lazy, so their expected text was English. Two English checks were also stale: the
+  conversation list now previews the client's message (two matches), and the phone layout
+  hides the sidebar link the language check looked for. The second run found two more: the
+  client page's tabs have the tab role, not button; and the calendar's week steps came from
+  the day offset, which skips a week after local midnight east of UTC, so they now count
+  local Mondays to the session's real start. Test-only changes.

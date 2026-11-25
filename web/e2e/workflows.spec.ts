@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { mkdirSync } from "node:fs";
-import { translate, type Lang } from "../src/lib/i18n";
+import { loadLang, translate, type Lang } from "../src/lib/i18n";
 
 const api = "http://localhost:8011";
 async function headers(page: Page) {
@@ -22,6 +22,13 @@ async function reviewed(page: Page, id: string) {
   return {...await headers(page), "If-Match": `"v${current.version}"`, "X-Impact-Revision": impact.revision};
 }
 
+// Week steps from today to a date, by local Mondays as the calendar counts them. Using the
+// day offset instead breaks when the local and UTC dates differ (after local midnight east of UTC).
+function weeksAhead(date: Date) {
+  const monday = (value: Date) => { const day = new Date(value); day.setHours(0, 0, 0, 0); day.setDate(day.getDate() - (day.getDay() + 6) % 7); return day; };
+  return Math.round((+monday(date) - +monday(new Date())) / (7 * 86400_000));
+}
+
 test.afterEach(async ({page}, info) => {
   if (info.status !== info.expectedStatus) {
     mkdirSync("browser-artifacts", {recursive: true});
@@ -29,6 +36,9 @@ test.afterEach(async ({page}, info) => {
     await page.screenshot({path: `browser-artifacts/${info.project.name}-${info.title.replace(/[^a-z0-9-]/gi, "-")}.png`});
   }
 });
+
+// Turkish and German load lazily; until loaded, translate() returns English.
+test.beforeAll(() => Promise.all([loadLang("tr"), loadLang("de")]));
 
 for (const [index, lang] of (["en", "tr", "de"] as const).entries()) {
   test(`booking, forms, reviewed session changes and cancellation in ${lang}`, async ({page}, info) => {
@@ -92,8 +102,7 @@ for (const [index, lang] of (["en", "tr", "de"] as const).entries()) {
 
     info.annotations.push({type: "phase", description: "session-change"});
     await page.goto("/admin/calendar");
-    const today = new Date(); const weekday = (today.getDay() + 6) % 7;
-    for (let step = 0; step < Math.floor((weekday + offset) / 7); step++) {
+    for (let step = 0; step < weeksAhead(start); step++) {
       await page.getByRole("button", {name: t("ui.next.period", {period: t("ui.week")}), exact: true}).click();
     }
     await page.getByRole("button", {name: new RegExp(location)}).click();
@@ -132,7 +141,8 @@ for (const [index, lang] of (["en", "tr", "de"] as const).entries()) {
     await page.getByRole("radio", {name: lang.toUpperCase(), exact: true}).click();
     await expect.poll(async () => (await (await page.request.get(`${api}/auth/preferences`)).json()).language).toBe(lang);
     await page.reload();
-    await expect(page.getByRole("link", {name: t("nav.bookings"), exact: true})).toBeVisible();
+    // The sidebar is collapsed on phones; the page heading shows the language on both layouts.
+    await expect(page.getByRole("heading", {level: 1, name: t("ui.settings"), exact: true})).toBeVisible();
     expect((await (await page.request.get(`${api}/auth/preferences`)).json()).language).toBe(lang);
     const layout = await page.evaluate(() => ({width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth}));
     expect(layout.scroll).toBeLessThanOrEqual(layout.width);
@@ -164,8 +174,7 @@ test("recurring scope retains dates and stops following sessions", async ({page}
   const original = (await (await page.request.get(`${api}/sessions?seriesId=${item.seriesId}`)).json()).items;
   expect(original).toHaveLength(3);
   await page.goto("/admin/calendar");
-  const weekday = (new Date().getDay() + 6) % 7;
-  for (let step = 0; step < Math.floor((weekday + offset) / 7); step++) {
+  for (let step = 0; step < weeksAhead(first); step++) {
     await page.getByRole("button", {name: t("ui.next.period", {period: t("ui.week")}), exact: true}).click();
   }
   await page.getByRole("button", {name: new RegExp(location)}).click();

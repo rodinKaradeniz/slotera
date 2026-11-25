@@ -2,7 +2,10 @@ import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { translate, type Lang } from "../src/lib/i18n";
+import { loadLang, translate, type Lang } from "../src/lib/i18n";
+// Turkish and German load lazily; until loaded, translate() returns English.
+test.beforeAll(() => Promise.all([loadLang("tr"), loadLang("de")]));
+
 for (const lang of ["en", "tr", "de"] as Lang[]) {
   test(`directory summaries and combined settings in ${lang}`, async ({page}, info) => {
     execFileSync(resolve("../server/.venv/bin/python"), [resolve("../server/scripts/browser_fixture.py"), "prepare-auth"], {stdio: "pipe"});

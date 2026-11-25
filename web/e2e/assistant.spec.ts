@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { translate, type Lang } from "../src/lib/i18n";
+import { loadLang, translate, type Lang } from "../src/lib/i18n";
 const api = "http://localhost:8011";
 const origin = { Origin: "http://localhost:3345" };
 function fixture(mode: string) {
@@ -18,6 +18,9 @@ async function headers(page: Page) {
   );
   return { ...origin, "X-CSRF-Token": csrf?.value ?? "" };
 }
+// Turkish and German load lazily; until loaded, translate() returns English.
+test.beforeAll(() => Promise.all([loadLang("tr"), loadLang("de")]));
+
 for (const lang of ["en", "tr", "de"] as Lang[]) {
   test(`assistant answers, reviewed actions and briefings in ${lang}`, async ({
     page,
